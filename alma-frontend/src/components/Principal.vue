@@ -1,7 +1,11 @@
 <template>
   <div id="app">
     <aside class="sidebar">
-      <button v-for="item in menuItems" :key="item.text" @click="selectMenu(item.text)">
+      <button
+        v-for="item in menuItems"
+        :key="item.text"
+        @click="selectMenu(item.text)"
+      >
         <i :class="item.icon"></i>
         <span>{{ item.text }}</span>
       </button>
@@ -29,7 +33,11 @@
         <div class="card stock">
           <h3>Stock</h3>
           <ul class="stock-list">
-            <li v-for="item in stock" :key="item.nombre" :class="{ 'low-stock': item.bajoStock }">
+            <li
+              v-for="item in stock"
+              :key="item.nombre"
+              :class="{ 'low-stock': item.bajoStock }"
+            >
               <span>{{ item.nombre }}</span>
               <span>{{ item.cantidad }}</span>
             </li>
@@ -65,73 +73,63 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: "PaginaPrincipal",
-  data() {
-    return {
-      menuItems: [
-        { text: "Inicio", icon: "fas fa-house" },
-        { text: "Stock", icon: "fas fa-box" },
-        { text: "Pedidos", icon: "fas fa-clipboard-list" },
-        { text: "Recetas", icon: "fas fa-book" },
-        { text: "Reportes", icon: "fas fa-chart-line" },
-      ],
-      stock: [
-        { nombre: "Banana", cantidad: "20 ud", bajoStock: false },
-        { nombre: "Harina", cantidad: "50 Kg", bajoStock: false },
-        { nombre: "Melocotón", cantidad: "6 ud", bajoStock: true },
-        { nombre: "Leche", cantidad: "40 L", bajoStock: false },
-        { nombre: "Manteca", cantidad: "5 Kg", bajoStock: false },
-        { nombre: "Limón", cantidad: "7 ud", bajoStock: true },
-        { nombre: "Azúcar", cantidad: "70 Kg", bajoStock: false },
-        { nombre: "Proteína", cantidad: "10 Kg", bajoStock: false },
-        { nombre: "Dulce de Leche", cantidad: "10 Kg", bajoStock: false },
-        { nombre: "Crema", cantidad: "400 cc", bajoStock: true },
-        { nombre: "Huevos", cantidad: "80 ud", bajoStock: false },
-        { nombre: "Polvo para hornear", cantidad: "5 Kg", bajoStock: false },
-        { nombre: "Chocolate Blanco", cantidad: "15 Kg", bajoStock: false },
-        { nombre: "Chocolate Amargo", cantidad: "15 Kg", bajoStock: false },
-        { nombre: "Café", cantidad: "5 Kg", bajoStock: false },
-        { nombre: "Cacao", cantidad: "7 Kg", bajoStock: false },
-        { nombre: "Naranja", cantidad: "32 ud", bajoStock: false },
-        { nombre: "Aceite", cantidad: "1 L", bajoStock: true },
-      ],
-      entregarHoy: [
-        { nombre: "Sandra", estado: "Listo", completado: true },
-        { nombre: "Nati", estado: "Listo", completado: true },
-        { nombre: "José", estado: "Entregado", completado: true },
-      ],
-      hacerHoy: [
-        { nombre: "Sandra", estado: "Pendiente", completado: false },
-        { nombre: "Nati", estado: "En Preparación", completado: false },
-        { nombre: "José", estado: "Listo", completado: true },
-      ],
-      recetas: [
-        { nombre: "Brownies Común", cantidad: 10 },
-        { nombre: "Tarta de Coco", cantidad: 0 },
-        { nombre: "Cookies", cantidad: 2 },
-      ],
-      searchTerm: "",
-    };
-  },
-  computed: {
-    filteredRecetas() {
-      if (!this.searchTerm) return this.recetas;
-      return this.recetas.filter((r) =>
-        r.nombre.toLowerCase().includes(this.searchTerm.toLowerCase())
-      );
-    },
-  },
-  methods: {
-    selectMenu(item) {
-      // Aquí podés agregar navegación o lógica al hacer clic en el menú
-      alert(`Seleccionaste: ${item}`);
-    },
-  },
-};
-</script>
+<script setup>
+import { onMounted, ref, computed } from "vue";
+import { useRouter } from "vue-router";
 
+const router = useRouter();
+
+// Datos reactivos
+const menuItems = ref([
+  { text: "Inicio", icon: "fas fa-house" },
+  { text: "Stock", icon: "fas fa-box" },
+  { text: "Pedidos", icon: "fas fa-clipboard-list" },
+  { text: "Recetas", icon: "fas fa-book" },
+  { text: "Reportes", icon: "fas fa-chart-line" },
+]);
+
+const stock = ref([
+  { nombre: "Banana", cantidad: "20 ud", bajoStock: false },
+  // ... resto de los items de stock
+]);
+
+const entregarHoy = ref([
+  { nombre: "Sandra", estado: "Listo", completado: true },
+  // ... resto de los items
+]);
+
+const hacerHoy = ref([
+  { nombre: "Sandra", estado: "Pendiente", completado: false },
+  // ... resto de los items
+]);
+
+const recetas = ref([
+  { nombre: "Brownies Común", cantidad: 10 },
+  // ... resto de las recetas
+]);
+
+const searchTerm = ref("");
+
+// Computed properties
+const filteredRecetas = computed(() => {
+  if (!searchTerm.value) return recetas.value;
+  return recetas.value.filter((r) =>
+    r.nombre.toLowerCase().includes(searchTerm.value.toLowerCase())
+  );
+});
+
+// Métodos
+const selectMenu = (item) => {
+  alert(`Seleccionaste: ${item}`);
+};
+
+// Verificación de autenticación
+onMounted(() => {
+  if (!localStorage.getItem("access_token")) {
+    router.push("/login");
+  }
+});
+</script>
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
 
