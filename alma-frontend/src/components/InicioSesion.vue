@@ -32,20 +32,42 @@
 
         <button type="submit" class="login-button">Ingresar</button>
       </form>
-
+        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
       <a href="#" class="forgot-password">¿Olvidaste la contraseña?</a>
     </div>
   </div>
 </template>
 <script setup>
 import { ref } from "vue";
+import axios from 'axios';
+import { useRouter } from 'vue-router';
 
 const username = ref("");
 const password = ref("");
+const router = useRouter();
+const errorMessage = ref("");
 
-const handleSubmit = () => {
-  console.log("Usuario:", username.value);
-  console.log("Contraseña:", password.value);
+const handleSubmit = async () => {
+  try {
+    const response = await axios.post('http://localhost:8000/api/auth/login/', {
+      username: username.value,
+      password: password.value
+    });
+
+    // Guardar tokens en localStorage o en una store (como Pinia)
+    localStorage.setItem('access_token', response.data.access);
+    localStorage.setItem('refresh_token', response.data.refresh);
+
+    // Redirigir al dashboard o página principal
+    router.push('/');
+  } catch (error) {
+    if (error.response) {
+      // El servidor respondió con un código de estado fuera del rango 2xx
+      errorMessage.value = error.response.data.detail || "Credenciales incorrectas";
+    } else {
+      errorMessage.value = "Error de conexión con el servidor";
+    }
+  }
 };
 </script>
 <style scoped>
@@ -138,4 +160,10 @@ const handleSubmit = () => {
   text-decoration: none;
   display: block;
 }
+
+.error-message {
+  color: red;
+  margin-top: 1rem;
+}
+
 </style>
