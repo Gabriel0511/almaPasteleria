@@ -76,6 +76,7 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",  # O el puerto que uses en Vue
     "http://127.0.0.1:8080",
+    "http://localhost:5173",
 ]
 
 ROOT_URLCONF = 'mysite.urls'
@@ -107,7 +108,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'almapasteleria',
         'USER': 'root',
-        'PASSWORD': '0912',
+        'PASSWORD': '123456',
         'HOST': 'localhost',
         'PORT': '3306',
     }

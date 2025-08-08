@@ -3,17 +3,21 @@
     <div class="login-card">
       <h1 class="login-title">Iniciar Sesión</h1>
 
-      <img src="/public/Logo Pasteleria.jpg" alt="Logo de Alma Pastelería" class="login-logo" />
+      <img
+        src="/public/Logo Pasteleria.jpg"
+        alt="Logo de Alma Pastelería"
+        class="login-logo"
+      />
 
       <form @submit.prevent="handleSubmit" class="login-form">
         <div class="form-group">
-          <label for="username">Usuario</label>
+          <label for="email">Correo Electrónico</label>
           <input
-            type="text"
-            id="username"
-            v-model="username"
+            type="email"
+            id="email"
+            v-model="email"
             required
-            placeholder=""
+            placeholder="tu@email.com"
             class="form-input"
           />
         </div>
@@ -32,38 +36,39 @@
 
         <button type="submit" class="login-button">Ingresar</button>
       </form>
-        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+      <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
       <a href="#" class="forgot-password">¿Olvidaste la contraseña?</a>
     </div>
   </div>
 </template>
 <script setup>
 import { ref } from "vue";
-import axios from 'axios';
-import { useRouter } from 'vue-router';
+import axios from "axios";
+import { useRouter } from "vue-router";
 
-const username = ref("");
+const email = ref("");
 const password = ref("");
 const router = useRouter();
 const errorMessage = ref("");
 
 const handleSubmit = async () => {
   try {
-    const response = await axios.post('http://localhost:8000/api/auth/login/', {
-      username: username.value,
-      password: password.value
+    const response = await axios.post("http://localhost:8000/api/auth/login/", {
+      email: email.value,
+      password: password.value,
     });
 
     // Guardar tokens en localStorage o en una store (como Pinia)
-    localStorage.setItem('access_token', response.data.access);
-    localStorage.setItem('refresh_token', response.data.refresh);
+    localStorage.setItem("access_token", response.data.access);
+    localStorage.setItem("refresh_token", response.data.refresh);
 
     // Redirigir al dashboard o página principal
-    router.push('/');
+    router.push("/");
   } catch (error) {
     if (error.response) {
       // El servidor respondió con un código de estado fuera del rango 2xx
-      errorMessage.value = error.response.data.detail || "Credenciales incorrectas";
+      errorMessage.value =
+        error.response.data.detail || "Credenciales incorrectas";
     } else {
       errorMessage.value = "Error de conexión con el servidor";
     }
@@ -165,5 +170,4 @@ const handleSubmit = async () => {
   color: red;
   margin-top: 1rem;
 }
-
 </style>
