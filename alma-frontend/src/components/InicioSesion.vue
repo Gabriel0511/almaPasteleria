@@ -63,7 +63,11 @@ const handleSubmit = async () => {
     localStorage.setItem("refresh_token", response.data.refresh);
 
     // Redirigir al dashboard o página principal
+<<<<<<< HEAD
     router.push("/");
+=======
+    router.push("/dashboard");
+>>>>>>> 1879a32 (Inicio.3)
   } catch (error) {
     if (error.response) {
       // El servidor respondió con un código de estado fuera del rango 2xx
