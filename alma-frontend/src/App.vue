@@ -1,9 +1,9 @@
 <template>
-  <LoginForm />
+  <router-view />
 </template>
 
 <script setup>
-import LoginForm from "./components/LoginForm.vue";
+// No hace falta importar InicioSesion ni Principal acá
 </script>
 
 <style scoped>

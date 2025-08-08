@@ -3,6 +3,8 @@
     <div class="login-card">
       <h1 class="login-title">Iniciar Sesión</h1>
 
+      <img src="/public/Logo Pasteleria.jpg" alt="Logo de Alma Pastelería" class="login-logo" />
+
       <form @submit.prevent="handleSubmit" class="login-form">
         <div class="form-group">
           <label for="username">Usuario</label>
@@ -11,7 +13,7 @@
             id="username"
             v-model="username"
             required
-            placeholder="Ingresa tu usuario"
+            placeholder=""
             class="form-input"
           />
         </div>
@@ -23,7 +25,7 @@
             id="password"
             v-model="password"
             required
-            placeholder="Ingresa tu contraseña"
+            placeholder=""
             class="form-input"
           />
         </div>
@@ -35,7 +37,6 @@
     </div>
   </div>
 </template>
-
 <script setup>
 import { ref } from "vue";
 
@@ -43,98 +44,98 @@ const username = ref("");
 const password = ref("");
 
 const handleSubmit = () => {
-  // Lógica para manejar el inicio de sesión
   console.log("Usuario:", username.value);
   console.log("Contraseña:", password.value);
-
-  // Aquí iría la llamada a tu API o servicio de autenticación
 };
 </script>
-
 <style scoped>
 .login-container {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #f5f5f5;
-  padding: 20px;
+  background-color: #8d6e69;
 }
 
 .login-card {
-  background: white;
+  background-color: #f4cdcd;
   padding: 2rem;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 25px;
   width: 100%;
-  max-width: 400px;
+  max-width: 420px; /* Más ancho */
+  text-align: center;
+  border: 1px solid #000;
 }
 
 .login-title {
-  text-align: center;
-  color: #333;
+  font-size: 2.2rem;
+  color: #000;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.login-logo {
+  width: 160px;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 50%;
   margin-bottom: 1.5rem;
-  font-size: 1.8rem;
+  border: 3px solid #f4cdcd;
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
+  align-items: center;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  align-items: flex-start; /* Alineado a la izquierda */
+  font-weight: 500;
+  color: #000;
+  width: 90%;
 }
 
 .form-group label {
-  color: #555;
-  font-weight: 500;
+  margin-bottom: 0.4rem;
+  font-size: 1.2rem; /* Más grande */
 }
 
 .form-input {
+  width: 100%;
   padding: 0.8rem;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 1rem;
-  transition: border-color 0.3s;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: #4a90e2;
+  border: 1px solid #000;
+  border-radius: 10px;
+  background-color: white;
+  font-size: 1.05rem;
 }
 
 .login-button {
-  background-color: #4a90e2;
+  background-color: #7f615c;
   color: white;
-  padding: 0.8rem;
+  padding: 0.9rem;
   border: none;
-  border-radius: 5px;
-  font-size: 1rem;
-  font-weight: 600;
+  border-radius: 20px;
+  font-size: 1.1rem;
+  font-weight: 500;
   cursor: pointer;
+  margin-top: 1rem;
   transition: background-color 0.3s;
-  margin-top: 0.5rem;
+  width: 90%;
 }
 
 .login-button:hover {
-  background-color: #3a7bc8;
+  background-color: #6b524e;
 }
 
 .forgot-password {
-  display: block;
-  text-align: center;
-  margin-top: 1.5rem;
-  color: #666;
+  margin-top: 1.3rem;
+  color: #000;
+  font-size: 1rem;
   text-decoration: none;
-  font-size: 0.9rem;
-}
-
-.forgot-password:hover {
-  color: #4a90e2;
-  text-decoration: underline;
+  display: block;
 }
 </style>
