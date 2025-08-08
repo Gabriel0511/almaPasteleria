@@ -1,0 +1,286 @@
+<template>
+  <div id="app">
+    <aside class="sidebar">
+      <button v-for="item in menuItems" :key="item.text" @click="selectMenu(item.text)">
+        <i :class="item.icon"></i>
+        <span>{{ item.text }}</span>
+      </button>
+      <div class="footer-icon">
+        <i class="fas fa-clipboard-check"></i>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="header">
+        <div></div>
+        <div class="logo">
+          <img src="/public/Logo Pasteleria.jpg" alt="Logo Pastelería" />
+        </div>
+        <div class="icon-buttons">
+          <div class="notification-icon">
+            <i class="fas fa-bell"></i>
+            <span class="notification">3</span>
+          </div>
+          <i class="fas fa-user"></i>
+        </div>
+      </header>
+
+      <section class="content">
+        <div class="card stock">
+          <h3>Stock</h3>
+          <ul class="stock-list">
+            <li v-for="item in stock" :key="item.nombre" :class="{ 'low-stock': item.bajoStock }">
+              <span>{{ item.nombre }}</span>
+              <span>{{ item.cantidad }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="card tasks">
+          <h3>Entregar Hoy</h3>
+          <label v-for="task in entregarHoy" :key="task.nombre">
+            <input type="checkbox" v-model="task.completado" />
+            <strong>{{ task.nombre }}.</strong> Estado: {{ task.estado }}.
+          </label>
+        </div>
+
+        <div class="card search-box">
+          <input type="text" v-model="searchTerm" placeholder="Buscar..." />
+          <ul>
+            <li v-for="item in filteredRecetas" :key="item.nombre">
+              <strong>{{ item.nombre }}</strong> – ({{ item.cantidad }})+
+            </li>
+          </ul>
+        </div>
+
+        <div class="card tasks">
+          <h3>Hacer Hoy (para 01/05)</h3>
+          <label v-for="task in hacerHoy" :key="task.nombre">
+            <input type="checkbox" v-model="task.completado" />
+            <strong>{{ task.nombre }}.</strong> Estado: {{ task.estado }}.
+          </label>
+        </div>
+      </section>
+    </main>
+  </div>
+</template>
+
+<script>
+export default {
+  name: "PaginaPrincipal",
+  data() {
+    return {
+      menuItems: [
+        { text: "Inicio", icon: "fas fa-house" },
+        { text: "Stock", icon: "fas fa-box" },
+        { text: "Pedidos", icon: "fas fa-clipboard-list" },
+        { text: "Recetas", icon: "fas fa-book" },
+        { text: "Reportes", icon: "fas fa-chart-line" },
+      ],
+      stock: [
+        { nombre: "Banana", cantidad: "20 ud", bajoStock: false },
+        { nombre: "Harina", cantidad: "50 Kg", bajoStock: false },
+        { nombre: "Melocotón", cantidad: "6 ud", bajoStock: true },
+        { nombre: "Leche", cantidad: "40 L", bajoStock: false },
+        { nombre: "Manteca", cantidad: "5 Kg", bajoStock: false },
+        { nombre: "Limón", cantidad: "7 ud", bajoStock: true },
+        { nombre: "Azúcar", cantidad: "70 Kg", bajoStock: false },
+        { nombre: "Proteína", cantidad: "10 Kg", bajoStock: false },
+        { nombre: "Dulce de Leche", cantidad: "10 Kg", bajoStock: false },
+        { nombre: "Crema", cantidad: "400 cc", bajoStock: true },
+        { nombre: "Huevos", cantidad: "80 ud", bajoStock: false },
+        { nombre: "Polvo para hornear", cantidad: "5 Kg", bajoStock: false },
+        { nombre: "Chocolate Blanco", cantidad: "15 Kg", bajoStock: false },
+        { nombre: "Chocolate Amargo", cantidad: "15 Kg", bajoStock: false },
+        { nombre: "Café", cantidad: "5 Kg", bajoStock: false },
+        { nombre: "Cacao", cantidad: "7 Kg", bajoStock: false },
+        { nombre: "Naranja", cantidad: "32 ud", bajoStock: false },
+        { nombre: "Aceite", cantidad: "1 L", bajoStock: true },
+      ],
+      entregarHoy: [
+        { nombre: "Sandra", estado: "Listo", completado: true },
+        { nombre: "Nati", estado: "Listo", completado: true },
+        { nombre: "José", estado: "Entregado", completado: true },
+      ],
+      hacerHoy: [
+        { nombre: "Sandra", estado: "Pendiente", completado: false },
+        { nombre: "Nati", estado: "En Preparación", completado: false },
+        { nombre: "José", estado: "Listo", completado: true },
+      ],
+      recetas: [
+        { nombre: "Brownies Común", cantidad: 10 },
+        { nombre: "Tarta de Coco", cantidad: 0 },
+        { nombre: "Cookies", cantidad: 2 },
+      ],
+      searchTerm: "",
+    };
+  },
+  computed: {
+    filteredRecetas() {
+      if (!this.searchTerm) return this.recetas;
+      return this.recetas.filter((r) =>
+        r.nombre.toLowerCase().includes(this.searchTerm.toLowerCase())
+      );
+    },
+  },
+  methods: {
+    selectMenu(item) {
+      // Aquí podés agregar navegación o lógica al hacer clic en el menú
+      alert(`Seleccionaste: ${item}`);
+    },
+  },
+};
+</script>
+
+<style scoped>
+@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
+
+body,
+html,
+#app {
+  margin: 0;
+  font-family: sans-serif;
+  background-color: #f1d0cb;
+  color: #3c3c3c;
+  height: 100vh;
+  display: flex;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 120px;
+  background-color: #7b5a50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 10px;
+}
+
+.sidebar button {
+  background: none;
+  border: none;
+  color: #fff;
+  margin: 15px 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 14px;
+}
+
+.sidebar button i {
+  font-size: 20px;
+  margin-bottom: 5px;
+}
+
+.footer-icon {
+  margin-top: auto;
+  margin-bottom: 10px;
+  color: white;
+  font-size: 22px;
+}
+
+.main {
+  margin-left: 120px;
+  padding: 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.logo img {
+  height: 70px;
+  margin-bottom: 10px;
+}
+
+.icon-buttons {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.icon-buttons i {
+  font-size: 20px;
+  background-color: white;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.notification-icon {
+  position: relative;
+}
+
+.notification {
+  background-color: red;
+  color: white;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 50%;
+  position: absolute;
+  top: -10px;
+  left: -15px;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: auto auto;
+  gap: 20px;
+  flex-grow: 1;
+}
+
+.card {
+  background-color: #f5dfdd;
+  border-radius: 15px;
+  box-shadow: 2px 4px 6px #aaa;
+  padding: 15px;
+  overflow-y: auto;
+}
+
+.card h3 {
+  margin-top: 0;
+  font-size: 18px;
+}
+
+.stock-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.stock-list li {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.low-stock {
+  color: red;
+  font-weight: bold;
+}
+
+.tasks label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 5px;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+</style>
