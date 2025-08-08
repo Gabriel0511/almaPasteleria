@@ -1,0 +1,38 @@
+# ========= BACKEND (Django/Python) ========= #
+# Entornos virtuales
+**/alma-backend/venv/
+**/alma-backend/.env
+**/alma-backend/.venv/
+**/alma-backend/env/
+
+# Python
+**/alma-backend/__pycache__/
+**/alma-backend/*.py[cod]
+**/alma-backend/*.sqlite3
+
+# Django
+**/alma-backend/staticfiles/
+**/alma-backend/media/
+**/alma-backend/db.sqlite3
+
+# ========= FRONTEND (React/Vue/Angular) ========= #
+# Node.js
+**/alma-frontend/node_modules/
+**/alma-frontend/.env
+**/alma-frontend/.env.local
+**/alma-frontend/dist/
+**/alma-frontend/.next/  (Next.js)
+**/alma-frontend/.cache/
+
+# Logs y caché
+**/alma-frontend/npm-debug.log*
+**/alma-frontend/yarn-debug.log*
+**/alma-frontend/yarn-error.log*
+
+# ========= GENERAL ========= #
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
