@@ -4,6 +4,8 @@
 **/alma-backend/.env
 **/alma-backend/.venv/
 **/alma-backend/env/
+**/alma-backend/__pycache__/
+*.pyc
 
 # Python
 **/alma-backend/__pycache__/
