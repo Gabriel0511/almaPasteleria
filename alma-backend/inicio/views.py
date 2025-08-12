@@ -5,6 +5,12 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import UsuarioSerializer, LoginSerializer
 
+class VerifyTokenView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        return Response({"detail": "Token válido"})
+
 class RegistroView(APIView):
     permission_classes = [AllowAny]
 

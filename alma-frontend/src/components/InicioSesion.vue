@@ -59,14 +59,24 @@ const handleSubmit = async () => {
       password: password.value,
     });
 
-    // Guardar tokens correctamente
+    console.log("Respuesta del login:", response.data); // Debug
+
+    // Guardar tokens
     localStorage.setItem("access_token", response.data.access);
     localStorage.setItem("refresh_token", response.data.refresh);
 
-    // Redirigir
+    // Configurar Axios para futuras peticiones
+    axios.defaults.headers.common[
+      "Authorization"
+    ] = `Bearer ${response.data.access}`;
+
+    console.log("Token guardado:", localStorage.getItem("access_token")); // Debug
+
     router.push("/dashboard");
   } catch (error) {
-    // Manejo de errores
+    console.error("Error en login:", error);
+    errorMessage.value =
+      error.response?.data?.detail || "Credenciales incorrectas";
   }
 };
 </script>

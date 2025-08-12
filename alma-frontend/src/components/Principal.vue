@@ -100,6 +100,10 @@ const menuItems = ref([
 const stock = ref([]);
 const loading = ref(true);
 const error = ref(null);
+// Datos de recetas
+const recetas = ref([]);
+const loadingRecetas = ref(false);
+const errorRecetas = ref(null);
 
 // Datos estáticos (ejemplo)
 const entregarHoy = ref([
@@ -112,12 +116,6 @@ const hacerHoy = ref([
   { nombre: "Sandra", estado: "Pendiente", completado: false },
   { nombre: "Nati", estado: "En Preparación", completado: false },
   { nombre: "José", estado: "Listo", completado: true },
-]);
-
-const recetas = ref([
-  { nombre: "Brownies Común", cantidad: 10 },
-  { nombre: "Tarta de Coco", cantidad: 0 },
-  { nombre: "Cookies", cantidad: 2 },
 ]);
 
 const searchTerm = ref("");
@@ -133,6 +131,19 @@ const filteredRecetas = computed(() => {
 // Métodos
 const selectMenu = (item) => {
   alert(`Seleccionaste: ${item}`);
+};
+
+const fetchRecetas = async () => {
+  try {
+    loadingRecetas.value = true;
+    const response = await axios.get("/api/recetas/");
+    recetas.value = response.data;
+  } catch (err) {
+    errorRecetas.value = "Error al cargar las recetas";
+    console.error("Error fetching recipes:", err);
+  } finally {
+    loadingRecetas.value = false;
+  }
 };
 
 // Obtener datos de stock desde la API
@@ -183,10 +194,25 @@ const fetchStock = async () => {
 
 // Verificación de autenticación y carga inicial
 onMounted(() => {
-  if (!localStorage.getItem("access_token")) {
+  const token = localStorage.getItem("access_token");
+  console.log("Token en Principal.vue:", token); // Debug
+
+  if (!token) {
+    console.log("No hay token, redirigiendo a login");
     router.push("/login");
   } else {
-    fetchStock();
+    // Verificar si el token es válido
+    axios
+      .get("/api/auth/verify/") // Necesitarás implementar este endpoint
+      .then(() => {
+        fetchStock();
+        fetchRecetas();
+      })
+      .catch(() => {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        router.push("/login");
+      });
   }
 });
 </script>
