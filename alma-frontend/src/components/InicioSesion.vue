@@ -4,7 +4,7 @@
       <h1 class="login-title">Iniciar Sesión</h1>
 
       <img
-        src="/public/Logo Pasteleria.jpg"
+        src="/src/Logo Pasteleria.jpg"
         alt="Logo de Alma Pastelería"
         class="login-logo"
       />
@@ -51,31 +51,22 @@ const password = ref("");
 const router = useRouter();
 const errorMessage = ref("");
 
+// En tu componente de login (InicioSesion.vue)
 const handleSubmit = async () => {
   try {
-    const response = await axios.post("http://localhost:8000/api/auth/login/", {
+    const response = await axios.post("/api/auth/login/", {
       email: email.value,
       password: password.value,
     });
 
-    // Guardar tokens en localStorage o en una store (como Pinia)
+    // Guardar tokens correctamente
     localStorage.setItem("access_token", response.data.access);
     localStorage.setItem("refresh_token", response.data.refresh);
 
-    // Redirigir al dashboard o página principal
-<<<<<<< HEAD
-    router.push("/");
-=======
+    // Redirigir
     router.push("/dashboard");
->>>>>>> 1879a32 (Inicio.3)
   } catch (error) {
-    if (error.response) {
-      // El servidor respondió con un código de estado fuera del rango 2xx
-      errorMessage.value =
-        error.response.data.detail || "Credenciales incorrectas";
-    } else {
-      errorMessage.value = "Error de conexión con el servidor";
-    }
+    // Manejo de errores
   }
 };
 </script>

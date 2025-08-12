@@ -18,7 +18,7 @@
       <header class="header">
         <div></div>
         <div class="logo">
-          <img src="/public/Logo Pasteleria.jpg" alt="Logo Pastelería" />
+          <img src="/src/Logo Pasteleria.jpg" alt="Logo Pastelería" />
         </div>
         <div class="icon-buttons">
           <div class="notification-icon">
@@ -31,14 +31,21 @@
 
       <section class="content">
         <div class="card stock">
-          <h3>Stock</h3>
-          <ul class="stock-list">
+          <h3>
+            Stock
+            <span v-if="insumosBajoStock > 0" class="badge">
+              {{ insumosBajoStock }} bajo stock
+            </span>
+          </h3>
+          <div v-if="loading" class="loading">Cargando stock...</div>
+          <div v-else-if="error" class="error">{{ error }}</div>
+          <ul v-else class="stock-list">
             <li
               v-for="item in stock"
               :key="item.nombre"
               :class="{ 'low-stock': item.bajoStock }"
             >
-              <span>{{ item.nombre }}</span>
+              <span>{{ item.nombre }} ({{ item.categoria }})</span>
               <span>{{ item.cantidad }}</span>
             </li>
           </ul>
@@ -76,6 +83,7 @@
 <script setup>
 import { onMounted, ref, computed } from "vue";
 import { useRouter } from "vue-router";
+import axios from "axios";
 
 const router = useRouter();
 
@@ -88,24 +96,28 @@ const menuItems = ref([
   { text: "Reportes", icon: "fas fa-chart-line" },
 ]);
 
-const stock = ref([
-  { nombre: "Banana", cantidad: "20 ud", bajoStock: false },
-  // ... resto de los items de stock
-]);
+// Datos de stock (ahora viene de la API)
+const stock = ref([]);
+const loading = ref(true);
+const error = ref(null);
 
+// Datos estáticos (ejemplo)
 const entregarHoy = ref([
   { nombre: "Sandra", estado: "Listo", completado: true },
-  // ... resto de los items
+  { nombre: "Nati", estado: "Listo", completado: true },
+  { nombre: "José", estado: "Entregado", completado: true },
 ]);
 
 const hacerHoy = ref([
   { nombre: "Sandra", estado: "Pendiente", completado: false },
-  // ... resto de los items
+  { nombre: "Nati", estado: "En Preparación", completado: false },
+  { nombre: "José", estado: "Listo", completado: true },
 ]);
 
 const recetas = ref([
   { nombre: "Brownies Común", cantidad: 10 },
-  // ... resto de las recetas
+  { nombre: "Tarta de Coco", cantidad: 0 },
+  { nombre: "Cookies", cantidad: 2 },
 ]);
 
 const searchTerm = ref("");
@@ -123,10 +135,58 @@ const selectMenu = (item) => {
   alert(`Seleccionaste: ${item}`);
 };
 
-// Verificación de autenticación
+// Obtener datos de stock desde la API
+const fetchStock = async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      throw new Error("No hay token de acceso");
+    }
+
+    const response = await axios.get("/api/insumos/", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    stock.value = response.data.insumos.map((insumo) => ({
+      nombre: insumo.nombre,
+      cantidad: `${insumo.stock_actual} ${insumo.unidad_medida.abreviatura}`,
+      bajoStock: insumo.necesita_reposicion,
+      categoria: insumo.categoria?.nombre || "Sin categoría",
+    }));
+  } catch (err) {
+    if (err.response?.status === 401) {
+      showNotification(
+        "Tu sesión ha expirado, por favor inicia sesión nuevamente",
+        "error"
+      );
+    } else {
+      showNotification("Error al cargar los insumos", "error");
+    }
+    console.error("Error en fetchStock:", err);
+    error.value = err.response?.data?.detail || "Error al cargar los insumos";
+
+    // Si es error 401, redirigir a login
+    if (err.response?.status === 401) {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      router.push("/login");
+    }
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Verificación de autenticación y carga inicial
 onMounted(() => {
   if (!localStorage.getItem("access_token")) {
     router.push("/login");
+  } else {
+    fetchStock();
   }
 });
 </script>
@@ -280,5 +340,37 @@ html,
   padding: 5px;
   font-size: 14px;
   margin-bottom: 10px;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+}
+
+.error {
+  color: red;
+  padding: 10px;
+  text-align: center;
+}
+
+.badge {
+  background-color: #ff6b6b;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.8em;
+  margin-left: 10px;
+}
+
+.stock-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.stock-list li:last-child {
+  border-bottom: none;
 }
 </style>
