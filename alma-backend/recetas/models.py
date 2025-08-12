@@ -26,7 +26,7 @@ class RecetaInsumo(models.Model):
     receta = models.ForeignKey(Receta, on_delete=models.CASCADE)
     insumo = models.ForeignKey(Insumo, on_delete=models.CASCADE)
     cantidad = models.PositiveIntegerField()
-    UnidadMedida = models.ForeignKey(UnidadMedida, on_delete=models.CASCADE, null=True, blank=True)
+    unidad_medida = models.ForeignKey('insumos.UnidadMedida', on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
         return f"{self.insumo.nombre} en {self.receta.nombre}"
