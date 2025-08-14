@@ -25,7 +25,16 @@
             <i class="fas fa-bell"></i>
             <span class="notification">99</span>
           </div>
-          <i class="fas fa-user"></i>
+          <div class="user-menu-container">
+            <i class="fas fa-user user-icon" @click="toggleUserMenu"></i>
+            <div v-if="showUserMenu" class="user-menu">
+              <div class="menu-header">{{ userEmail }}</div>
+              <div class="menu-item" @click="openChangePassword">
+                Cambiar contraseña
+              </div>
+              <div class="menu-item" @click="logout">Cerrar sesión</div>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -699,6 +708,116 @@ html,
 
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+.user-menu-container {
+  position: relative;
+  display: inline-block;
+}
+
+.user-icon {
+  font-size: 20px;
+  background-color: white;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.user-icon:hover {
+  background-color: #f0f0f0;
+}
+
+.user-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  width: 200px;
+  z-index: 1000;
+  margin-top: 5px;
+}
+
+.menu-header {
+  padding: 10px 15px;
+  font-weight: bold;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.menu-item {
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.menu-item:hover {
+  background-color: #f8f9fa;
+}
+
+.menu-item:last-child {
+  border-radius: 0 0 8px 8px;
+}
+
+/* Estilos para el modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 400px;
+  max-width: 90%;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+.cancel-button {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.confirm-button {
+  padding: 8px 16px;
+  background-color: #7b5a50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-top: 5px;
 }
 
 /* ----------------------------- RESPONSIVE ----------------------------- */
