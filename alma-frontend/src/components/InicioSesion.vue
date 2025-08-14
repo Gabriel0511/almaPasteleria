@@ -37,7 +37,40 @@
         <button type="submit" class="login-button">Ingresar</button>
       </form>
       <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-      <a href="#" class="forgot-password">¿Olvidaste la contraseña?</a>
+      <a href="#" class="forgot-password" @click.prevent="toggleRecoveryModal">
+        ¿Olvidaste la contraseña?
+      </a>
+    </div>
+  </div>
+  <!-- Modal de recuperación -->
+  <div v-if="showRecoveryModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Recuperar Contraseña</h3>
+
+      <div v-if="!codeSent">
+        <input v-model="recoveryEmail" type="email" placeholder="Tu email" />
+        <input
+          v-model="whatsappNumber"
+          type="tel"
+          placeholder="5491123456789"
+        />
+        <button @click="sendWhatsAppCode">Enviar Código</button>
+      </div>
+
+      <div v-else-if="!verifiedCode">
+        <p>Ingresa el código de 6 dígitos enviado por WhatsApp</p>
+        <input v-model="recoveryCode" maxlength="6" />
+        <button @click="verifyCode">Verificar</button>
+      </div>
+
+      <div v-else>
+        <input
+          v-model="newPassword"
+          type="password"
+          placeholder="Nueva contraseña"
+        />
+        <button @click="resetPassword">Cambiar Contraseña</button>
+      </div>
     </div>
   </div>
 </template>
@@ -50,8 +83,16 @@ const email = ref("");
 const password = ref("");
 const router = useRouter();
 const errorMessage = ref("");
+const showRecoveryModal = ref(false); // Añade esta línea
 
-// En tu componente de login (InicioSesion.vue)
+// Variables para recuperación
+const recoveryEmail = ref("");
+const whatsappNumber = ref("");
+const recoveryCode = ref("");
+const newPassword = ref("");
+const codeSent = ref(false);
+const verifiedCode = ref(false);
+
 const handleSubmit = async () => {
   try {
     const response = await axios.post("/api/auth/login/", {
@@ -59,27 +100,94 @@ const handleSubmit = async () => {
       password: password.value,
     });
 
-    console.log("Respuesta del login:", response.data); // Debug
-
-    // Guardar tokens
     localStorage.setItem("access_token", response.data.access);
     localStorage.setItem("refresh_token", response.data.refresh);
-
-    // Configurar Axios para futuras peticiones
     axios.defaults.headers.common[
       "Authorization"
     ] = `Bearer ${response.data.access}`;
-
-    console.log("Token guardado:", localStorage.getItem("access_token")); // Debug
-
     router.push("/dashboard");
   } catch (error) {
-    console.error("Error en login:", error);
     errorMessage.value =
       error.response?.data?.detail || "Credenciales incorrectas";
   }
 };
+
+// Función para mostrar el modal
+const toggleRecoveryModal = () => {
+  showRecoveryModal.value = !showRecoveryModal.value;
+  if (!showRecoveryModal.value) {
+    resetForm();
+  }
+};
+
+const sendWhatsAppCode = async () => {
+  if (!recoveryEmail.value || !whatsappNumber.value) {
+    errorMessage.value = "Por favor completa todos los campos";
+    return;
+  }
+
+  try {
+    const response = await axios.post("/api/auth/password-reset/", {
+      email: recoveryEmail.value,
+      phone: whatsappNumber.value,
+    });
+    codeSent.value = true;
+    errorMessage.value = "";
+    console.log("En desarrollo:", response.data.whatsapp_url);
+  } catch (error) {
+    errorMessage.value =
+      error.response?.data?.error || "Error al enviar código";
+  }
+};
+
+const verifyCode = async () => {
+  if (!recoveryCode.value || recoveryCode.value.length !== 6) {
+    errorMessage.value = "Por favor ingresa un código válido de 6 dígitos";
+    return;
+  }
+
+  try {
+    await axios.post("/api/auth/verify-reset-code/", {
+      email: recoveryEmail.value,
+      code: recoveryCode.value,
+    });
+    verifiedCode.value = true;
+    errorMessage.value = "";
+  } catch (error) {
+    errorMessage.value = error.response?.data?.error || "Código inválido";
+  }
+};
+
+const resetPassword = async () => {
+  try {
+    const response = await axios.post("/api/auth/reset-password/", {
+      email: recoveryEmail.value,
+      new_password: newPassword.value,
+      token: recoveryCode.value, // Añade el código como token temporal
+    });
+
+    alert("Contraseña cambiada con éxito");
+    toggleRecoveryModal();
+  } catch (error) {
+    console.error("Error completo:", error);
+    errorMessage.value =
+      error.response?.data?.error ||
+      error.response?.data?.detail ||
+      "Error al cambiar contraseña";
+  }
+};
+
+const resetForm = () => {
+  recoveryEmail.value = "";
+  whatsappNumber.value = "";
+  recoveryCode.value = "";
+  newPassword.value = "";
+  codeSent.value = false;
+  verifiedCode.value = false;
+  errorMessage.value = "";
+};
 </script>
+
 <style scoped>
 .login-container {
   display: flex;
@@ -174,5 +282,46 @@ const handleSubmit = async () => {
 .error-message {
   color: red;
   margin-top: 1rem;
+}
+
+/* Estilos para el modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 400px;
+  max-width: 90%;
+}
+
+.modal-content input {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  margin: 10px 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.modal-content button {
+  background-color: #7b5a50;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 10px;
 }
 </style>

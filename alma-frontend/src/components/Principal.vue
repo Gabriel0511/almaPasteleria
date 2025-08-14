@@ -25,7 +25,16 @@
             <i class="fas fa-bell"></i>
             <span class="notification">3</span>
           </div>
-          <i class="fas fa-user"></i>
+          <div class="user-menu-container">
+            <i class="fas fa-user user-icon" @click="toggleUserMenu"></i>
+            <div v-if="showUserMenu" class="user-menu">
+              <div class="menu-header">{{ userEmail }}</div>
+              <div class="menu-item" @click="openChangePassword">
+                Cambiar contraseña
+              </div>
+              <div class="menu-item" @click="logout">Cerrar sesión</div>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -53,9 +62,27 @@
 
         <div class="card tasks">
           <h3>Entregar Hoy</h3>
-          <label v-for="task in entregarHoy" :key="task.nombre">
-            <input type="checkbox" v-model="task.completado" />
-            <strong>{{ task.nombre }}.</strong> Estado: {{ task.estado }}.
+          <div v-if="entregarHoy.length === 0" class="empty-state">
+            No hay pedidos para entregar hoy
+          </div>
+          <label v-for="task in entregarHoy" :key="task.id">
+            <input
+              type="checkbox"
+              v-model="task.completado"
+              @change="
+                updatePedidoStatus(
+                  task.id,
+                  task.completado ? 'entregado' : 'en preparación'
+                )
+              "
+            />
+            <strong>{{ task.nombre }}</strong>
+            <span class="pedido-info">
+              - Estado: {{ task.estado }} -
+              <span v-for="detalle in task.detalles" :key="detalle.id">
+                {{ detalle.receta.nombre }} (x{{ detalle.cantidad }})
+              </span>
+            </span>
           </label>
         </div>
 
@@ -69,18 +96,63 @@
         </div>
 
         <div class="card tasks">
-          <h3>Hacer Hoy (para 01/05)</h3>
-          <label v-for="task in hacerHoy" :key="task.nombre">
-            <input type="checkbox" v-model="task.completado" />
-            <strong>{{ task.nombre }}.</strong> Estado: {{ task.estado }}.
+          <h3>Hacer Hoy (para {{ fechaActual }})</h3>
+          <div v-if="hacerHoy.length === 0" class="empty-state">
+            No hay pedidos para fabricar hoy
+          </div>
+          <label v-for="task in hacerHoy" :key="task.id">
+            <input
+              type="checkbox"
+              v-model="task.completado"
+              @change="
+                updatePedidoStatus(
+                  task.id,
+                  task.completado ? 'en preparación' : 'pendiente'
+                )
+              "
+            />
+            <strong>{{ task.nombre }}</strong>
+            <span class="pedido-info">
+              - Estado: {{ task.estado }} - Entrega:
+              {{ formatDate(task.fecha_entrega) }} -
+              <span v-for="detalle in task.detalles" :key="detalle.id">
+                {{ detalle.receta.nombre }} (x{{ detalle.cantidad }})
+              </span>
+            </span>
           </label>
         </div>
       </section>
     </main>
   </div>
+
+  <!-- modal para cambiar contraseña -->
+  <div v-if="showPasswordModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Cambiar contraseña</h3>
+      <div class="form-group">
+        <label>Contraseña actual:</label>
+        <input type="password" v-model="currentPassword" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label>Nueva contraseña:</label>
+        <input type="password" v-model="newPassword" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label>Repita la nueva contraseña:</label>
+        <input type="password" v-model="confirmPassword" class="form-input" />
+      </div>
+      <div class="modal-buttons">
+        <button @click="showPasswordModal = false" class="cancel-button">
+          Cancelar
+        </button>
+        <button @click="changePassword" class="confirm-button">Aceptar</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
+// En el script setup de Principal.vue
 import { onMounted, ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
@@ -96,27 +168,83 @@ const menuItems = ref([
   { text: "Reportes", icon: "fas fa-chart-line" },
 ]);
 
-// Datos de stock (ahora viene de la API)
+// Datos de usuario
+const showUserMenu = ref(false);
+const showPasswordModal = ref(false);
+const userEmail = ref("Usuario"); // Puedes obtenerlo del usuario autenticado
+const currentPassword = ref("");
+const newPassword = ref("");
+const confirmPassword = ref("");
+
+// Datos de stock
 const stock = ref([]);
 const loading = ref(true);
 const error = ref(null);
+const insumosBajoStock = computed(() => {
+  return stock.value.filter((item) => item.bajoStock).length;
+});
+
+const toggleUserMenu = () => {
+  showUserMenu.value = !showUserMenu.value;
+};
+
+const openChangePassword = () => {
+  showUserMenu.value = false;
+  showPasswordModal.value = true;
+};
+
+const changePassword = async () => {
+  if (newPassword.value !== confirmPassword.value) {
+    alert("Las contraseñas no coinciden");
+    return;
+  }
+
+  try {
+    const response = await axios.post("/api/auth/change-password/", {
+      old_password: currentPassword.value, // Cambiado de current_password a old_password
+      new_password1: newPassword.value, // Cambiado de new_password a new_password1
+      new_password2: confirmPassword.value,
+    });
+
+    alert("Contraseña cambiada exitosamente");
+    showPasswordModal.value = false;
+    currentPassword.value = "";
+    newPassword.value = "";
+    confirmPassword.value = "";
+  } catch (error) {
+    console.error("Error al cambiar contraseña:", error);
+
+    let errorMessage = "Error al cambiar la contraseña";
+    if (error.response?.data?.errors) {
+      errorMessage = Object.values(error.response.data.errors)
+        .flat()
+        .join("\n");
+    } else if (error.response?.data?.detail) {
+      errorMessage = error.response.data.detail;
+    }
+
+    alert(errorMessage);
+  }
+};
+
+// Cierra el menú al hacer clic fuera de él
+onMounted(() => {
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".user-menu-container")) {
+      showUserMenu.value = false;
+    }
+  });
+});
+
 // Datos de recetas
 const recetas = ref([]);
 const loadingRecetas = ref(false);
 const errorRecetas = ref(null);
 
-// Datos estáticos (ejemplo)
-const entregarHoy = ref([
-  { nombre: "Sandra", estado: "Listo", completado: true },
-  { nombre: "Nati", estado: "Listo", completado: true },
-  { nombre: "José", estado: "Entregado", completado: true },
-]);
-
-const hacerHoy = ref([
-  { nombre: "Sandra", estado: "Pendiente", completado: false },
-  { nombre: "Nati", estado: "En Preparación", completado: false },
-  { nombre: "José", estado: "Listo", completado: true },
-]);
+// Datos de pedidos
+const entregarHoy = ref([]);
+const hacerHoy = ref([]);
+const fechaActual = ref(new Date().toLocaleDateString());
 
 const searchTerm = ref("");
 
@@ -133,6 +261,49 @@ const selectMenu = (item) => {
   alert(`Seleccionaste: ${item}`);
 };
 
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  const options = { day: "2-digit", month: "2-digit", year: "numeric" };
+  return new Date(dateString).toLocaleDateString(undefined, options);
+};
+
+const updatePedidoStatus = async (pedidoId, nuevoEstado) => {
+  try {
+    await axios.patch(`/api/pedidos/${pedidoId}/`, {
+      estado: nuevoEstado,
+    });
+    fetchPedidos();
+  } catch (err) {
+    console.error("Error updating pedido:", err);
+  }
+};
+
+const fetchPedidos = async () => {
+  try {
+    const response = await axios.get(`/api/pedidos/hoy/`);
+
+    entregarHoy.value = response.data.entregar_hoy.map((pedido) => ({
+      id: pedido.id,
+      nombre: pedido.cliente.nombre,
+      estado: pedido.estado,
+      completado: pedido.estado === "entregado",
+      detalles: pedido.detalles,
+      fecha_entrega: pedido.fecha_entrega,
+    }));
+
+    hacerHoy.value = response.data.hacer_hoy.map((pedido) => ({
+      id: pedido.id,
+      nombre: pedido.cliente.nombre,
+      estado: pedido.estado,
+      completado: pedido.estado === "en preparación",
+      detalles: pedido.detalles,
+      fecha_entrega: pedido.fecha_entrega,
+    }));
+  } catch (err) {
+    console.error("Error fetching pedidos:", err);
+  }
+};
+
 const fetchRecetas = async () => {
   try {
     loadingRecetas.value = true;
@@ -146,7 +317,6 @@ const fetchRecetas = async () => {
   }
 };
 
-// Obtener datos de stock desde la API
 const fetchStock = async () => {
   try {
     loading.value = true;
@@ -157,11 +327,7 @@ const fetchStock = async () => {
       throw new Error("No hay token de acceso");
     }
 
-    const response = await axios.get("/api/insumos/", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await axios.get("/api/insumos/");
 
     stock.value = response.data.insumos.map((insumo) => ({
       nombre: insumo.nombre,
@@ -181,7 +347,6 @@ const fetchStock = async () => {
     console.error("Error en fetchStock:", err);
     error.value = err.response?.data?.detail || "Error al cargar los insumos";
 
-    // Si es error 401, redirigir a login
     if (err.response?.status === 401) {
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
@@ -192,28 +357,48 @@ const fetchStock = async () => {
   }
 };
 
+const logout = async () => {
+  try {
+    const refreshToken = localStorage.getItem("refresh_token");
+    if (refreshToken) {
+      await axios.post("/api/auth/logout/", {
+        refresh: refreshToken,
+      });
+    }
+  } catch (err) {
+    console.error("Error al cerrar sesión:", err.response?.data || err);
+    // Aún así continuamos con la limpieza
+  } finally {
+    // Limpieza segura aunque falle la petición
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    delete axios.defaults.headers.common["Authorization"];
+    router.push("/login");
+  }
+};
+
 // Verificación de autenticación y carga inicial
 onMounted(() => {
-  const token = localStorage.getItem("access_token");
-  console.log("Token en Principal.vue:", token); // Debug
-
-  if (!token) {
-    console.log("No hay token, redirigiendo a login");
+  // Verificación inicial
+  if (!localStorage.getItem("access_token")) {
     router.push("/login");
-  } else {
-    // Verificar si el token es válido
-    axios
-      .get("/api/auth/verify/") // Necesitarás implementar este endpoint
-      .then(() => {
-        fetchStock();
-        fetchRecetas();
-      })
-      .catch(() => {
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
-        router.push("/login");
-      });
+    return;
   }
+
+  // Cargar datos
+  Promise.all([
+    axios.get("/api/auth/perfil/").then((res) => {
+      userEmail.value = res.data.email || "Usuario";
+    }),
+    fetchStock(),
+    fetchRecetas(),
+    fetchPedidos(),
+  ]).catch((error) => {
+    console.error("Error cargando datos:", error);
+    if (error.response?.status === 401) {
+      logout();
+    }
+  });
 });
 </script>
 <style scoped>
@@ -398,5 +583,114 @@ html,
 
 .stock-list li:last-child {
   border-bottom: none;
+}
+.user-menu-container {
+  position: relative;
+  display: inline-block;
+}
+
+.user-icon {
+  font-size: 20px;
+  background-color: white;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.user-icon:hover {
+  background-color: #f0f0f0;
+}
+
+.user-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  width: 200px;
+  z-index: 1000;
+  margin-top: 5px;
+}
+
+.menu-header {
+  padding: 10px 15px;
+  font-weight: bold;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.menu-item {
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.menu-item:hover {
+  background-color: #f8f9fa;
+}
+
+.menu-item:last-child {
+  border-radius: 0 0 8px 8px;
+}
+
+/* Estilos para el modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 400px;
+  max-width: 90%;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+.cancel-button {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.confirm-button {
+  padding: 8px 16px;
+  background-color: #7b5a50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-top: 5px;
 }
 </style>
