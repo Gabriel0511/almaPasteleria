@@ -22,4 +22,5 @@ urlpatterns = [
     path('api/auth/', include('inicio.urls')),  # Para las rutas de autenticación
     path('api/', include('insumos.urls')),
     path('api/', include('recetas.urls')),# Para las rutas de insumos
+    path('api/', include('pedidos.urls')),# Para las rutas de insumos
 ]
