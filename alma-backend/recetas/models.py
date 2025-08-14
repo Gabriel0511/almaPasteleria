@@ -13,6 +13,7 @@ class Receta(models.Model):
     ]
 
     nombre = models.CharField(max_length=100)
+    veces_hecha = models.PositiveIntegerField(default=0)  # Nuevo campo
     rinde = models.PositiveIntegerField()
     unidad_rinde = models.CharField(max_length=20, choices=UNIDADES_RINDE)
     costo_unitario = models.DecimalField(max_digits=10, decimal_places=2)

@@ -26,5 +26,5 @@ class RecetaSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Receta
-        fields = ['id', 'nombre', 'rinde', 'unidad_rinde', 
+        fields = ['id', 'nombre', 'veces_hecha', 'rinde', 'unidad_rinde', 
                  'costo_unitario', 'costo_total', 'creado_en', 'insumos']

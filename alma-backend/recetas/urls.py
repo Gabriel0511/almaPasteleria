@@ -3,7 +3,9 @@ from .views import (
     RecetaListCreateAPIView,
     RecetaRetrieveUpdateDestroyAPIView,
     RecetaInsumoListCreateAPIView,
-    RecetaInsumoRetrieveUpdateDestroyAPIView
+    RecetaInsumoRetrieveUpdateDestroyAPIView,
+    IncrementarRecetaView,
+    DecrementarRecetaView
 )
 
 urlpatterns = [
@@ -11,4 +13,6 @@ urlpatterns = [
     path('recetas/<int:pk>/', RecetaRetrieveUpdateDestroyAPIView.as_view(), name='receta-detail'),
     path('recetas/<int:receta_id>/insumos/', RecetaInsumoListCreateAPIView.as_view(), name='receta-insumos-list'),
     path('recetas/<int:receta_id>/insumos/<int:pk>/', RecetaInsumoRetrieveUpdateDestroyAPIView.as_view(), name='receta-insumo-detail'),
+    path('recetas/<int:pk>/incrementar/', IncrementarRecetaView.as_view(), name='incrementar-receta'),
+    path('recetas/<int:pk>/decrementar/', DecrementarRecetaView.as_view()),
 ]

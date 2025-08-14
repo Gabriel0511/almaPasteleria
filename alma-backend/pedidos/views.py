@@ -4,6 +4,7 @@ from rest_framework import status
 from django.utils import timezone
 from datetime import date
 from pedidos.models import Pedido
+from django.shortcuts import get_object_or_404
 from .serializers import PedidoSerializer
 
 class PedidosHoyView(APIView):
@@ -29,3 +30,23 @@ class PedidosHoyView(APIView):
             'entregar_hoy': entregar_serializer.data,
             'hacer_hoy': hacer_serializer.data
         }, status=status.HTTP_200_OK)
+    
+class ActualizarEstadoPedidoView(APIView):
+    def patch(self, request, pk):
+        pedido = get_object_or_404(Pedido, pk=pk)
+        nuevo_estado = request.data.get('estado')
+        
+        # Validar transición de estado
+        if pedido.estado in ['pendiente', 'en preparación'] and nuevo_estado == 'entregado':
+            pedido.estado = 'entregado'
+            pedido.save()
+        elif pedido.estado == 'pendiente' and nuevo_estado == 'en preparación':
+            pedido.estado = 'en preparación'
+            pedido.save()
+        else:
+            return Response(
+                {'error': 'Transición de estado no válida'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        return Response(PedidoSerializer(pedido).data, status=status.HTTP_200_OK)

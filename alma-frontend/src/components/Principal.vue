@@ -71,17 +71,48 @@
         <div class="middle-cards">
           <div class="card tasks">
             <h3 class="card-title">Entregar Hoy</h3>
-            <label v-for="task in entregarHoy" :key="task.nombre">
-              <input type="checkbox" v-model="task.completado" />
-              <strong>{{ task.nombre }}</strong> - Estado: {{ task.estado }}
+            <div v-if="entregarHoy.length === 0" class="empty-state">
+              No hay pedidos para entregar hoy
+            </div>
+            <label v-for="task in entregarHoy" :key="task.id">
+              <input
+                type="checkbox"
+                :checked="task.estado === 'entregado'"
+                @change="
+                  actualizarEstadoPedido(task.id, 'entregado', 'entregarHoy')
+                "
+              />
+              <strong>{{ task.nombre }}</strong>
+              <span class="pedido-info">
+                - Estado: {{ task.estado }} -
+                <span v-for="detalle in task.detalles" :key="detalle.id">
+                  {{ detalle.receta.nombre }} (x{{ detalle.cantidad }})
+                </span>
+              </span>
             </label>
           </div>
 
           <div class="card tasks">
             <h3 class="card-title">Hacer Hoy</h3>
-            <label v-for="task in hacerHoy" :key="task.nombre">
-              <input type="checkbox" v-model="task.completado" />
-              <strong>{{ task.nombre }}</strong> - Estado: {{ task.estado }}
+            <div v-if="hacerHoy.length === 0" class="empty-state">
+              No hay pedidos para fabricar hoy
+            </div>
+            <label v-for="task in hacerHoy" :key="task.id">
+              <input
+                type="checkbox"
+                :checked="task.estado === 'en preparación'"
+                @change="
+                  actualizarEstadoPedido(task.id, 'en preparación', 'hacerHoy')
+                "
+              />
+              <strong>{{ task.nombre }}</strong>
+              <span class="pedido-info">
+                - Estado: {{ task.estado }} - Entrega:
+                {{ formatDate(task.fecha_entrega) }} -
+                <span v-for="detalle in task.detalles" :key="detalle.id">
+                  {{ detalle.receta.nombre }} (x{{ detalle.cantidad }})
+                </span>
+              </span>
             </label>
           </div>
         </div>
@@ -99,7 +130,12 @@
             <li v-for="receta in filteredRecetas" :key="receta.id">
               <span>{{ receta.nombre }}</span>
               <div class="contador">
-                <button @click="decrementarContador(receta)">-</button>
+                <button
+                  @click="decrementarContador(receta)"
+                  :disabled="!receta.vecesHecha"
+                >
+                  -
+                </button>
                 <span>{{ receta.vecesHecha || 0 }}</span>
                 <button @click="incrementarContador(receta)">+</button>
               </div>
@@ -137,42 +173,15 @@
 </template>
 
 <script setup>
-// En el script setup de Principal.vue
 import { onMounted, ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 
 const router = useRouter();
 
-// Inicializar vecesHecha para cada receta
-onMounted(() => {
-  recetas.value.forEach((r) => {
-    if (r.vecesHecha === undefined) r.vecesHecha = 0;
-  });
-});
-
-// Métodos para el contador
-const incrementarContador = (receta) => {
-  receta.vecesHecha++;
-  actualizarStock(receta); // si querés actualizar stock al instante
-};
-
-const decrementarContador = (receta) => {
-  if (receta.vecesHecha > 0) {
-    receta.vecesHecha--;
-    actualizarStock(receta);
-  }
-};
-
-// Ejemplo de función para actualizar stock
-const actualizarStock = (receta) => {
-  // Aquí iría tu lógica para restar insumos según la receta
-  console.log(
-    `Actualizar stock de ${receta.nombre}, veces hechas: ${receta.vecesHecha}`
-  );
-};
-
-// Datos reactivos
+// ----------------------
+// 🔹 Estado del Menú y Usuario
+// ----------------------
 const menuItems = ref([
   { text: "Inicio", icon: "fas fa-house" },
   { text: "Stock", icon: "fas fa-box" },
@@ -181,15 +190,16 @@ const menuItems = ref([
   { text: "Reportes", icon: "fas fa-chart-line" },
 ]);
 
-// Datos de usuario
 const showUserMenu = ref(false);
 const showPasswordModal = ref(false);
-const userEmail = ref("Usuario"); // Puedes obtenerlo del usuario autenticado
+const userEmail = ref("Usuario");
 const currentPassword = ref("");
 const newPassword = ref("");
 const confirmPassword = ref("");
 
-// Datos de stock
+// ----------------------
+// 🔹 Stock
+// ----------------------
 const stock = ref([]);
 const loading = ref(true);
 const error = ref(null);
@@ -197,6 +207,93 @@ const insumosBajoStock = computed(() => {
   return stock.value.filter((item) => item.bajoStock).length;
 });
 
+// ----------------------
+// 🔹 Recetas
+// ----------------------
+const recetas = ref([]);
+const loadingRecetas = ref(false);
+const errorRecetas = ref(null);
+const contador = ref(0);
+
+const incrementarContador = async (receta) => {
+  try {
+    const response = await axios.post(`/api/recetas/${receta.id}/incrementar/`);
+
+    // Actualizar en tiempo real
+    receta.vecesHecha = response.data.nuevo_contador;
+
+    if (response.data.stock_actualizado) {
+      await fetchStock(); // Actualizar lista de stock
+    }
+  } catch (err) {
+    console.error("Error al incrementar:", err);
+    alert(err.response?.data?.error || "Error al incrementar receta");
+  }
+};
+
+const decrementarContador = async (receta) => {
+  try {
+    if (receta.vecesHecha <= 0) return;
+
+    const response = await axios.post(`/api/recetas/${receta.id}/decrementar/`);
+
+    // Actualizar en tiempo real
+    receta.vecesHecha = response.data.nuevo_contador;
+
+    if (response.data.stock_actualizado) {
+      await fetchStock(); // Actualizar lista de stock
+    }
+  } catch (err) {
+    console.error("Error al decrementar:", err);
+    alert(err.response?.data?.error || "Error al decrementar receta");
+  }
+};
+
+// ----------------------
+// 🔹 Pedidos
+// ----------------------
+const entregarHoy = ref([]);
+const hacerHoy = ref([]);
+const fechaActual = ref(new Date().toLocaleDateString());
+
+const actualizarEstadoPedido = async (pedidoId, nuevoEstado, lista) => {
+  try {
+    await axios.patch(`/api/pedidos/${pedidoId}/actualizar-estado/`, {
+      estado: nuevoEstado,
+    });
+
+    // Actualizar el estado localmente
+    if (lista === "entregarHoy") {
+      const index = entregarHoy.value.findIndex((p) => p.id === pedidoId);
+      if (index !== -1) {
+        entregarHoy.value[index].estado = nuevoEstado;
+      }
+    } else if (lista === "hacerHoy") {
+      const index = hacerHoy.value.findIndex((p) => p.id === pedidoId);
+      if (index !== -1) {
+        hacerHoy.value[index].estado = nuevoEstado;
+      }
+    }
+  } catch (err) {
+    console.error("Error al actualizar estado:", err);
+    alert(err.response?.data?.error || "Error al actualizar el pedido");
+  }
+};
+
+// ----------------------
+// 🔹 Búsqueda
+// ----------------------
+const searchTerm = ref("");
+const filteredRecetas = computed(() => {
+  if (!searchTerm.value) return recetas.value;
+  return recetas.value.filter((r) =>
+    r.nombre.toLowerCase().includes(searchTerm.value.toLowerCase())
+  );
+});
+
+// ----------------------
+// 🔹 Funciones de Usuario
+// ----------------------
 const toggleUserMenu = () => {
   showUserMenu.value = !showUserMenu.value;
 };
@@ -213,9 +310,9 @@ const changePassword = async () => {
   }
 
   try {
-    const response = await axios.post("/api/auth/change-password/", {
-      old_password: currentPassword.value, // Cambiado de current_password a old_password
-      new_password1: newPassword.value, // Cambiado de new_password a new_password1
+    await axios.post("/api/auth/change-password/", {
+      old_password: currentPassword.value,
+      new_password1: newPassword.value,
       new_password2: confirmPassword.value,
     });
 
@@ -240,61 +337,77 @@ const changePassword = async () => {
   }
 };
 
-// Cierra el menú al hacer clic fuera de él
-onMounted(() => {
-  document.addEventListener("click", (event) => {
-    if (!event.target.closest(".user-menu-container")) {
-      showUserMenu.value = false;
-    }
-  });
-});
-
-// Datos de recetas
-const recetas = ref([]);
-const loadingRecetas = ref(false);
-const errorRecetas = ref(null);
-
-// Datos de pedidos
-const entregarHoy = ref([]);
-const hacerHoy = ref([]);
-const fechaActual = ref(new Date().toLocaleDateString());
-
-const searchTerm = ref("");
-
-// Computed properties
-const filteredRecetas = computed(() => {
-  if (!searchTerm.value) return recetas.value;
-  return recetas.value.filter((r) =>
-    r.nombre.toLowerCase().includes(searchTerm.value.toLowerCase())
-  );
-});
-
-// Métodos
-const selectMenu = (item) => {
-  alert(`Seleccionaste: ${item}`);
-};
-
-const formatDate = (dateString) => {
-  if (!dateString) return "";
-  const options = { day: "2-digit", month: "2-digit", year: "numeric" };
-  return new Date(dateString).toLocaleDateString(undefined, options);
-};
-
-const updatePedidoStatus = async (pedidoId, nuevoEstado) => {
+const logout = async () => {
   try {
-    await axios.patch(`/api/pedidos/${pedidoId}/`, {
-      estado: nuevoEstado,
-    });
-    fetchPedidos();
+    const refreshToken = localStorage.getItem("refresh_token");
+    if (refreshToken) {
+      await axios.post("/api/auth/logout/", { refresh: refreshToken });
+    }
   } catch (err) {
-    console.error("Error updating pedido:", err);
+    console.error("Error al cerrar sesión:", err.response?.data || err);
+  } finally {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    delete axios.defaults.headers.common["Authorization"];
+    router.push("/login");
   }
 };
 
+// ----------------------
+// 🔹 Fetch Datos
+// ----------------------
+const fetchStock = async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+
+    const token = localStorage.getItem("access_token");
+    if (!token) throw new Error("No hay token de acceso");
+
+    const response = await axios.get("/api/insumos/");
+    stock.value = response.data.insumos
+      .map((insumo) => ({
+        nombre: insumo.nombre,
+        cantidad: `${insumo.stock_actual} ${insumo.unidad_medida.abreviatura}`,
+        bajoStock: insumo.necesita_reposicion,
+        categoria: insumo.categoria?.nombre || "Sin categoría",
+      }))
+      .sort((a, b) => {
+        // Los que tienen bajoStock true van primero
+        if (a.bajoStock && !b.bajoStock) return -1;
+        if (!a.bajoStock && b.bajoStock) return 1;
+        return 0; // Mantiene el orden entre los que tienen la misma condición
+      });
+  } catch (err) {
+    error.value = err.response?.data?.detail || "Error al cargar los insumos";
+    if (err.response?.status === 401) {
+      alert("Tu sesión ha expirado, por favor inicia sesión nuevamente");
+      logout();
+    }
+    console.error("Error en fetchStock:", err);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const fetchRecetas = async () => {
+  try {
+    loadingRecetas.value = true;
+    const response = await axios.get("/api/recetas/");
+    recetas.value = response.data.map((receta) => ({
+      ...receta,
+      vecesHecha: receta.veces_hecha, // Usar el valor persistente del backend
+    }));
+  } catch (err) {
+    errorRecetas.value = "Error al cargar las recetas";
+    console.error("Error fetching recipes:", err);
+  } finally {
+    loadingRecetas.value = false;
+  }
+};
 const fetchPedidos = async () => {
   try {
-    const response = await axios.get(`/api/pedidos/hoy/`);
-
+    const response = await axios.get("/api/pedidos/hoy/");
     entregarHoy.value = response.data.entregar_hoy.map((pedido) => ({
       id: pedido.id,
       nombre: pedido.cliente.nombre,
@@ -317,91 +430,43 @@ const fetchPedidos = async () => {
   }
 };
 
-const fetchRecetas = async () => {
+// ----------------------
+// 🔹 Utilidades
+// ----------------------
+const selectMenu = (item) => {
+  alert(`Seleccionaste: ${item}`);
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  const options = { day: "2-digit", month: "2-digit", year: "numeric" };
+  return new Date(dateString).toLocaleDateString(undefined, options);
+};
+
+const updatePedidoStatus = async (pedidoId, nuevoEstado) => {
   try {
-    loadingRecetas.value = true;
-    const response = await axios.get("/api/recetas/");
-    recetas.value = response.data.map((r) => ({
-      ...r,
-      vecesHecha: r.vecesHecha || 0, // inicializar contador
-    }));
+    await axios.patch(`/api/pedidos/hoy/${pedidoId}/`, { estado: nuevoEstado });
+    fetchPedidos();
   } catch (err) {
-    errorRecetas.value = "Error al cargar las recetas";
-    console.error("Error fetching recipes:", err);
-  } finally {
-    loadingRecetas.value = false;
+    console.error("Error updating pedido:", err);
   }
 };
 
-const fetchStock = async () => {
-  try {
-    loading.value = true;
-    error.value = null;
-
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      throw new Error("No hay token de acceso");
-    }
-
-    const response = await axios.get("/api/insumos/");
-
-    stock.value = response.data.insumos.map((insumo) => ({
-      nombre: insumo.nombre,
-      cantidad: `${insumo.stock_actual} ${insumo.unidad_medida.abreviatura}`,
-      bajoStock: insumo.necesita_reposicion,
-      categoria: insumo.categoria?.nombre || "Sin categoría",
-    }));
-  } catch (err) {
-    if (err.response?.status === 401) {
-      showNotification(
-        "Tu sesión ha expirado, por favor inicia sesión nuevamente",
-        "error"
-      );
-    } else {
-      showNotification("Error al cargar los insumos", "error");
-    }
-    console.error("Error en fetchStock:", err);
-    error.value = err.response?.data?.detail || "Error al cargar los insumos";
-
-    if (err.response?.status === 401) {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-      router.push("/login");
-    }
-  } finally {
-    loading.value = false;
-  }
-};
-
-const logout = async () => {
-  try {
-    const refreshToken = localStorage.getItem("refresh_token");
-    if (refreshToken) {
-      await axios.post("/api/auth/logout/", {
-        refresh: refreshToken,
-      });
-    }
-  } catch (err) {
-    console.error("Error al cerrar sesión:", err.response?.data || err);
-    // Aún así continuamos con la limpieza
-  } finally {
-    // Limpieza segura aunque falle la petición
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    delete axios.defaults.headers.common["Authorization"];
-    router.push("/login");
-  }
-};
-
-// Verificación de autenticación y carga inicial
+// ----------------------
+// 🔹 Montaje Inicial
+// ----------------------
 onMounted(() => {
-  // Verificación inicial
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".user-menu-container")) {
+      showUserMenu.value = false;
+    }
+  });
+
   if (!localStorage.getItem("access_token")) {
     router.push("/login");
     return;
   }
 
-  // Cargar datos
   Promise.all([
     axios.get("/api/auth/perfil/").then((res) => {
       userEmail.value = res.data.email || "Usuario";
@@ -676,6 +741,16 @@ html,
   min-width: 20px;
   text-align: center;
   display: inline-block;
+}
+
+.loading-spinner {
+  margin-left: 5px;
+  color: #7b5a50;
+}
+
+.contador button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* ----------------------------- LOADING / ERROR ----------------------------- */
