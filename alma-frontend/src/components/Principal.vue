@@ -1,11 +1,7 @@
 <template>
   <div id="app">
     <aside class="sidebar">
-      <button
-        v-for="item in menuItems"
-        :key="item.text"
-        @click="selectMenu(item.text)"
-      >
+      <button v-for="item in menuItems" :key="item.text" @click="selectMenu(item.text)">
         <i :class="item.icon"></i>
         <span>{{ item.text }}</span>
       </button>
@@ -31,24 +27,30 @@
 
       <section class="content">
         <div class="card stock">
-          <h3>
-            Stock
+          <h3 style="text-align: center;">
+              Stock
             <span v-if="insumosBajoStock > 0" class="badge">
               {{ insumosBajoStock }} bajo stock
             </span>
           </h3>
+
           <div v-if="loading" class="loading">Cargando stock...</div>
           <div v-else-if="error" class="error">{{ error }}</div>
-          <ul v-else class="stock-list">
-            <li
-              v-for="item in stock"
-              :key="item.nombre"
-              :class="{ 'low-stock': item.bajoStock }"
-            >
-              <span>{{ item.nombre }} ({{ item.categoria }})</span>
-              <span>{{ item.cantidad }}</span>
-            </li>
-          </ul>
+
+          <div v-else>
+            <!-- Encabezados -->
+            <div class="stock-header">
+              <span>Nombre</span>
+              <span>Cantidad</span>
+            </div>
+
+            <ul class="stock-list">
+              <li v-for="item in stock" :key="item.nombre" :class="{ 'low-stock': item.bajoStock }">
+                <span>{{ item.nombre }} ({{ item.categoria }})</span>
+                <span style="text-align: center;">{{ item.cantidad }}</span>
+              </li>
+            </ul>
+          </div>
         </div>
 
         <div class="card tasks">
@@ -344,12 +346,18 @@ html,
   max-height: 200px;
   overflow-y: auto;
 }
-
+.stock-header,
 .stock-list li {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 4px;
+  padding: 4px 0;
+  font-weight: bold;
 }
+
+.stock-list li {
+  font-weight: normal;
+}
+
 
 .low-stock {
   color: red;
@@ -399,4 +407,28 @@ html,
 .stock-list li:last-child {
   border-bottom: none;
 }
+
+/* Ancho y color de la barra */
+::-webkit-scrollbar {
+  width: 8px; /* ancho de la barra */
+}
+
+/* Fondo de la pista de la barra */
+::-webkit-scrollbar-track {
+  background: #f0f0f0; 
+  border-radius: 4px;
+}
+
+/* Color de la barra de desplazamiento */
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+/* Color de la barra al pasar el mouse */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+
 </style>
