@@ -18,37 +18,35 @@
       <header class="header">
         <div></div>
         <div class="logo">
-          <img src="/src/Logo Pasteleria.jpg" alt="Logo Pastelería" />
+          <img src="/src/Logo2.png" alt="Logo Pastelería" />
         </div>
         <div class="icon-buttons">
           <div class="notification-icon">
             <i class="fas fa-bell"></i>
-            <span class="notification">3</span>
+            <span class="notification">99</span>
           </div>
-          <div class="user-menu-container">
-            <i class="fas fa-user user-icon" @click="toggleUserMenu"></i>
-            <div v-if="showUserMenu" class="user-menu">
-              <div class="menu-header">{{ userEmail }}</div>
-              <div class="menu-item" @click="openChangePassword">
-                Cambiar contraseña
-              </div>
-              <div class="menu-item" @click="logout">Cerrar sesión</div>
-            </div>
-          </div>
+          <i class="fas fa-user"></i>
         </div>
       </header>
 
       <section class="content">
+        <!-- Stock -->
         <div class="card stock">
-          <h3>
-            Stock
-            <span v-if="insumosBajoStock > 0" class="badge">
-              {{ insumosBajoStock }} bajo stock
-            </span>
-          </h3>
-          <div v-if="loading" class="loading">Cargando stock...</div>
-          <div v-else-if="error" class="error">{{ error }}</div>
-          <ul v-else class="stock-list">
+          <div class="stock-header-container">
+            <h3 class="card-title">
+              Stock
+              <span v-if="insumosBajoStock > 0" class="badge">
+                {{ insumosBajoStock }} bajo stock
+              </span>
+            </h3>
+
+            <div class="stock-header">
+              <span>Nombre</span>
+              <span>Cantidad</span>
+            </div>
+          </div>
+
+          <ul class="stock-list">
             <li
               v-for="item in stock"
               :key="item.nombre"
@@ -60,66 +58,44 @@
           </ul>
         </div>
 
-        <div class="card tasks">
-          <h3>Entregar Hoy</h3>
-          <div v-if="entregarHoy.length === 0" class="empty-state">
-            No hay pedidos para entregar hoy
+        <!-- Cards del medio -->
+        <div class="middle-cards">
+          <div class="card tasks">
+            <h3 class="card-title">Entregar Hoy</h3>
+            <label v-for="task in entregarHoy" :key="task.nombre">
+              <input type="checkbox" v-model="task.completado" />
+              <strong>{{ task.nombre }}</strong> - Estado: {{ task.estado }}
+            </label>
           </div>
-          <label v-for="task in entregarHoy" :key="task.id">
-            <input
-              type="checkbox"
-              v-model="task.completado"
-              @change="
-                updatePedidoStatus(
-                  task.id,
-                  task.completado ? 'entregado' : 'en preparación'
-                )
-              "
-            />
-            <strong>{{ task.nombre }}</strong>
-            <span class="pedido-info">
-              - Estado: {{ task.estado }} -
-              <span v-for="detalle in task.detalles" :key="detalle.id">
-                {{ detalle.receta.nombre }} (x{{ detalle.cantidad }})
-              </span>
-            </span>
-          </label>
+
+          <div class="card tasks">
+            <h3 class="card-title">Hacer Hoy</h3>
+            <label v-for="task in hacerHoy" :key="task.nombre">
+              <input type="checkbox" v-model="task.completado" />
+              <strong>{{ task.nombre }}</strong> - Estado: {{ task.estado }}
+            </label>
+          </div>
         </div>
 
-        <div class="card search-box">
-          <input type="text" v-model="searchTerm" placeholder="Buscar..." />
-          <ul>
-            <li v-for="item in filteredRecetas" :key="item.nombre">
-              <strong>{{ item.nombre }}</strong> – ({{ item.cantidad }})+
+        <!-- Recetas -->
+        <div class="card recetas">
+          <h3 class="card-title">Recetas</h3>
+          <input
+            v-model="searchTerm"
+            type="text"
+            placeholder="Buscar receta..."
+          />
+
+          <ul class="recetas-list">
+            <li v-for="receta in filteredRecetas" :key="receta.id">
+              <span>{{ receta.nombre }}</span>
+              <div class="contador">
+                <button @click="decrementarContador(receta)">-</button>
+                <span>{{ receta.vecesHecha || 0 }}</span>
+                <button @click="incrementarContador(receta)">+</button>
+              </div>
             </li>
           </ul>
-        </div>
-
-        <div class="card tasks">
-          <h3>Hacer Hoy (para {{ fechaActual }})</h3>
-          <div v-if="hacerHoy.length === 0" class="empty-state">
-            No hay pedidos para fabricar hoy
-          </div>
-          <label v-for="task in hacerHoy" :key="task.id">
-            <input
-              type="checkbox"
-              v-model="task.completado"
-              @change="
-                updatePedidoStatus(
-                  task.id,
-                  task.completado ? 'en preparación' : 'pendiente'
-                )
-              "
-            />
-            <strong>{{ task.nombre }}</strong>
-            <span class="pedido-info">
-              - Estado: {{ task.estado }} - Entrega:
-              {{ formatDate(task.fecha_entrega) }} -
-              <span v-for="detalle in task.detalles" :key="detalle.id">
-                {{ detalle.receta.nombre }} (x{{ detalle.cantidad }})
-              </span>
-            </span>
-          </label>
         </div>
       </section>
     </main>
@@ -158,6 +134,34 @@ import { useRouter } from "vue-router";
 import axios from "axios";
 
 const router = useRouter();
+
+// Inicializar vecesHecha para cada receta
+onMounted(() => {
+  recetas.value.forEach((r) => {
+    if (r.vecesHecha === undefined) r.vecesHecha = 0;
+  });
+});
+
+// Métodos para el contador
+const incrementarContador = (receta) => {
+  receta.vecesHecha++;
+  actualizarStock(receta); // si querés actualizar stock al instante
+};
+
+const decrementarContador = (receta) => {
+  if (receta.vecesHecha > 0) {
+    receta.vecesHecha--;
+    actualizarStock(receta);
+  }
+};
+
+// Ejemplo de función para actualizar stock
+const actualizarStock = (receta) => {
+  // Aquí iría tu lógica para restar insumos según la receta
+  console.log(
+    `Actualizar stock de ${receta.nombre}, veces hechas: ${receta.vecesHecha}`
+  );
+};
 
 // Datos reactivos
 const menuItems = ref([
@@ -308,7 +312,10 @@ const fetchRecetas = async () => {
   try {
     loadingRecetas.value = true;
     const response = await axios.get("/api/recetas/");
-    recetas.value = response.data;
+    recetas.value = response.data.map((r) => ({
+      ...r,
+      vecesHecha: r.vecesHecha || 0, // inicializar contador
+    }));
   } catch (err) {
     errorRecetas.value = "Error al cargar las recetas";
     console.error("Error fetching recipes:", err);
@@ -401,20 +408,23 @@ onMounted(() => {
   });
 });
 </script>
+
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
 
+/* ----------------------------- ESTRUCTURA GENERAL ----------------------------- */
 body,
 html,
 #app {
-  margin: 0;
   font-family: sans-serif;
   background-color: #f1d0cb;
   color: #3c3c3c;
   height: 100vh;
   display: flex;
+  margin: 0;
 }
 
+/* ----------------------------- SIDEBAR ----------------------------- */
 .sidebar {
   position: fixed;
   top: 0;
@@ -452,9 +462,10 @@ html,
   font-size: 22px;
 }
 
+/* ----------------------------- MAIN & HEADER ----------------------------- */
 .main {
   margin-left: 120px;
-  padding: 20px;
+  padding: 15px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -464,11 +475,11 @@ html,
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .logo img {
-  height: 70px;
+  height: 80px;
   margin-bottom: 10px;
 }
 
@@ -501,19 +512,21 @@ html,
   left: -15px;
 }
 
+/* ----------------------------- CONTENIDO Y CARDS ----------------------------- */
 .content {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: auto auto;
+  grid-template-columns: 1fr 0.8fr 1fr;
+  /* izquierda, medio, derecha */
+  grid-template-areas: "stock middle recetas";
   gap: 20px;
-  flex-grow: 1;
 }
 
 .card {
   background-color: #f5dfdd;
-  border-radius: 15px;
-  box-shadow: 2px 4px 6px #aaa;
-  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 10px 8px 10px #aaa;
+  padding: 8px;
+  padding-top: 2px;
   overflow-y: auto;
 }
 
@@ -522,18 +535,35 @@ html,
   font-size: 18px;
 }
 
-.stock-list {
-  list-style: none;
-  padding: 0;
+.card-title {
+  text-align: center;
   margin: 0;
-  max-height: 200px;
+  padding: 4px;
+  border-bottom: 1px solid #ccc;
+}
+
+/* ----------------------------- STOCK ----------------------------- */
+.card.stock {
+  grid-area: stock;
+  max-height: 480px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* que solo scrollee la lista */
+}
+
+.stock-list {
   overflow-y: auto;
+  flex-grow: 1;
+  list-style: none;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 .stock-list li {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 4px;
+  padding: 4px;
 }
 
 .low-stock {
@@ -541,18 +571,105 @@ html,
   font-weight: bold;
 }
 
+.stock-header-container {
+  flex-shrink: 0;
+  /* que no se encoja al scrollear */
+  background-color: #f5dfdd;
+}
+
+.stock-header {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  padding: 10px;
+  border-bottom: 1px solid #ccc;
+}
+
+/* ----------------------------- MIDDLE CARDS ----------------------------- */
+.middle-cards {
+  grid-area: middle;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 480px;
+  /* altura total disponible para los dos cards */
+}
+
+.middle-cards .card {
+  flex: 1;
+  /* cada card ocupa la mitad del contenedor */
+  min-height: 200px;
+  /* altura mínima para que no se achiquen demasiado */
+  max-height: 400px;
+  /* altura máxima para no crecer demasiado */
+  overflow-y: auto;
+  /* scroll si hay muchos items */
+  padding: 8px;
+  /* opcional: espacio interno */
+  padding-top: 2px;
+  border-radius: 10px;
+  background-color: #f5dfdd;
+  box-shadow: 10px 8px 10px #aaa;
+}
+
 .tasks label {
   display: block;
   margin-bottom: 5px;
 }
 
-.search-box input {
-  width: 100%;
+/* ----------------------------- RECETAS ----------------------------- */
+.card.recetas {
+  grid-area: recetas;
+  max-height: 480px;
+  display: flex;
+  flex-direction: column;
+}
+
+.recetas input {
+  width: 96%;
   padding: 5px;
   font-size: 14px;
   margin-bottom: 10px;
 }
 
+.recetas-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.recetas-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border-bottom: 1px solid #ccc;
+}
+
+.contador button {
+  padding: 4px 8px;
+  margin: 0 4px;
+  cursor: pointer;
+  border: none;
+  background-color: #7b5a50;
+  color: white;
+  border-radius: 5px;
+  font-weight: bold;
+}
+
+.contador button:hover {
+  background-color: #5a3f36;
+}
+
+.contador span {
+  min-width: 20px;
+  text-align: center;
+  display: inline-block;
+}
+
+/* ----------------------------- LOADING / ERROR ----------------------------- */
 .loading {
   text-align: center;
   padding: 20px;
@@ -565,132 +682,41 @@ html,
   text-align: center;
 }
 
-.badge {
-  background-color: #ff6b6b;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 0.8em;
-  margin-left: 10px;
+/* ----------------------------- SCROLL PERSONALIZADO ----------------------------- */
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-.stock-list li {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid #eee;
-}
-
-.stock-list li:last-child {
-  border-bottom: none;
-}
-.user-menu-container {
-  position: relative;
-  display: inline-block;
-}
-
-.user-icon {
-  font-size: 20px;
-  background-color: white;
-  padding: 8px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.user-icon:hover {
-  background-color: #f0f0f0;
-}
-
-.user-menu {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  width: 200px;
-  z-index: 1000;
-  margin-top: 5px;
-}
-
-.menu-header {
-  padding: 10px 15px;
-  font-weight: bold;
-  border-bottom: 1px solid #eee;
-  background-color: #f8f9fa;
-  border-radius: 8px 8px 0 0;
-}
-
-.menu-item {
-  padding: 10px 15px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.menu-item:hover {
-  background-color: #f8f9fa;
-}
-
-.menu-item:last-child {
-  border-radius: 0 0 8px 8px;
-}
-
-/* Estilos para el modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  width: 400px;
-  max-width: 90%;
-}
-
-.modal-buttons {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-  gap: 10px;
-}
-
-.cancel-button {
-  padding: 8px 16px;
-  background-color: #f0f0f0;
-  border: none;
+::-webkit-scrollbar-track {
+  background: #f0f0f0;
   border-radius: 4px;
-  cursor: pointer;
 }
 
-.confirm-button {
-  padding: 8px 16px;
-  background-color: #7b5a50;
-  color: white;
-  border: none;
+::-webkit-scrollbar-thumb {
+  background: #888;
   border-radius: 4px;
-  cursor: pointer;
 }
 
-.form-group {
-  margin-bottom: 15px;
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
-.form-input {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  margin-top: 5px;
+/* ----------------------------- RESPONSIVE ----------------------------- */
+@media (max-width: 768px) {
+  .content {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "stock"
+      "middle"
+      "recetas";
+  }
+
+  .middle-cards {
+    flex-direction: column;
+  }
+
+  .recetas input {
+    width: 100%;
+  }
 }
 </style>
