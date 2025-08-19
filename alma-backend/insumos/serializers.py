@@ -12,6 +12,13 @@ class CategoriaInsumoSerializer(serializers.ModelSerializer):
         model = CategoriaInsumo
         fields = ['nombre']
 
+class DecimalConComaField(serializers.DecimalField):
+    def to_representation(self, value):
+        value = super().to_representation(value)
+        if value is not None:
+            return str(value).replace('.', ',')
+        return value
+
 class InsumoSerializer(serializers.ModelSerializer):
     unidad_medida = UnidadMedidaSerializer()
     categoria = CategoriaInsumoSerializer()
