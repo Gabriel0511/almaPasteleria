@@ -62,7 +62,7 @@
               :class="{ 'low-stock': item.bajoStock }"
             >
               <span>{{ item.nombre }} ({{ item.categoria }})</span>
-              <span>{{ item.cantidad }}</span>
+              <span>{{ formatDecimal(item.cantidad) }} {{ item.unidad }}</span>
             </li>
           </ul>
         </div>
@@ -173,6 +173,7 @@
 </template>
 
 <script setup>
+import { formatDecimal, parseDecimal } from "../helpers/formatters";
 import { onMounted, ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
@@ -368,15 +369,15 @@ const fetchStock = async () => {
     stock.value = response.data.insumos
       .map((insumo) => ({
         nombre: insumo.nombre,
-        cantidad: `${insumo.stock_actual} ${insumo.unidad_medida.abreviatura}`,
+        cantidad: insumo.stock_actual, // Guardar el valor numérico para formatear
+        unidad: insumo.unidad_medida.abreviatura, // Guardar la unidad por separado
         bajoStock: insumo.necesita_reposicion,
         categoria: insumo.categoria?.nombre || "Sin categoría",
       }))
       .sort((a, b) => {
-        // Los que tienen bajoStock true van primero
         if (a.bajoStock && !b.bajoStock) return -1;
         if (!a.bajoStock && b.bajoStock) return 1;
-        return 0; // Mantiene el orden entre los que tienen la misma condición
+        return 0;
       });
   } catch (err) {
     error.value = err.response?.data?.detail || "Error al cargar los insumos";

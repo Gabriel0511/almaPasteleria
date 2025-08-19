@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Receta, RecetaInsumo, Insumo, UnidadMedida
+from decimal import Decimal
 
 class UnidadMedidaSerializer(serializers.ModelSerializer):
     class Meta:
@@ -13,9 +14,17 @@ class InsumoSerializer(serializers.ModelSerializer):
         model = Insumo
         fields = ['id', 'nombre', 'unidad_medida', 'stock_actual']
 
+class DecimalConComaField(serializers.DecimalField):
+    def to_representation(self, value):
+        value = super().to_representation(value)
+        if value is not None:
+            return str(value).replace('.', ',')
+        return value
+
 class RecetaInsumoSerializer(serializers.ModelSerializer):
     insumo = InsumoSerializer()
     unidad_medida = UnidadMedidaSerializer()
+    cantidad = DecimalConComaField(max_digits=10, decimal_places=3)
     
     class Meta:
         model = RecetaInsumo

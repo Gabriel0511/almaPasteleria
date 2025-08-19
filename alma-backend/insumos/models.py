@@ -44,8 +44,8 @@ class Insumo(models.Model):
         verbose_name="Categoria de insumo"
     )
     unidad_medida = models.ForeignKey(UnidadMedida, on_delete=models.PROTECT)
-    stock_actual = models.PositiveIntegerField()
-    stock_minimo = models.PositiveIntegerField()
+    stock_actual = models.DecimalField(max_digits=10, decimal_places=3)
+    stock_minimo = models.DecimalField(max_digits=10, decimal_places=3)
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True, blank=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)

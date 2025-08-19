@@ -5,9 +5,8 @@ from .models import Receta, RecetaInsumo
 class RecetaInsumoInline(admin.TabularInline):
     model = RecetaInsumo
     extra = 1
-    
+    fields = ['insumo', 'cantidad', 'unidad_medida']
+
+@admin.register(Receta)
 class RecetaAdmin(admin.ModelAdmin):
     inlines = [RecetaInsumoInline]
-
-admin.site.register(Receta)
-admin.site.register(RecetaInsumo)

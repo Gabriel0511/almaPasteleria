@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 from datetime import timedelta
 from insumos.models import Insumo, UnidadMedida
+from decimal import Decimal
 
 # Create your models here.
 # --- RECETAS ---
@@ -26,8 +27,25 @@ class Receta(models.Model):
 class RecetaInsumo(models.Model):
     receta = models.ForeignKey(Receta, on_delete=models.CASCADE)
     insumo = models.ForeignKey(Insumo, on_delete=models.CASCADE)
-    cantidad = models.PositiveIntegerField()
-    unidad_medida = models.ForeignKey('insumos.UnidadMedida', on_delete=models.CASCADE, null=True, blank=True)
+    cantidad = models.DecimalField(max_digits=10, decimal_places=3)  # Cambiado a Decimal
+    unidad_medida = models.ForeignKey('insumos.UnidadMedida', on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.insumo.nombre} en {self.receta.nombre}"
+    
+    def save(self, *args, **kwargs):
+        # Asegurar que la unidad de medida sea la misma que la del insumo
+        if not self.unidad_medida_id:
+            self.unidad_medida = self.insumo.unidad_medida
+        super().save(*args, **kwargs)
+    
+    def get_cantidad_en_unidad_insumo(self):
+        """
+        Convierte la cantidad a la unidad de medida del insumo
+        """
+        if self.unidad_medida == self.insumo.unidad_medida:
+            return self.cantidad
+        
+        # Aquí implementarías la lógica de conversión
+        # Por ahora, asumimos misma unidad o conversión simple
+        return self.cantidad
