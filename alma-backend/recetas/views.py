@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 from pedidos.models import Pedido
 from insumos.models import Insumo
-from .conversiones import convertir_unidad
+from insumos.conversiones import convertir_unidad
 
 class RecetaListCreateAPIView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -52,44 +52,19 @@ class IncrementarRecetaView(APIView):
                 
                 # Verificar stock antes de incrementar
                 for detalle in detalles:
-                    insumo = detalle.insumo
+                    cantidad_necesaria = detalle.get_cantidad_en_unidad_insumo()
                     
-                    # Convertir a la unidad de medida del insumo
-                    cantidad_necesaria = detalle.cantidad
-                    if detalle.unidad_medida != insumo.unidad_medida:
-                        try:
-                            cantidad_necesaria = convertir_unidad(
-                                detalle.cantidad,
-                                detalle.unidad_medida.abreviatura,
-                                insumo.unidad_medida.abreviatura
-                            )
-                        except (ValueError, KeyError):
-                            return Response(
-                                {'error': f'No se puede convertir {detalle.unidad_medida.abreviatura} a {insumo.unidad_medida.abreviatura} para {insumo.nombre}'},
-                                status=status.HTTP_400_BAD_REQUEST
-                            )
-                    
-                    if insumo.stock_actual < cantidad_necesaria:
+                    if detalle.insumo.stock_actual < cantidad_necesaria:
                         return Response(
-                            {'error': f'Stock insuficiente de {insumo.nombre}. Necesitas {cantidad_necesaria} {insumo.unidad_medida.abreviatura}, tienes {insumo.stock_actual}'},
+                            {'error': f'Stock insuficiente de {detalle.insumo.nombre}. Necesitas {cantidad_necesaria} {detalle.insumo.unidad_medida.abreviatura}, tienes {detalle.insumo.stock_actual}'},
                             status=status.HTTP_400_BAD_REQUEST
                         )
                 
                 # Reducir stock
                 for detalle in detalles:
-                    insumo = detalle.insumo
-                    cantidad_necesaria = detalle.cantidad
-                    
-                    # Convertir a la unidad de medida del insumo
-                    if detalle.unidad_medida != insumo.unidad_medida:
-                        cantidad_necesaria = convertir_unidad(
-                            detalle.cantidad,
-                            detalle.unidad_medida.abreviatura,
-                            insumo.unidad_medida.abreviatura
-                        )
-                    
-                    insumo.stock_actual -= cantidad_necesaria
-                    insumo.save()
+                    cantidad_necesaria = detalle.get_cantidad_en_unidad_insumo()
+                    detalle.insumo.stock_actual -= cantidad_necesaria
+                    detalle.insumo.save()
                 
                 receta.veces_hecha += 1
                 receta.save()
