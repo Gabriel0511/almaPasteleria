@@ -45,20 +45,28 @@
         <div class="card stock">
           <div class="stock-header-container">
             <h3 class="card-title">
-              Stock
+              Stock <br></br>
               <span v-if="insumosBajoStock > 0" class="badge">
-                {{ insumosBajoStock }} bajo stock
+                (Hay {{ insumosBajoStock }} insumos con bajo stock)
               </span>
             </h3>
 
             <div class="stock-header">
-              <span>Nombre</span>
+              <span>
+                Nombre
+                <select v-model="categoriaSeleccionada">
+                  <option value="">Todas</option>
+                  <option v-for="cat in categoriasStock" :key="cat" :value="cat">
+                    {{ cat }}
+                  </option>
+                </select>
+              </span>
               <span>Cantidad</span>
             </div>
           </div>
 
           <ul class="stock-list">
-            <li v-for="item in stock" :key="item.nombre" :class="{ 'low-stock': item.bajoStock }">
+            <li v-for="item in stockFiltradoPorCategoria" :key="item.nombre" :class="{ 'low-stock': item.bajoStock }">
               <span>{{ item.nombre }} ({{ item.categoria }})</span>
               <span>{{ formatDecimal(item.cantidad) }} {{ item.unidad }}</span>
             </li>
@@ -167,6 +175,22 @@ import { useRouter } from "vue-router";
 import axios from "axios";
 
 const router = useRouter();
+
+
+
+const categoriaSeleccionada = ref(""); // "" significa "Todas"
+const categoriasStock = computed(() => {
+  // Obtener categorías únicas
+  const categorias = stock.value.map(item => item.categoria);
+  return [...new Set(categorias)];
+});
+
+// Computed para filtrar stock según categoría seleccionada
+const stockFiltradoPorCategoria = computed(() => {
+  if (!categoriaSeleccionada.value) return stock.value; // todas
+  return stock.value.filter(item => item.categoria === categoriaSeleccionada.value);
+});
+
 
 // ----------------------
 // 🔹 Estado del Menú y Usuario
@@ -660,6 +684,12 @@ html,
   font-weight: bold;
   padding: 10px;
   border-bottom: 1px solid #ccc;
+}
+.stock-header select {
+  margin-left: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
 }
 
 /* ----------------------------- MIDDLE CARDS ----------------------------- */
