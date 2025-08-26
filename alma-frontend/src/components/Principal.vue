@@ -82,12 +82,12 @@
                   actualizarEstadoPedido(task.id, 'entregado', 'entregarHoy')
                 "
               />
-              <strong>{{ task.nombre }}</strong>
+              <strong>{{ task.nombre }} <br></strong> 
               <span class="pedido-info">
-                - Estado: {{ task.estado }} -
                 <span v-for="detalle in task.detalles" :key="detalle.id">
                   {{ detalle.receta.nombre }} (x{{ detalle.cantidad }})
-                </span>
+                </span><br>
+                - Estado: {{ task.estado }} -
               </span>
             </label>
           </div>
@@ -107,11 +107,11 @@
               />
               <strong>{{ task.nombre }}</strong>
               <span class="pedido-info">
-                - Estado: {{ task.estado }} - Entrega:
-                {{ formatDate(task.fecha_entrega) }} -
+                (Entrega:{{ formatDate(task.fecha_entrega) }})<br>
                 <span v-for="detalle in task.detalles" :key="detalle.id">
                   {{ detalle.receta.nombre }} (x{{ detalle.cantidad }})
-                </span>
+                </span><br></br>
+                - Estado: {{ task.estado }} -
               </span>
             </label>
           </div>
@@ -679,7 +679,7 @@ html,
   /* altura máxima para no crecer demasiado */
   overflow-y: auto;
   /* scroll si hay muchos items */
-  padding: 8px;
+  padding: 22px;
   /* opcional: espacio interno */
   padding-top: 2px;
   border-radius: 10px;

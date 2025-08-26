@@ -56,7 +56,7 @@ class IncrementarRecetaView(APIView):
                     
                     if detalle.insumo.stock_actual < cantidad_necesaria:
                         return Response(
-                            {'error': f'Stock insuficiente de {detalle.insumo.nombre}. Necesitas {cantidad_necesaria} {detalle.insumo.unidad_medida.abreviatura}, tienes {detalle.insumo.stock_actual}'},
+                            {'error': f'Stock insuficiente de {detalle.insumo.nombre}. Necesitas {cantidad_necesaria} {detalle.insumo.unidad_medida.abreviatura}, tienes {detalle.insumo.stock_actual} {insumo.unidad_medida.abreviatura}.'},
                             status=status.HTTP_400_BAD_REQUEST
                         )
                 
