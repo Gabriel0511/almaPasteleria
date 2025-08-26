@@ -1,11 +1,7 @@
 <template>
   <div id="app">
     <aside class="sidebar">
-      <button
-        v-for="item in menuItems"
-        :key="item.text"
-        @click="selectMenu(item.text)"
-      >
+      <button v-for="item in menuItems" :key="item.text" @click="router.push(item.route)">
         <i :class="item.icon"></i>
         <span>{{ item.text }}</span>
       </button>
@@ -21,10 +17,15 @@
           <img src="/src/Logo2.png" alt="Logo Pastelería" />
         </div>
         <div class="icon-buttons">
-          <div class="notification-icon">
-            <i class="fas fa-bell"></i>
-            <span class="notification">99</span>
+
+          <div class="user-menu-container">
+            <i class="fas fa-bell notf-icon" @click="toggleNotfMenu"></i>
+            <div v-if="showNotfMenu" class="user-menu">
+              <div class="menu-header">NOTIFICACIONES</div>
+              <div class="menu-item"> Aquí se notifica </div>
+            </div>
           </div>
+
           <div class="user-menu-container">
             <i class="fas fa-user user-icon" @click="toggleUserMenu"></i>
             <div v-if="showUserMenu" class="user-menu">
@@ -35,6 +36,7 @@
               <div class="menu-item" @click="logout">Cerrar sesión</div>
             </div>
           </div>
+
         </div>
       </header>
 
@@ -56,11 +58,7 @@
           </div>
 
           <ul class="stock-list">
-            <li
-              v-for="item in stock"
-              :key="item.nombre"
-              :class="{ 'low-stock': item.bajoStock }"
-            >
+            <li v-for="item in stock" :key="item.nombre" :class="{ 'low-stock': item.bajoStock }">
               <span>{{ item.nombre }} ({{ item.categoria }})</span>
               <span>{{ formatDecimal(item.cantidad) }} {{ item.unidad }}</span>
             </li>
@@ -75,19 +73,15 @@
               No hay pedidos para entregar hoy
             </div>
             <label v-for="task in entregarHoy" :key="task.id">
-              <input
-                type="checkbox"
-                :checked="task.estado === 'entregado'"
-                @change="
-                  actualizarEstadoPedido(task.id, 'entregado', 'entregarHoy')
-                "
-              />
-              <strong>{{ task.nombre }} <br></strong> 
+              <input type="checkbox" :checked="task.estado === 'entregado'" @change="
+                actualizarEstadoPedido(task.id, 'entregado', 'entregarHoy')
+                " />
+              <strong>{{ task.nombre }}</strong>
               <span class="pedido-info">
+                - Estado: {{ task.estado }} -
                 <span v-for="detalle in task.detalles" :key="detalle.id">
                   {{ detalle.receta.nombre }} (x{{ detalle.cantidad }})
-                </span><br>
-                - Estado: {{ task.estado }} -
+                </span>
               </span>
             </label>
           </div>
@@ -98,42 +92,36 @@
               No hay pedidos para fabricar hoy
             </div>
             <label v-for="task in hacerHoy" :key="task.id">
-              <input
-                type="checkbox"
-                :checked="task.estado === 'en preparación'"
-                @change="
-                  actualizarEstadoPedido(task.id, 'en preparación', 'hacerHoy')
-                "
-              />
+              <input type="checkbox" :checked="task.estado === 'en preparación'" @change="
+                actualizarEstadoPedido(task.id, 'en preparación', 'hacerHoy')
+                " />
               <strong>{{ task.nombre }}</strong>
               <span class="pedido-info">
-                (Entrega:{{ formatDate(task.fecha_entrega) }})<br>
+                - Estado: {{ task.estado }} - Entrega:
+                {{ formatDate(task.fecha_entrega) }} -
                 <span v-for="detalle in task.detalles" :key="detalle.id">
                   {{ detalle.receta.nombre }} (x{{ detalle.cantidad }})
-                </span><br></br>
-                - Estado: {{ task.estado }} -
+                </span>
               </span>
             </label>
           </div>
         </div>
 
         <!-- Recetas -->
+
         <div class="card recetas">
           <h3 class="card-title">Recetas</h3>
-          <input
-            v-model="searchTerm"
-            type="text"
-            placeholder="Buscar receta..."
-          />
-
+          <form autocomplete="off">
+            <input autocomplete="off" v-model="searchTerm" type="text" placeholder="Buscar receta..." />
+          </form>
           <ul class="recetas-list">
             <li v-for="receta in filteredRecetas" :key="receta.id">
-              <span>{{ receta.nombre }}</span>
+              <span>
+                {{ receta.nombre }} (Rinde {{ receta.rinde }} {{ singularizeUnidad(receta.rinde, receta.unidad_rinde)
+                }})
+              </span>
               <div class="contador">
-                <button
-                  @click="decrementarContador(receta)"
-                  :disabled="!receta.vecesHecha"
-                >
+                <button @click="decrementarContador(receta)" :disabled="!receta.vecesHecha">
                   -
                 </button>
                 <span>{{ receta.vecesHecha || 0 }}</span>
@@ -184,14 +172,15 @@ const router = useRouter();
 // 🔹 Estado del Menú y Usuario
 // ----------------------
 const menuItems = ref([
-  { text: "Inicio", icon: "fas fa-house" },
-  { text: "Stock", icon: "fas fa-box" },
-  { text: "Pedidos", icon: "fas fa-clipboard-list" },
-  { text: "Recetas", icon: "fas fa-book" },
-  { text: "Reportes", icon: "fas fa-chart-line" },
+  { text: "Inicio", icon: "fas fa-house", route: "/inicio" },
+  { text: "Stock", icon: "fas fa-box", route: "/stock" },
+  { text: "Pedidos", icon: "fas fa-clipboard-list", route: "/pedidos" },
+  { text: "Recetas", icon: "fas fa-book", route: "/recetas" },
+  { text: "Reportes", icon: "fas fa-chart-line", route: "/reportes" },
 ]);
 
 const showUserMenu = ref(false);
+const showNotfMenu = ref(false);
 const showPasswordModal = ref(false);
 const userEmail = ref("Usuario");
 const currentPassword = ref("");
@@ -250,6 +239,14 @@ const decrementarContador = async (receta) => {
   }
 };
 
+const singularizeUnidad = (rinde, unidad) => {
+  if (rinde === 1) {
+    if (unidad === "unidades") return "unidad";
+    if (unidad === "porciones") return "porción";
+  }
+  return unidad;
+};
+
 // ----------------------
 // 🔹 Pedidos
 // ----------------------
@@ -297,10 +294,17 @@ const filteredRecetas = computed(() => {
 // ----------------------
 const toggleUserMenu = () => {
   showUserMenu.value = !showUserMenu.value;
+  showNotfMenu.value = false;
+};
+
+const toggleNotfMenu = () => {
+  showNotfMenu.value = !showNotfMenu.value;
+  showUserMenu.value = false;
 };
 
 const openChangePassword = () => {
   showUserMenu.value = false;
+  showNotfMenu.value = false;
   showPasswordModal.value = true;
 };
 
@@ -434,9 +438,6 @@ const fetchPedidos = async () => {
 // ----------------------
 // 🔹 Utilidades
 // ----------------------
-const selectMenu = (item) => {
-  alert(`Seleccionaste: ${item}`);
-};
 
 const formatDate = (dateString) => {
   if (!dateString) return "";
@@ -460,6 +461,7 @@ onMounted(() => {
   document.addEventListener("click", (event) => {
     if (!event.target.closest(".user-menu-container")) {
       showUserMenu.value = false;
+      showNotfMenu.value = false;
     }
   });
 
@@ -679,7 +681,7 @@ html,
   /* altura máxima para no crecer demasiado */
   overflow-y: auto;
   /* scroll si hay muchos items */
-  padding: 22px;
+  padding: 8px;
   /* opcional: espacio interno */
   padding-top: 2px;
   border-radius: 10px;

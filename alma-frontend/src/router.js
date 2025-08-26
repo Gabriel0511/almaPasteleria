@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import InicioSesion from "./components/InicioSesion.vue";
 import Principal from "./components/Principal.vue";
+import Stock  from "./components/Stock.vue";
 
 const routes = [
   {
@@ -14,9 +15,15 @@ const routes = [
     meta: { requiresAuth: false },
   },
   {
-    path: "/dashboard",
+    path: "/inicio",
     name: "Principal", // Nombre de la ruta que coincide con tu redirección
     component: Principal,
+    meta: { requiresAuth: true }, // Protege esta ruta
+  },
+  {
+    path: "/stock",
+    name: "Stock", // Nombre de la ruta que coincide con tu redirección
+    component: Stock,
     meta: { requiresAuth: true }, // Protege esta ruta
   },
 ];

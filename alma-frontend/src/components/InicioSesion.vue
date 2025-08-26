@@ -164,7 +164,7 @@ const handleSubmit = async () => {
     axios.defaults.headers.common[
       "Authorization"
     ] = `Bearer ${response.data.access}`;
-    router.push("/dashboard");
+    router.push("/inicio");
   } catch (error) {
     errorMessage.value =
       error.response?.data?.detail || "Credenciales incorrectas";
