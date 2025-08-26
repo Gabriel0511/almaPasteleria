@@ -13,6 +13,11 @@ class DetallePedidoInline(admin.StackedInline):
     fields = ('receta', 'cantidad', 'observaciones')  # Campos reales del modelo
     show_change_link = True
 
+class DetallePedidoAdmin(admin.ModelAdmin):
+    inlines = [IngredienteExtraInline]
+    list_display = ('pedido', 'receta', 'cantidad')  # Corregido: 'producto' -> 'receta'
+    list_filter = ('pedido__cliente',)
+
 @admin.register(Pedido)
 class PedidoAdmin(admin.ModelAdmin):
     inlines = [DetallePedidoInline]

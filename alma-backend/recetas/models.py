@@ -10,7 +10,6 @@ class Receta(models.Model):
     UNIDADES_RINDE = [
         ('porciones', 'Porciones'),
         ('unidades', 'Unidades'),
-        ('entera', 'Entera'),
     ]
 
     nombre = models.CharField(max_length=100)
