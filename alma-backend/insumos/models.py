@@ -7,9 +7,19 @@ class UnidadMedida(models.Model):
     nombre = models.CharField(max_length=50, unique=True)
     abreviatura = models.CharField(max_length=10, unique=True)
     descripcion = models.TextField(blank=True, null=True)
+    es_unidad_base = models.BooleanField(default=False)
+    factor_conversion_base = models.DecimalField(max_digits=10, decimal_places=6, default=1.0)
+    unidad_base = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
     
     def __str__(self):
         return f"{self.nombre} ({self.abreviatura})"
+    
+    def convertir_a(self, cantidad, unidad_destino):
+        # Convertir a unidad base primero
+        cantidad_base = cantidad * self.factor_conversion_base
+        
+        # Convertir de base a destino
+        return cantidad_base / unidad_destino.factor_conversion_base
 
 # --- PROVEEDORES ---
 class Proveedor(models.Model):

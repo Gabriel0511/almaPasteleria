@@ -34,18 +34,33 @@ class RecetaInsumo(models.Model):
         return f"{self.insumo.nombre} en {self.receta.nombre}"
     
     def save(self, *args, **kwargs):
-        # Asegurar que la unidad de medida sea la misma que la del insumo
-        if not self.unidad_medida_id:
-            self.unidad_medida = self.insumo.unidad_medida
-        super().save(*args, **kwargs)
+        from insumos.conversiones import convertir_unidad
+        
+        # Si la unidad de medida es diferente a la del insumo, convertir
+        if self.unidad_medida != self.insumo.unidad_medida:
+            try:
+                # Convertir a la unidad del insumo para cálculos internos
+                cantidad_convertida = convertir_unidad(
+                    self.cantidad,
+                    self.unidad_medida.abreviatura,
+                    self.insumo.unidad_medida.abreviatura
+                )
+                # Guardamos la cantidad original pero manejamos conversiones en los métodos
+                super().save(*args, **kwargs)
+            except ValueError as e:
+                raise ValueError(f"Error de conversión: {e}")
+        else:
+            super().save(*args, **kwargs)
     
     def get_cantidad_en_unidad_insumo(self):
-        """
-        Convierte la cantidad a la unidad de medida del insumo
-        """
-        if self.unidad_medida == self.insumo.unidad_medida:
+        """Devuelve la cantidad convertida a la unidad del insumo"""
+        from insumos.conversiones import convertir_unidad
+        
+        if self.unidad_medida == self.insumo.unidad_medida.abreviatura:
             return self.cantidad
         
-        # Aquí implementarías la lógica de conversión
-        # Por ahora, asumimos misma unidad o conversión simple
-        return self.cantidad
+        return convertir_unidad(
+            self.cantidad,
+            self.unidad_medida.abreviatura,
+            self.insumo.unidad_medida.abreviatura
+        )
