@@ -1,7 +1,7 @@
 // src/main.js
 import { createApp } from "vue";
 import App from "./App.vue";
-import "./style.css";
+import "./assets/styles/global.css"; // ✅ Importar estilos globales
 import router from "./router"; // Importamos el router
 import axios from "axios";
 axios.interceptors.request.use(

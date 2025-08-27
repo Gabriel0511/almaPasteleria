@@ -1,0 +1,270 @@
+/* ----------------------------- ESTILOS GLOBALES ----------------------------- */
+:root {
+  --color-primary: #7b5a50;
+  --color-secondary: #f1d0cb;
+  --color-background: #f5dfdd;
+  --color-text: #3c3c3c;
+  --color-white: #ffffff;
+  --color-danger: #dc3545;
+  --color-warning: #ffc107;
+  --color-success: #28a745;
+}
+
+/* ----------------------------- RESET Y BASE ----------------------------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body,
+html,
+#app {
+  font-family: sans-serif;
+  background-color: var(--color-secondary);
+  color: var(--color-text);
+  height: 100vh;
+  margin: 0;
+}
+
+/* ----------------------------- LAYOUT GENERAL ----------------------------- */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-content {
+  margin-left: 120px;
+  flex: 1;
+  padding: 15px;
+}
+
+/* ----------------------------- HEADER ----------------------------- */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.logo img {
+  height: 80px;
+  margin-bottom: 10px;
+}
+
+.icon-buttons {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.icon-buttons i {
+  font-size: 20px;
+  background-color: var(--color-white);
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.icon-buttons i:hover {
+  background-color: #f0f0f0;
+}
+
+/* ----------------------------- MENÚ DE USUARIO ----------------------------- */
+.user-menu-container {
+  position: relative;
+  display: inline-block;
+}
+
+.user-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background-color: var(--color-white);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  width: 200px;
+  z-index: 1000;
+  margin-top: 5px;
+}
+
+.menu-header {
+  padding: 10px 15px;
+  font-weight: bold;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.menu-item {
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.menu-item:hover {
+  background-color: #f8f9fa;
+}
+
+.menu-item:last-child {
+  border-radius: 0 0 8px 8px;
+}
+
+/* ----------------------------- NOTIFICACIONES ----------------------------- */
+.notification-icon {
+  position: relative;
+}
+
+.notification-badge {
+  background-color: var(--color-danger);
+  color: var(--color-white);
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 50%;
+  position: absolute;
+  top: -10px;
+  right: -10px;
+}
+
+/* ----------------------------- MODAL ----------------------------- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: var(--color-white);
+  padding: 20px;
+  border-radius: 10px;
+  width: 400px;
+  max-width: 90%;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+.cancel-button {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.confirm-button {
+  padding: 8px 16px;
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-top: 5px;
+}
+
+/* ----------------------------- CARD BASE ----------------------------- */
+.card {
+  background-color: var(--color-background);
+  border-radius: 10px;
+  box-shadow: 10px 8px 10px #aaa;
+  padding: 8px;
+  padding-top: 2px;
+  overflow-y: auto;
+}
+
+.card h3 {
+  margin-top: 0;
+  font-size: 18px;
+}
+
+.card-title {
+  text-align: center;
+  margin: 0;
+  padding: 4px;
+  border-bottom: 1px solid #ccc;
+}
+
+/* ----------------------------- SCROLL PERSONALIZADO ----------------------------- */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* ----------------------------- UTILIDADES ----------------------------- */
+.text-center {
+  text-align: center;
+}
+
+.text-danger {
+  color: var(--color-danger);
+}
+
+.text-warning {
+  color: var(--color-warning);
+}
+
+.text-success {
+  color: var(--color-success);
+}
+
+.badge {
+  background-color: var(--color-danger);
+  color: var(--color-white);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+/* ----------------------------- RESPONSIVE ----------------------------- */
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+    padding: 10px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .logo img {
+    height: 60px;
+  }
+}

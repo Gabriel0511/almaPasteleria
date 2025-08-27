@@ -10,24 +10,9 @@
         </div>
         <div class="icon-buttons">
 
-          <div class="user-menu-container">
-            <i class="fas fa-bell notf-icon" @click="toggleNotfMenu"></i>
-            <div v-if="showNotfMenu" class="user-menu">
-              <div class="menu-header">NOTIFICACIONES</div>
-              <div class="menu-item"> Aquí se notifica </div>
-            </div>
-          </div>
-
-          <div class="user-menu-container">
-            <i class="fas fa-user user-icon" @click="toggleUserMenu"></i>
-            <div v-if="showUserMenu" class="user-menu">
-              <div class="menu-header">{{ userEmail }}</div>
-              <div class="menu-item" @click="openChangePassword">
-                Cambiar contraseña
-              </div>
-              <div class="menu-item" @click="logout">Cerrar sesión</div>
-            </div>
-          </div>
+          <NotificationMenu :notifications="notifications" />
+          <UserMenu :user-email="userEmail" @change-password="openChangePassword" @logout="logout"
+          />
 
         </div>
       </header>
@@ -166,8 +151,13 @@ import { onMounted, ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 import Sidebar from "./Sidebar.vue";
+import NotificationMenu from "./NotificationMenu.vue";
+import UserMenu from "./UserMenu.vue";
 
 const router = useRouter();
+
+// AGREGAR esta variable para las notificaciones
+const notifications = ref([]); // Inicializar como array vacío
 
 const handleNavigation = (route) => {
   router.push(route);
@@ -508,144 +498,21 @@ onMounted(() => {
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
 
-/* ----------------------------- ESTRUCTURA GENERAL ----------------------------- */
-body,
-html,
-#app {
-  font-family: sans-serif;
-  background-color: #f1d0cb;
-  color: #3c3c3c;
-  height: 100vh;
-  display: flex;
-  margin: 0;
-}
-
-/* ----------------------------- SIDEBAR ----------------------------- */
-.sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100vh;
-  width: 120px;
-  background-color: #7b5a50;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 10px;
-}
-
-.sidebar button {
-  background: none;
-  border: none;
-  color: #fff;
-  margin: 15px 0;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: 14px;
-}
-
-.sidebar button i {
-  font-size: 20px;
-  margin-bottom: 5px;
-}
-
-.footer-icon {
-  margin-top: auto;
-  margin-bottom: 10px;
-  color: white;
-  font-size: 22px;
-}
-
-/* ----------------------------- MAIN & HEADER ----------------------------- */
-.main {
-  margin-left: 120px;
-  padding: 15px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.logo img {
-  height: 80px;
-  margin-bottom: 10px;
-}
-
-.icon-buttons {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.icon-buttons i {
-  font-size: 20px;
-  background-color: white;
-  padding: 8px;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.notification-icon {
-  position: relative;
-}
-
-.notification {
-  background-color: red;
-  color: white;
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 50%;
-  position: absolute;
-  top: -10px;
-  left: -15px;
-}
-
-/* ----------------------------- CONTENIDO Y CARDS ----------------------------- */
+/* ----------------------------- CONTENIDO Y CARDS ESPECÍFICOS ----------------------------- */
 .content {
   display: grid;
   grid-template-columns: 1fr 0.8fr 1fr;
-  /* izquierda, medio, derecha */
   grid-template-areas: "stock middle recetas";
   gap: 20px;
 }
 
-.card {
-  background-color: #f5dfdd;
-  border-radius: 10px;
-  box-shadow: 10px 8px 10px #aaa;
-  padding: 8px;
-  padding-top: 2px;
-  overflow-y: auto;
-}
-
-.card h3 {
-  margin-top: 0;
-  font-size: 18px;
-}
-
-.card-title {
-  text-align: center;
-  margin: 0;
-  padding: 4px;
-  border-bottom: 1px solid #ccc;
-}
-
-/* ----------------------------- STOCK ----------------------------- */
+/* ----------------------------- STOCK (ESPECÍFICO) ----------------------------- */
 .card.stock {
   grid-area: stock;
   max-height: 480px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  /* que solo scrollee la lista */
 }
 
 .stock-list {
@@ -669,7 +536,6 @@ html,
 
 .stock-header-container {
   flex-shrink: 0;
-  /* que no se encoja al scrollear */
   background-color: #f5dfdd;
 }
 
@@ -680,6 +546,7 @@ html,
   padding: 10px;
   border-bottom: 1px solid #ccc;
 }
+
 .stock-header select {
   margin-left: 10px;
   padding: 2px 6px;
@@ -687,27 +554,21 @@ html,
   border: 1px solid #ccc;
 }
 
-/* ----------------------------- MIDDLE CARDS ----------------------------- */
+/* ----------------------------- MIDDLE CARDS (ESPECÍFICO) ----------------------------- */
 .middle-cards {
   grid-area: middle;
   display: flex;
   flex-direction: column;
   gap: 20px;
   height: 480px;
-  /* altura total disponible para los dos cards */
 }
 
 .middle-cards .card {
   flex: 1;
-  /* cada card ocupa la mitad del contenedor */
   min-height: 200px;
-  /* altura mínima para que no se achiquen demasiado */
   max-height: 400px;
-  /* altura máxima para no crecer demasiado */
   overflow-y: auto;
-  /* scroll si hay muchos items */
   padding: 8px;
-  /* opcional: espacio interno */
   padding-top: 2px;
   border-radius: 10px;
   background-color: #f5dfdd;
@@ -719,7 +580,7 @@ html,
   margin-bottom: 5px;
 }
 
-/* ----------------------------- RECETAS ----------------------------- */
+/* ----------------------------- RECETAS (ESPECÍFICO) ----------------------------- */
 .card.recetas {
   grid-area: recetas;
   max-height: 480px;
@@ -781,7 +642,7 @@ html,
   cursor: not-allowed;
 }
 
-/* ----------------------------- LOADING / ERROR ----------------------------- */
+/* ----------------------------- LOADING / ERROR (ESPECÍFICO) ----------------------------- */
 .loading {
   text-align: center;
   padding: 20px;
@@ -794,136 +655,7 @@ html,
   text-align: center;
 }
 
-/* ----------------------------- SCROLL PERSONALIZADO ----------------------------- */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f0f0f0;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-
-.user-menu-container {
-  position: relative;
-  display: inline-block;
-}
-
-.user-icon {
-  font-size: 20px;
-  background-color: white;
-  padding: 8px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.user-icon:hover {
-  background-color: #f0f0f0;
-}
-
-.user-menu {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  width: 200px;
-  z-index: 1000;
-  margin-top: 5px;
-}
-
-.menu-header {
-  padding: 10px 15px;
-  font-weight: bold;
-  border-bottom: 1px solid #eee;
-  background-color: #f8f9fa;
-  border-radius: 8px 8px 0 0;
-}
-
-.menu-item {
-  padding: 10px 15px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.menu-item:hover {
-  background-color: #f8f9fa;
-}
-
-.menu-item:last-child {
-  border-radius: 0 0 8px 8px;
-}
-
-/* Estilos para el modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  width: 400px;
-  max-width: 90%;
-}
-
-.modal-buttons {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-  gap: 10px;
-}
-
-.cancel-button {
-  padding: 8px 16px;
-  background-color: #f0f0f0;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.confirm-button {
-  padding: 8px 16px;
-  background-color: #7b5a50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.form-group {
-  margin-bottom: 15px;
-}
-
-.form-input {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  margin-top: 5px;
-}
-
-/* ----------------------------- RESPONSIVE ----------------------------- */
+/* ----------------------------- RESPONSIVE (ESPECÍFICO) ----------------------------- */
 @media (max-width: 768px) {
   .content {
     grid-template-columns: 1fr;
