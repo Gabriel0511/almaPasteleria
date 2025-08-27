@@ -1,8 +1,8 @@
 <template>
-  <div id="app">
+  <div class="app-layout">
     <Sidebar @navigate="handleNavigation" />
 
-    <main class="main">
+    <main class="main-content">
       <header class="header">
         <div></div>
         <div class="logo">
@@ -13,7 +13,6 @@
           <NotificationMenu :notifications="notifications" />
           <UserMenu :user-email="userEmail" @change-password="openChangePassword" @logout="logout"
           />
-
         </div>
       </header>
 
@@ -147,7 +146,7 @@
 
 <script setup>
 import { formatDecimal, parseDecimal } from "../helpers/formatters";
-import { onMounted, ref, computed } from "vue";
+import { onMounted, ref, computed, inject } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 import Sidebar from "./Sidebar.vue";
@@ -155,6 +154,7 @@ import NotificationMenu from "./NotificationMenu.vue";
 import UserMenu from "./UserMenu.vue";
 
 const router = useRouter();
+const notificationSystem = inject('notifications');
 
 // AGREGAR esta variable para las notificaciones
 const notifications = ref([]); // Inicializar como array vacío
@@ -218,15 +218,41 @@ const incrementarContador = async (receta) => {
   try {
     const response = await axios.post(`/api/recetas/${receta.id}/incrementar/`);
 
+    if (response.data.error) {
+      // ✅ Notificación detallada con información específica
+      notificationSystem.show({
+        type: 'error',
+        title: `Stock insuficiente para ${response.data.receta_nombre || receta.nombre}`,
+        message: response.data.error,
+        insuficientes: response.data.insuficientes || [],
+        timeout: 10000 // 10 segundos para que el usuario pueda leer la lista
+      });
+      return;
+    }
+
     // Actualizar en tiempo real
     receta.vecesHecha = response.data.nuevo_contador;
 
     if (response.data.stock_actualizado) {
-      await fetchStock(); // Actualizar lista de stock
+      await fetchStock();
+      
+      // ✅ Notificación de éxito
+      notificationSystem.show({
+        type: 'success',
+        title: '¡Receta preparada!',
+        message: response.data.mensaje || `Se ha incrementado el contador de ${receta.nombre}`,
+        timeout: 4000
+      });
     }
   } catch (err) {
     console.error("Error al incrementar:", err);
-    alert(err.response?.data?.error || "Error al incrementar receta");
+    
+    notificationSystem.show({
+      type: 'error',
+      title: 'Error',
+      message: err.response?.data?.error || "Error al incrementar receta",
+      timeout: 6000
+    });
   }
 };
 
@@ -236,15 +262,40 @@ const decrementarContador = async (receta) => {
 
     const response = await axios.post(`/api/recetas/${receta.id}/decrementar/`);
 
+    if (response.data.error) {
+      notificationSystem.show({
+        type: 'error',
+        title: 'Error al decrementar',
+        message: response.data.error,
+        timeout: 6000
+      });
+      return;
+    }
+
     // Actualizar en tiempo real
     receta.vecesHecha = response.data.nuevo_contador;
 
     if (response.data.stock_actualizado) {
-      await fetchStock(); // Actualizar lista de stock
+      await fetchStock();
+      
+      // ✅ Notificación informativa con detalles
+      notificationSystem.show({
+        type: 'info',
+        title: 'Preparación revertida',
+        message: response.data.mensaje || `Se ha decrementado el contador de ${receta.nombre}`,
+        insumos_devueltos: response.data.insumos_devueltos || [],
+        timeout: 6000
+      });
     }
   } catch (err) {
     console.error("Error al decrementar:", err);
-    alert(err.response?.data?.error || "Error al decrementar receta");
+    
+    notificationSystem.show({
+      type: 'error',
+      title: 'Error',
+      message: err.response?.data?.error || "Error al decrementar receta",
+      timeout: 6000
+    });
   }
 };
 
@@ -319,7 +370,12 @@ const openChangePassword = () => {
 
 const changePassword = async () => {
   if (newPassword.value !== confirmPassword.value) {
-    alert("Las contraseñas no coinciden");
+    notificationSystem.show({
+      type: 'warning',
+      title: 'Contraseñas no coinciden',
+      message: 'Las contraseñas ingresadas no son iguales',
+      timeout: 4000
+    });
     return;
   }
 
@@ -330,7 +386,12 @@ const changePassword = async () => {
       new_password2: confirmPassword.value,
     });
 
-    alert("Contraseña cambiada exitosamente");
+    notificationSystem.show({
+      type: 'success',
+      title: '¡Contraseña cambiada!',
+      message: 'Tu contraseña ha sido actualizada exitosamente',
+      timeout: 4000
+    });
     showPasswordModal.value = false;
     currentPassword.value = "";
     newPassword.value = "";
@@ -536,7 +597,6 @@ onMounted(() => {
 
 .stock-header-container {
   flex-shrink: 0;
-  background-color: #f5dfdd;
 }
 
 .stock-header {
@@ -570,9 +630,6 @@ onMounted(() => {
   overflow-y: auto;
   padding: 8px;
   padding-top: 2px;
-  border-radius: 10px;
-  background-color: #f5dfdd;
-  box-shadow: 10px 8px 10px #aaa;
 }
 
 .tasks label {
@@ -609,17 +666,32 @@ onMounted(() => {
   align-items: center;
   padding: 8px 10px;
   border-bottom: 1px solid #ccc;
+  gap: 10px; /* ✅ Agregar espacio entre texto y contador */
+}
+
+/* CONTADOR RESPONSIVE */
+.contador {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0; /* ✅ Evitar que se encoja */
+  min-width: 90px; /* ✅ Ancho mínimo para mantener la forma */
 }
 
 .contador button {
   padding: 4px 8px;
-  margin: 0 4px;
+  margin: 0;
   cursor: pointer;
   border: none;
   background-color: #7b5a50;
   color: white;
   border-radius: 5px;
   font-weight: bold;
+  min-width: 28px; /* ✅ Ancho mínimo para botones */
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .contador button:hover {
@@ -630,6 +702,7 @@ onMounted(() => {
   min-width: 20px;
   text-align: center;
   display: inline-block;
+  font-weight: bold;
 }
 
 .loading-spinner {
@@ -642,21 +715,28 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-/* ----------------------------- LOADING / ERROR (ESPECÍFICO) ----------------------------- */
-.loading {
-  text-align: center;
-  padding: 20px;
-  color: #666;
-}
-
-.error {
-  color: red;
-  padding: 10px;
-  text-align: center;
-}
-
 /* ----------------------------- RESPONSIVE (ESPECÍFICO) ----------------------------- */
-@media (max-width: 768px) {
+@media (max-width: 1158px) {
+  .content {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "stock stock"
+      "middle recetas";
+    gap: 15px;
+  }
+  
+  .recetas-list li {
+    flex-direction: column; /* ✅ Apilar verticalmente en pantallas medianas */
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .contador {
+    align-self: flex-end; /* ✅ Alinear contador a la derecha */
+  }
+}
+
+@media (max-width: 968px) {
   .content {
     grid-template-columns: 1fr;
     grid-template-areas:
@@ -664,13 +744,67 @@ onMounted(() => {
       "middle"
       "recetas";
   }
+  
+  .recetas-list li {
+    flex-direction: row; /* ✅ Volver a horizontal en móviles */
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .contador {
+    align-self: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .recetas-list li {
+    flex-direction: column; /* ✅ Apilar nuevamente en móviles muy pequeños */
+    align-items: flex-start;
+  }
+  
+  .contador {
+    align-self: flex-start;
+    margin-top: 5px;
+  }
+  
+  .contador button {
+    padding: 6px 10px; /* ✅ Botones más grandes para móviles */
+    min-width: 32px;
+    height: 32px;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "stock"
+      "middle"
+      "recetas";
+    gap: 15px;
+  }
 
   .middle-cards {
     flex-direction: column;
+    height: auto;
+  }
+  
+  .middle-cards .card {
+    min-height: 150px;
+    max-height: none;
   }
 
   .recetas input {
     width: 100%;
+  }
+  
+  .card.stock,
+  .card.recetas {
+    max-height: none;
+  }
+  
+  .header {
+    margin-top: 20px;
   }
 }
 </style>

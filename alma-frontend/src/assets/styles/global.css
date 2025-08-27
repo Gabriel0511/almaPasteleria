@@ -34,9 +34,11 @@ html,
 }
 
 .main-content {
-  margin-left: 120px;
+  margin-left: 120px; /* Mismo ancho que el sidebar */
   flex: 1;
   padding: 15px;
+  position: relative; /* Importante para el z-index */
+  z-index: 1; /* Menor que el sidebar pero sobre el fondo */
 }
 
 /* ----------------------------- HEADER ----------------------------- */
@@ -256,15 +258,50 @@ html,
 @media (max-width: 768px) {
   .main-content {
     margin-left: 0;
-    padding: 10px;
+    padding: 60px 10px 10px 10px; /* Más padding top para el botón hamburguesa */
+    z-index: 1;
   }
 
   .header {
     flex-direction: column;
     gap: 10px;
+    margin-top: 20px;
   }
 
   .logo img {
     height: 60px;
+  }
+
+  /* Ajustar grid para móviles */
+  .content {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "stock"
+      "middle"
+      "recetas";
+    gap: 15px;
+  }
+
+  .middle-cards {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .middle-cards .card {
+    min-height: 150px;
+    max-height: none;
+  }
+
+  .card.stock,
+  .card.recetas {
+    max-height: none;
+  }
+}
+
+@media (min-width: 769px) {
+  .main-content {
+    margin-left: 120px;
+    padding: 15px;
+    z-index: 1;
   }
 }

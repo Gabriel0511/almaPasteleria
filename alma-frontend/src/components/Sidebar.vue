@@ -1,25 +1,47 @@
 <template>
-  <aside class="sidebar">
-    <button
-      v-for="item in menuItems"
-      :key="item.text"
-      @click="$emit('navigate', item.route)"
-      :class="{ active: isActive(item.route) }"
-    >
-      <i :class="item.icon"></i>
-      <span>{{ item.text }}</span>
+  <div>
+    <!-- Botón hamburguesa para móviles -->
+    <button class="hamburger-btn" @click="toggleSidebar" v-if="isMobile">
+      <i class="fas fa-bars"></i>
     </button>
-    <div class="footer-icon">
-      <i class="fas fa-clipboard-check"></i>
-    </div>
-  </aside>
+
+    <!-- Overlay para cerrar el sidebar al hacer click fuera -->
+    <div
+      v-if="isMobile && sidebarOpen"
+      class="sidebar-overlay"
+      @click="closeSidebar"
+    ></div>
+
+    <!-- Sidebar -->
+    <aside
+      class="sidebar"
+      :class="{ 'sidebar-open': sidebarOpen, 'sidebar-mobile': isMobile }"
+    >
+      <button
+        v-for="item in menuItems"
+        :key="item.text"
+        @click="navigate(item.route)"
+        :class="{ active: isActive(item.route) }"
+      >
+        <i :class="item.icon"></i>
+        <span>{{ item.text }}</span>
+      </button>
+      <div class="footer-icon">
+        <i class="fas fa-clipboard-check"></i>
+      </div>
+    </aside>
+  </div>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-import { useRoute } from "vue-router";
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 const route = useRoute();
+const router = useRouter();
+
+const sidebarOpen = ref(false);
+const isMobile = ref(false);
 
 const menuItems = ref([
   { text: "Inicio", icon: "fas fa-house", route: "/inicio" },
@@ -33,10 +55,68 @@ const isActive = (menuRoute) => {
   return route.path === menuRoute;
 };
 
+const checkScreenSize = () => {
+  isMobile.value = window.innerWidth <= 768;
+  if (!isMobile.value) {
+    sidebarOpen.value = false;
+  }
+};
+
+const toggleSidebar = () => {
+  sidebarOpen.value = !sidebarOpen.value;
+};
+
+const closeSidebar = () => {
+  sidebarOpen.value = false;
+};
+
+const navigate = (routePath) => {
+  router.push(routePath);
+  if (isMobile.value) {
+    closeSidebar();
+  }
+};
+
+onMounted(() => {
+  checkScreenSize();
+  window.addEventListener("resize", checkScreenSize);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", checkScreenSize);
+});
+
 defineEmits(["navigate"]);
 </script>
 
 <style scoped>
+/* Botón hamburguesa */
+.hamburger-btn {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 1002;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+/* Overlay para móviles */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+/* Sidebar base */
 .sidebar {
   position: fixed;
   top: 0;
@@ -48,7 +128,18 @@ defineEmits(["navigate"]);
   flex-direction: column;
   align-items: center;
   padding-top: 10px;
-  z-index: 1000;
+  z-index: 1001;
+  transition: transform 0.3s ease;
+}
+
+/* Sidebar para móviles */
+.sidebar-mobile {
+  width: 200px;
+  transform: translateX(-100%);
+}
+
+.sidebar-mobile.sidebar-open {
+  transform: translateX(0);
 }
 
 .sidebar button {
@@ -85,5 +176,27 @@ defineEmits(["navigate"]);
   margin-bottom: 10px;
   color: white;
   font-size: 22px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar:not(.sidebar-mobile) {
+    display: none;
+  }
+}
+
+@media (min-width: 769px) {
+  .hamburger-btn {
+    display: none;
+  }
+
+  .sidebar-overlay {
+    display: none;
+  }
+
+  .sidebar-mobile {
+    width: 120px;
+    transform: translateX(0);
+  }
 }
 </style>
