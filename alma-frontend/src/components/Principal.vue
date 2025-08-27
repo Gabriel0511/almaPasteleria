@@ -1,14 +1,6 @@
 <template>
   <div id="app">
-    <aside class="sidebar">
-      <button v-for="item in menuItems" :key="item.text" @click="router.push(item.route)">
-        <i :class="item.icon"></i>
-        <span>{{ item.text }}</span>
-      </button>
-      <div class="footer-icon">
-        <i class="fas fa-clipboard-check"></i>
-      </div>
-    </aside>
+    <Sidebar @navigate="handleNavigation" />
 
     <main class="main">
       <header class="header">
@@ -173,10 +165,13 @@ import { formatDecimal, parseDecimal } from "../helpers/formatters";
 import { onMounted, ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
+import Sidebar from "./Sidebar.vue";
 
 const router = useRouter();
 
-
+const handleNavigation = (route) => {
+  router.push(route);
+};
 
 const categoriaSeleccionada = ref(""); // "" significa "Todas"
 const categoriasStock = computed(() => {
