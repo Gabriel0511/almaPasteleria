@@ -1,9 +1,21 @@
 <template>
-  <router-view />
+  <div id="app">
+    <NotificationSystem ref="notificationSystem" />
+    <RouterView />
+  </div>
 </template>
 
 <script setup>
-// No hace falta importar InicioSesion ni Principal acá
+import { ref, provide } from "vue";
+import NotificationSystem from "./components/NotificationSystem.vue";
+
+const notificationSystem = ref();
+
+// Proveer el sistema de notificaciones a todos los componentes
+provide("notifications", {
+  show: (data) => notificationSystem.value?.showNotification(data),
+  remove: (id) => notificationSystem.value?.removeNotification(id),
+});
 </script>
 
 <style scoped>

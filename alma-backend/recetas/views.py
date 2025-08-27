@@ -51,14 +51,24 @@ class IncrementarRecetaView(APIView):
                 detalles = RecetaInsumo.objects.filter(receta=receta)
                 
                 # Verificar stock antes de incrementar
+                insuficientes = []
                 for detalle in detalles:
                     cantidad_necesaria = detalle.get_cantidad_en_unidad_insumo()
                     
                     if detalle.insumo.stock_actual < cantidad_necesaria:
-                        return Response(
-                            {'error': f'Stock insuficiente de {detalle.insumo.nombre}. Necesitas {cantidad_necesaria} {detalle.insumo.unidad_medida.abreviatura}, tienes {detalle.insumo.stock_actual} {Insumo.unidad_medida.abreviatura}.'},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
+                        insuficientes.append({
+                            'nombre': detalle.insumo.nombre,
+                            'disponible': float(detalle.insumo.stock_actual),
+                            'necesario': float(cantidad_necesaria),
+                            'unidad': detalle.insumo.unidad_medida.abreviatura
+                        })
+                
+                if insuficientes:
+                    return Response({
+                        'error': 'Stock insuficiente para preparar la receta',
+                        'insuficientes': insuficientes,
+                        'receta_nombre': receta.nombre
+                    }, status=status.HTTP_400_BAD_REQUEST)
                 
                 # Reducir stock
                 for detalle in detalles:
@@ -71,14 +81,18 @@ class IncrementarRecetaView(APIView):
                 
                 return Response({
                     'nuevo_contador': receta.veces_hecha,
-                    'stock_actualizado': True
+                    'stock_actualizado': True,
+                    'mensaje': f'Receta "{receta.nombre}" preparada exitosamente'
                 }, status=status.HTTP_200_OK)
                 
         except Receta.DoesNotExist:
-            return Response(
-                {'error': 'Receta no encontrada'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({
+                'error': 'Receta no encontrada'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                'error': f'Error interno del servidor: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class DecrementarRecetaView(APIView):
     def post(self, request, pk):
@@ -86,14 +100,15 @@ class DecrementarRecetaView(APIView):
             with transaction.atomic():
                 receta = Receta.objects.get(pk=pk)
                 if receta.veces_hecha <= 0:
-                    return Response(
-                        {'error': 'El contador ya está en cero'},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+                    return Response({
+                        'error': 'El contador ya está en cero',
+                        'receta_nombre': receta.nombre
+                    }, status=status.HTTP_400_BAD_REQUEST)
                 
                 detalles = RecetaInsumo.objects.filter(receta=receta)
                 
                 # Devolver insumos al stock
+                insumos_devueltos = []
                 for detalle in detalles:
                     insumo = detalle.insumo
                     cantidad_devolver = detalle.cantidad
@@ -108,17 +123,28 @@ class DecrementarRecetaView(APIView):
                     
                     insumo.stock_actual += cantidad_devolver
                     insumo.save()
+                    
+                    insumos_devueltos.append({
+                        'nombre': insumo.nombre,
+                        'cantidad': float(cantidad_devolver),
+                        'unidad': insumo.unidad_medida.abreviatura
+                    })
                 
                 receta.veces_hecha -= 1
                 receta.save()
                 
                 return Response({
                     'nuevo_contador': receta.veces_hecha,
-                    'stock_actualizado': True
+                    'stock_actualizado': True,
+                    'mensaje': f'Se ha revertido la preparación de "{receta.nombre}"',
+                    'insumos_devueltos': insumos_devueltos
                 }, status=status.HTTP_200_OK)
                 
         except Receta.DoesNotExist:
-            return Response(
-                {'error': 'Receta no encontrada'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({
+                'error': 'Receta no encontrada'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                'error': f'Error interno del servidor: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

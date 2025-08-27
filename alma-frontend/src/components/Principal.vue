@@ -146,7 +146,7 @@
 
 <script setup>
 import { formatDecimal, parseDecimal } from "../helpers/formatters";
-import { onMounted, ref, computed } from "vue";
+import { onMounted, ref, computed, inject } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 import Sidebar from "./Sidebar.vue";
@@ -154,6 +154,7 @@ import NotificationMenu from "./NotificationMenu.vue";
 import UserMenu from "./UserMenu.vue";
 
 const router = useRouter();
+const notificationSystem = inject('notifications');
 
 // AGREGAR esta variable para las notificaciones
 const notifications = ref([]); // Inicializar como array vacío
@@ -217,15 +218,41 @@ const incrementarContador = async (receta) => {
   try {
     const response = await axios.post(`/api/recetas/${receta.id}/incrementar/`);
 
+    if (response.data.error) {
+      // ✅ Notificación detallada con información específica
+      notificationSystem.show({
+        type: 'error',
+        title: `Stock insuficiente para ${response.data.receta_nombre || receta.nombre}`,
+        message: response.data.error,
+        insuficientes: response.data.insuficientes || [],
+        timeout: 10000 // 10 segundos para que el usuario pueda leer la lista
+      });
+      return;
+    }
+
     // Actualizar en tiempo real
     receta.vecesHecha = response.data.nuevo_contador;
 
     if (response.data.stock_actualizado) {
-      await fetchStock(); // Actualizar lista de stock
+      await fetchStock();
+      
+      // ✅ Notificación de éxito
+      notificationSystem.show({
+        type: 'success',
+        title: '¡Receta preparada!',
+        message: response.data.mensaje || `Se ha incrementado el contador de ${receta.nombre}`,
+        timeout: 4000
+      });
     }
   } catch (err) {
     console.error("Error al incrementar:", err);
-    alert(err.response?.data?.error || "Error al incrementar receta");
+    
+    notificationSystem.show({
+      type: 'error',
+      title: 'Error',
+      message: err.response?.data?.error || "Error al incrementar receta",
+      timeout: 6000
+    });
   }
 };
 
@@ -235,15 +262,40 @@ const decrementarContador = async (receta) => {
 
     const response = await axios.post(`/api/recetas/${receta.id}/decrementar/`);
 
+    if (response.data.error) {
+      notificationSystem.show({
+        type: 'error',
+        title: 'Error al decrementar',
+        message: response.data.error,
+        timeout: 6000
+      });
+      return;
+    }
+
     // Actualizar en tiempo real
     receta.vecesHecha = response.data.nuevo_contador;
 
     if (response.data.stock_actualizado) {
-      await fetchStock(); // Actualizar lista de stock
+      await fetchStock();
+      
+      // ✅ Notificación informativa con detalles
+      notificationSystem.show({
+        type: 'info',
+        title: 'Preparación revertida',
+        message: response.data.mensaje || `Se ha decrementado el contador de ${receta.nombre}`,
+        insumos_devueltos: response.data.insumos_devueltos || [],
+        timeout: 6000
+      });
     }
   } catch (err) {
     console.error("Error al decrementar:", err);
-    alert(err.response?.data?.error || "Error al decrementar receta");
+    
+    notificationSystem.show({
+      type: 'error',
+      title: 'Error',
+      message: err.response?.data?.error || "Error al decrementar receta",
+      timeout: 6000
+    });
   }
 };
 
@@ -318,7 +370,12 @@ const openChangePassword = () => {
 
 const changePassword = async () => {
   if (newPassword.value !== confirmPassword.value) {
-    alert("Las contraseñas no coinciden");
+    notificationSystem.show({
+      type: 'warning',
+      title: 'Contraseñas no coinciden',
+      message: 'Las contraseñas ingresadas no son iguales',
+      timeout: 4000
+    });
     return;
   }
 
@@ -329,7 +386,12 @@ const changePassword = async () => {
       new_password2: confirmPassword.value,
     });
 
-    alert("Contraseña cambiada exitosamente");
+    notificationSystem.show({
+      type: 'success',
+      title: '¡Contraseña cambiada!',
+      message: 'Tu contraseña ha sido actualizada exitosamente',
+      timeout: 4000
+    });
     showPasswordModal.value = false;
     currentPassword.value = "";
     newPassword.value = "";
