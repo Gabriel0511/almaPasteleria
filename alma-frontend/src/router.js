@@ -1,7 +1,10 @@
 import { createRouter, createWebHistory } from "vue-router";
 import InicioSesion from "./components/InicioSesion.vue";
 import Principal from "./components/Principal.vue";
-import Stock  from "./components/Stock.vue";
+import Stock from "./components/Stock.vue";
+import Pedidos from "./components/Pedidos.vue";
+import Recetas from "./components/Recetas.vue"; // ✅ Agregar esta importación
+import Reportes from "./components/Reportes.vue";
 
 const routes = [
   {
@@ -16,15 +19,33 @@ const routes = [
   },
   {
     path: "/inicio",
-    name: "Principal", // Nombre de la ruta que coincide con tu redirección
+    name: "Principal",
     component: Principal,
-    meta: { requiresAuth: true }, // Protege esta ruta
+    meta: { requiresAuth: true },
   },
   {
     path: "/stock",
-    name: "Stock", // Nombre de la ruta que coincide con tu redirección
+    name: "Stock",
     component: Stock,
-    meta: { requiresAuth: true }, // Protege esta ruta
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/pedidos",
+    name: "Pedidos",
+    component: Pedidos,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/recetas",
+    name: "Recetas",
+    component: Recetas, // ✅ Ahora el componente está importado
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/reportes",
+    name: "Reportes",
+    component: Reportes,
+    meta: { requiresAuth: true },
   },
 ];
 
