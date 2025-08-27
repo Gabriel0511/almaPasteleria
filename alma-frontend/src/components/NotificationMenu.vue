@@ -6,7 +6,7 @@
       </span>
     </i>
     <div v-if="isOpen" class="user-menu">
-      <div class="menu-header">NOTIFICACIONES</div>
+      <div class="menu-header">Notificaciones</div>
       <div
         class="menu-item"
         v-for="notification in notifications"
