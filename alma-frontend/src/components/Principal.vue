@@ -13,7 +13,6 @@
           <NotificationMenu :notifications="notifications" />
           <UserMenu :user-email="userEmail" @change-password="openChangePassword" @logout="logout"
           />
-
         </div>
       </header>
 
@@ -605,17 +604,32 @@ onMounted(() => {
   align-items: center;
   padding: 8px 10px;
   border-bottom: 1px solid #ccc;
+  gap: 10px; /* ✅ Agregar espacio entre texto y contador */
+}
+
+/* CONTADOR RESPONSIVE */
+.contador {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0; /* ✅ Evitar que se encoja */
+  min-width: 90px; /* ✅ Ancho mínimo para mantener la forma */
 }
 
 .contador button {
   padding: 4px 8px;
-  margin: 0 4px;
+  margin: 0;
   cursor: pointer;
   border: none;
   background-color: #7b5a50;
   color: white;
   border-radius: 5px;
   font-weight: bold;
+  min-width: 28px; /* ✅ Ancho mínimo para botones */
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .contador button:hover {
@@ -626,6 +640,7 @@ onMounted(() => {
   min-width: 20px;
   text-align: center;
   display: inline-block;
+  font-weight: bold;
 }
 
 .loading-spinner {
@@ -638,21 +653,28 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-/* ----------------------------- LOADING / ERROR (ESPECÍFICO) ----------------------------- */
-.loading {
-  text-align: center;
-  padding: 20px;
-  color: #666;
-}
-
-.error {
-  color: red;
-  padding: 10px;
-  text-align: center;
-}
-
 /* ----------------------------- RESPONSIVE (ESPECÍFICO) ----------------------------- */
-@media (max-width: 768px) {
+@media (max-width: 1158px) {
+  .content {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "stock stock"
+      "middle recetas";
+    gap: 15px;
+  }
+  
+  .recetas-list li {
+    flex-direction: column; /* ✅ Apilar verticalmente en pantallas medianas */
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .contador {
+    align-self: flex-end; /* ✅ Alinear contador a la derecha */
+  }
+}
+
+@media (max-width: 968px) {
   .content {
     grid-template-columns: 1fr;
     grid-template-areas:
@@ -660,13 +682,67 @@ onMounted(() => {
       "middle"
       "recetas";
   }
+  
+  .recetas-list li {
+    flex-direction: row; /* ✅ Volver a horizontal en móviles */
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .contador {
+    align-self: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .recetas-list li {
+    flex-direction: column; /* ✅ Apilar nuevamente en móviles muy pequeños */
+    align-items: flex-start;
+  }
+  
+  .contador {
+    align-self: flex-start;
+    margin-top: 5px;
+  }
+  
+  .contador button {
+    padding: 6px 10px; /* ✅ Botones más grandes para móviles */
+    min-width: 32px;
+    height: 32px;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "stock"
+      "middle"
+      "recetas";
+    gap: 15px;
+  }
 
   .middle-cards {
     flex-direction: column;
+    height: auto;
+  }
+  
+  .middle-cards .card {
+    min-height: 150px;
+    max-height: none;
   }
 
   .recetas input {
     width: 100%;
+  }
+  
+  .card.stock,
+  .card.recetas {
+    max-height: none;
+  }
+  
+  .header {
+    margin-top: 20px;
   }
 }
 </style>
