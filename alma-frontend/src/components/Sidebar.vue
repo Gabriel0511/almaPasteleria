@@ -48,7 +48,7 @@ defineEmits(["navigate"]);
   flex-direction: column;
   align-items: center;
   padding-top: 10px;
-  z-index: 1000;
+  z-index: 1000; /* Mantener este z-index alto */
 }
 
 .sidebar button {

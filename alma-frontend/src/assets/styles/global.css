@@ -34,9 +34,11 @@ html,
 }
 
 .main-content {
-  margin-left: 120px;
+  margin-left: 120px; /* Mismo ancho que el sidebar */
   flex: 1;
   padding: 15px;
+  position: relative; /* Importante para el z-index */
+  z-index: 1; /* Menor que el sidebar pero sobre el fondo */
 }
 
 /* ----------------------------- HEADER ----------------------------- */
@@ -257,8 +259,8 @@ html,
   .main-content {
     margin-left: 0;
     padding: 10px;
+    z-index: 2; /* En móvil, el contenido debe estar sobre el sidebar */
   }
-
   .header {
     flex-direction: column;
     gap: 10px;

@@ -1,8 +1,8 @@
 <template>
-  <div id="app">
+  <div class="app-layout">
     <Sidebar @navigate="handleNavigation" />
 
-    <main class="main">
+    <main class="main-content">
       <header class="header">
         <div></div>
         <div class="logo">
@@ -536,7 +536,6 @@ onMounted(() => {
 
 .stock-header-container {
   flex-shrink: 0;
-  background-color: #f5dfdd;
 }
 
 .stock-header {
@@ -570,9 +569,6 @@ onMounted(() => {
   overflow-y: auto;
   padding: 8px;
   padding-top: 2px;
-  border-radius: 10px;
-  background-color: #f5dfdd;
-  box-shadow: 10px 8px 10px #aaa;
 }
 
 .tasks label {
