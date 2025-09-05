@@ -2,120 +2,111 @@
   <div class="app-layout">
     <Sidebar @navigate="handleNavigation" />
 
-    <main class="main-content">
-      <header class="header">
-        <div></div>
-        <div class="logo">
-          <img src="/src/Logo2.png" alt="Logo Pastelería" />
-        </div>
-        <div class="icon-buttons">
-
-          <NotificationMenu :notifications="notifications" />
-          <UserMenu :user-email="userEmail" @change-password="openChangePassword" @logout="logout"
-          />
-        </div>
-      </header>
-
-      <section class="content">
-        <!-- Stock -->
-        <div class="card stock">
-          <div class="stock-header-container">
-            <h3 class="card-title">
-              Stock <br></br>
-              <span v-if="insumosBajoStock > 0" class="badge">
-                (Hay {{ insumosBajoStock }} insumos con bajo stock)
-              </span>
-            </h3>
-
-            <div class="stock-header">
-              <span>
-                Nombre
-                <select v-model="categoriaSeleccionada">
-                  <option value="">Todas</option>
-                  <option v-for="cat in categoriasStock" :key="cat" :value="cat">
-                    {{ cat }}
-                  </option>
-                </select>
-              </span>
-              <span>Cantidad</span>
-            </div>
-          </div>
-
-          <ul class="stock-list">
-            <li v-for="item in stockFiltradoPorCategoria" :key="item.nombre" :class="{ 'low-stock': item.bajoStock }">
-              <span>{{ item.nombre }} ({{ item.categoria }})</span>
-              <span>{{ formatDecimal(item.cantidad) }} {{ item.unidad }}</span>
-            </li>
-          </ul>
-        </div>
-
-        <!-- Cards del medio -->
-        <div class="middle-cards">
-          <div class="card tasks">
-            <h3 class="card-title">Entregar Hoy</h3>
-            <div v-if="entregarHoy.length === 0" class="empty-state">
-              No hay pedidos para entregar hoy
-            </div>
-            <label v-for="task in entregarHoy" :key="task.id">
-              <input type="checkbox" :checked="task.estado === 'entregado'" @change="
-                actualizarEstadoPedido(task.id, 'entregado', 'entregarHoy')
-                " />
-              <strong>{{ task.nombre }}</strong>
-              <span class="pedido-info">
-                - Estado: {{ task.estado }} -
-                <span v-for="detalle in task.detalles" :key="detalle.id">
-                  {{ detalle.receta.nombre }} (x{{ detalle.cantidad }})
+    <div class="main-container">
+      <Header :userEmail="userEmail" title="Panel Principal" @openPasswordModal="showPasswordModal = true"
+        @logout="logout" />
+      <main class="main-content">
+        <section class="content">
+          <!-- Stock -->
+          <div class="card stock">
+            <div class="stock-header-container">
+              <h3 class="card-title">
+                Stock <br></br>
+                <span v-if="insumosBajoStock > 0" class="badge">
+                  (Hay {{ insumosBajoStock }} insumos con bajo stock)
                 </span>
-              </span>
-            </label>
-          </div>
+              </h3>
 
-          <div class="card tasks">
-            <h3 class="card-title">Hacer Hoy</h3>
-            <div v-if="hacerHoy.length === 0" class="empty-state">
-              No hay pedidos para fabricar hoy
-            </div>
-            <label v-for="task in hacerHoy" :key="task.id">
-              <input type="checkbox" :checked="task.estado === 'en preparación'" @change="
-                actualizarEstadoPedido(task.id, 'en preparación', 'hacerHoy')
-                " />
-              <strong>{{ task.nombre }}</strong>
-              <span class="pedido-info">
-                - Estado: {{ task.estado }} - Entrega:
-                {{ formatDate(task.fecha_entrega) }} -
-                <span v-for="detalle in task.detalles" :key="detalle.id">
-                  {{ detalle.receta.nombre }} (x{{ detalle.cantidad }})
+              <div class="stock-header">
+                <span>
+                  Nombre
+                  <select v-model="categoriaSeleccionada">
+                    <option value="">Todas</option>
+                    <option v-for="cat in categoriasStock" :key="cat" :value="cat">
+                      {{ cat }}
+                    </option>
+                  </select>
                 </span>
-              </span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Recetas -->
-
-        <div class="card recetas">
-          <h3 class="card-title">Recetas</h3>
-          <form autocomplete="off">
-            <input autocomplete="off" v-model="searchTerm" type="text" placeholder="Buscar receta..." />
-          </form>
-          <ul class="recetas-list">
-            <li v-for="receta in filteredRecetas" :key="receta.id">
-              <span>
-                {{ receta.nombre }} (Rinde {{ receta.rinde }} {{ singularizeUnidad(receta.rinde, receta.unidad_rinde)
-                }})
-              </span>
-              <div class="contador">
-                <button @click="decrementarContador(receta)" :disabled="!receta.vecesHecha">
-                  -
-                </button>
-                <span>{{ receta.vecesHecha || 0 }}</span>
-                <button @click="incrementarContador(receta)">+</button>
+                <span>Cantidad</span>
               </div>
-            </li>
-          </ul>
-        </div>
-      </section>
-    </main>
+            </div>
+
+            <ul class="stock-list">
+              <li v-for="item in stockFiltradoPorCategoria" :key="item.nombre" :class="{ 'low-stock': item.bajoStock }">
+                <span>{{ item.nombre }} ({{ item.categoria }})</span>
+                <span>{{ formatDecimal(item.cantidad) }} {{ item.unidad }}</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Cards del medio -->
+          <div class="middle-cards">
+            <div class="card tasks">
+              <h3 class="card-title">Entregar Hoy</h3>
+              <div v-if="entregarHoy.length === 0" class="empty-state">
+                No hay pedidos para entregar hoy
+              </div>
+              <label v-for="task in entregarHoy" :key="task.id">
+                <input type="checkbox" :checked="task.estado === 'entregado'" @change="
+                  actualizarEstadoPedido(task.id, 'entregado', 'entregarHoy')
+                  " />
+                <strong>{{ task.nombre }}</strong>
+                <span class="pedido-info">
+                  - Estado: {{ task.estado }} -
+                  <span v-for="detalle in task.detalles" :key="detalle.id">
+                    {{ detalle.receta.nombre }} (x{{ detalle.cantidad }})
+                  </span>
+                </span>
+              </label>
+            </div>
+
+            <div class="card tasks">
+              <h3 class="card-title">Hacer Hoy</h3>
+              <div v-if="hacerHoy.length === 0" class="empty-state">
+                No hay pedidos para fabricar hoy
+              </div>
+              <label v-for="task in hacerHoy" :key="task.id">
+                <input type="checkbox" :checked="task.estado === 'en preparación'" @change="
+                  actualizarEstadoPedido(task.id, 'en preparación', 'hacerHoy')
+                  " />
+                <strong>{{ task.nombre }}</strong>
+                <span class="pedido-info">
+                  - Estado: {{ task.estado }} - Entrega:
+                  {{ formatDate(task.fecha_entrega) }} -
+                  <span v-for="detalle in task.detalles" :key="detalle.id">
+                    {{ detalle.receta.nombre }} (x{{ detalle.cantidad }})
+                  </span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Recetas -->
+
+          <div class="card recetas">
+            <h3 class="card-title">Recetas</h3>
+            <form autocomplete="off">
+              <input autocomplete="off" v-model="searchTerm" type="text" placeholder="Buscar receta..." />
+            </form>
+            <ul class="recetas-list">
+              <li v-for="receta in filteredRecetas" :key="receta.id">
+                <span>
+                  {{ receta.nombre }} (Rinde {{ receta.rinde }} {{ singularizeUnidad(receta.rinde, receta.unidad_rinde)
+                  }})
+                </span>
+                <div class="contador">
+                  <button @click="decrementarContador(receta)" :disabled="!receta.vecesHecha">
+                    -
+                  </button>
+                  <span>{{ receta.vecesHecha || 0 }}</span>
+                  <button @click="incrementarContador(receta)">+</button>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </section>
+      </main>
+    </div>
   </div>
 
   <!-- modal para cambiar contraseña -->
@@ -152,6 +143,7 @@ import axios from "axios";
 import Sidebar from "./Sidebar.vue";
 import NotificationMenu from "./NotificationMenu.vue";
 import UserMenu from "./UserMenu.vue";
+import Header from "./Header.vue"; // Importa el nuevo componente
 
 const router = useRouter();
 const notificationSystem = inject('notifications');
@@ -235,7 +227,7 @@ const incrementarContador = async (receta) => {
 
     if (response.data.stock_actualizado) {
       await fetchStock();
-      
+
       // ✅ Notificación de éxito
       notificationSystem.show({
         type: 'success',
@@ -246,7 +238,7 @@ const incrementarContador = async (receta) => {
     }
   } catch (err) {
     console.error("Error al incrementar:", err);
-    
+
     notificationSystem.show({
       type: 'error',
       title: 'Error',
@@ -277,7 +269,7 @@ const decrementarContador = async (receta) => {
 
     if (response.data.stock_actualizado) {
       await fetchStock();
-      
+
       // ✅ Notificación informativa con detalles
       notificationSystem.show({
         type: 'info',
@@ -289,7 +281,7 @@ const decrementarContador = async (receta) => {
     }
   } catch (err) {
     console.error("Error al decrementar:", err);
-    
+
     notificationSystem.show({
       type: 'error',
       title: 'Error',
@@ -556,255 +548,4 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
-
-/* ----------------------------- CONTENIDO Y CARDS ESPECÍFICOS ----------------------------- */
-.content {
-  display: grid;
-  grid-template-columns: 1fr 0.8fr 1fr;
-  grid-template-areas: "stock middle recetas";
-  gap: 20px;
-}
-
-/* ----------------------------- STOCK (ESPECÍFICO) ----------------------------- */
-.card.stock {
-  grid-area: stock;
-  max-height: 480px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.stock-list {
-  overflow-y: auto;
-  flex-grow: 1;
-  list-style: none;
-  padding-left: 10px;
-  padding-right: 10px;
-}
-
-.stock-list li {
-  display: flex;
-  justify-content: space-between;
-  padding: 4px;
-}
-
-.low-stock {
-  color: red;
-  font-weight: bold;
-}
-
-.stock-header-container {
-  flex-shrink: 0;
-}
-
-.stock-header {
-  display: flex;
-  justify-content: space-between;
-  font-weight: bold;
-  padding: 10px;
-  border-bottom: 1px solid #ccc;
-}
-
-.stock-header select {
-  margin-left: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-/* ----------------------------- MIDDLE CARDS (ESPECÍFICO) ----------------------------- */
-.middle-cards {
-  grid-area: middle;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  height: 480px;
-}
-
-.middle-cards .card {
-  flex: 1;
-  min-height: 200px;
-  max-height: 400px;
-  overflow-y: auto;
-  padding: 8px;
-  padding-top: 2px;
-}
-
-.tasks label {
-  display: block;
-  margin-bottom: 5px;
-}
-
-/* ----------------------------- RECETAS (ESPECÍFICO) ----------------------------- */
-.card.recetas {
-  grid-area: recetas;
-  max-height: 480px;
-  display: flex;
-  flex-direction: column;
-}
-
-.recetas input {
-  width: 96%;
-  padding: 5px;
-  font-size: 14px;
-  margin-bottom: 10px;
-}
-
-.recetas-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  overflow-y: auto;
-  flex-grow: 1;
-}
-
-.recetas-list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 10px;
-  border-bottom: 1px solid #ccc;
-  gap: 10px; /* ✅ Agregar espacio entre texto y contador */
-}
-
-/* CONTADOR RESPONSIVE */
-.contador {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0; /* ✅ Evitar que se encoja */
-  min-width: 90px; /* ✅ Ancho mínimo para mantener la forma */
-}
-
-.contador button {
-  padding: 4px 8px;
-  margin: 0;
-  cursor: pointer;
-  border: none;
-  background-color: #7b5a50;
-  color: white;
-  border-radius: 5px;
-  font-weight: bold;
-  min-width: 28px; /* ✅ Ancho mínimo para botones */
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.contador button:hover {
-  background-color: #5a3f36;
-}
-
-.contador span {
-  min-width: 20px;
-  text-align: center;
-  display: inline-block;
-  font-weight: bold;
-}
-
-.loading-spinner {
-  margin-left: 5px;
-  color: #7b5a50;
-}
-
-.contador button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ----------------------------- RESPONSIVE (ESPECÍFICO) ----------------------------- */
-@media (max-width: 1158px) {
-  .content {
-    grid-template-columns: 1fr 1fr;
-    grid-template-areas:
-      "stock stock"
-      "middle recetas";
-    gap: 15px;
-  }
-  
-  .recetas-list li {
-    flex-direction: column; /* ✅ Apilar verticalmente en pantallas medianas */
-    align-items: flex-start;
-    gap: 8px;
-  }
-  
-  .contador {
-    align-self: flex-end; /* ✅ Alinear contador a la derecha */
-  }
-}
-
-@media (max-width: 968px) {
-  .content {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "stock"
-      "middle"
-      "recetas";
-  }
-  
-  .recetas-list li {
-    flex-direction: row; /* ✅ Volver a horizontal en móviles */
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .contador {
-    align-self: center;
-  }
-}
-
-@media (max-width: 640px) {
-  .recetas-list li {
-    flex-direction: column; /* ✅ Apilar nuevamente en móviles muy pequeños */
-    align-items: flex-start;
-  }
-  
-  .contador {
-    align-self: flex-start;
-    margin-top: 5px;
-  }
-  
-  .contador button {
-    padding: 6px 10px; /* ✅ Botones más grandes para móviles */
-    min-width: 32px;
-    height: 32px;
-  }
-}
-
-@media (max-width: 768px) {
-  .content {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "stock"
-      "middle"
-      "recetas";
-    gap: 15px;
-  }
-
-  .middle-cards {
-    flex-direction: column;
-    height: auto;
-  }
-  
-  .middle-cards .card {
-    min-height: 150px;
-    max-height: none;
-  }
-
-  .recetas input {
-    width: 100%;
-  }
-  
-  .card.stock,
-  .card.recetas {
-    max-height: none;
-  }
-  
-  .header {
-    margin-top: 20px;
-  }
-}
-</style>
+<style scoped></style>
