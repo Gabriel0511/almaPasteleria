@@ -14,7 +14,12 @@
       <div class="stock-header">
         <span>
           Buscar:
-          <input v-model="searchTerm" type="text" placeholder="Buscar insumo..." class="form-input"/>
+          <input
+            v-model="searchTerm"
+            type="text"
+            placeholder="Buscar insumo..."
+            class="form-input"
+          />
         </span>
         <span>
           Categoría:

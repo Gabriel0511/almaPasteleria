@@ -6,7 +6,7 @@ from django.utils import timezone
 from datetime import date, timedelta
 from django.shortcuts import get_object_or_404
 from .models import Pedido, DetallePedido, Cliente, IngredientesExtra
-from .serializers import PedidoSerializer, DetallePedidoSerializer, ClienteSerializer
+from .serializers import IngredientesExtraSerializer, PedidoSerializer, DetallePedidoSerializer, ClienteSerializer
 from recetas.models import Receta
 from insumos.models import Insumo
 
@@ -208,3 +208,56 @@ class PedidosPorEstadoView(APIView):
             'pedidos': serializer.data,
             'total': pedidos.count()
         })
+    
+class IngredientesExtraCreateAPIView(generics.CreateAPIView):
+    queryset = IngredientesExtra.objects.all()
+    serializer_class = IngredientesExtraSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        
+        return Response(
+            {
+                'message': 'Ingrediente extra agregado exitosamente',
+                'ingrediente_extra': serializer.data
+            },
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
+
+class IngredientesExtraRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = IngredientesExtra.objects.all()
+    serializer_class = IngredientesExtraSerializer
+    lookup_field = 'pk'
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        
+        return Response(
+            {
+                'message': 'Ingrediente extra eliminado exitosamente',
+                'ingrediente_extra_id': instance.id
+            },
+            status=status.HTTP_204_NO_CONTENT
+        )
+    
+# En views.py
+class EliminarDetallesPedidoView(APIView):
+    def delete(self, request, pk):
+        try:
+            pedido = Pedido.objects.get(pk=pk)
+            # Eliminar todos los detalles del pedido
+            pedido.detallepedido_set.all().delete()
+            return Response(
+                {'message': 'Detalles del pedido eliminados exitosamente'},
+                status=status.HTTP_200_OK
+            )
+        except Pedido.DoesNotExist:
+            return Response(
+                {'error': 'Pedido no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )

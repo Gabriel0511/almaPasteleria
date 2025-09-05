@@ -2,9 +2,16 @@ from django.db.models import F
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Insumo
-from .serializers import InsumoSerializer
+from .models import Insumo, UnidadMedida
+from .serializers import InsumoSerializer, UnidadMedidaSerializer
 
+class UnidadMedidaListAPIView(generics.ListAPIView):
+    queryset = UnidadMedida.objects.all()
+    serializer_class = UnidadMedidaSerializer
+
+class UnidadMedidaDetailAPIView(generics.RetrieveAPIView):
+    queryset = UnidadMedida.objects.all()
+    serializer_class = UnidadMedidaSerializer
 class InsumoListAPIView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     queryset = Insumo.objects.filter(activo=True)

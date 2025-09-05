@@ -26,9 +26,80 @@ class UnidadMedidaSerializer(serializers.ModelSerializer):
         fields = ['id', 'nombre', 'abreviatura']
 
 class IngredientesExtraSerializer(serializers.ModelSerializer):
+    insumo = InsumoSerializer(read_only=True)
+    insumo_id = serializers.PrimaryKeyRelatedField(
+        queryset=Insumo.objects.all(),
+        source='insumo',
+        write_only=True,
+        required=True
+    )
+    unidad_medida = UnidadMedidaSerializer(read_only=True)
+    unidad_medida_id = serializers.PrimaryKeyRelatedField(
+        queryset=UnidadMedida.objects.all(),
+        source='UnidadMedida',
+        write_only=True,
+        required=True
+    )
+    # ✅ CAMBIO IMPORTANTE: Usa 'detalle' en lugar de 'detalle_id'
+    detalle_id = serializers.PrimaryKeyRelatedField(
+        queryset=DetallePedido.objects.all(),
+        source='detalle',  # ← Esto mapea a el campo del modelo
+        write_only=True,
+        required=True
+    )
+    
     class Meta:
         model = IngredientesExtra
-        fields = ['id', 'insumo', 'cantidad', 'UnidadMedida']
+        fields = ['id', 'insumo', 'insumo_id', 'cantidad', 'unidad_medida', 'unidad_medida_id', 'detalle_id']
+
+    def validate(self, data):
+        # Validar que la unidad de medida sea compatible con el insumo
+        insumo = data.get('insumo')
+        unidad_medida = data.get('UnidadMedida')
+        
+        if insumo and unidad_medida:
+            # Usar grupos compatibles en lugar de unidad_base estricta
+            grupos_compatibles = {
+                'peso': ['kg', 'g', 'mg'],
+                'volumen': ['l', 'ml', 'cl'],
+                'unidad': ['u', 'pz', 'unidad']
+            }
+            
+            # Encontrar a qué grupo pertenece cada unidad
+            grupo_insumo = None
+            grupo_seleccionada = None
+            
+            for grupo, unidades in grupos_compatibles.items():
+                if insumo.unidad_medida.abreviatura.lower() in unidades:
+                    grupo_insumo = grupo
+                if unidad_medida.abreviatura.lower() in unidades:
+                    grupo_seleccionada = grupo
+            
+            # Si están en grupos diferentes, error
+            if grupo_insumo != grupo_seleccionada:
+                raise serializers.ValidationError(
+                    f"La unidad {unidad_medida.abreviatura} no es compatible con {insumo.unidad_medida.abreviatura}"
+                )
+        
+        return data
+
+    def create(self, validated_data):
+        insumo = validated_data['insumo']
+        cantidad = validated_data['cantidad']
+        unidad_seleccionada = validated_data['UnidadMedida']
+        
+        # Convertir a la unidad base del insumo para almacenamiento
+        if unidad_seleccionada != insumo.unidad_medida:
+            try:
+                cantidad_convertida = unidad_seleccionada.convertir_a(cantidad, insumo.unidad_medida)
+                validated_data['cantidad'] = cantidad_convertida
+                print(f"DEBUG: Convertido {cantidad} {unidad_seleccionada.abreviatura} a {cantidad_convertida} {insumo.unidad_medida.abreviatura}")
+            except Exception as e:
+                print(f"DEBUG: Error en conversión: {e}")
+                # Si falla la conversión, mantener la cantidad original
+                pass
+        
+        return super().create(validated_data)
 
 class DetallePedidoSerializer(serializers.ModelSerializer):
     receta = RecetaSerializer(read_only=True)
@@ -38,11 +109,18 @@ class DetallePedidoSerializer(serializers.ModelSerializer):
         write_only=True,
         required=True
     )
+    # ✅ AGREGAR ESTE CAMPO
+    pedido_id = serializers.PrimaryKeyRelatedField(
+        queryset=Pedido.objects.all(),
+        source='pedido',
+        write_only=True,
+        required=True
+    )
     ingredientes_extra = IngredientesExtraSerializer(many=True, required=False)
     
     class Meta:
         model = DetallePedido
-        fields = ['id', 'receta', 'receta_id', 'cantidad', 'observaciones', 'ingredientes_extra']
+        fields = ['id', 'pedido_id', 'receta', 'receta_id', 'cantidad', 'observaciones', 'ingredientes_extra']
 
 class PedidoSerializer(serializers.ModelSerializer):
     cliente = ClienteSerializer(read_only=True)

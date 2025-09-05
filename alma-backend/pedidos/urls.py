@@ -1,4 +1,4 @@
-# urls.py - Versión completa
+# urls.py - Versión completa actualizada
 from django.urls import path
 from .views import (
     PedidosHoyView,
@@ -9,7 +9,10 @@ from .views import (
     DetallePedidoCreateAPIView,
     DetallePedidoRetrieveUpdateDestroyAPIView,
     PedidosPorFechaView,
-    PedidosPorEstadoView
+    PedidosPorEstadoView,
+    IngredientesExtraCreateAPIView,
+    IngredientesExtraRetrieveUpdateDestroyAPIView,
+    EliminarDetallesPedidoView
 )
 
 urlpatterns = [
@@ -20,6 +23,7 @@ urlpatterns = [
     path('pedidos/por-fecha/', PedidosPorFechaView.as_view(), name='pedidos-por-fecha'),
     path('pedidos/por-estado/', PedidosPorEstadoView.as_view(), name='pedidos-por-estado'),
     path('pedidos/<int:pk>/actualizar-estado/', ActualizarEstadoPedidoView.as_view(), name='actualizar-estado-pedido'),
+    path('pedidos/<int:pk>/detalles/', EliminarDetallesPedidoView.as_view(), name='eliminar-detalles-pedido'),
     
     # Clientes
     path('clientes/', ClienteListCreateAPIView.as_view(), name='clientes-list-create'),
@@ -27,4 +31,8 @@ urlpatterns = [
     # Detalles de pedido
     path('detalles-pedido/', DetallePedidoCreateAPIView.as_view(), name='detalles-pedido-create'),
     path('detalles-pedido/<int:pk>/', DetallePedidoRetrieveUpdateDestroyAPIView.as_view(), name='detalles-pedido-detail'),
+
+    # Ingredientes extra - Nuevos endpoints
+    path('ingredientes-extra/', IngredientesExtraCreateAPIView.as_view(), name='ingredientes-extra-create'),
+    path('ingredientes-extra/<int:pk>/', IngredientesExtraRetrieveUpdateDestroyAPIView.as_view(), name='ingredientes-extra-detail'),
 ]

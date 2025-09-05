@@ -1,6 +1,7 @@
 # urls.py - Versión actualizada
 from django.urls import path
 from . import views
+from .views import UnidadMedidaListAPIView, UnidadMedidaDetailAPIView
 
 urlpatterns = [
     # GET - Listar todos los insumos
@@ -23,4 +24,7 @@ urlpatterns = [
     
     # DELETE - Eliminación permanente (cuidado)
     path('insumos/<int:id>/eliminar-permanentemente/', views.InsumoHardDeleteAPIView.as_view(), name='insumos-hard-delete'),
+
+    path('unidades-medida/', UnidadMedidaListAPIView.as_view(), name='unidades-medida-list'),
+    path('unidades-medida/<int:pk>/', UnidadMedidaDetailAPIView.as_view(), name='unidades-medida-detail'),
 ]
