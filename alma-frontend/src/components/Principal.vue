@@ -3,8 +3,7 @@
     <Sidebar @navigate="handleNavigation" />
 
     <div class="main-container">
-      <Header :userEmail="userEmail" title="Panel Principal" @openPasswordModal="showPasswordModal = true"
-        @logout="logout" />
+      <Header :userEmail="userEmail" title="Panel Principal" @openPasswordModal="showPasswordModal = true" @logout="logout" />
       <main class="main-content">
         <section class="content">
           <!-- Stock -->

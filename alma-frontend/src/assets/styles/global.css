@@ -46,12 +46,12 @@ html,
 /* ----------------------------- HEADER ----------------------------- */
 .header {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; /* Izquierda = título, derecha = botones */
   align-items: center;
-  padding: 5px 20px 10px 150px;
+  padding: 30px 20px 25px 150px;
   background-color: var(--color-primary);
   box-shadow: 0 2px 4px var(--color-background);
-  position: sticky;
+  position: relative; /* Necesario para centrar el logo */
   top: 0;
   z-index: 100;
 }
@@ -237,15 +237,19 @@ html,
 /* Acaaa */
 
 .logo {
+   position: absolute;   /* Lo saca del flujo */
+  left: 50%;            /* Lo manda al centro */
+  transform: translateX(-50%); /* Lo centra perfectamente */
   display: flex;
-  justify-content: flex-start; 
-  width: auto;            /* Ocupa todo el ancho disponible */
-  margin-left: 500px; 
+  align-items: center;
+  justify-content: center;          /* Ocupa todo el ancho disponible */
+  top: 3px;
 }
 
 
 .logo img {
-  height: 100px;
+  height: 80px;   /* Ajustá el tamaño según necesites */
+  width: auto;
 }
 
 .icon-buttons {
@@ -401,6 +405,12 @@ html,
   margin: 0;
   padding: 4px;
   border-bottom: 1px solid #ccc;
+}
+
+.card-title1 {
+  text-align: left;
+  margin: 0;
+  padding: 4px;
 }
 
 /* ----------------------------- SCROLL PERSONALIZADO ----------------------------- */

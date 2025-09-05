@@ -4,6 +4,7 @@ import App from "./App.vue";
 import "./assets/styles/global.css"; // ✅ Importar estilos globales
 import router from "./router"; // Importamos el router
 import axios from "axios";
+
 axios.interceptors.request.use(
   (config) => {
     // Evita añadir el token a rutas públicas como login/refresh

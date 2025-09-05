@@ -2,61 +2,39 @@
   <div class="app-layout">
     <Sidebar @navigate="handleNavigation" />
 
-    <main class="main-content">
-      <header class="header">
-        <div></div>
-        <div class="logo">
-          <img src="/src/Logo2.png" alt="Logo Pastelería" />
-        </div>
-        <div class="icon-buttons">
-          <NotificationMenu :notifications="notifications" />
-          <UserMenu
-            :user-email="userEmail"
-            @change-password="openChangePassword"
-            @logout="logout"
-          />
-        </div>
-      </header>
+    <div class="main-container">
+      <Header :userEmail="userEmail" title="Panel Principal" @openPasswordModal="showPasswordModal = true"
+        @logout="logout" />
+      <main class="main-content">
+         
+        <section class="content pedidos-content">
+            <h3 class="card-title1">Gestión de Pedidos</h3>
+            <div class="botones-acciones">
+              <button class="btn-nuevo-pedido">
+                <i class="bi bi-plus-lg"></i> Nuevo Pedido
+              </button>
+            </div>
+            <!-- Filtros de pedidos -->
+          <div class="filtros-pedidos">
+            <div class="filtro-group">
+              <label for="fecha-filtro">Filtrar por fecha:</label>
+              <input type="date" id="fecha-filtro" v-model="fechaFiltro" @change="filtrarPorFecha" />
+            </div>
 
-      <section class="content pedidos-content">
-        <!-- Filtros de pedidos -->
-        <div class="filtros-pedidos">
-          <div class="filtro-group">
-            <label for="fecha-filtro">Filtrar por fecha:</label>
-            <input
-              type="date"
-              id="fecha-filtro"
-              v-model="fechaFiltro"
-              @change="filtrarPorFecha"
-            />
+            <div class="filtro-group">
+              <label for="estado-filtro">Filtrar por estado:</label>
+              <select id="estado-filtro" v-model="estadoFiltro" @change="filtrarPorEstado">
+                <option value="">Todos los estados</option>
+                <option v-for="estado in estadosPedido" :key="estado" :value="estado">
+                  {{ estado }}
+                </option>
+              </select>
+            </div>
           </div>
-
-          <div class="filtro-group">
-            <label for="estado-filtro">Filtrar por estado:</label>
-            <select
-              id="estado-filtro"
-              v-model="estadoFiltro"
-              @change="filtrarPorEstado"
-            >
-              <option value="">Todos los estados</option>
-              <option
-                v-for="estado in estadosPedido"
-                :key="estado"
-                :value="estado"
-              >
-                {{ estado }}
-              </option>
-            </select>
-          </div>
-
-          <button class="btn-nuevo-pedido" @click="abrirModalCrear">
-            <i class="fas fa-plus"></i> Nuevo Pedido
-          </button>
-        </div>
+        </section>
 
         <!-- Card principal de pedidos -->
         <div class="card pedidos-card">
-          <h3 class="card-title">Gestión de Pedidos</h3>
 
           <div v-if="loadingPedidos" class="loading-state">
             <i class="fas fa-spinner fa-spin"></i> Cargando pedidos...
@@ -67,73 +45,45 @@
           </div>
 
           <div v-else class="pedidos-list">
-            <div
-              v-for="pedido in pedidosFiltrados"
-              :key="pedido.id"
-              class="pedido-item"
-            >
+            <div v-for="pedido in pedidosFiltrados" :key="pedido.id" class="pedido-item">
               <div class="pedido-header">
                 <div class="pedido-info">
                   <span class="pedido-id">#{{ pedido.id }}</span>
                   <span class="cliente-nombre">{{
                     pedido.cliente.nombre
                   }}</span>
-                  <span class="pedido-fecha"
-                    >Entrega: {{ formatDate(pedido.fecha_entrega) }}</span
-                  >
-                  <span class="pedido-fecha"
-                    >Fabricación:
-                    {{ formatDate(pedido.fecha_fabricacion) }}</span
-                  >
+                  <span class="pedido-fecha">Entrega: {{ formatDate(pedido.fecha_entrega) }}</span>
+                  <span class="pedido-fecha">Fabricación:
+                    {{ formatDate(pedido.fecha_fabricacion) }}</span>
                 </div>
                 <div class="pedido-acciones">
                   <span class="estado-badge" :class="pedido.estado">{{
                     pedido.estado
                   }}</span>
-                  <button
-                    class="btn-accion"
-                    @click="abrirModalEditar(pedido)"
-                    title="Editar pedido"
-                  >
+                  <button class="btn-accion" @click="abrirModalEditar(pedido)" title="Editar pedido">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button
-                    class="btn-accion"
-                    @click="eliminarPedido(pedido.id)"
-                    title="Eliminar pedido"
-                  >
+                  <button class="btn-accion" @click="eliminarPedido(pedido.id)" title="Eliminar pedido">
                     <i class="fas fa-trash"></i>
                   </button>
                 </div>
               </div>
 
               <div class="pedido-detalles">
-                <div
-                  v-for="detalle in pedido.detalles"
-                  :key="detalle.id"
-                  class="detalle-item"
-                >
-                  <span
-                    >{{ detalle.receta.nombre }} (x{{ detalle.cantidad }})</span
-                  >
+                <div v-for="detalle in pedido.detalles" :key="detalle.id" class="detalle-item">
+                  <span>{{ detalle.receta.nombre }} (x{{ detalle.cantidad }})</span>
                   <span>{{
                     formatDecimal(detalle.precio * detalle.cantidad)
                   }}</span>
                 </div>
 
-                <div
-                  v-if="
-                    pedido.ingredientes_extra &&
-                    pedido.ingredientes_extra.length > 0
-                  "
-                  class="ingredientes-extra"
-                >
+                <div v-if="
+                  pedido.ingredientes_extra &&
+                  pedido.ingredientes_extra.length > 0
+                " class="ingredientes-extra">
                   <p><strong>Ingredientes extra:</strong></p>
                   <ul>
-                    <li
-                      v-for="extra in pedido.ingredientes_extra"
-                      :key="extra.id"
-                    >
+                    <li v-for="extra in pedido.ingredientes_extra" :key="extra.id">
                       {{ extra.insumo.nombre }}:
                       {{ formatDecimal(extra.cantidad) }}
                       {{ extra.insumo.unidad_medida.abreviatura }}
@@ -147,26 +97,21 @@
               </div>
 
               <div class="estado-actions">
-                <button
-                  v-if="pedido.estado === 'pendiente'"
-                  @click="actualizarEstadoPedido(pedido.id, 'en preparación')"
-                  class="btn-estado"
-                >
+                <button v-if="pedido.estado === 'pendiente'"
+                  @click="actualizarEstadoPedido(pedido.id, 'en preparación')" class="btn-estado">
                   Marcar como en preparación
                 </button>
-                <button
-                  v-if="pedido.estado === 'en preparación'"
-                  @click="actualizarEstadoPedido(pedido.id, 'entregado')"
-                  class="btn-estado"
-                >
+                <button v-if="pedido.estado === 'en preparación'"
+                  @click="actualizarEstadoPedido(pedido.id, 'entregado')" class="btn-estado">
                   Marcar como entregado
                 </button>
               </div>
             </div>
           </div>
         </div>
-      </section>
-    </main>
+
+      </main>
+    </div>
 
     <!-- Modal para crear/editar pedido -->
     <div v-if="showPedidoModal" class="modal-overlay">
@@ -179,20 +124,12 @@
             <div class="cliente-select-container">
               <select v-model="pedidoForm.cliente" required>
                 <option value="">Seleccione un cliente</option>
-                <option
-                  v-for="cliente in clientes"
-                  :key="cliente.id"
-                  :value="cliente.id"
-                >
+                <option v-for="cliente in clientes" :key="cliente.id" :value="cliente.id">
                   {{ cliente.nombre }}
                 </option>
               </select>
-              <button
-                type="button"
-                class="btn-agregar-cliente"
-                @click="mostrarModalCliente"
-                title="Agregar nuevo cliente"
-              >
+              <button type="button" class="btn-agregar-cliente" @click="mostrarModalCliente"
+                title="Agregar nuevo cliente">
                 <i class="fas fa-plus"></i>
               </button>
             </div>
@@ -205,21 +142,13 @@
 
           <div class="form-group">
             <label>Fecha de fabricación:</label>
-            <input
-              type="date"
-              v-model="pedidoForm.fecha_fabricacion"
-              required
-            />
+            <input type="date" v-model="pedidoForm.fecha_fabricacion" required />
           </div>
 
           <div class="form-group">
             <label>Estado:</label>
             <select v-model="pedidoForm.estado" required>
-              <option
-                v-for="estado in estadosPedido"
-                :key="estado"
-                :value="estado"
-              >
+              <option v-for="estado in estadosPedido" :key="estado" :value="estado">
                 {{ estado }}
               </option>
             </select>
@@ -232,44 +161,23 @@
           <div class="nuevo-detalle">
             <select v-model="nuevaReceta" class="select-receta">
               <option value="">Seleccione una receta</option>
-              <option
-                v-for="receta in recetas"
-                :key="receta.id"
-                :value="receta"
-              >
+              <option v-for="receta in recetas" :key="receta.id" :value="receta">
                 {{ receta.nombre }} - {{ formatDecimal(receta.precio) }}
               </option>
             </select>
-            <input
-              type="number"
-              v-model="nuevaCantidad"
-              min="1"
-              placeholder="Cantidad"
-              class="input-cantidad"
-            />
-            <button
-              @click="agregarDetalle"
-              class="btn-agregar"
-              :disabled="!nuevaReceta || !nuevaCantidad"
-            >
+            <input type="number" v-model="nuevaCantidad" min="1" placeholder="Cantidad" class="input-cantidad" />
+            <button @click="agregarDetalle" class="btn-agregar" :disabled="!nuevaReceta || !nuevaCantidad">
               <i class="fas fa-plus"></i> Agregar
             </button>
           </div>
 
           <div class="lista-detalles">
-            <div
-              v-for="(detalle, index) in pedidoForm.detalles"
-              :key="index"
-              class="detalle-item-modal"
-            >
+            <div v-for="(detalle, index) in pedidoForm.detalles" :key="index" class="detalle-item-modal">
               <span>{{ detalle.receta.nombre }} x{{ detalle.cantidad }}</span>
               <span>{{
                 formatDecimal(detalle.precio * detalle.cantidad)
               }}</span>
-              <button
-                @click="eliminarDetalle(index)"
-                class="btn-eliminar-detalle"
-              >
+              <button @click="eliminarDetalle(index)" class="btn-eliminar-detalle">
                 <i class="fas fa-times"></i>
               </button>
             </div>
@@ -282,76 +190,44 @@
           <div class="nuevo-ingrediente">
             <select v-model="nuevoIngrediente.insumo" class="select-insumo">
               <option value="">Seleccione un ingrediente</option>
-              <option
-                v-for="insumo in insumos"
-                :key="insumo.id"
-                :value="insumo"
-              >
+              <option v-for="insumo in insumos" :key="insumo.id" :value="insumo">
                 {{ insumo.nombre }} ({{ insumo.unidad_medida.abreviatura }})
               </option>
             </select>
-            <input
-              type="number"
-              v-model="nuevoIngrediente.cantidad"
-              min="0.1"
-              step="0.1"
-              placeholder="Cantidad"
-              class="input-cantidad"
-            />
+            <input type="number" v-model="nuevoIngrediente.cantidad" min="0.1" step="0.1" placeholder="Cantidad"
+              class="input-cantidad" />
 
             <!-- Selector de unidad de medida -->
-            <select
-              v-model="nuevoIngrediente.unidad_medida"
-              class="select-unidad"
-              v-if="nuevoIngrediente.insumo"
-            >
+            <select v-model="nuevoIngrediente.unidad_medida" class="select-unidad" v-if="nuevoIngrediente.insumo">
               <option value="">Seleccione unidad</option>
-              <option
-                v-for="unidad in unidadesCompatibles"
-                :key="unidad.id"
-                :value="unidad"
-              >
+              <option v-for="unidad in unidadesCompatibles" :key="unidad.id" :value="unidad">
                 {{ unidad.abreviatura }}
               </option>
             </select>
 
-            <button
-              @click="agregarIngredienteExtra"
-              class="btn-agregar"
-              :disabled="
-                !nuevoIngrediente.insumo ||
-                !nuevoIngrediente.cantidad ||
-                !nuevoIngrediente.unidad_medida
-              "
-            >
+            <button @click="agregarIngredienteExtra" class="btn-agregar" :disabled="!nuevoIngrediente.insumo ||
+              !nuevoIngrediente.cantidad ||
+              !nuevoIngrediente.unidad_medida
+              ">
               <i class="fas fa-plus"></i> Agregar
             </button>
           </div>
 
           <div class="lista-ingredientes">
-            <div
-              v-for="(ingrediente, index) in pedidoForm.ingredientes_extra"
-              :key="index"
-              class="ingrediente-item"
-            >
+            <div v-for="(ingrediente, index) in pedidoForm.ingredientes_extra" :key="index" class="ingrediente-item">
               <span>
                 {{ obtenerNombreInsumo(ingrediente.insumo) }}:
                 {{ formatDecimal(ingrediente.cantidad) }}
                 {{ ingrediente.unidad_medida_nombre }}
-                <small
-                  v-if="
-                    ingrediente.cantidad_convertida &&
-                    ingrediente.cantidad_convertida !== ingrediente.cantidad
-                  "
-                >
+                <small v-if="
+                  ingrediente.cantidad_convertida &&
+                  ingrediente.cantidad_convertida !== ingrediente.cantidad
+                ">
                   (≈ {{ formatDecimal(ingrediente.cantidad_convertida) }}
                   {{ ingrediente.unidad_base }})
                 </small>
               </span>
-              <button
-                @click="eliminarIngredienteExtra(index)"
-                class="btn-eliminar-detalle"
-              >
+              <button @click="eliminarIngredienteExtra(index)" class="btn-eliminar-detalle">
                 <i class="fas fa-times"></i>
               </button>
             </div>
@@ -364,11 +240,7 @@
 
         <div class="modal-buttons">
           <button @click="cerrarModal" class="cancel-button">Cancelar</button>
-          <button
-            @click="guardarPedido"
-            class="confirm-button"
-            :disabled="!pedidoValido"
-          >
+          <button @click="guardarPedido" class="confirm-button" :disabled="!pedidoValido">
             {{ esEdicion ? "Actualizar" : "Crear" }}
           </button>
         </div>
@@ -438,14 +310,10 @@ import { onMounted, ref, computed, inject, watch } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 import Sidebar from "./Sidebar.vue";
-import NotificationMenu from "./NotificationMenu.vue";
-import UserMenu from "./UserMenu.vue";
+import Header from "./Header.vue";
 
 const router = useRouter();
 const notificationSystem = inject("notifications");
-
-// Notificaciones
-const notifications = ref([]);
 
 const handleNavigation = (route) => {
   router.push(route);
@@ -1111,9 +979,8 @@ const guardarPedido = async () => {
     notificationSystem.show({
       type: "success",
       title: esEdicion.value ? "Pedido actualizado" : "Pedido creado",
-      message: `El pedido se ha ${
-        esEdicion.value ? "actualizado" : "creado"
-      } correctamente`,
+      message: `El pedido se ha ${esEdicion.value ? "actualizado" : "creado"
+        } correctamente`,
       timeout: 4000,
     });
 
@@ -1314,6 +1181,7 @@ onMounted(() => {
 /* ----------------------------- CONTENIDO Y CARDS ESPECÍFICOS ----------------------------- */
 .pedidos-content {
   padding: 0 20px;
+  display: flex;
 }
 
 .filtros-pedidos {
@@ -1343,22 +1211,37 @@ onMounted(() => {
   font-size: 14px;
 }
 
-.btn-nuevo-pedido {
-  background-color: #7b5a50;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
+/* BOTONEEES */
+
+.botones-acciones {
+  display: flex;
+  gap: 10px;
+  margin-right: auto; /* ← Esto los lleva a la izq */
+  margin-bottom: 20px;
+}
+
+.botones-acciones button {
   display: flex;
   align-items: center;
   gap: 5px;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+/* Colores pastel */
+.btn-nuevo-pedido {
+  background-color: #b8e6b8; /* verde clarito */
+  color: #2b5d2b;
 }
 
 .btn-nuevo-pedido:hover {
-  background-color: #5a3f36;
+  background-color: #a1dca1;
 }
+
 
 /* ----------------------------- CARD DE PEDIDOS ----------------------------- */
 .pedidos-card {
