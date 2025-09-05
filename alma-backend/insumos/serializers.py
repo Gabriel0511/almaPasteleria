@@ -15,7 +15,7 @@ class CategoriaInsumoSerializer(serializers.ModelSerializer):
 class ProveedorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Proveedor
-        fields = ['id', 'nombre']
+        fields = ['id', 'nombre', 'telefono', 'email']
 
 class DecimalConComaField(serializers.DecimalField):
     def to_representation(self, value):

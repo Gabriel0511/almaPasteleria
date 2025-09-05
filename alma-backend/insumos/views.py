@@ -2,8 +2,8 @@ from django.db.models import F
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Insumo, UnidadMedida
-from .serializers import InsumoSerializer, UnidadMedidaSerializer
+from .models import Insumo, UnidadMedida,CategoriaInsumo, Proveedor
+from .serializers import InsumoSerializer, UnidadMedidaSerializer, CategoriaInsumoSerializer, ProveedorSerializer
 
 class UnidadMedidaListAPIView(generics.ListAPIView):
     queryset = UnidadMedida.objects.all()
@@ -85,6 +85,8 @@ class InsumoPartialUpdateAPIView(generics.UpdateAPIView):
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
+        
+        # Permite actualización parcial sin requerir todos los campos
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
@@ -137,4 +139,35 @@ class InsumoHardDeleteAPIView(generics.DestroyAPIView):
                 'insumo_id': instance_id
             },
             status=status.HTTP_204_NO_CONTENT
+        )
+
+# Vistas para Categorías
+class CategoriaInsumoListAPIView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = CategoriaInsumo.objects.all()
+    serializer_class = CategoriaInsumoSerializer
+
+# Vistas para Proveedores
+class ProveedorListAPIView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = Proveedor.objects.all()
+    serializer_class = ProveedorSerializer
+
+class ProveedorCreateAPIView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = Proveedor.objects.all()
+    serializer_class = ProveedorSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            {
+                'message': 'Proveedor creado exitosamente',
+                'proveedor': serializer.data
+            },
+            status=status.HTTP_201_CREATED,
+            headers=headers
         )
