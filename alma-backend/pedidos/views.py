@@ -1,4 +1,4 @@
-# views.py - Versión completa para pedidos
+# views.py - Versión corregida
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
@@ -6,7 +6,7 @@ from django.utils import timezone
 from datetime import date, timedelta
 from django.shortcuts import get_object_or_404
 from .models import Pedido, DetallePedido, Cliente, IngredientesExtra
-from .serializers import IngredientesExtraSerializer, PedidoSerializer, DetallePedidoSerializer, ClienteSerializer
+from .serializers import IngredientesExtraWriteSerializer, PedidoWriteSerializer, PedidoReadSerializer, DetallePedidoWriteSerializer, DetallePedidoReadSerializer, ClienteSerializer
 from recetas.models import Receta
 from insumos.models import Insumo
 
@@ -14,20 +14,18 @@ class PedidosHoyView(APIView):
     def get(self, request):
         hoy = date.today()
         
-        # Pedidos para entregar hoy
         entregar_hoy = Pedido.objects.filter(
             fecha_entrega=hoy,
             estado__in=['pendiente', 'en preparación']
         )
         
-        # Pedidos para fabricar hoy
         hacer_hoy = Pedido.objects.filter(
             fecha_fabricacion=hoy,
             estado__in=['pendiente', 'en preparación']
         )
         
-        entregar_serializer = PedidoSerializer(entregar_hoy, many=True)
-        hacer_serializer = PedidoSerializer(hacer_hoy, many=True)
+        entregar_serializer = PedidoReadSerializer(entregar_hoy, many=True)  # ← Cambiado
+        hacer_serializer = PedidoReadSerializer(hacer_hoy, many=True)  # ← Cambiado
         
         return Response({
             'entregar_hoy': entregar_serializer.data,
@@ -52,57 +50,37 @@ class ActualizarEstadoPedidoView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        return Response(PedidoSerializer(pedido).data, status=status.HTTP_200_OK)
+        return Response(PedidoReadSerializer(pedido).data, status=status.HTTP_200_OK)
 
 class PedidoListCreateAPIView(generics.ListCreateAPIView):
     queryset = Pedido.objects.all().order_by('-fecha_pedido')
-    serializer_class = PedidoSerializer
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        
-        return Response(
-            {
-                'message': 'Pedido creado exitosamente',
-                'pedido': serializer.data
-            },
-            status=status.HTTP_201_CREATED,
-            headers=headers
-        )
+    
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return PedidoReadSerializer
+        return PedidoWriteSerializer
 
 class PedidoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Pedido.objects.all()
-    serializer_class = PedidoSerializer
     lookup_field = 'pk'
+    
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return PedidoReadSerializer
+        return PedidoWriteSerializer
+    
+class DetallePedidoCreateAPIView(generics.CreateAPIView):
+    queryset = DetallePedido.objects.all()
+    serializer_class = DetallePedidoWriteSerializer
 
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-
-        return Response(
-            {
-                'message': 'Pedido actualizado exitosamente',
-                'pedido': serializer.data
-            }
-        )
-
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        self.perform_destroy(instance)
-        
-        return Response(
-            {
-                'message': 'Pedido eliminado exitosamente',
-                'pedido_id': instance.id
-            },
-            status=status.HTTP_204_NO_CONTENT
-        )
+class DetallePedidoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = DetallePedido.objects.all()
+    lookup_field = 'pk'
+    
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return DetallePedidoReadSerializer
+        return DetallePedidoWriteSerializer
 
 class ClienteListCreateAPIView(generics.ListCreateAPIView):
     queryset = Cliente.objects.all().order_by('nombre')
@@ -123,42 +101,6 @@ class ClienteListCreateAPIView(generics.ListCreateAPIView):
             headers=headers
         )
 
-class DetallePedidoCreateAPIView(generics.CreateAPIView):
-    queryset = DetallePedido.objects.all()
-    serializer_class = DetallePedidoSerializer
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        
-        return Response(
-            {
-                'message': 'Detalle de pedido agregado exitosamente',
-                'detalle': serializer.data
-            },
-            status=status.HTTP_201_CREATED,
-            headers=headers
-        )
-
-class DetallePedidoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = DetallePedido.objects.all()
-    serializer_class = DetallePedidoSerializer
-    lookup_field = 'pk'
-
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        self.perform_destroy(instance)
-        
-        return Response(
-            {
-                'message': 'Detalle de pedido eliminado exitosamente',
-                'detalle_id': instance.id
-            },
-            status=status.HTTP_204_NO_CONTENT
-        )
-
 class PedidosPorFechaView(APIView):
     def get(self, request):
         fecha_str = request.GET.get('fecha')
@@ -177,7 +119,7 @@ class PedidosPorFechaView(APIView):
             )
         
         pedidos = Pedido.objects.filter(fecha_entrega=fecha)
-        serializer = PedidoSerializer(pedidos, many=True)
+        serializer = PedidoReadSerializer(pedidos, many=True)  # ← Cambiado
         
         return Response({
             'fecha': fecha_str,
@@ -201,7 +143,7 @@ class PedidosPorEstadoView(APIView):
             )
         
         pedidos = Pedido.objects.filter(estado=estado)
-        serializer = PedidoSerializer(pedidos, many=True)
+        serializer = PedidoReadSerializer(pedidos, many=True)  # ← Cambiado
         
         return Response({
             'estado': estado,
@@ -211,7 +153,7 @@ class PedidosPorEstadoView(APIView):
     
 class IngredientesExtraCreateAPIView(generics.CreateAPIView):
     queryset = IngredientesExtra.objects.all()
-    serializer_class = IngredientesExtraSerializer
+    serializer_class = IngredientesExtraWriteSerializer  # ← Cambiado
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -230,7 +172,7 @@ class IngredientesExtraCreateAPIView(generics.CreateAPIView):
 
 class IngredientesExtraRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = IngredientesExtra.objects.all()
-    serializer_class = IngredientesExtraSerializer
+    serializer_class = IngredientesExtraWriteSerializer  # ← Cambiado
     lookup_field = 'pk'
 
     def destroy(self, request, *args, **kwargs):
@@ -245,13 +187,12 @@ class IngredientesExtraRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestr
             status=status.HTTP_204_NO_CONTENT
         )
     
-# En views.py
 class EliminarDetallesPedidoView(APIView):
     def delete(self, request, pk):
         try:
             pedido = Pedido.objects.get(pk=pk)
-            # Eliminar todos los detalles del pedido
-            pedido.detallepedido_set.all().delete()
+            # Eliminar todos los detalles del pedido (usando el related_name correcto)
+            pedido.detalles.all().delete()  # ← Cambiado de detallepedido_set a detalles
             return Response(
                 {'message': 'Detalles del pedido eliminados exitosamente'},
                 status=status.HTTP_200_OK
