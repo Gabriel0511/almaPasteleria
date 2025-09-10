@@ -60,7 +60,7 @@
                     <span class="insumo-cantidad">{{ formatDecimal(item.cantidad) }}{{ item.unidad }}</span>
                     <span class="insumo-precio" v-if="item.precio_unitario">${{ formatDecimal(item.precio_unitario) }}/{{
                       item.unidad }}</span>
-                    <span>{{ item.proveedor }}</span>
+                    <span class="insumo-categoria">{{ item.proveedor }}</span>
                   </span>
 
                 </div>
