@@ -48,13 +48,16 @@ class IngredientesExtraWriteSerializer(serializers.ModelSerializer):
         write_only=True,
         required=True
     )
+    detalle_id = serializers.PrimaryKeyRelatedField(  # ✅ Campo agregado
+        queryset=DetallePedido.objects.all(),
+        source='detalle',
+        write_only=True,
+        required=True
+    )
 
     class Meta:
         model = IngredientesExtra
         fields = ['id', 'insumo_id', 'cantidad', 'unidad_medida_id', 'detalle_id']
-        extra_kwargs = {
-            'detalle_id': {'write_only': True, 'required': False}
-        }
 
     def validate(self, data):
         insumo = data.get('insumo')

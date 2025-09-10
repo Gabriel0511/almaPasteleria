@@ -51,7 +51,7 @@ class IngredientesExtra(models.Model):
     detalle = models.ForeignKey(DetallePedido, on_delete=models.CASCADE, related_name='ingredientes_extra')
     insumo = models.ForeignKey(Insumo, on_delete=models.CASCADE)
     cantidad = models.DecimalField(max_digits=10, decimal_places=2)
-    unidad_medida = models.ForeignKey(UnidadMedida, on_delete=models.CASCADE, blank=True, null=True)  # ← minúsculas
+    unidad_medida = models.ForeignKey(UnidadMedida, on_delete=models.CASCADE)  # ← Quitado blank=True, null=True
 
     def __str__(self):
-        return f"{self.insumo.nombre} ({self.cantidad} {self.unidad_medida.abreviatura})"  # ← también corregir aquí
+        return f"{self.insumo.nombre} ({self.cantidad} {self.unidad_medida.abreviatura if self.unidad_medida else 'N/A'})"

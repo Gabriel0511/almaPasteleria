@@ -106,6 +106,16 @@
                 </div>
               </div>
 
+              <!-- Botón para agregar receta al pedido -->
+              <div class="agregar-receta-container">
+                <button
+                  class="btn-agregar-receta"
+                  @click="showAgregarRecetaModal(pedido)"
+                >
+                  <i class="fas fa-plus"></i> Agregar Receta
+                </button>
+              </div>
+
               <!-- Detalles del pedido - Recetas -->
               <div class="recetas-container">
                 <div
@@ -196,6 +206,84 @@
           </div>
         </div>
       </main>
+    </div>
+
+    <!-- Modal para Agregar/Editar Receta al Pedido -->
+    <div v-if="showModalReceta" class="modal-overlay">
+      <div class="modal-content">
+        <h3>
+          {{ esEdicionReceta ? "Editar Receta" : "Agregar Receta al Pedido" }}
+        </h3>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Receta:</label>
+            <select
+              v-model="formDetalle.receta_id"
+              required
+              class="form-input"
+              :disabled="esEdicionReceta"
+            >
+              <option value="">Seleccione una receta</option>
+              <option
+                v-for="receta in recetas"
+                :key="receta.id"
+                :value="receta.id"
+              >
+                {{ receta.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Cantidad:</label>
+            <input
+              v-model="formDetalle.cantidad"
+              type="number"
+              min="1"
+              required
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group full-width">
+            <label>Observaciones:</label>
+            <textarea
+              v-model="formDetalle.observaciones"
+              class="form-input"
+              rows="3"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button @click="closeModal" class="cancel-button">Cancelar</button>
+          <button @click="guardarDetalle" class="confirm-button">
+            {{ esEdicionReceta ? "Actualizar" : "Agregar" }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de confirmación para eliminar receta -->
+    <div v-if="showConfirmModalReceta" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Confirmar Eliminación</h3>
+        <p>
+          ¿Está seguro de que desea eliminar la receta "{{
+            recetaAEliminar?.receta?.nombre
+          }}" del pedido?
+        </p>
+
+        <div class="modal-buttons">
+          <button @click="showConfirmModalReceta = false" class="cancel-button">
+            Cancelar
+          </button>
+          <button @click="eliminarReceta" class="confirm-button">
+            Eliminar
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Modal para Nuevo/Editar Pedido -->
@@ -336,7 +424,7 @@
                 :key="receta.id"
                 :value="receta.id"
               >
-                {{ receta.nombre }} - ${{ receta.precio_venta }}
+                {{ receta.nombre }}
               </option>
             </select>
           </div>
@@ -542,6 +630,7 @@ const showModalReceta = ref(false);
 const showModalIngrediente = ref(false);
 const showConfirmModalPedido = ref(false);
 const showConfirmModalIngrediente = ref(false);
+const showConfirmModalReceta = ref(false);
 
 // Formularios
 const formPedido = ref({
@@ -579,7 +668,9 @@ const esEdicionReceta = ref(false);
 const esEdicionIngrediente = ref(false);
 const pedidoAEliminar = ref(null);
 const ingredienteAEliminar = ref(null);
+const recetaAEliminar = ref(null);
 const detalleActual = ref(null);
+const pedidoActual = ref(null);
 
 // Estados de pedido
 const estadosPedido = ref([
@@ -844,17 +935,22 @@ const guardarIngredienteExtra = async () => {
       return;
     }
 
+    // Preparar datos para enviar al backend según el serializer
+    const datosParaEnviar = {
+      insumo_id: formIngrediente.value.insumo_id,
+      cantidad: formIngrediente.value.cantidad,
+      unidad_medida_id: formIngrediente.value.unidad_medida_id,
+      detalle_id: formIngrediente.value.detalle_id,
+    };
+
     let response;
     if (esEdicionIngrediente.value) {
       response = await axios.put(
         `/api/ingredientes-extra/${formIngrediente.value.id}/`,
-        formIngrediente.value
+        datosParaEnviar
       );
     } else {
-      response = await axios.post(
-        "/api/ingredientes-extra/",
-        formIngrediente.value
-      );
+      response = await axios.post("/api/ingredientes-extra/", datosParaEnviar);
     }
 
     // Actualizar el pedido localmente
@@ -867,7 +963,18 @@ const guardarIngredienteExtra = async () => {
     );
   } catch (error) {
     console.error("Error al guardar ingrediente extra:", error);
-    alert("Error al guardar el ingrediente extra");
+    console.error("Datos enviados:", error.config?.data);
+    console.error("Respuesta del servidor:", error.response?.data);
+
+    let mensajeError = "Error al guardar el ingrediente extra";
+    if (error.response?.data) {
+      if (typeof error.response.data === "object") {
+        mensajeError += ": " + JSON.stringify(error.response.data);
+      } else {
+        mensajeError += ": " + error.response.data;
+      }
+    }
+    alert(mensajeError);
   }
 };
 
@@ -917,6 +1024,114 @@ const resetFormIngrediente = () => {
   };
 };
 
+// Nuevos métodos para gestionar recetas
+const showAgregarRecetaModal = (pedido) => {
+  esEdicionReceta.value = false;
+  pedidoActual.value = pedido;
+  resetFormDetalle();
+  formDetalle.value.pedido_id = pedido.id;
+  showModalReceta.value = true;
+};
+
+const editarReceta = (detalle, pedido) => {
+  esEdicionReceta.value = true;
+  pedidoActual.value = pedido;
+  formDetalle.value = {
+    id: detalle.id,
+    pedido_id: pedido.id,
+    receta_id: detalle.receta.id,
+    cantidad: detalle.cantidad,
+    observaciones: detalle.observaciones || "",
+  };
+  showModalReceta.value = true;
+};
+
+const confirmarEliminarReceta = (detalle) => {
+  recetaAEliminar.value = detalle;
+  showConfirmModalReceta.value = true;
+};
+
+const eliminarReceta = async () => {
+  try {
+    await axios.delete(`/api/detalles-pedido/${recetaAEliminar.value.id}/`);
+
+    // Actualizar la lista local
+    const pedidoIndex = pedidos.value.findIndex((pedido) =>
+      pedido.detalles.some((detalle) => detalle.id === recetaAEliminar.value.id)
+    );
+
+    if (pedidoIndex !== -1) {
+      const pedido = pedidos.value[pedidoIndex];
+      const detalleIndex = pedido.detalles.findIndex(
+        (detalle) => detalle.id === recetaAEliminar.value.id
+      );
+      if (detalleIndex !== -1) {
+        pedido.detalles.splice(detalleIndex, 1);
+      }
+    }
+
+    showConfirmModalReceta.value = false;
+    alert("Receta eliminada correctamente del pedido");
+  } catch (error) {
+    console.error("Error al eliminar receta:", error);
+    alert("Error al eliminar la receta del pedido");
+  }
+};
+
+const guardarDetalle = async () => {
+  try {
+    if (!formDetalle.value.receta_id) {
+      alert("La receta es requerida");
+      return;
+    }
+    if (!formDetalle.value.cantidad || formDetalle.value.cantidad <= 0) {
+      alert("La cantidad debe ser mayor a 0");
+      return;
+    }
+
+    // Preparar datos para enviar al backend
+    const datosParaEnviar = {
+      pedido: formDetalle.value.pedido_id,
+      receta_id: formDetalle.value.receta_id,
+      cantidad: formDetalle.value.cantidad,
+      observaciones: formDetalle.value.observaciones || "",
+    };
+
+    let response;
+    if (esEdicionReceta.value) {
+      response = await axios.put(
+        `/api/detalles-pedido/${formDetalle.value.id}/`,
+        datosParaEnviar
+      );
+    } else {
+      response = await axios.post("/api/detalles-pedido/", datosParaEnviar);
+    }
+
+    // Actualizar el pedido localmente
+    await fetchPedidos();
+    closeModal();
+    alert(
+      esEdicionReceta.value
+        ? "Receta actualizada correctamente"
+        : "Receta agregada correctamente al pedido"
+    );
+  } catch (error) {
+    console.error("Error al guardar detalle:", error);
+    console.error("Datos enviados:", error.config?.data);
+    console.error("Respuesta del servidor:", error.response?.data);
+
+    let mensajeError = "Error al guardar la receta en el pedido";
+    if (error.response?.data) {
+      if (typeof error.response.data === "object") {
+        mensajeError += ": " + JSON.stringify(error.response.data);
+      } else {
+        mensajeError += ": " + error.response.data;
+      }
+    }
+    alert(mensajeError);
+  }
+};
+
 const resetForms = () => {
   resetFormPedido();
   resetFormCliente();
@@ -926,6 +1141,7 @@ const resetForms = () => {
   esEdicionReceta.value = false;
   esEdicionIngrediente.value = false;
   detalleActual.value = null;
+  pedidoActual.value = null;
 };
 
 // Funciones para cargar datos
@@ -1262,6 +1478,79 @@ onMounted(() => {
 
 .btn-agregar-ingrediente:hover {
   background-color: #bbdefb;
+}
+
+/* Nuevos estilos para el botón de agregar receta */
+.agregar-receta-container {
+  margin: 15px 0;
+  text-align: center;
+}
+
+.btn-agregar-receta {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+  padding: 8px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background-color 0.2s;
+}
+
+.btn-agregar-receta:hover {
+  background-color: #bbdefb;
+}
+
+/* Estilos para los botones de acción en recetas */
+.receta-acciones-superiores {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  justify-content: flex-end;
+}
+
+.btn-accion-small {
+  background: none;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  color: #7b5a50;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-accion-small:hover {
+  background-color: #f5f5f5;
+}
+
+.btn-eliminar {
+  color: #dc3545;
+  border-color: #f5c6cb;
+}
+
+.btn-eliminar:hover {
+  background-color: #f8d7da;
+}
+
+/* Ajustes para el modal de recetas */
+.modal-content {
+  max-width: 500px;
+}
+
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.form-group.full-width {
+  width: 100%;
 }
 
 /* ----------------------------- MODALES ----------------------------- */
