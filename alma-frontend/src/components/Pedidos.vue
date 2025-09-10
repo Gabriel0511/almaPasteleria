@@ -13,29 +13,24 @@
         <section class="content pedidos-content">
           <h3 class="card-title1">Gestión de Pedidos</h3>
           <div class="botones-acciones">
-            <button class="btn-nuevo-pedido" @click="abrirModalCrear">
-              <i class="bi bi-plus-lg"></i> Nuevo Pedido
+            <button class="btn-nuevo-pedido" @click="showNuevoPedidoModal">
+              <i class="fas fa-plus"></i> Nuevo Pedido
             </button>
           </div>
-          <!-- Filtros de pedidos -->
-          <div class="filtros-pedidos">
+
+          <!-- Filtros de pedidos alineados a la derecha -->
+          <div class="filtros-derecha">
             <div class="filtro-group">
-              <label for="fecha-filtro">Filtrar por fecha:</label>
               <input
-                type="date"
-                id="fecha-filtro"
-                v-model="fechaFiltro"
-                @change="filtrarPorFecha"
+                type="text"
+                v-model="searchTerm"
+                placeholder="Buscar cliente..."
+                class="filtro-input"
               />
             </div>
 
             <div class="filtro-group">
-              <label for="estado-filtro">Filtrar por estado:</label>
-              <select
-                id="estado-filtro"
-                v-model="estadoFiltro"
-                @change="filtrarPorEstado"
-              >
+              <select v-model="estadoSeleccionado" class="filtro-select">
                 <option value="">Todos los estados</option>
                 <option
                   v-for="estado in estadosPedido"
@@ -46,12 +41,20 @@
                 </option>
               </select>
             </div>
+
+            <div class="filtro-group">
+              <input
+                type="date"
+                v-model="fechaSeleccionada"
+                class="filtro-input"
+              />
+            </div>
           </div>
         </section>
 
         <!-- Card principal de pedidos -->
         <div class="card pedidos-card">
-          <div v-if="loadingPedidos" class="loading-state">
+          <div v-if="loading" class="loading-state">
             <i class="fas fa-spinner fa-spin"></i> Cargando pedidos...
           </div>
 
@@ -67,32 +70,35 @@
             >
               <div class="pedido-header">
                 <div class="pedido-info">
-                  <span class="pedido-id">#{{ pedido.id }}</span>
-                  <span class="cliente-nombre">{{
-                    pedido.cliente.nombre
-                  }}</span>
-                  <span class="pedido-fecha"
-                    >Entrega: {{ formatDate(pedido.fecha_entrega) }}</span
-                  >
-                  <span class="pedido-fecha"
-                    >Fabricación:
-                    {{ formatDate(pedido.fecha_fabricacion) }}</span
-                  >
+                  <span class="cliente-container">
+                    <span class="cliente-nombre"
+                      >{{ pedido.cliente.nombre }}
+                      <span
+                        class="pedido-estado"
+                        :class="pedido.estado.toLowerCase()"
+                        >({{ pedido.estado }})</span
+                      >
+                    </span>
+                    <span class="pedido-fechas">
+                      Pedido: {{ formatFecha(pedido.fecha_pedido) }} | Entrega:
+                      {{ formatFecha(pedido.fecha_entrega) }}
+                    </span>
+                    <span class="pedido-total"
+                      >Total: ${{ calcularTotalPedido(pedido) }}</span
+                    >
+                  </span>
                 </div>
                 <div class="pedido-acciones">
-                  <span class="estado-badge" :class="pedido.estado">{{
-                    pedido.estado
-                  }}</span>
                   <button
                     class="btn-accion"
-                    @click="abrirModalEditar(pedido)"
+                    @click="editarPedido(pedido)"
                     title="Editar pedido"
                   >
                     <i class="fas fa-edit"></i>
                   </button>
                   <button
                     class="btn-accion"
-                    @click="eliminarPedido(pedido.id)"
+                    @click="confirmarEliminarPedido(pedido)"
                     title="Eliminar pedido"
                   >
                     <i class="fas fa-trash"></i>
@@ -100,60 +106,91 @@
                 </div>
               </div>
 
-              <div class="pedido-detalles">
+              <!-- Detalles del pedido - Recetas -->
+              <div class="recetas-container">
                 <div
                   v-for="detalle in pedido.detalles"
                   :key="detalle.id"
-                  class="detalle-item"
+                  class="receta-item"
                 >
-                  <span
-                    >{{ detalle.receta.nombre }} (x{{ detalle.cantidad }})</span
-                  >
-                  <span>{{
-                    formatDecimal(detalle.precio * detalle.cantidad)
-                  }}</span>
-                </div>
-
-                <div
-                  v-if="
-                    pedido.ingredientes_extra &&
-                    pedido.ingredientes_extra.length > 0
-                  "
-                  class="ingredientes-extra"
-                >
-                  <p><strong>Ingredientes extra:</strong></p>
-                  <ul>
-                    <li
-                      v-for="extra in pedido.ingredientes_extra"
-                      :key="extra.id"
+                  <div class="receta-header" @click="toggleReceta(detalle.id)">
+                    <span class="receta-nombre"
+                      >{{ detalle.receta.nombre }} x{{ detalle.cantidad }}</span
                     >
-                      {{ extra.insumo.nombre }}:
-                      {{ formatDecimal(extra.cantidad) }}
-                      {{ extra.insumo.unidad_medida.abreviatura }}
-                    </li>
-                  </ul>
-                </div>
+                    <span class="receta-precio"
+                      >${{ calcularPrecioReceta(detalle) }}</span
+                    >
+                    <i
+                      class="fas"
+                      :class="
+                        detalleExpandido[detalle.id]
+                          ? 'fa-chevron-up'
+                          : 'fa-chevron-down'
+                      "
+                    ></i>
+                  </div>
 
-                <div class="pedido-total">
-                  <strong>Total: {{ formatDecimal(pedido.total) }}</strong>
-                </div>
-              </div>
+                  <div
+                    v-if="detalleExpandido[detalle.id]"
+                    class="receta-detalles"
+                  >
+                    <p class="observaciones" v-if="detalle.observaciones">
+                      <strong>Observaciones:</strong>
+                      {{ detalle.observaciones }}
+                    </p>
 
-              <div class="estado-actions">
-                <button
-                  v-if="pedido.estado === 'pendiente'"
-                  @click="actualizarEstadoPedido(pedido.id, 'en preparación')"
-                  class="btn-estado"
-                >
-                  Marcar como en preparación
-                </button>
-                <button
-                  v-if="pedido.estado === 'en preparación'"
-                  @click="actualizarEstadoPedido(pedido.id, 'entregado')"
-                  class="btn-estado"
-                >
-                  Marcar como entregado
-                </button>
+                    <!-- Ingredientes extras -->
+                    <div
+                      class="ingredientes-extras"
+                      v-if="
+                        detalle.ingredientes_extra &&
+                        detalle.ingredientes_extra.length > 0
+                      "
+                    >
+                      <h4>Ingredientes Extra:</h4>
+                      <div
+                        v-for="ingrediente in detalle.ingredientes_extra"
+                        :key="ingrediente.id"
+                        class="ingrediente-extra"
+                      >
+                        <span
+                          >{{ ingrediente.insumo.nombre }}:
+                          {{ ingrediente.cantidad }}
+                          {{ ingrediente.unidad_medida.abreviatura }}</span
+                        >
+                        <div class="ingrediente-acciones">
+                          <button
+                            class="btn-accion-small"
+                            @click="
+                              editarIngredienteExtra(ingrediente, detalle)
+                            "
+                            title="Editar ingrediente"
+                          >
+                            <i class="fas fa-edit"></i>
+                          </button>
+                          <button
+                            class="btn-accion-small"
+                            @click="
+                              confirmarEliminarIngredienteExtra(ingrediente)
+                            "
+                            title="Eliminar ingrediente"
+                          >
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="receta-acciones">
+                      <button
+                        class="btn-agregar-ingrediente"
+                        @click="showNuevoIngredienteModal(detalle)"
+                      >
+                        <i class="fas fa-plus"></i> Agregar Ingrediente Extra
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -161,29 +198,33 @@
       </main>
     </div>
 
-    <!-- Modal para crear/editar pedido -->
-    <div v-if="showPedidoModal" class="modal-overlay">
-      <div class="modal-content modal-grande">
-        <h3>{{ esEdicion ? "Editar Pedido" : "Crear Nuevo Pedido" }}</h3>
+    <!-- Modal para Nuevo/Editar Pedido -->
+    <div v-if="showModalPedido" class="modal-overlay">
+      <div class="modal-content">
+        <h3>{{ esEdicionPedido ? "Editar Pedido" : "Nuevo Pedido" }}</h3>
 
         <div class="form-grid">
           <div class="form-group">
             <label>Cliente:</label>
             <div class="cliente-select-container">
-              <select v-model="pedidoForm.cliente" required>
+              <select
+                v-model="formPedido.cliente_id"
+                required
+                class="form-input"
+              >
                 <option value="">Seleccione un cliente</option>
                 <option
                   v-for="cliente in clientes"
                   :key="cliente.id"
                   :value="cliente.id"
                 >
-                  {{ cliente.nombre }}
+                  {{ cliente.nombre }} - {{ cliente.telefono }}
                 </option>
               </select>
               <button
                 type="button"
                 class="btn-agregar-cliente"
-                @click="mostrarModalCliente"
+                @click="showNuevoClienteModal = true"
                 title="Agregar nuevo cliente"
               >
                 <i class="fas fa-plus"></i>
@@ -192,22 +233,28 @@
           </div>
 
           <div class="form-group">
-            <label>Fecha de entrega:</label>
-            <input type="date" v-model="pedidoForm.fecha_entrega" required />
+            <label>Fecha de Pedido:</label>
+            <input
+              v-model="formPedido.fecha_pedido"
+              type="date"
+              required
+              class="form-input"
+            />
           </div>
 
           <div class="form-group">
-            <label>Fecha de fabricación:</label>
+            <label>Fecha de Entrega:</label>
             <input
+              v-model="formPedido.fecha_entrega"
               type="date"
-              v-model="pedidoForm.fecha_fabricacion"
               required
+              class="form-input"
             />
           </div>
 
           <div class="form-group">
             <label>Estado:</label>
-            <select v-model="pedidoForm.estado" required>
+            <select v-model="formPedido.estado" required class="form-input">
               <option
                 v-for="estado in estadosPedido"
                 :key="estado"
@@ -219,150 +266,218 @@
           </div>
         </div>
 
-        <div class="seccion-detalles">
-          <h4>Detalles del Pedido</h4>
+        <div class="modal-buttons">
+          <button @click="closeModal" class="cancel-button">Cancelar</button>
+          <button @click="guardarPedido" class="confirm-button">
+            {{ esEdicionPedido ? "Actualizar" : "Guardar" }}
+          </button>
+        </div>
+      </div>
+    </div>
 
-          <div class="nuevo-detalle">
-            <select v-model="nuevaReceta" class="select-receta">
+    <!-- Modal para Nuevo Cliente -->
+    <div v-if="showNuevoClienteModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Nuevo Cliente</h3>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre:</label>
+            <input
+              v-model="formCliente.nombre"
+              type="text"
+              required
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Teléfono:</label>
+            <input
+              v-model="formCliente.telefono"
+              type="text"
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Dirección:</label>
+            <input
+              v-model="formCliente.direccion"
+              type="text"
+              class="form-input"
+            />
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button @click="showNuevoClienteModal = false" class="cancel-button">
+            Cancelar
+          </button>
+          <button @click="guardarCliente" class="confirm-button">
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Agregar/Editar Receta al Pedido -->
+    <div v-if="showModalReceta" class="modal-overlay">
+      <div class="modal-content">
+        <h3>{{ esEdicionReceta ? "Editar Receta" : "Agregar Receta" }}</h3>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Receta:</label>
+            <select v-model="formDetalle.receta_id" required class="form-input">
               <option value="">Seleccione una receta</option>
               <option
                 v-for="receta in recetas"
                 :key="receta.id"
-                :value="receta"
+                :value="receta.id"
               >
-                {{ receta.nombre }} - {{ formatDecimal(receta.precio) }}
+                {{ receta.nombre }} - ${{ receta.precio_venta }}
               </option>
             </select>
+          </div>
+
+          <div class="form-group">
+            <label>Cantidad:</label>
             <input
+              v-model="formDetalle.cantidad"
               type="number"
-              v-model="nuevaCantidad"
               min="1"
-              placeholder="Cantidad"
-              class="input-cantidad"
+              required
+              class="form-input"
             />
-            <button
-              @click="agregarDetalle"
-              class="btn-agregar"
-              :disabled="!nuevaReceta || !nuevaCantidad"
-            >
-              <i class="fas fa-plus"></i> Agregar
-            </button>
           </div>
 
-          <div class="lista-detalles">
-            <div
-              v-for="(detalle, index) in pedidoForm.detalles"
-              :key="index"
-              class="detalle-item-modal"
-            >
-              <span>{{ detalle.receta.nombre }} x{{ detalle.cantidad }}</span>
-              <span>{{
-                formatDecimal(detalle.precio * detalle.cantidad)
-              }}</span>
-              <button
-                @click="eliminarDetalle(index)"
-                class="btn-eliminar-detalle"
-              >
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
+          <div class="form-group full-width">
+            <label>Observaciones:</label>
+            <textarea
+              v-model="formDetalle.observaciones"
+              class="form-input"
+              rows="3"
+            ></textarea>
           </div>
-        </div>
-
-        <div class="seccion-ingredientes-extra">
-          <h4>Ingredientes Extra</h4>
-
-          <div class="nuevo-ingrediente">
-            <select v-model="nuevoIngrediente.insumo" class="select-insumo">
-              <option value="">Seleccione un ingrediente</option>
-              <option
-                v-for="insumo in insumos"
-                :key="insumo.id"
-                :value="insumo"
-              >
-                {{ insumo.nombre }} ({{ insumo.unidad_medida.abreviatura }})
-              </option>
-            </select>
-            <input
-              type="number"
-              v-model="nuevoIngrediente.cantidad"
-              min="0.1"
-              step="0.1"
-              placeholder="Cantidad"
-              class="input-cantidad"
-            />
-
-            <!-- Selector de unidad de medida -->
-            <select
-              v-model="nuevoIngrediente.unidad_medida"
-              class="select-unidad"
-              v-if="nuevoIngrediente.insumo"
-            >
-              <option value="">Seleccione unidad</option>
-              <option
-                v-for="unidad in unidadesCompatibles"
-                :key="unidad.id"
-                :value="unidad"
-              >
-                {{ unidad.abreviatura }}
-              </option>
-            </select>
-
-            <button
-              @click="agregarIngredienteExtra"
-              class="btn-agregar"
-              :disabled="
-                !nuevoIngrediente.insumo ||
-                !nuevoIngrediente.cantidad ||
-                !nuevoIngrediente.unidad_medida
-              "
-            >
-              <i class="fas fa-plus"></i> Agregar
-            </button>
-          </div>
-
-          <div class="lista-ingredientes">
-            <div
-              v-for="(ingrediente, index) in pedidoForm.ingredientes_extra"
-              :key="index"
-              class="ingrediente-item"
-            >
-              <span>
-                {{ obtenerNombreInsumo(ingrediente.insumo) }}:
-                {{ formatDecimal(ingrediente.cantidad) }}
-                {{ ingrediente.unidad_medida_nombre }}
-                <small
-                  v-if="
-                    ingrediente.cantidad_convertida &&
-                    ingrediente.cantidad_convertida !== ingrediente.cantidad
-                  "
-                >
-                  (≈ {{ formatDecimal(ingrediente.cantidad_convertida) }}
-                  {{ ingrediente.unidad_base }})
-                </small>
-              </span>
-              <button
-                @click="eliminarIngredienteExtra(index)"
-                class="btn-eliminar-detalle"
-              >
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="total-pedido">
-          <strong>Total: {{ formatDecimal(calcularTotal) }}</strong>
         </div>
 
         <div class="modal-buttons">
-          <button @click="cerrarModal" class="cancel-button">Cancelar</button>
+          <button @click="closeModal" class="cancel-button">Cancelar</button>
+          <button @click="guardarDetalle" class="confirm-button">
+            {{ esEdicionReceta ? "Actualizar" : "Agregar" }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Agregar/Editar Ingrediente Extra -->
+    <div v-if="showModalIngrediente" class="modal-overlay">
+      <div class="modal-content">
+        <h3>
+          {{
+            esEdicionIngrediente
+              ? "Editar Ingrediente Extra"
+              : "Agregar Ingrediente Extra"
+          }}
+        </h3>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Insumo:</label>
+            <select
+              v-model="formIngrediente.insumo_id"
+              required
+              class="form-input"
+            >
+              <option value="">Seleccione un insumo</option>
+              <option
+                v-for="insumo in insumos"
+                :key="insumo.id"
+                :value="insumo.id"
+              >
+                {{ insumo.nombre }} - ${{ insumo.precio_unitario }}/{{
+                  insumo.unidad_medida.abreviatura
+                }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Cantidad:</label>
+            <input
+              v-model="formIngrediente.cantidad"
+              type="number"
+              step="0.001"
+              required
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Unidad de Medida:</label>
+            <select
+              v-model="formIngrediente.unidad_medida_id"
+              required
+              class="form-input"
+            >
+              <option value="">Seleccione una unidad</option>
+              <option
+                v-for="unidad in unidadesMedida"
+                :key="unidad.id"
+                :value="unidad.id"
+              >
+                {{ unidad.nombre }} ({{ unidad.abreviatura }})
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button @click="closeModal" class="cancel-button">Cancelar</button>
+          <button @click="guardarIngredienteExtra" class="confirm-button">
+            {{ esEdicionIngrediente ? "Actualizar" : "Agregar" }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de confirmación para eliminar pedido -->
+    <div v-if="showConfirmModalPedido" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Confirmar Eliminación</h3>
+        <p>
+          ¿Está seguro de que desea eliminar el pedido de "{{
+            pedidoAEliminar?.cliente?.nombre
+          }}"?
+        </p>
+
+        <div class="modal-buttons">
+          <button @click="showConfirmModalPedido = false" class="cancel-button">
+            Cancelar
+          </button>
+          <button @click="eliminarPedido" class="confirm-button">
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de confirmación para eliminar ingrediente extra -->
+    <div v-if="showConfirmModalIngrediente" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Confirmar Eliminación</h3>
+        <p>¿Está seguro de que desea eliminar este ingrediente extra?</p>
+
+        <div class="modal-buttons">
           <button
-            @click="guardarPedido"
-            class="confirm-button"
-            :disabled="!pedidoValido"
+            @click="showConfirmModalIngrediente = false"
+            class="cancel-button"
           >
-            {{ esEdicion ? "Actualizar" : "Crear" }}
+            Cancelar
+          </button>
+          <button @click="eliminarIngredienteExtra" class="confirm-button">
+            Eliminar
           </button>
         </div>
       </div>
@@ -395,825 +510,119 @@
       </div>
     </div>
   </div>
-  <!-- Modal para agregar nuevo cliente -->
-  <div v-if="showClienteModal" class="modal-overlay">
-    <div class="modal-content">
-      <h3>Agregar Nuevo Cliente</h3>
-
-      <div class="form-group">
-        <label>Nombre:</label>
-        <input type="text" v-model="nuevoCliente.nombre" required />
-      </div>
-
-      <div class="form-group">
-        <label>Teléfono:</label>
-        <input type="text" v-model="nuevoCliente.telefono" />
-      </div>
-
-      <div class="form-group">
-        <label>Dirección:</label>
-        <input type="text" v-model="nuevoCliente.direccion" required />
-      </div>
-
-      <div class="modal-buttons">
-        <button @click="cerrarModalCliente" class="cancel-button">
-          Cancelar
-        </button>
-        <button @click="guardarCliente" class="confirm-button">Guardar</button>
-      </div>
-    </div>
-  </div>
 </template>
 
 <script setup>
-import { formatDecimal } from "../helpers/formatters";
-import { onMounted, ref, computed, inject, watch } from "vue";
 import { useRouter } from "vue-router";
-import axios from "axios";
+import { ref, computed, onMounted, watch } from "vue";
 import Sidebar from "./Sidebar.vue";
 import Header from "./Header.vue";
+import axios from "axios";
 
 const router = useRouter();
-const notificationSystem = inject("notifications");
 
-const handleNavigation = (route) => {
-  router.push(route);
-};
-
-// ----------------------
-// 🔹 Estado del Menú y Usuario
-// ----------------------
-const showPasswordModal = ref(false);
+// Variables de estado
 const userEmail = ref("Usuario");
-const currentPassword = ref("");
-const newPassword = ref("");
-const confirmPassword = ref("");
-
-// ----------------------
-// 🔹 Gestión de Pedidos
-// ----------------------
+const showPasswordModal = ref(false);
 const pedidos = ref([]);
-const loadingPedidos = ref(true);
-const fechaFiltro = ref("");
-const estadoFiltro = ref("");
-const estadosPedido = ["pendiente", "en preparación", "entregado", "cancelado"];
-
-// Computed para filtrar pedidos
-const pedidosFiltrados = computed(() => {
-  let filtered = [...pedidos.value];
-
-  // Filtrar por fecha si hay selección
-  if (fechaFiltro.value) {
-    filtered = filtered.filter(
-      (pedido) =>
-        pedido.fecha_entrega === fechaFiltro.value ||
-        pedido.fecha_fabricacion === fechaFiltro.value
-    );
-  }
-
-  // Filtrar por estado si hay selección
-  if (estadoFiltro.value) {
-    filtered = filtered.filter(
-      (pedido) => pedido.estado === estadoFiltro.value
-    );
-  }
-
-  return filtered.sort(
-    (a, b) => new Date(b.fecha_pedido) - new Date(a.fecha_pedido)
-  );
-});
-
-// ----------------------
-// 🔹 Modal de Pedido
-// ----------------------
-const showPedidoModal = ref(false);
-const esEdicion = ref(false);
-const pedidoEditandoId = ref(null);
-
-// Datos para el formulario de pedido
-const pedidoForm = ref({
-  cliente: "",
-  fecha_entrega: "",
-  fecha_fabricacion: "",
-  estado: "pendiente",
-  detalles: [],
-  ingredientes_extra: [],
-});
-
-const nuevaReceta = ref(null);
-const nuevaCantidad = ref(1);
-const unidadesDisponibles = ref([]);
-const nuevoIngrediente = ref({
-  insumo: "",
-  cantidad: 0.1,
-  unidad_medida: "",
-});
-
-// Listas de opciones
 const clientes = ref([]);
 const recetas = ref([]);
 const insumos = ref([]);
+const unidadesMedida = ref([]);
+const estadoSeleccionado = ref("");
+const fechaSeleccionada = ref("");
+const searchTerm = ref("");
+const loading = ref(true);
+const detalleExpandido = ref({});
 
-// Computed properties
-const pedidoValido = computed(() => {
-  return (
-    pedidoForm.value.cliente &&
-    pedidoForm.value.fecha_entrega &&
-    pedidoForm.value.fecha_fabricacion &&
-    pedidoForm.value.detalles.length > 0
-  );
+// Modales
+const showModalPedido = ref(false);
+const showNuevoClienteModal = ref(false);
+const showModalReceta = ref(false);
+const showModalIngrediente = ref(false);
+const showConfirmModalPedido = ref(false);
+const showConfirmModalIngrediente = ref(false);
+
+// Formularios
+const formPedido = ref({
+  id: null,
+  cliente_id: "",
+  fecha_pedido: new Date().toISOString().split("T")[0],
+  fecha_entrega: "",
+  estado: "pendiente",
 });
 
-const calcularTotal = computed(() => {
-  let total = 0;
-
-  // Sumar total de detalles
-  pedidoForm.value.detalles.forEach((detalle) => {
-    total += (detalle.precio || detalle.receta.precio) * detalle.cantidad;
-  });
-
-  // Sumar costo aproximado de ingredientes extra (opcional)
-  pedidoForm.value.ingredientes_extra.forEach((ingrediente) => {
-    const insumo = insumos.value.find((i) => i.id === ingrediente.insumo);
-    if (insumo && insumo.precio_por_unidad) {
-      total += insumo.precio_por_unidad * ingrediente.cantidad;
-    }
-  });
-
-  return total;
-});
-
-// ----------------------
-// 🔹 Modal de Clientes
-// ----------------------
-const showClienteModal = ref(false);
-const nuevoCliente = ref({
+const formCliente = ref({
   nombre: "",
   telefono: "",
   direccion: "",
 });
 
-// Función para mostrar el modal de cliente
-const mostrarModalCliente = () => {
-  showClienteModal.value = true;
-};
-
-// Función para cerrar el modal de cliente
-const cerrarModalCliente = () => {
-  showClienteModal.value = false;
-  // Limpiar el formulario
-  nuevoCliente.value = {
-    nombre: "",
-    telefono: "",
-    direccion: "",
-  };
-};
-
-// Función para guardar un nuevo cliente
-const guardarCliente = async () => {
-  try {
-    // Validar campos obligatorios
-    if (!nuevoCliente.value.nombre || !nuevoCliente.value.direccion) {
-      notificationSystem.show({
-        type: "warning",
-        title: "Campos incompletos",
-        message: "Nombre y dirección son campos obligatorios",
-        timeout: 4000,
-      });
-      return;
-    }
-
-    const response = await axios.post("/api/clientes/", nuevoCliente.value);
-
-    notificationSystem.show({
-      type: "success",
-      title: "Cliente agregado",
-      message: "El cliente se ha agregado correctamente",
-      timeout: 4000,
-    });
-
-    // Agregar el nuevo cliente a la lista y seleccionarlo
-    clientes.value.push(response.data.cliente);
-    pedidoForm.value.cliente = response.data.cliente.id;
-
-    // Cerrar el modal
-    cerrarModalCliente();
-  } catch (err) {
-    console.error("Error al guardar cliente:", err);
-    notificationSystem.show({
-      type: "error",
-      title: "Error",
-      message: "No se pudo guardar el cliente",
-      timeout: 4000,
-    });
-  }
-};
-// ----------------------
-// 🔹 Funciones de Pedidos
-// ----------------------
-const fetchPedidos = async () => {
-  try {
-    loadingPedidos.value = true;
-    const response = await axios.get("/api/pedidos/");
-    pedidos.value = response.data;
-  } catch (err) {
-    console.error("Error fetching pedidos:", err);
-    notificationSystem.show({
-      type: "error",
-      title: "Error",
-      message: "No se pudieron cargar los pedidos",
-      timeout: 4000,
-    });
-  } finally {
-    loadingPedidos.value = false;
-  }
-};
-
-const fetchClientes = async () => {
-  try {
-    const response = await axios.get("/api/clientes/");
-    clientes.value = response.data;
-  } catch (err) {
-    console.error("Error fetching clientes:", err);
-  }
-};
-
-const fetchRecetas = async () => {
-  try {
-    const response = await axios.get("/api/recetas/");
-    recetas.value = response.data;
-  } catch (err) {
-    console.error("Error fetching recetas:", err);
-  }
-};
-
-const fetchInsumos = async () => {
-  try {
-    const response = await axios.get("/api/insumos/");
-    insumos.value = response.data.insumos || response.data;
-  } catch (err) {
-    console.error("Error fetching insumos:", err);
-  }
-};
-
-// Función para obtener unidades de medida disponibles
-const fetchUnidadesMedida = async () => {
-  try {
-    const response = await axios.get("/api/unidades-medida/");
-    unidadesDisponibles.value = response.data;
-  } catch (err) {
-    console.error("Error fetching unidades de medida:", err);
-  }
-};
-
-// Computed para obtener unidades compatibles con el insumo seleccionado
-const unidadesCompatibles = computed(() => {
-  if (!nuevoIngrediente.value.insumo) return [];
-
-  const insumoUnidad =
-    nuevoIngrediente.value.insumo.unidad_medida.abreviatura.toLowerCase();
-
-  // Definir grupos de unidades compatibles
-  const gruposCompatibles = {
-    peso: ["kg", "g", "mg"],
-    volumen: ["l", "ml", "cl"],
-    unidad: ["u", "pz", "unidad"],
-  };
-
-  // Encontrar el grupo del insumo
-  const grupoInsumo = Object.keys(gruposCompatibles).find((grupo) =>
-    gruposCompatibles[grupo].includes(insumoUnidad)
-  );
-
-  if (!grupoInsumo) return [nuevoIngrediente.value.insumo.unidad_medida];
-
-  // Filtrar unidades que pertenezcan al mismo grupo
-  return unidadesDisponibles.value.filter((unidad) =>
-    gruposCompatibles[grupoInsumo].includes(unidad.abreviatura.toLowerCase())
-  );
+const formDetalle = ref({
+  id: null,
+  pedido_id: null,
+  receta_id: "",
+  cantidad: 1,
+  observaciones: "",
 });
 
-const filtrarPorFecha = () => {
-  // El filtrado se realiza automáticamente a través del computed
-};
+const formIngrediente = ref({
+  id: null,
+  detalle_id: null,
+  insumo_id: "",
+  cantidad: 0,
+  unidad_medida_id: "",
+});
 
-const filtrarPorEstado = () => {
-  // El filtrado se realiza automáticamente a través del computed
-};
+const esEdicionPedido = ref(false);
+const esEdicionReceta = ref(false);
+const esEdicionIngrediente = ref(false);
+const pedidoAEliminar = ref(null);
+const ingredienteAEliminar = ref(null);
+const detalleActual = ref(null);
 
-const actualizarEstadoPedido = async (pedidoId, nuevoEstado) => {
-  try {
-    await axios.patch(`/api/pedidos/${pedidoId}/actualizar-estado/`, {
-      estado: nuevoEstado,
-    });
+// Estados de pedido
+const estadosPedido = ref([
+  "pendiente",
+  "en preparación",
+  "entregado",
+  "cancelado",
+]);
 
-    notificationSystem.show({
-      type: "success",
-      title: "Estado actualizado",
-      message: "El estado del pedido se ha actualizado correctamente",
-      timeout: 4000,
-    });
+// Computed properties
+const pedidosFiltrados = computed(() => {
+  let filtered = pedidos.value;
 
-    // Actualizar la lista de pedidos
-    await fetchPedidos();
-  } catch (err) {
-    console.error("Error al actualizar estado:", err);
-    notificationSystem.show({
-      type: "error",
-      title: "Error",
-      message:
-        err.response?.data?.error || "Error al actualizar el estado del pedido",
-      timeout: 4000,
-    });
-  }
-};
-
-const abrirModalCrear = async () => {
-  // Cargar datos necesarios si no están cargados
-  if (clientes.value.length === 0) await fetchClientes();
-  if (recetas.value.length === 0) await fetchRecetas();
-  if (insumos.value.length === 0) await fetchInsumos();
-  if (unidadesDisponibles.value.length === 0) {
-    await fetchUnidadesMedida();
-    // Asegurar que las unidades tengan unidad_base
-    unidadesDisponibles.value.forEach((unidad) => {
-      if (!unidad.unidad_base) {
-        // Asignar unidad_base basado en la abreviatura
-        const grupos = {
-          peso: ["kg", "g", "mg"],
-          volumen: ["l", "ml", "cl"],
-          unidad: ["u", "pz", "unidad"],
-        };
-        for (const [grupo, unidades] of Object.entries(grupos)) {
-          if (unidades.includes(unidad.abreviatura.toLowerCase())) {
-            unidad.unidad_base = grupo;
-            break;
-          }
-        }
-      }
-    });
+  // Filtrar por estado
+  if (estadoSeleccionado.value) {
+    filtered = filtered.filter(
+      (pedido) => pedido.estado === estadoSeleccionado.value
+    );
   }
 
-  // Resetear formulario
-  pedidoForm.value = {
-    cliente: "",
-    fecha_entrega: new Date().toISOString().split("T")[0],
-    fecha_fabricacion: new Date().toISOString().split("T")[0],
-    estado: "pendiente",
-    detalles: [],
-    ingredientes_extra: [],
-  };
-
-  nuevaReceta.value = null;
-  nuevaCantidad.value = 1;
-  nuevoIngrediente.value = {
-    insumo: "",
-    cantidad: 0.1,
-    unidad_medida: "", // ← Asegurar que se resetee
-  };
-
-  esEdicion.value = false;
-  pedidoEditandoId.value = null;
-  showPedidoModal.value = true;
-};
-
-const abrirModalEditar = async (pedido) => {
-  // Cargar datos necesarios si no están cargados
-  if (clientes.value.length === 0) await fetchClientes();
-  if (recetas.value.length === 0) await fetchRecetas();
-  if (insumos.value.length === 0) await fetchInsumos();
-  if (unidadesDisponibles.value.length === 0) await fetchUnidadesMedida();
-
-  // Llenar formulario con datos del pedido - CORREGIDO
-  pedidoForm.value = {
-    cliente: pedido.cliente.id,
-    fecha_entrega: pedido.fecha_entrega,
-    fecha_fabricacion: pedido.fecha_fabricacion,
-    estado: pedido.estado,
-    detalles: pedido.detalles.map((detalle) => ({
-      receta: { ...detalle.receta },
-      cantidad: detalle.cantidad,
-      precio: detalle.precio, // ← Añadir precio
-      observaciones: detalle.observaciones || "",
-    })),
-    ingredientes_extra: [],
-  };
-
-  // Cargar ingredientes extra si existen - CORREGIDO
-  if (pedido.detalles && pedido.detalles.length > 0) {
-    // Recorrer todos los detalles, no solo el primero
-    for (const detalle of pedido.detalles) {
-      if (detalle.ingredientes_extra && detalle.ingredientes_extra.length > 0) {
-        pedidoForm.value.ingredientes_extra = [
-          ...pedidoForm.value.ingredientes_extra,
-          ...detalle.ingredientes_extra.map((ing) => ({
-            insumo: ing.insumo.id,
-            cantidad: ing.cantidad,
-            unidad_medida: ing.unidad_medida?.id || null,
-            unidad_medida_nombre: ing.unidad_medida?.abreviatura || "",
-            insumo_nombre: ing.insumo.nombre,
-          })),
-        ];
-      }
-    }
+  // Filtrar por fecha
+  if (fechaSeleccionada.value) {
+    filtered = filtered.filter(
+      (pedido) => pedido.fecha_entrega === fechaSeleccionada.value
+    );
   }
 
-  nuevaReceta.value = null;
-  nuevaCantidad.value = 1;
-  nuevoIngrediente.value = {
-    insumo: "",
-    cantidad: 0.1,
-    unidad_medida: "",
-  };
-
-  esEdicion.value = true;
-  pedidoEditandoId.value = pedido.id;
-  showPedidoModal.value = true;
-};
-
-const cerrarModal = () => {
-  showPedidoModal.value = false;
-};
-
-const agregarDetalle = () => {
-  if (!nuevaReceta.value || !nuevaCantidad.value || nuevaCantidad.value < 1)
-    return;
-
-  // Verificar si la receta ya está en los detalles
-  const detalleExistente = pedidoForm.value.detalles.find(
-    (d) => d.receta.id === nuevaReceta.value.id
-  );
-
-  if (detalleExistente) {
-    // Si ya existe, aumentar la cantidad
-    detalleExistente.cantidad += parseInt(nuevaCantidad.value);
-  } else {
-    // Si no existe, agregar nuevo detalle
-    pedidoForm.value.detalles.push({
-      receta: { ...nuevaReceta.value },
-      cantidad: parseInt(nuevaCantidad.value),
-      precio: nuevaReceta.value.precio,
-    });
+  // Filtrar por término de búsqueda
+  if (searchTerm.value) {
+    const term = searchTerm.value.toLowerCase();
+    filtered = filtered.filter(
+      (pedido) =>
+        pedido.cliente.nombre.toLowerCase().includes(term) ||
+        pedido.cliente.telefono.toLowerCase().includes(term)
+    );
   }
 
-  // Resetear valores
-  nuevaReceta.value = null;
-  nuevaCantidad.value = 1;
-};
+  return filtered;
+});
 
-const eliminarDetalle = (index) => {
-  pedidoForm.value.detalles.splice(index, 1);
-};
-
-const agregarIngredienteExtra = () => {
-  if (
-    !nuevoIngrediente.value.insumo ||
-    !nuevoIngrediente.value.cantidad ||
-    !nuevoIngrediente.value.unidad_medida
-  )
-    return;
-
-  // Validar compatibilidad de unidades
-  const esCompatible = verificarCompatibilidadUnidades(
-    nuevoIngrediente.value.insumo.id,
-    nuevoIngrediente.value.unidad_medida.id
-  );
-
-  if (!esCompatible) {
-    const insumo = nuevoIngrediente.value.insumo;
-    const unidad = nuevoIngrediente.value.unidad_medida;
-
-    notificationSystem.show({
-      type: "error",
-      title: "Unidades incompatibles",
-      message: `No puedes usar ${unidad.abreviatura} con ${insumo.unidad_medida.abreviatura}. Las unidades deben ser del mismo tipo (peso, volumen, unidad).`,
-      timeout: 5000,
-    });
-    return;
-  }
-
-  // Calcular conversión para mostrar (opcional)
-  const cantidadConvertida = convertirUnidad(
-    parseFloat(nuevoIngrediente.value.cantidad),
-    nuevoIngrediente.value.unidad_medida.abreviatura,
-    nuevoIngrediente.value.insumo.unidad_medida.abreviatura
-  );
-
-  pedidoForm.value.ingredientes_extra.push({
-    insumo: nuevoIngrediente.value.insumo.id,
-    cantidad: parseFloat(nuevoIngrediente.value.cantidad),
-    unidad_medida: nuevoIngrediente.value.unidad_medida.id,
-    unidad_medida_nombre: nuevoIngrediente.value.unidad_medida.abreviatura,
-    insumo_nombre: nuevoIngrediente.value.insumo.nombre,
-    // Información adicional para mostrar
-    cantidad_convertida: cantidadConvertida,
-    unidad_base: nuevoIngrediente.value.insumo.unidad_medida.abreviatura,
-  });
-
-  // Resetear valores
-  nuevoIngrediente.value = {
-    insumo: "",
-    cantidad: 0.1,
-    unidad_medida: "",
-  };
-};
-
-// Función para verificar compatibilidad de unidades
-const verificarCompatibilidadUnidades = (insumoId, unidadMedidaId) => {
-  const insumo = insumos.value.find((i) => i.id === insumoId);
-  const unidadSeleccionada = unidadesDisponibles.value.find(
-    (u) => u.id === unidadMedidaId
-  );
-
-  if (!insumo || !unidadSeleccionada) return false;
-
-  const unidadBaseInsumo = insumo.unidad_medida.abreviatura.toLowerCase();
-  const unidadSeleccionadaAbr = unidadSeleccionada.abreviatura.toLowerCase();
-
-  // Definir grupos de unidades compatibles
-  const gruposCompatibles = {
-    peso: ["kg", "g", "mg"],
-    volumen: ["l", "ml", "cl"],
-    unidad: ["u", "pz", "unidad"],
-  };
-
-  // Encontrar a qué grupo pertenece cada unidad
-  const grupoInsumo = Object.keys(gruposCompatibles).find((grupo) =>
-    gruposCompatibles[grupo].includes(unidadBaseInsumo)
-  );
-
-  const grupoSeleccionado = Object.keys(gruposCompatibles).find((grupo) =>
-    gruposCompatibles[grupo].includes(unidadSeleccionadaAbr)
-  );
-
-  return grupoInsumo === grupoSeleccionado;
-};
-// Función para convertir unidades en el frontend (opcional, para mostrar)
-const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => {
-  const conversiones = {
-    kg: { g: 1000, mg: 1000000 },
-    g: { kg: 0.001, mg: 1000 },
-    mg: { kg: 0.000001, g: 0.001 },
-    l: { ml: 1000, cl: 100 },
-    ml: { l: 0.001, cl: 0.1 },
-    cl: { l: 0.01, ml: 10 },
-  };
-
-  if (unidadOrigen === unidadDestino) return cantidad;
-
-  if (conversiones[unidadOrigen] && conversiones[unidadOrigen][unidadDestino]) {
-    return cantidad * conversiones[unidadOrigen][unidadDestino];
-  }
-
-  return cantidad; // Si no hay conversión, devolver original
-};
-
-const eliminarIngredienteExtra = (index) => {
-  pedidoForm.value.ingredientes_extra.splice(index, 1);
-};
-
-const obtenerNombreInsumo = (insumoId) => {
-  const insumo = insumos.value.find((i) => i.id === insumoId);
-  return insumo ? insumo.nombre : "Insumo desconocido";
-};
-
-const obtenerUnidadInsumo = (insumoId) => {
-  const insumo = insumos.value.find((i) => i.id === insumoId);
-  return insumo ? insumo.unidad_medida.abreviatura : "u";
-};
-
-const guardarPedido = async () => {
-  try {
-    // 1. Primero crear el pedido básico
-    const datosPedido = {
-      cliente_id: pedidoForm.value.cliente,
-      fecha_pedido: new Date().toISOString().split("T")[0],
-      fecha_entrega: pedidoForm.value.fecha_entrega,
-      fecha_fabricacion: pedidoForm.value.fecha_fabricacion,
-      estado: pedidoForm.value.estado,
-    };
-
-    console.log("Creando pedido básico:", datosPedido);
-
-    let response;
-    let pedidoId;
-
-    if (esEdicion.value) {
-      // Actualizar pedido existente
-      response = await axios.put(
-        `/api/pedidos/${pedidoEditandoId.value}/`,
-        datosPedido
-      );
-      pedidoId = response.data.pedido.id;
-    } else {
-      // Crear nuevo pedido
-      response = await axios.post("/api/pedidos/", datosPedido);
-      pedidoId = response.data.id || response.data.pedido?.id;
-    }
-
-    console.log("Pedido creado/actualizado con ID:", pedidoId);
-
-    // 2. Eliminar detalles existentes si es edición
-    if (esEdicion.value) {
-      try {
-        await axios.delete(`/api/pedidos/${pedidoId}/detalles/`);
-        console.log("Detalles anteriores eliminados");
-      } catch (deleteError) {
-        console.warn(
-          "No se pudieron eliminar detalles anteriores:",
-          deleteError
-        );
-      }
-    }
-
-    // 3. Agregar los nuevos detalles del pedido (recetas)
-    for (const detalle of pedidoForm.value.detalles) {
-      const detalleData = {
-        pedido_id: pedidoId,
-        receta_id: detalle.receta.id,
-        cantidad: detalle.cantidad,
-        observaciones: detalle.observaciones || "",
-      };
-
-      console.log("Agregando detalle:", detalleData);
-
-      const detalleResponse = await axios.post(
-        "/api/detalles-pedido/",
-        detalleData
-      );
-      const detalleId =
-        detalleResponse.data.id || detalleResponse.data.detalle?.id;
-
-      console.log("Respuesta completa del detalle:", detalleResponse.data);
-      console.log("Detalle creado con ID:", detalleId);
-
-      // 4. Agregar ingredientes extra para este detalle (si existen)
-      if (
-        pedidoForm.value.ingredientes_extra &&
-        pedidoForm.value.ingredientes_extra.length > 0
-      ) {
-        for (const [
-          index,
-          ingrediente,
-        ] of pedidoForm.value.ingredientes_extra.entries()) {
-          if (!detalleId) {
-            console.error("Error: detalleId es null/undefined");
-            continue;
-          }
-
-          const ingredienteData = {
-            detalle_id: detalleId,
-            insumo_id: ingrediente.insumo,
-            cantidad: ingrediente.cantidad,
-            unidad_medida_id: ingrediente.unidad_medida,
-          };
-
-          console.log(
-            `Agregando ingrediente extra ${index + 1}:`,
-            ingredienteData
-          );
-
-          try {
-            const response = await axios.post(
-              "/api/ingredientes-extra/",
-              ingredienteData
-            );
-            console.log(
-              "Ingrediente extra guardado exitosamente:",
-              response.data
-            );
-          } catch (ingError) {
-            console.error(
-              "Error completo al guardar ingrediente extra:",
-              ingError
-            );
-            console.error("Datos del error:", ingError.response?.data);
-            console.error(
-              "Configuración de la request:",
-              ingError.config?.data
-            );
-          }
-        }
-      }
-    }
-
-    notificationSystem.show({
-      type: "success",
-      title: esEdicion.value ? "Pedido actualizado" : "Pedido creado",
-      message: `El pedido se ha ${
-        esEdicion.value ? "actualizado" : "creado"
-      } correctamente`,
-      timeout: 4000,
-    });
-
-    // Cerrar modal y actualizar lista
-    cerrarModal();
-    await fetchPedidos();
-  } catch (err) {
-    console.error("Error al guardar pedido:", err);
-    if (err.response?.data) {
-      console.error("Detalles del error:", err.response.data);
-
-      let errorMessage = "Error al guardar el pedido";
-      if (err.response.data.non_field_errors) {
-        errorMessage = err.response.data.non_field_errors.join(", ");
-      } else if (err.response.data.detail) {
-        errorMessage = err.response.data.detail;
-      }
-
-      notificationSystem.show({
-        type: "error",
-        title: "Error",
-        message: errorMessage,
-        timeout: 6000,
-      });
-    } else {
-      notificationSystem.show({
-        type: "error",
-        title: "Error",
-        message: "Error de conexión al guardar el pedido",
-        timeout: 4000,
-      });
-    }
-  }
-};
-const eliminarPedido = async (id) => {
-  if (!confirm("¿Está seguro de que desea eliminar este pedido?")) {
-    return;
-  }
-
-  try {
-    await axios.delete(`/api/pedidos/${id}/`);
-
-    notificationSystem.show({
-      type: "success",
-      title: "Pedido eliminado",
-      message: "El pedido se ha eliminado correctamente",
-      timeout: 4000,
-    });
-
-    // Actualizar la lista de pedidos
-    await fetchPedidos();
-  } catch (err) {
-    console.error("Error al eliminar pedido:", err);
-    notificationSystem.show({
-      type: "error",
-      title: "Error",
-      message: "No se pudo eliminar el pedido",
-      timeout: 4000,
-    });
-  }
-};
-
-// ----------------------
-// 🔹 Funciones de Usuario
-// ----------------------
-const openChangePassword = () => {
-  showPasswordModal.value = true;
-};
-
-const changePassword = async () => {
-  if (newPassword.value !== confirmPassword.value) {
-    notificationSystem.show({
-      type: "warning",
-      title: "Contraseñas no coinciden",
-      message: "Las contraseñas ingresadas no son iguales",
-      timeout: 4000,
-    });
-    return;
-  }
-
-  try {
-    await axios.post("/api/auth/change-password/", {
-      old_password: currentPassword.value,
-      new_password1: newPassword.value,
-      new_password2: confirmPassword.value,
-    });
-
-    notificationSystem.show({
-      type: "success",
-      title: "¡Contraseña cambiada!",
-      message: "Tu contraseña ha sido actualizada exitosamente",
-      timeout: 4000,
-    });
-    showPasswordModal.value = false;
-    currentPassword.value = "";
-    newPassword.value = "";
-    confirmPassword.value = "";
-  } catch (error) {
-    console.error("Error al cambiar contraseña:", error);
-
-    let errorMessage = "Error al cambiar la contraseña";
-    if (error.response?.data?.errors) {
-      errorMessage = Object.values(error.response.data.errors)
-        .flat()
-        .join("\n");
-    } else if (error.response?.data?.detail) {
-      errorMessage = error.response.data.detail;
-    }
-
-    alert(errorMessage);
-  }
+// Métodos
+const handleNavigation = (route) => {
+  router.push(route);
 };
 
 const logout = async () => {
@@ -1232,64 +641,365 @@ const logout = async () => {
   }
 };
 
-// ----------------------
-// 🔹 Utilidades
-// ----------------------
-// Funciones de utilidad para conversiones
-const mostrarConversion = (ingrediente) => {
-  const insumo = insumos.value.find((i) => i.id === ingrediente.insumo);
-  if (!insumo) return false;
-
-  const unidadSeleccionada = unidadesDisponibles.value.find(
-    (u) => u.id === ingrediente.unidad_medida
-  );
-  if (!unidadSeleccionada) return false;
-
-  return unidadSeleccionada.abreviatura !== insumo.unidad_medida.abreviatura;
+const formatFecha = (fecha) => {
+  if (!fecha) return "";
+  return new Date(fecha).toLocaleDateString("es-ES");
 };
 
-const calcularConversion = (ingrediente) => {
-  const insumo = insumos.value.find((i) => i.id === ingrediente.insumo);
-  const unidadSeleccionada = unidadesDisponibles.value.find(
-    (u) => u.id === ingrediente.unidad_medida
-  );
-
-  if (!insumo || !unidadSeleccionada) return ingrediente.cantidad;
-
-  // Aquí podrías implementar la lógica de conversión en el frontend
-  // o simplemente mostrar la cantidad original ya que el backend hará la conversión real
-  return ingrediente.cantidad;
+const calcularPrecioReceta = (detalle) => {
+  const precioReceta = detalle.receta.precio_venta || 0;
+  return (precioReceta * detalle.cantidad).toFixed(2);
 };
 
-const obtenerUnidadBase = (insumoId) => {
-  const insumo = insumos.value.find((i) => i.id === insumoId);
-  return insumo ? insumo.unidad_medida.abreviatura : "";
-};
-const formatDate = (dateString) => {
-  if (!dateString) return "";
-  const options = { day: "2-digit", month: "2-digit", year: "numeric" };
-  return new Date(dateString).toLocaleDateString(undefined, options);
+const calcularTotalPedido = (pedido) => {
+  let total = 0;
+  if (pedido.detalles) {
+    pedido.detalles.forEach((detalle) => {
+      const precioReceta = detalle.receta.precio_venta || 0;
+      total += precioReceta * detalle.cantidad;
+
+      // Sumar ingredientes extras si existen
+      if (detalle.ingredientes_extra) {
+        detalle.ingredientes_extra.forEach((ingrediente) => {
+          const precioIngrediente = ingrediente.insumo.precio_unitario || 0;
+          total += precioIngrediente * ingrediente.cantidad;
+        });
+      }
+    });
+  }
+  return total.toFixed(2);
 };
 
-// ----------------------
-// 🔹 Montaje Inicial
-// ----------------------
+const toggleReceta = (detalleId) => {
+  detalleExpandido.value[detalleId] = !detalleExpandido.value[detalleId];
+};
+
+const showNuevoPedidoModal = () => {
+  esEdicionPedido.value = false;
+  resetFormPedido();
+  showModalPedido.value = true;
+};
+
+const editarPedido = (pedido) => {
+  esEdicionPedido.value = true;
+  formPedido.value = {
+    id: pedido.id,
+    cliente_id: pedido.cliente.id,
+    fecha_pedido: pedido.fecha_pedido,
+    fecha_entrega: pedido.fecha_entrega,
+    estado: pedido.estado,
+  };
+  showModalPedido.value = true;
+};
+
+const confirmarEliminarPedido = (pedido) => {
+  pedidoAEliminar.value = pedido;
+  showConfirmModalPedido.value = true;
+};
+
+const eliminarPedido = async () => {
+  try {
+    await axios.delete(`/api/pedidos/${pedidoAEliminar.value.id}/`);
+
+    // Actualizar la lista local
+    const index = pedidos.value.findIndex(
+      (item) => item.id === pedidoAEliminar.value.id
+    );
+    if (index !== -1) {
+      pedidos.value.splice(index, 1);
+    }
+
+    showConfirmModalPedido.value = false;
+    alert("Pedido eliminado correctamente");
+  } catch (error) {
+    console.error("Error al eliminar pedido:", error);
+    alert("Error al eliminar el pedido");
+  }
+};
+
+const guardarPedido = async () => {
+  try {
+    if (!formPedido.value.cliente_id) {
+      alert("El cliente es requerido");
+      return;
+    }
+    if (!formPedido.value.fecha_entrega) {
+      alert("La fecha de entrega es requerida");
+      return;
+    }
+
+    let response;
+    if (esEdicionPedido.value) {
+      response = await axios.put(
+        `/api/pedidos/${formPedido.value.id}/`,
+        formPedido.value
+      );
+    } else {
+      response = await axios.post("/api/pedidos/", formPedido.value);
+    }
+
+    await fetchPedidos();
+    closeModal();
+    alert(
+      esEdicionPedido.value
+        ? "Pedido actualizado correctamente"
+        : "Pedido creado correctamente"
+    );
+  } catch (error) {
+    console.error("Error al guardar pedido:", error);
+    alert("Error al guardar el pedido");
+  }
+};
+
+const guardarCliente = async () => {
+  try {
+    const response = await axios.post("/api/clientes/", formCliente.value);
+    await fetchClientes();
+    showNuevoClienteModal.value = false;
+    resetFormCliente();
+    alert("Cliente creado correctamente");
+  } catch (error) {
+    console.error("Error al guardar cliente:", error);
+    alert("Error al guardar el cliente");
+  }
+};
+
+const showNuevoIngredienteModal = (detalle) => {
+  esEdicionIngrediente.value = false;
+  detalleActual.value = detalle;
+  resetFormIngrediente();
+  formIngrediente.value.detalle_id = detalle.id;
+  showModalIngrediente.value = true;
+};
+
+const editarIngredienteExtra = (ingrediente, detalle) => {
+  esEdicionIngrediente.value = true;
+  detalleActual.value = detalle;
+  formIngrediente.value = {
+    id: ingrediente.id,
+    detalle_id: detalle.id,
+    insumo_id: ingrediente.insumo.id,
+    cantidad: ingrediente.cantidad,
+    unidad_medida_id: ingrediente.unidad_medida.id,
+  };
+  showModalIngrediente.value = true;
+};
+
+const confirmarEliminarIngredienteExtra = (ingrediente) => {
+  ingredienteAEliminar.value = ingrediente;
+  showConfirmModalIngrediente.value = true;
+};
+
+const eliminarIngredienteExtra = async () => {
+  try {
+    await axios.delete(
+      `/api/ingredientes-extra/${ingredienteAEliminar.value.id}/`
+    );
+
+    // Actualizar la lista local
+    const pedidoIndex = pedidos.value.findIndex((pedido) =>
+      pedido.detalles.some((detalle) =>
+        detalle.ingredientes_extra.some(
+          (ing) => ing.id === ingredienteAEliminar.value.id
+        )
+      )
+    );
+
+    if (pedidoIndex !== -1) {
+      const pedido = pedidos.value[pedidoIndex];
+      for (let detalle of pedido.detalles) {
+        const ingIndex = detalle.ingredientes_extra.findIndex(
+          (ing) => ing.id === ingredienteAEliminar.value.id
+        );
+        if (ingIndex !== -1) {
+          detalle.ingredientes_extra.splice(ingIndex, 1);
+          break;
+        }
+      }
+    }
+
+    showConfirmModalIngrediente.value = false;
+    alert("Ingrediente extra eliminado correctamente");
+  } catch (error) {
+    console.error("Error al eliminar ingrediente extra:", error);
+    alert("Error al eliminar el ingrediente extra");
+  }
+};
+
+const guardarIngredienteExtra = async () => {
+  try {
+    if (!formIngrediente.value.insumo_id) {
+      alert("El insumo es requerido");
+      return;
+    }
+    if (
+      !formIngrediente.value.cantidad ||
+      formIngrediente.value.cantidad <= 0
+    ) {
+      alert("La cantidad debe ser mayor a 0");
+      return;
+    }
+    if (!formIngrediente.value.unidad_medida_id) {
+      alert("La unidad de medida es requerida");
+      return;
+    }
+
+    let response;
+    if (esEdicionIngrediente.value) {
+      response = await axios.put(
+        `/api/ingredientes-extra/${formIngrediente.value.id}/`,
+        formIngrediente.value
+      );
+    } else {
+      response = await axios.post(
+        "/api/ingredientes-extra/",
+        formIngrediente.value
+      );
+    }
+
+    // Actualizar el pedido localmente
+    await fetchPedidos();
+    closeModal();
+    alert(
+      esEdicionIngrediente.value
+        ? "Ingrediente extra actualizado correctamente"
+        : "Ingrediente extra agregado correctamente"
+    );
+  } catch (error) {
+    console.error("Error al guardar ingrediente extra:", error);
+    alert("Error al guardar el ingrediente extra");
+  }
+};
+
+const closeModal = () => {
+  showModalPedido.value = false;
+  showNuevoClienteModal.value = false;
+  showModalReceta.value = false;
+  showModalIngrediente.value = false;
+  resetForms();
+};
+
+const resetFormPedido = () => {
+  formPedido.value = {
+    id: null,
+    cliente_id: "",
+    fecha_pedido: new Date().toISOString().split("T")[0],
+    fecha_entrega: "",
+    estado: "pendiente",
+  };
+};
+
+const resetFormCliente = () => {
+  formCliente.value = {
+    nombre: "",
+    telefono: "",
+    direccion: "",
+  };
+};
+
+const resetFormDetalle = () => {
+  formDetalle.value = {
+    id: null,
+    pedido_id: null,
+    receta_id: "",
+    cantidad: 1,
+    observaciones: "",
+  };
+};
+
+const resetFormIngrediente = () => {
+  formIngrediente.value = {
+    id: null,
+    detalle_id: null,
+    insumo_id: "",
+    cantidad: 0,
+    unidad_medida_id: "",
+  };
+};
+
+const resetForms = () => {
+  resetFormPedido();
+  resetFormCliente();
+  resetFormDetalle();
+  resetFormIngrediente();
+  esEdicionPedido.value = false;
+  esEdicionReceta.value = false;
+  esEdicionIngrediente.value = false;
+  detalleActual.value = null;
+};
+
+// Funciones para cargar datos
+const fetchPedidos = async () => {
+  try {
+    loading.value = true;
+    const response = await axios.get("/api/pedidos/");
+    pedidos.value = response.data;
+    loading.value = false;
+  } catch (err) {
+    console.error("Error en fetchPedidos:", err);
+    loading.value = false;
+    if (err.response?.status === 401) {
+      logout();
+    }
+  }
+};
+
+const fetchClientes = async () => {
+  try {
+    const response = await axios.get("/api/clientes/");
+    clientes.value = response.data;
+  } catch (err) {
+    console.error("Error en fetchClientes:", err);
+  }
+};
+
+const fetchRecetas = async () => {
+  try {
+    const response = await axios.get("/api/recetas/");
+    recetas.value = response.data;
+  } catch (err) {
+    console.error("Error en fetchRecetas:", err);
+  }
+};
+
+const fetchInsumos = async () => {
+  try {
+    const response = await axios.get("/api/insumos/");
+    insumos.value = response.data.insumos;
+  } catch (err) {
+    console.error("Error en fetchInsumos:", err);
+  }
+};
+
+const fetchUnidadesMedida = async () => {
+  try {
+    const response = await axios.get("/api/unidades-medida/");
+    unidadesMedida.value = response.data;
+  } catch (err) {
+    console.error("Error en fetchUnidadesMedida:", err);
+  }
+};
+
+// Cargar datos al montar el componente
 onMounted(() => {
   if (!localStorage.getItem("access_token")) {
     router.push("/login");
     return;
   }
 
+  // Cargar datos del usuario y pedidos
   Promise.all([
     axios.get("/api/auth/perfil/").then((res) => {
       userEmail.value = res.data.email || "Usuario";
     }),
     fetchPedidos(),
-    fetchClientes(), // Asegurarnos de cargar clientes
+    fetchClientes(),
     fetchRecetas(),
     fetchInsumos(),
+    fetchUnidadesMedida(),
   ]).catch((error) => {
     console.error("Error cargando datos:", error);
+    loading.value = false;
     if (error.response?.status === 401) {
       logout();
     }
@@ -1302,11 +1012,11 @@ onMounted(() => {
 
 /* ----------------------------- CONTENIDO Y CARDS ESPECÍFICOS ----------------------------- */
 .pedidos-content {
-  padding: 0 20px;
   display: flex;
+  padding: 0 20px;
 }
 
-.filtros-pedidos {
+.filtros-derecha {
   display: flex;
   gap: 15px;
   margin-bottom: 20px;
@@ -1320,59 +1030,36 @@ onMounted(() => {
   gap: 5px;
 }
 
-.filtro-group label {
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.filtro-group input,
-.filtro-group select {
+.filtro-input,
+.filtro-select {
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 14px;
+  height: 38px;
 }
 
-/* BOTONEEES */
-
+/* BOTONES */
 .botones-acciones {
   display: flex;
   gap: 10px;
   margin-right: auto;
-  /* ← Esto los lleva a la izq */
   margin-bottom: 25px;
 }
 
-.botones-acciones button {
-  display: flex;
-  align-items: center;
-  gap: 5px;
+.btn-nuevo-pedido {
+  background-color: #b8e6b8;
+  color: #2b5d2b;
   padding: 8px 15px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-weight: bold;
-  transition: background-color 0.2s;
-}
-
-/* Colores pastel */
-.btn-nuevo-pedido {
-  background-color: #b8e6b8;
-  /* verde clarito */
-  color: #2b5d2b;
-  padding: 4px 12px;
-  /* menos alto */
-  font-size: 0.875rem;
-  /* texto más chico */
-  height: 32px;
-  /* altura fija */
-  line-height: 1;
-  /* centra el texto verticalmente */
   display: flex;
   align-items: center;
-  /* icono y texto centrados */
   gap: 5px;
-  border-radius: 6px;
+  transition: background-color 0.2s;
+  height: 38px;
 }
 
 .btn-nuevo-pedido:hover {
@@ -1411,54 +1098,57 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 5px;
-}
-
-.pedido-id {
-  font-weight: bold;
-  color: #7b5a50;
+  flex: 1;
 }
 
 .cliente-nombre {
   font-weight: bold;
   font-size: 16px;
+  color: #333;
 }
 
-.pedido-fecha {
+.pedido-estado {
+  font-size: 14px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: normal;
+}
+
+.pedido-estado.pendiente {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.pedido-estado.enpreparación {
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+
+.pedido-estado.entregado {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.pedido-estado.cancelado {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.pedido-fechas {
   font-size: 14px;
   color: #666;
+}
+
+.pedido-total {
+  font-size: 14px;
+  color: #2e7d32;
+  font-weight: bold;
 }
 
 .pedido-acciones {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.estado-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: bold;
-}
-
-.estado-badge.pendiente {
-  background-color: #fff3cd;
-  color: #856404;
-}
-
-.estado-badge.en.preparación {
-  background-color: #d1ecf1;
-  color: #0c5460;
-}
-
-.estado-badge.entregado {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.estado-badge.cancelado {
-  background-color: #f8d7da;
-  color: #721c24;
 }
 
 .btn-accion {
@@ -1473,83 +1163,141 @@ onMounted(() => {
   color: #5a3f36;
 }
 
-.pedido-detalles {
-  margin-bottom: 15px;
+/* ----------------------------- RECETAS E INGREDIENTES ----------------------------- */
+.recetas-container {
+  margin-top: 15px;
+  border-top: 1px solid #eee;
+  padding-top: 15px;
 }
 
-.detalle-item {
+.receta-item {
+  margin-bottom: 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.receta-header {
   display: flex;
   justify-content: space-between;
-  padding: 5px 0;
-  border-bottom: 1px dashed #e0e0e0;
-}
-
-.ingredientes-extra {
-  margin-top: 10px;
+  align-items: center;
   padding: 10px;
-  background-color: #f0f0f0;
-  border-radius: 4px;
+  background-color: #f5f5f5;
+  cursor: pointer;
 }
 
-.ingredientes-extra ul {
-  margin: 5px 0 0 0;
-  padding-left: 20px;
+.receta-nombre {
+  font-weight: bold;
 }
 
-.ingredientes-extra li {
-  margin-bottom: 3px;
+.receta-precio {
+  font-weight: bold;
+  color: #2e7d32;
 }
 
-.pedido-total {
-  text-align: right;
+.receta-detalles {
+  padding: 10px;
+  background-color: #fff;
+}
+
+.observaciones {
+  margin-bottom: 10px;
+  font-style: italic;
+  color: #666;
+}
+
+.ingredientes-extras {
   margin-top: 10px;
-  padding-top: 10px;
-  border-top: 2px solid #ccc;
-  font-size: 16px;
 }
 
-.estado-actions {
+.ingredientes-extras h4 {
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #333;
+}
+
+.ingrediente-extra {
   display: flex;
-  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px dashed #eee;
 }
 
-.btn-estado {
-  background-color: #7b5a50;
-  color: white;
+.ingrediente-acciones {
+  display: flex;
+  gap: 5px;
+}
+
+.btn-accion-small {
+  background: none;
   border: none;
-  padding: 6px 12px;
+  cursor: pointer;
+  color: #7b5a50;
+  font-size: 12px;
+  padding: 2px 5px;
+}
+
+.btn-accion-small:hover {
+  color: #5a3f36;
+}
+
+.receta-acciones {
+  margin-top: 10px;
+  text-align: right;
+}
+
+.btn-agregar-ingrediente {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+  padding: 5px 10px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
-.btn-estado:hover {
-  background-color: #5a3f36;
+.btn-agregar-ingrediente:hover {
+  background-color: #bbdefb;
 }
 
-.loading-state {
-  text-align: center;
-  padding: 20px;
-  color: #7b5a50;
+/* ----------------------------- MODALES ----------------------------- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
 }
 
-.empty-state {
-  text-align: center;
-  padding: 30px;
-  color: #666;
-  font-style: italic;
-}
-
-/* ----------------------------- MODAL DE PEDIDO ----------------------------- */
-.modal-grande {
-  max-width: 800px;
+.modal-content {
+  background-color: white;
+  padding: 25px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
 }
 
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #5a3f36;
+  text-align: center;
+}
+
 .form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 15px;
   margin-bottom: 20px;
 }
@@ -1563,179 +1311,101 @@ onMounted(() => {
 .form-group label {
   font-weight: bold;
   font-size: 14px;
+  color: #333;
 }
 
-.form-group input,
-.form-group select {
+.form-input {
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 14px;
 }
 
-.seccion-detalles,
-.seccion-ingredientes-extra {
-  margin-bottom: 20px;
-  padding: 15px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-}
-
-.seccion-detalles h4,
-.seccion-ingredientes-extra h4 {
-  margin-bottom: 15px;
-  color: #7b5a50;
-}
-
-.nuevo-detalle,
-.nuevo-ingrediente {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.select-receta,
-.select-insumo {
-  flex: 2;
-  min-width: 200px;
-}
-
-.input-cantidad {
-  width: 100px;
-}
-
-.btn-agregar {
-  background-color: #7b5a50;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.btn-agregar:hover:not(:disabled) {
-  background-color: #5a3f36;
-}
-
-.btn-agregar:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-}
-
-.lista-detalles,
-.lista-ingredientes {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.detalle-item-modal,
-.ingrediente-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px;
-  background-color: #f9f9f9;
-  border-radius: 4px;
-}
-
-.btn-eliminar-detalle {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #dc3545;
-}
-
-.btn-eliminar-detalle:hover {
-  color: #bd2130;
-}
-
-.total-pedido {
-  text-align: right;
-  margin: 20px 0;
-  padding-top: 15px;
-  border-top: 2px solid #ccc;
-  font-size: 18px;
+.form-group.full-width {
+  grid-column: 1 / -1;
 }
 
 .cliente-select-container {
   display: flex;
-  gap: 8px;
-}
-
-.cliente-select-container select {
-  flex: 1;
+  gap: 5px;
 }
 
 .btn-agregar-cliente {
-  background-color: #28a745;
-  color: white;
-  border: none;
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
   border-radius: 4px;
-  padding: 8px 12px;
   cursor: pointer;
+  padding: 0 10px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .btn-agregar-cliente:hover {
-  background-color: #218838;
+  background-color: #bbdefb;
 }
 
-.select-unidad {
-  width: 120px;
-  min-width: 120px;
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.cancel-button {
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ccc;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cancel-button:hover {
+  background-color: #e0e0e0;
+}
+
+.confirm-button {
+  background-color: #b8e6b8;
+  color: #2b5d2b;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.confirm-button:hover {
+  background-color: #a1dca1;
+}
+
+/* ----------------------------- ESTADOS ----------------------------- */
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+}
+
+.loading-state i {
+  margin-right: 10px;
 }
 
 /* ----------------------------- RESPONSIVE ----------------------------- */
 @media (max-width: 768px) {
-  .filtros-pedidos {
+  .filtros-derecha {
     flex-direction: column;
     align-items: stretch;
   }
 
   .pedido-header {
     flex-direction: column;
+    align-items: flex-start;
   }
 
   .pedido-acciones {
     align-self: flex-end;
-  }
-
-  .estado-actions {
-    flex-direction: column;
-  }
-
-  .btn-estado {
-    width: 100%;
-  }
-
-  .modal-grande {
-    width: 95%;
-    margin: 10px;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .nuevo-detalle,
-  .nuevo-ingrediente {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .select-receta,
-  .select-insumo,
-  .input-cantidad {
-    width: 100%;
-    min-width: unset;
   }
 }
 </style>
