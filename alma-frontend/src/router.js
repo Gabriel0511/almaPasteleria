@@ -27,7 +27,7 @@ const routes = [
     path: "/stock",
     name: "Stock",
     component: Stock,
-    meta: { requiresAuth: true, title: "Stock" },
+    meta: { requiresAuth: true, title: "Stock Insumos" },
   },
   {
     path: "/pedidos",

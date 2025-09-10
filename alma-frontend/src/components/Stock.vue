@@ -3,368 +3,284 @@
     <Sidebar @navigate="handleNavigation" />
 
     <div class="main-container">
-      <Header
-        :userEmail="userEmail"
-        title="Panel Principal"
-        @openPasswordModal="showPasswordModal = true"
-        @logout="logout"
-      />
-
+      <Header :userEmail="userEmail" title="Gestión de Stock" @openPasswordModal="showPasswordModal = true"
+        @logout="logout" />
       <main class="main-content">
-        <h3 class="card-title">
-          Stock
-          <span v-if="insumosBajoStock > 0" class="badge">
-            (Hay {{ insumosBajoStock }} insumos con bajo stock)
-          </span>
-        </h3>
 
-        <!-- Botones de acción -->
-        <div class="action-buttons">
-          <button class="btn-primary" @click="showNuevoInsumoModal">
-            Nuevo Insumo
-          </button>
-          <button class="btn-success" @click="showNuevaCompraModal">
-            Nueva Compra
-          </button>
-        </div>
+        <section class="content stock-content">
+          <h3 class="card-title1">Gestión de Stock</h3>
+          <div class="botones-acciones">
+            <button class="btn-nuevo-pedido" @click="showNuevoInsumoModal">
+              <i class="fas fa-plus"></i> Nuevo Insumo
+            </button>
+            <button class="btn-nuevo-pedido" @click="showNuevaCompraModal">
+              <i class="fas fa-shopping-cart"></i> Nueva Compra
+            </button>
+          </div>
 
-        <!-- Buscador + Filtro -->
-        <div class="stock-header">
-          <span>
-            Buscar:
-            <input
-              v-model="searchTerm"
-              type="text"
-              placeholder="Buscar insumo..."
-              class="form-input"
-            />
-          </span>
-          <span>
-            Categoría:
-            <select v-model="categoriaSeleccionada">
-              <option value="">Todas</option>
-              <option v-for="cat in categoriasStock" :key="cat" :value="cat">
-                {{ cat }}
-              </option>
-            </select>
-          </span>
-        </div>
 
-        <section class="content">
-          <div class="card stock">
-            <div class="stock-header-container">
-              <div class="stock-header">
-                <span>Nombre</span>
-                <span>Cantidad</span>
-                <span>Acciones</span>
-              </div>
+          <!-- Filtros de stock alineados a la derecha -->
+          <div class="filtros-derecha">
+            <div class="filtro-group">
+              <input type="text" v-model="searchTerm" placeholder="Buscar insumo..." class="filtro-input" />
             </div>
 
-            <ul class="stock-list">
-              <li
-                v-for="item in stockFiltrado"
-                :key="item.id"
-                :class="{ 'low-stock': item.bajoStock }"
-              >
-                <span>{{ item.nombre }} ({{ item.categoria }})</span>
-                <span
-                  >{{ formatDecimal(item.cantidad) }} {{ item.unidad }}</span
-                >
-                <span class="action-buttons">
-                  <button class="btn-edit" @click="editarInsumo(item)">
-                    Editar
-                  </button>
-                  <button
-                    class="btn-delete"
-                    @click="confirmarEliminarInsumo(item)"
-                  >
-                    Eliminar
-                  </button>
-                </span>
-              </li>
-            </ul>
+            <div class="filtro-group">
+              <select v-model="categoriaSeleccionada" class="filtro-select">
+                <option value="">Todas las categorías</option>
+                <option v-for="cat in categoriasStock" :key="cat" :value="cat">
+                  {{ cat }}
+                </option>
+              </select>
+            </div>
           </div>
+
         </section>
+
+        <!-- Card principal de stock -->
+        <div class="card stock-card">
+
+          <div v-if="loading" class="loading-state">
+            <i class="fas fa-spinner fa-spin"></i> Cargando stock...
+          </div>
+
+          <div v-else-if="stockFiltrado.length === 0" class="empty-state">
+            No hay insumos que coincidan con los filtros seleccionados
+          </div>
+
+          <div v-else class="pedidos-list">
+            <div v-for="item in stockFiltrado" :key="item.id" class="pedido-item"
+              :class="{ 'bajo-stock': item.bajoStock }">
+              <div class="pedido-header">
+                <div class="pedido-info">
+                  <span class="insumo-container">
+                    <span class="insumo-nombre">{{ item.nombre }}
+                      <span class="insumo-categoria">({{ item.categoria }})</span>
+                    </span>
+                    <span class="insumo-cantidad">{{ formatDecimal(item.cantidad) }}{{ item.unidad }}</span>
+                    <span class="insumo-precio" v-if="item.precio_unitario">${{ formatDecimal(item.precio_unitario) }}/{{
+                      item.unidad }}</span>
+                    <span>{{ item.proveedor }}</span>
+                  </span>
+
+                </div>
+                <div class="pedido-acciones">
+                  <span class="estado-badge" :class="item.bajoStock ? 'bajo' : 'normal'" v-if="item.bajoStock">
+                    Stock Bajo
+                  </span>
+                  <button class="btn-accion" @click="editarInsumo(item)" title="Editar insumo">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn-accion" @click="confirmarEliminarInsumo(item)" title="Eliminar insumo">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="stock-minimo" v-if="item.bajoStock">
+                ⚠️ Stock mínimo: {{ formatDecimal(item.stock_minimo) }} {{ item.unidad }}
+              </div>
+            </div>
+          </div>
+        </div>
+
       </main>
     </div>
 
-    <!-- Modal para Nuevo Insumo -->
+    <!-- Modal para Nuevo/Editar Insumo -->
     <div v-if="showModalInsumo" class="modal-overlay">
-      <div class="modal">
-        <div class="modal-header">
-          <h3>{{ esEdicion ? "Editar Insumo" : "Nuevo Insumo" }}</h3>
-          <button class="close-btn" @click="closeModal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <form @submit.prevent="guardarInsumo">
-            <div class="form-group">
-              <label>Nombre:</label>
-              <input
-                v-model="formInsumo.nombre"
-                type="text"
-                required
-                class="form-input"
-              />
-            </div>
-            <div class="form-group">
-              <label>Categoría:</label>
-              <select
-                v-model="formInsumo.categoria_id"
-                required
-                class="form-input"
-              >
-                <option value="">Seleccione una categoría</option>
-                <option v-for="cat in categorias" :key="cat.id" :value="cat.id">
-                  {{ cat.nombre }}
-                </option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Unidad de Medida:</label>
-              <select
-                v-model="formInsumo.unidad_medida_id"
-                required
-                class="form-input"
-              >
-                <option value="">Seleccione una unidad</option>
-                <option
-                  v-for="unidad in unidadesMedida"
-                  :key="unidad.id"
-                  :value="unidad.id"
-                >
-                  {{ unidad.nombre }} ({{ unidad.abreviatura }})
-                </option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Stock Mínimo:</label>
-              <input
-                v-model="formInsumo.stock_minimo"
-                type="number"
-                step="0.001"
-                required
-                class="form-input"
-              />
-            </div>
-            <div class="form-group">
-              <label>Precio Unitario:</label>
-              <input
-                v-model="formInsumo.precio_unitario"
-                type="number"
-                step="0.01"
-                class="form-input"
-              />
-            </div>
-            <div class="form-group">
-              <label>Proveedor:</label>
+      <div class="modal-content">
+        <h3>{{ esEdicion ? 'Editar Insumo' : 'Nuevo Insumo' }}</h3>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre:</label>
+            <input v-model="formInsumo.nombre" type="text" required class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label>Categoría:</label>
+            <select v-model="formInsumo.categoria_id" required class="form-input">
+              <option value="">Seleccione una categoría</option>
+              <option v-for="cat in categorias" :key="cat.id" :value="cat.id">
+                {{ cat.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Unidad de Medida:</label>
+            <select v-model="formInsumo.unidad_medida_id" required class="form-input">
+              <option value="">Seleccione una unidad</option>
+              <option v-for="unidad in unidadesMedida" :key="unidad.id" :value="unidad.id">
+                {{ unidad.nombre }} ({{ unidad.abreviatura }})
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Stock Mínimo:</label>
+            <input v-model="formInsumo.stock_minimo" type="number" step="0.001" required class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label>Precio Unitario:</label>
+            <input v-model="formInsumo.precio_unitario" type="number" step="0.01" class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label>Proveedor:</label>
+            <div class="cliente-select-container">
               <select v-model="formInsumo.proveedor_id" class="form-input">
                 <option value="">Seleccione un proveedor</option>
-                <option
-                  v-for="prov in proveedores"
-                  :key="prov.id"
-                  :value="prov.id"
-                >
+                <option v-for="prov in proveedores" :key="prov.id" :value="prov.id">
                   {{ prov.nombre }}
                 </option>
               </select>
-            </div>
-            <div class="modal-actions">
-              <button type="button" @click="closeModal" class="btn-secondary">
-                Cancelar
-              </button>
-              <button type="submit" class="btn-primary">
-                {{ esEdicion ? "Actualizar" : "Guardar" }}
+              <button type="button" class="btn-agregar-cliente" @click="showNuevoProveedorModal = true"
+                title="Agregar nuevo proveedor">
+                <i class="fas fa-plus"></i>
               </button>
             </div>
-          </form>
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button @click="closeModal" class="cancel-button">Cancelar</button>
+          <button @click="guardarInsumo" class="confirm-button">
+            {{ esEdicion ? 'Actualizar' : 'Guardar' }}
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Modal para Nueva Compra -->
     <div v-if="showModalCompra" class="modal-overlay">
-      <div class="modal">
-        <div class="modal-header">
-          <h3>Nueva Compra</h3>
-          <button class="close-btn" @click="closeModal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <form @submit.prevent="registrarCompra">
-            <div class="form-group">
-              <label>Insumo:</label>
-              <select
-                v-model="formCompra.insumo_id"
-                required
-                class="form-input"
-                @change="actualizarUnidadMedida"
-              >
-                <option value="">Seleccione un insumo</option>
-                <option
-                  v-for="insumo in insumos"
-                  :key="insumo.id"
-                  :value="insumo.id"
-                >
-                  {{ insumo.nombre }}
+      <div class="modal-content">
+        <h3>Nueva Compra</h3>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Insumo:</label>
+            <select v-model="formCompra.insumo_id" required class="form-input" @change="actualizarUnidadMedida">
+              <option value="">Seleccione un insumo</option>
+              <option v-for="insumo in insumos" :key="insumo.id" :value="insumo.id">
+                {{ insumo.nombre }} (Stock: {{ formatDecimal(insumo.stock_actual) }} {{ insumo.unidad_medida.abreviatura
+                }})
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Cantidad:</label>
+            <input v-model="formCompra.cantidad" type="number" step="0.001" required class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label>Unidad de Medida:</label>
+            <input :value="unidadCompra" type="text" disabled class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label>Precio Total:</label>
+            <input v-model="formCompra.precio_total" type="number" step="0.01" required class="form-input"
+              @input="calcularPrecioUnitario" />
+          </div>
+
+          <div class="form-group">
+            <label>Precio Unitario:</label>
+            <input :value="formCompra.precio_unitario" type="number" step="0.01" disabled class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label>Proveedor:</label>
+            <div class="cliente-select-container">
+              <select v-model="formCompra.proveedor_id" required class="form-input">
+                <option value="">Seleccione un proveedor</option>
+                <option v-for="prov in proveedores" :key="prov.id" :value="prov.id">
+                  {{ prov.nombre }}
                 </option>
               </select>
-            </div>
-            <div class="form-group">
-              <label>Cantidad:</label>
-              <input
-                v-model="formCompra.cantidad"
-                type="number"
-                step="0.001"
-                required
-                class="form-input"
-              />
-            </div>
-            <div class="form-group">
-              <label>Unidad de Medida:</label>
-              <input
-                :value="unidadCompra"
-                type="text"
-                disabled
-                class="form-input"
-              />
-            </div>
-            <div class="form-group">
-              <label>Precio Total:</label>
-              <input
-                v-model="formCompra.precio_total"
-                type="number"
-                step="0.01"
-                required
-                class="form-input"
-                @input="calcularPrecioUnitario"
-              />
-            </div>
-            <div class="form-group">
-              <label>Precio Unitario:</label>
-              <input
-                :value="formCompra.precio_unitario"
-                type="number"
-                step="0.01"
-                disabled
-                class="form-input"
-              />
-            </div>
-            <div class="form-group">
-              <label>Proveedor:</label>
-              <div class="select-with-button">
-                <select
-                  v-model="formCompra.proveedor_id"
-                  required
-                  class="form-input"
-                >
-                  <option value="">Seleccione un proveedor</option>
-                  <option
-                    v-for="prov in proveedores"
-                    :key="prov.id"
-                    :value="prov.id"
-                  >
-                    {{ prov.nombre }}
-                  </option>
-                </select>
-                <button
-                  type="button"
-                  class="btn-small"
-                  @click="showNuevoProveedorModal = true"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-            <div class="modal-actions">
-              <button type="button" @click="closeModal" class="btn-secondary">
-                Cancelar
-              </button>
-              <button type="submit" class="btn-success">
-                Registrar Compra
+              <button type="button" class="btn-agregar-cliente" @click="showNuevoProveedorModal = true"
+                title="Agregar nuevo proveedor">
+                <i class="fas fa-plus"></i>
               </button>
             </div>
-          </form>
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button @click="closeModal" class="cancel-button">Cancelar</button>
+          <button @click="registrarCompra" class="confirm-button">Registrar Compra</button>
         </div>
       </div>
     </div>
 
     <!-- Modal para Nuevo Proveedor -->
     <div v-if="showNuevoProveedorModal" class="modal-overlay">
-      <div class="modal modal-sm">
-        <div class="modal-header">
-          <h3>Nuevo Proveedor</h3>
-          <button class="close-btn" @click="showNuevoProveedorModal = false">
-            &times;
-          </button>
+      <div class="modal-content">
+        <h3>Nuevo Proveedor</h3>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre:</label>
+            <input v-model="formProveedor.nombre" type="text" required class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label>Teléfono:</label>
+            <input v-model="formProveedor.telefono" type="text" class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label>Email:</label>
+            <input v-model="formProveedor.email" type="email" class="form-input" />
+          </div>
         </div>
-        <div class="modal-body">
-          <form @submit.prevent="guardarProveedor">
-            <div class="form-group">
-              <label>Nombre:</label>
-              <input
-                v-model="formProveedor.nombre"
-                type="text"
-                required
-                class="form-input"
-              />
-            </div>
-            <div class="form-group">
-              <label>Teléfono:</label>
-              <input
-                v-model="formProveedor.telefono"
-                type="text"
-                class="form-input"
-              />
-            </div>
-            <div class="form-group">
-              <label>Email:</label>
-              <input
-                v-model="formProveedor.email"
-                type="email"
-                class="form-input"
-              />
-            </div>
-            <div class="modal-actions">
-              <button
-                type="button"
-                @click="showNuevoProveedorModal = false"
-                class="btn-secondary"
-              >
-                Cancelar
-              </button>
-              <button type="submit" class="btn-primary">Guardar</button>
-            </div>
-          </form>
+
+        <div class="modal-buttons">
+          <button @click="showNuevoProveedorModal = false" class="cancel-button">Cancelar</button>
+          <button @click="guardarProveedor" class="confirm-button">Guardar</button>
         </div>
       </div>
     </div>
 
     <!-- Modal de confirmación para eliminar -->
     <div v-if="showConfirmModal" class="modal-overlay">
-      <div class="modal modal-sm">
-        <div class="modal-header">
-          <h3>Confirmar Eliminación</h3>
-          <button class="close-btn" @click="showConfirmModal = false">
-            &times;
-          </button>
+      <div class="modal-content">
+        <h3>Confirmar Eliminación</h3>
+        <p>¿Está seguro de que desea eliminar el insumo "{{ insumoAEliminar?.nombre }}"?</p>
+
+        <div class="modal-buttons">
+          <button @click="showConfirmModal = false" class="cancel-button">Cancelar</button>
+          <button @click="eliminarInsumo" class="confirm-button">Eliminar</button>
         </div>
-        <div class="modal-body">
-          <p>
-            ¿Está seguro de que desea eliminar el insumo "{{
-              insumoAEliminar?.nombre
-            }}"?
-          </p>
-          <div class="modal-actions">
-            <button
-              type="button"
-              @click="showConfirmModal = false"
-              class="btn-secondary"
-            >
-              Cancelar
-            </button>
-            <button type="button" @click="eliminarInsumo" class="btn-delete">
-              Eliminar
-            </button>
-          </div>
+      </div>
+    </div>
+
+    <!-- Modal para cambiar contraseña -->
+    <div v-if="showPasswordModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Cambiar contraseña</h3>
+        <div class="form-group">
+          <label>Contraseña actual:</label>
+          <input type="password" v-model="currentPassword" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label>Nueva contraseña:</label>
+          <input type="password" v-model="newPassword" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label>Repita la nueva contraseña:</label>
+          <input type="password" v-model="confirmPassword" class="form-input" />
+        </div>
+        <div class="modal-buttons">
+          <button @click="showPasswordModal = false" class="cancel-button">
+            Cancelar
+          </button>
+          <button @click="changePassword" class="confirm-button">
+            Aceptar
+          </button>
         </div>
       </div>
     </div>
@@ -390,6 +306,7 @@ const unidadesMedida = ref([]);
 const proveedores = ref([]);
 const categoriaSeleccionada = ref("");
 const searchTerm = ref("");
+const loading = ref(true);
 
 // Modales
 const showModalInsumo = ref(false);
@@ -481,6 +398,8 @@ const logout = async () => {
 };
 
 const formatDecimal = (value) => {
+  if (value === null || value === undefined) return "0.00";
+
   // Convertir coma a punto para poder parsear correctamente
   const numericValue =
     typeof value === "string" ? parseFloat(value.replace(",", ".")) : value;
@@ -499,6 +418,11 @@ const parsearNumero = (valor) => {
     return parseFloat(valor.replace(",", "."));
   }
   return parseFloat(valor);
+};
+
+const resetFilters = () => {
+  categoriaSeleccionada.value = "";
+  searchTerm.value = "";
 };
 
 const showNuevoInsumoModal = () => {
@@ -524,8 +448,8 @@ const editarInsumo = (insumo) => {
     unidad_medida_id:
       unidadesMedida.value.find((u) => u.abreviatura === insumo.unidad)?.id ||
       "",
-    stock_minimo: parsearNumero(insumo.stock_minimo), // Parsear aquí
-    precio_unitario: parsearNumero(insumo.precio_unitario), // Parsear aquí
+    stock_minimo: parsearNumero(insumo.stock_minimo),
+    precio_unitario: parsearNumero(insumo.precio_unitario),
     proveedor_id: insumo.proveedor_id,
   };
   showModalInsumo.value = true;
@@ -555,6 +479,7 @@ const eliminarInsumo = async () => {
     alert("Error al eliminar el insumo");
   }
 };
+
 const guardarInsumo = async () => {
   try {
     if (!formInsumo.value.nombre) {
@@ -590,7 +515,7 @@ const guardarInsumo = async () => {
       activo: true,
     };
 
-    // 🚩 Solo agregar stock_actual = 0 cuando sea un insumo nuevo
+    // Solo agregar stock_actual = 0 cuando sea un insumo nuevo
     if (!esEdicion.value) {
       datosParaEnviar.stock_actual = 0;
     }
@@ -660,6 +585,10 @@ const registrarCompra = async () => {
         .replace(".", ",");
     }
 
+    if (formCompra.value.proveedor_id) {
+      datosActualizacion.proveedor_id = formCompra.value.proveedor_id;
+    }
+
     console.log("Datos a enviar:", datosActualizacion);
 
     // Usa PATCH para actualización parcial
@@ -679,7 +608,7 @@ const registrarCompra = async () => {
     console.error("Response status:", error.response?.status);
     alert(
       "Error al registrar la compra: " +
-        (error.response?.data?.message || error.message)
+      (error.response?.data?.message || error.message)
     );
   }
 };
@@ -689,7 +618,7 @@ const guardarProveedor = async () => {
     const response = await axios.post(
       "/api/proveedores/crear/",
       formProveedor.value
-    ); // Cambia la URL
+    );
     await fetchProveedores();
     showNuevoProveedorModal.value = false;
     resetFormProveedor();
@@ -699,6 +628,7 @@ const guardarProveedor = async () => {
     alert("Error al guardar el proveedor");
   }
 };
+
 const actualizarUnidadMedida = () => {
   const insumo = insumos.value.find(
     (i) => i.id === parseInt(formCompra.value.insumo_id)
@@ -766,26 +696,35 @@ const resetForms = () => {
 // Funciones para cargar datos
 const fetchStock = async () => {
   try {
+    loading.value = true;
+    console.log("Fetching stock...");
     const response = await axios.get("/api/insumos/");
+    console.log("Respuesta del servidor:", response.data);
+
     stock.value = response.data.insumos
       .map((insumo) => ({
         id: insumo.id,
         nombre: insumo.nombre,
-        cantidad: parsearNumero(insumo.stock_actual), // Usar parsearNumero aquí
-        unidad: insumo.unidad_medida.abreviatura,
+        cantidad: parsearNumero(insumo.stock_actual),
+        unidad: insumo.unidad_medida?.abreviatura || "N/A",
         bajoStock: insumo.necesita_reposicion,
         categoria: insumo.categoria?.nombre || "Sin categoría",
-        stock_minimo: parsearNumero(insumo.stock_minimo), // Usar parsearNumero aquí
-        precio_unitario: parsearNumero(insumo.precio_unitario), // Usar parsearNumero aquí
+        stock_minimo: parsearNumero(insumo.stock_minimo),
+        precio_unitario: parsearNumero(insumo.precio_unitario),
         proveedor_id: insumo.proveedor?.id || null,
+        proveedor: insumo.proveedor?.nombre || "Sin Proveedor"
       }))
       .sort((a, b) => {
         if (a.bajoStock && !b.bajoStock) return -1;
         if (!a.bajoStock && b.bajoStock) return 1;
         return 0;
       });
+
+    console.log("Stock procesado:", stock.value);
+    loading.value = false;
   } catch (err) {
     console.error("Error en fetchStock:", err);
+    loading.value = false;
     if (err.response?.status === 401) {
       logout();
     }
@@ -795,7 +734,7 @@ const fetchStock = async () => {
 const fetchInsumos = async () => {
   try {
     const response = await axios.get("/api/insumos/");
-    insumos.value = response.data.insumos; // Asegúrate de acceder a la propiedad correcta
+    insumos.value = response.data.insumos;
   } catch (err) {
     console.error("Error en fetchInsumos:", err);
   }
@@ -854,6 +793,7 @@ onMounted(() => {
     fetchProveedores(),
   ]).catch((error) => {
     console.error("Error cargando datos:", error);
+    loading.value = false;
     if (error.response?.status === 401) {
       logout();
     }
@@ -862,182 +802,380 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.action-buttons {
+@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
+
+/* ----------------------------- CONTENIDO Y CARDS ESPECÍFICOS ----------------------------- */
+.stock-content {
   display: flex;
-  gap: 10px;
+  padding: 0 20px;
+}
+
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: nowrap;
+  /* Evita que se envuelvan a la siguiente línea */
+  gap: 20px;
   margin-bottom: 20px;
 }
 
-.stock-header span {
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-shrink: 0;
+  /* Evita que se encojan demasiado */
+}
+
+.filtros-derecha {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.filtro-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.filtro-input,
+.filtro-select {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  height: 38px;
+  /* Misma altura que los botones */
+}
+
+/* BOTONES */
+.botones-acciones {
+  display: flex;
+  gap: 10px;
+  margin-right: auto;
+  /* ← Esto los lleva a la izq */
+  margin-bottom: 25px;
+}
+
+.btn-nuevo-pedido {
+  background-color: #b8e6b8;
+  color: #2b5d2b;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
   display: flex;
   align-items: center;
   gap: 5px;
+  transition: background-color 0.2s;
+  height: 38px;
+  /* Altura consistente */
 }
 
-.stock-header-container .stock-header {
-  display: grid;
-  grid-template-columns: 1fr 1fr 120px;
-  padding: 10px 15px;
-  font-weight: bold;
-  border-bottom: 1px solid #eee;
+.btn-nuevo-pedido:hover {
+  background-color: #a1dca1;
 }
 
-.stock-list li {
-  display: grid;
-  grid-template-columns: 1fr 1fr 120px;
-  padding: 10px 15px;
-  border-bottom: 1px solid #eee;
+/* ----------------------------- CARD DE STOCK ----------------------------- */
+.stock-card {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
 }
 
-.stock-list li.low-stock {
-  background-color: #fff0f0;
-}
-
-.action-buttons {
+.pedidos-list {
   display: flex;
-  gap: 5px;
+  flex-direction: column;
+  gap: 15px;
 }
 
-.btn-primary,
-.btn-success,
-.btn-secondary,
-.btn-edit,
-.btn-delete {
-  padding: 8px 16px;
+.pedido-item {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 15px;
+  background-color: #f9f9f9;
+}
+
+.pedido-item.bajo-stock {
+  border-left: 4px solid #ffcc00;
+  background-color: #fff9e6;
+}
+
+.pedido-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pedido-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.insumo-nombre {
+  font-weight: bold;
+  font-size: 16px;
+  color: #333;
+}
+
+.insumo-categoria {
+  font-size: 14px;
+  color: #666;
+  font-style: italic;
+}
+
+.insumo-cantidad {
+  font-size: 14px;
+  color: #666;
+}
+
+.insumo-precio {
+  font-size: 14px;
+  color: #2e7d32;
+  font-weight: bold;
+}
+
+.pedido-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.estado-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.estado-badge.bajo {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.estado-badge.normal {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.btn-accion {
+  background: none;
   border: none;
-  border-radius: 4px;
   cursor: pointer;
+  color: #7b5a50;
+  font-size: 16px;
+}
+
+.btn-accion:hover {
+  color: #5a3f36;
+}
+
+.stock-minimo {
+  padding: 8px;
+  background-color: #fff3cd;
+  border-radius: 4px;
+  color: #856404;
   font-size: 14px;
 }
 
-.btn-primary {
-  background-color: #4a6cf7;
-  color: white;
+.loading-state {
+  text-align: center;
+  padding: 20px;
+  color: #7b5a50;
 }
 
-.btn-success {
-  background-color: #22c55e;
-  color: white;
+.empty-state {
+  text-align: center;
+  padding: 30px;
+  color: #666;
+  font-style: italic;
 }
 
-.btn-secondary {
-  background-color: #6b7280;
-  color: white;
-}
-
-.btn-edit {
-  background-color: #eab308;
-  color: white;
-  padding: 4px 8px;
-  font-size: 12px;
-}
-
-.btn-delete {
-  background-color: #ef4444;
-  color: white;
-  padding: 4px 8px;
-  font-size: 12px;
-}
-
-.btn-small {
-  padding: 4px 8px;
-  background-color: #4a6cf7;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-/* Modal styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal {
-  background-color: white;
-  border-radius: 8px;
-  width: 500px;
+/* ----------------------------- MODALES ----------------------------- */
+.modal-content {
+  background-color: var(--color-white);
+  padding: 20px;
+  border-radius: 10px;
+  width: 600px;
   max-width: 90%;
   max-height: 90vh;
   overflow-y: auto;
 }
 
-.modal-sm {
-  width: 400px;
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #7b5a50;
 }
 
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #eee;
-}
-
-.modal-header h3 {
-  margin: 0;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-}
-
-.modal-body {
-  padding: 20px;
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 20px;
 }
 
 .form-group {
-  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
+  font-weight: bold;
+  font-size: 14px;
 }
 
 .form-input {
-  width: 100%;
-  padding: 8px 12px;
+  padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  box-sizing: border-box;
+  font-size: 14px;
 }
 
-.select-with-button {
+.cliente-select-container {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
-.select-with-button select {
+.cliente-select-container select {
   flex: 1;
 }
 
-.modal-actions {
+.btn-agregar-cliente {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
+  align-items: center;
+  justify-content: center;
 }
 
-.badge {
-  background-color: #ef4444;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 14px;
-  margin-left: 10px;
+.btn-agregar-cliente:hover {
+  background-color: #218838;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+.cancel-button {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.confirm-button {
+  padding: 8px 16px;
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.insumo-container {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  /* Espacio uniforme entre todos los elementos */
+  flex-wrap: wrap;
+  /* Para que se ajuste en pantallas pequeñas */
+}
+
+.insumo-container>span {
+  white-space: nowrap;
+  /* Evita que se rompan los textos */
+}
+
+/* ----------------------------- RESPONSIVE ----------------------------- */
+@media (max-width: 1024px) {
+  .header-section {
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  .filtros-derecha {
+    width: 100%;
+    justify-content: flex-start;
+    margin-top: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-section {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+  }
+
+  .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+    width: 100%;
+  }
+
+  .filtros-derecha {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .filtro-group {
+    width: 100%;
+  }
+
+  .filtro-input,
+  .filtro-select {
+    width: 100%;
+  }
+
+  .botones-acciones {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .pedido-header {
+    flex-direction: column;
+  }
+
+  .pedido-acciones {
+    align-self: flex-end;
+    margin-top: 10px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .botones-acciones {
+    flex-direction: column;
+  }
+
+  .btn-nuevo-pedido {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>

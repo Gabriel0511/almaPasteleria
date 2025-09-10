@@ -3,18 +3,18 @@
     <Sidebar @navigate="handleNavigation" />
 
     <div class="main-container">
-      <Header :userEmail="userEmail" title="Panel Principal" @openPasswordModal="showPasswordModal = true"
+      <Header :userEmail="userEmail" title="Gestión de Pedidos" @openPasswordModal="showPasswordModal = true"
         @logout="logout" />
       <main class="main-content">
-         
+
         <section class="content pedidos-content">
-            <h3 class="card-title1">Gestión de Pedidos</h3>
-            <div class="botones-acciones">
-              <button class="btn-nuevo-pedido" @click="abrirModalCrear">
-                <i class="bi bi-plus-lg"></i> Nuevo Pedido
-              </button>
-            </div>
-            <!-- Filtros de pedidos -->
+          <h3 class="card-title1">Gestión de Pedidos</h3>
+          <div class="botones-acciones">
+            <button class="btn-nuevo-pedido" @click="abrirModalCrear">
+              <i class="bi bi-plus-lg"></i> Nuevo Pedido
+            </button>
+          </div>
+          <!-- Filtros de pedidos -->
           <div class="filtros-pedidos">
             <div class="filtro-group">
               <label for="fecha-filtro">Filtrar por fecha:</label>
@@ -1216,7 +1216,8 @@ onMounted(() => {
 .botones-acciones {
   display: flex;
   gap: 10px;
-  margin-right: auto; /* ← Esto los lleva a la izq */
+  margin-right: auto;
+  /* ← Esto los lleva a la izq */
   margin-bottom: 25px;
 }
 
@@ -1234,14 +1235,20 @@ onMounted(() => {
 
 /* Colores pastel */
 .btn-nuevo-pedido {
-  background-color: #b8e6b8; /* verde clarito */
+  background-color: #b8e6b8;
+  /* verde clarito */
   color: #2b5d2b;
-  padding: 4px 12px;      /* menos alto */
-  font-size: 0.875rem;    /* texto más chico */
-  height: 32px;           /* altura fija */
-  line-height: 1;         /* centra el texto verticalmente */
+  padding: 4px 12px;
+  /* menos alto */
+  font-size: 0.875rem;
+  /* texto más chico */
+  height: 32px;
+  /* altura fija */
+  line-height: 1;
+  /* centra el texto verticalmente */
   display: flex;
-  align-items: center;    /* icono y texto centrados */
+  align-items: center;
+  /* icono y texto centrados */
   gap: 5px;
   border-radius: 6px;
 }
