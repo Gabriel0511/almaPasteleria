@@ -32,6 +32,15 @@ class InsumoCreateAPIView(generics.CreateAPIView):
     serializer_class = InsumoSerializer
 
     def create(self, request, *args, **kwargs):
+        # Validar si ya existe una categoría con el mismo nombre
+        nombre = request.data.get('nombre', '').strip()
+        if Insumo.objects.filter(nombre__iexact=nombre).exists():
+            return Response(
+                {
+                    'error': 'Ya existe un insumo con este nombre'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)

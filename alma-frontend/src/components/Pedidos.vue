@@ -130,14 +130,30 @@
                     <span class="receta-precio"
                       >${{ calcularPrecioReceta(detalle) }}</span
                     >
-                    <i
-                      class="fas"
-                      :class="
-                        detalleExpandido[detalle.id]
-                          ? 'fa-chevron-up'
-                          : 'fa-chevron-down'
-                      "
-                    ></i>
+                    <div class="receta-header-acciones">
+                      <button
+                        class="btn-accion-small"
+                        @click.stop="editarReceta(detalle, pedido)"
+                        title="Editar receta"
+                      >
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button
+                        class="btn-accion-small btn-eliminar"
+                        @click.stop="confirmarEliminarReceta(detalle)"
+                        title="Eliminar receta"
+                      >
+                        <i class="fas fa-trash"></i>
+                      </button>
+                      <i
+                        class="fas"
+                        :class="
+                          detalleExpandido[detalle.id]
+                            ? 'fa-chevron-up'
+                            : 'fa-chevron-down'
+                        "
+                      ></i>
+                    </div>
                   </div>
 
                   <div
