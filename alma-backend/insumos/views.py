@@ -121,6 +121,35 @@ class InsumoDestroyAPIView(generics.DestroyAPIView):
             },
             status=status.HTTP_200_OK
         )
+    
+class CategoriaInsumoCreateAPIView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = CategoriaInsumo.objects.all()
+    serializer_class = CategoriaInsumoSerializer
+
+    def create(self, request, *args, **kwargs):
+        # Validar si ya existe una categoría con el mismo nombre
+        nombre = request.data.get('nombre', '').strip()
+        if CategoriaInsumo.objects.filter(nombre__iexact=nombre).exists():
+            return Response(
+                {
+                    'error': 'Ya existe una categoría con este nombre'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            {
+                'message': 'Categoría creada exitosamente',
+                'categoria': serializer.data
+            },
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
 
 class InsumoHardDeleteAPIView(generics.DestroyAPIView):
     permission_classes = [IsAuthenticated]
@@ -159,6 +188,16 @@ class ProveedorCreateAPIView(generics.CreateAPIView):
     serializer_class = ProveedorSerializer
 
     def create(self, request, *args, **kwargs):
+        # Validar si ya existe un proveedor con el mismo nombre
+        nombre = request.data.get('nombre', '').strip()
+        if Proveedor.objects.filter(nombre__iexact=nombre).exists():
+            return Response(
+                {
+                    'error': 'Ya existe un proveedor con este nombre'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)

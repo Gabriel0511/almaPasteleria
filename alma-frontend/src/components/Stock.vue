@@ -3,10 +3,13 @@
     <Sidebar @navigate="handleNavigation" />
 
     <div class="main-container">
-      <Header :userEmail="userEmail" title="Gestión de Stock" @openPasswordModal="showPasswordModal = true"
-        @logout="logout" />
+      <Header
+        :userEmail="userEmail"
+        title="Gestión de Stock"
+        @openPasswordModal="showPasswordModal = true"
+        @logout="logout"
+      />
       <main class="main-content">
-
         <section class="content stock-content">
           <h3 class="card-title1">Gestión de Stock</h3>
           <div class="botones-acciones">
@@ -18,11 +21,15 @@
             </button>
           </div>
 
-
           <!-- Filtros de stock alineados a la derecha -->
           <div class="filtros-derecha">
             <div class="filtro-group">
-              <input type="text" v-model="searchTerm" placeholder="Buscar insumo..." class="filtro-input" />
+              <input
+                type="text"
+                v-model="searchTerm"
+                placeholder="Buscar insumo..."
+                class="filtro-input"
+              />
             </div>
 
             <div class="filtro-group">
@@ -34,12 +41,10 @@
               </select>
             </div>
           </div>
-
         </section>
 
         <!-- Card principal de stock -->
         <div class="card stock-card">
-
           <div v-if="loading" class="loading-state">
             <i class="fas fa-spinner fa-spin"></i> Cargando stock...
           </div>
@@ -49,70 +54,120 @@
           </div>
 
           <div v-else class="pedidos-list">
-            <div v-for="item in stockFiltrado" :key="item.id" class="pedido-item"
-              :class="{ 'bajo-stock': item.bajoStock }">
+            <div
+              v-for="item in stockFiltrado"
+              :key="item.id"
+              class="pedido-item"
+              :class="{ 'bajo-stock': item.bajoStock }"
+            >
               <div class="pedido-header">
                 <div class="pedido-info">
                   <span class="insumo-container">
-                    <span class="insumo-nombre">{{ item.nombre }}
-                      <span class="insumo-categoria">({{ item.categoria }})</span>
+                    <span class="insumo-nombre"
+                      >{{ item.nombre }}
+                      <span class="insumo-categoria"
+                        >({{ item.categoria }})</span
+                      >
                     </span>
-                    <span class="insumo-cantidad">{{ formatDecimal(item.cantidad) }}{{ item.unidad }}</span>
-                    <span class="insumo-precio" v-if="item.precio_unitario">${{ formatDecimal(item.precio_unitario) }}/{{
-                      item.unidad }}</span>
+                    <span class="insumo-cantidad"
+                      >{{ formatDecimal(item.cantidad) }}{{ item.unidad }}</span
+                    >
+                    <span class="insumo-precio" v-if="item.precio_unitario"
+                      >${{ formatDecimal(item.precio_unitario) }}/{{
+                        item.unidad
+                      }}</span
+                    >
                     <span class="insumo-categoria">{{ item.proveedor }}</span>
                   </span>
-
                 </div>
                 <div class="pedido-acciones">
-                  <span class="estado-badge" :class="item.bajoStock ? 'bajo' : 'normal'" v-if="item.bajoStock">
+                  <span
+                    class="estado-badge"
+                    :class="item.bajoStock ? 'bajo' : 'normal'"
+                    v-if="item.bajoStock"
+                  >
                     Stock Bajo
                   </span>
-                  <button class="btn-accion" @click="editarInsumo(item)" title="Editar insumo">
+                  <button
+                    class="btn-accion"
+                    @click="editarInsumo(item)"
+                    title="Editar insumo"
+                  >
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button class="btn-accion" @click="confirmarEliminarInsumo(item)" title="Eliminar insumo">
+                  <button
+                    class="btn-accion"
+                    @click="confirmarEliminarInsumo(item)"
+                    title="Eliminar insumo"
+                  >
                     <i class="fas fa-trash"></i>
                   </button>
                 </div>
               </div>
 
               <div class="stock-minimo" v-if="item.bajoStock">
-                ⚠️ Stock mínimo: {{ formatDecimal(item.stock_minimo) }} {{ item.unidad }}
+                ⚠️ Stock mínimo: {{ formatDecimal(item.stock_minimo) }}
+                {{ item.unidad }}
               </div>
             </div>
           </div>
         </div>
-
       </main>
     </div>
 
     <!-- Modal para Nuevo/Editar Insumo -->
     <div v-if="showModalInsumo" class="modal-overlay">
       <div class="modal-content">
-        <h3>{{ esEdicion ? 'Editar Insumo' : 'Nuevo Insumo' }}</h3>
+        <h3>{{ esEdicion ? "Editar Insumo" : "Nuevo Insumo" }}</h3>
 
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre:</label>
-            <input v-model="formInsumo.nombre" type="text" required class="form-input" />
+            <input
+              v-model="formInsumo.nombre"
+              type="text"
+              required
+              class="form-input"
+            />
           </div>
 
           <div class="form-group">
             <label>Categoría:</label>
-            <select v-model="formInsumo.categoria_id" required class="form-input">
-              <option value="">Seleccione una categoría</option>
-              <option v-for="cat in categorias" :key="cat.id" :value="cat.id">
-                {{ cat.nombre }}
-              </option>
-            </select>
+            <div class="cliente-select-container">
+              <select
+                v-model="formInsumo.categoria_id"
+                required
+                class="form-input"
+              >
+                <option value="">Seleccione una categoría</option>
+                <option v-for="cat in categorias" :key="cat.id" :value="cat.id">
+                  {{ cat.nombre }}
+                </option>
+              </select>
+              <button
+                type="button"
+                class="btn-agregar-cliente"
+                @click="showNuevaCategoriaModal = true"
+                title="Agregar nueva categoría"
+              >
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
           </div>
 
           <div class="form-group">
             <label>Unidad de Medida:</label>
-            <select v-model="formInsumo.unidad_medida_id" required class="form-input">
+            <select
+              v-model="formInsumo.unidad_medida_id"
+              required
+              class="form-input"
+            >
               <option value="">Seleccione una unidad</option>
-              <option v-for="unidad in unidadesMedida" :key="unidad.id" :value="unidad.id">
+              <option
+                v-for="unidad in unidadesMedida"
+                :key="unidad.id"
+                :value="unidad.id"
+              >
                 {{ unidad.nombre }} ({{ unidad.abreviatura }})
               </option>
             </select>
@@ -120,12 +175,23 @@
 
           <div class="form-group">
             <label>Stock Mínimo:</label>
-            <input v-model="formInsumo.stock_minimo" type="number" step="0.001" required class="form-input" />
+            <input
+              v-model="formInsumo.stock_minimo"
+              type="number"
+              step="0.001"
+              required
+              class="form-input"
+            />
           </div>
 
           <div class="form-group">
             <label>Precio Unitario:</label>
-            <input v-model="formInsumo.precio_unitario" type="number" step="0.01" class="form-input" />
+            <input
+              v-model="formInsumo.precio_unitario"
+              type="number"
+              step="0.01"
+              class="form-input"
+            />
           </div>
 
           <div class="form-group">
@@ -133,12 +199,20 @@
             <div class="cliente-select-container">
               <select v-model="formInsumo.proveedor_id" class="form-input">
                 <option value="">Seleccione un proveedor</option>
-                <option v-for="prov in proveedores" :key="prov.id" :value="prov.id">
+                <option
+                  v-for="prov in proveedores"
+                  :key="prov.id"
+                  :value="prov.id"
+                >
                   {{ prov.nombre }}
                 </option>
               </select>
-              <button type="button" class="btn-agregar-cliente" @click="showNuevoProveedorModal = true"
-                title="Agregar nuevo proveedor">
+              <button
+                type="button"
+                class="btn-agregar-cliente"
+                @click="showNuevoProveedorModal = true"
+                title="Agregar nuevo proveedor"
+              >
                 <i class="fas fa-plus"></i>
               </button>
             </div>
@@ -148,7 +222,7 @@
         <div class="modal-buttons">
           <button @click="closeModal" class="cancel-button">Cancelar</button>
           <button @click="guardarInsumo" class="confirm-button">
-            {{ esEdicion ? 'Actualizar' : 'Guardar' }}
+            {{ esEdicion ? "Actualizar" : "Guardar" }}
           </button>
         </div>
       </div>
@@ -162,47 +236,92 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Insumo:</label>
-            <select v-model="formCompra.insumo_id" required class="form-input" @change="actualizarUnidadMedida">
+            <select
+              v-model="formCompra.insumo_id"
+              required
+              class="form-input"
+              @change="actualizarUnidadMedida"
+            >
               <option value="">Seleccione un insumo</option>
-              <option v-for="insumo in insumos" :key="insumo.id" :value="insumo.id">
-                {{ insumo.nombre }} (Stock: {{ formatDecimal(insumo.stock_actual) }} {{ insumo.unidad_medida.abreviatura
-                }})
+              <option
+                v-for="insumo in insumos"
+                :key="insumo.id"
+                :value="insumo.id"
+              >
+                {{ insumo.nombre }} (Stock:
+                {{ formatDecimal(insumo.stock_actual) }}
+                {{ insumo.unidad_medida.abreviatura }})
               </option>
             </select>
           </div>
 
           <div class="form-group">
             <label>Cantidad:</label>
-            <input v-model="formCompra.cantidad" type="number" step="0.001" required class="form-input" />
+            <input
+              v-model="formCompra.cantidad"
+              type="number"
+              step="0.001"
+              required
+              class="form-input"
+            />
           </div>
 
           <div class="form-group">
             <label>Unidad de Medida:</label>
-            <input :value="unidadCompra" type="text" disabled class="form-input" />
+            <input
+              :value="unidadCompra"
+              type="text"
+              disabled
+              class="form-input"
+            />
           </div>
 
           <div class="form-group">
             <label>Precio Total:</label>
-            <input v-model="formCompra.precio_total" type="number" step="0.01" required class="form-input"
-              @input="calcularPrecioUnitario" />
+            <input
+              v-model="formCompra.precio_total"
+              type="number"
+              step="0.01"
+              required
+              class="form-input"
+              @input="calcularPrecioUnitario"
+            />
           </div>
 
           <div class="form-group">
             <label>Precio Unitario:</label>
-            <input :value="formCompra.precio_unitario" type="number" step="0.01" disabled class="form-input" />
+            <input
+              :value="formCompra.precio_unitario"
+              type="number"
+              step="0.01"
+              disabled
+              class="form-input"
+            />
           </div>
 
           <div class="form-group">
             <label>Proveedor:</label>
             <div class="cliente-select-container">
-              <select v-model="formCompra.proveedor_id" required class="form-input">
+              <select
+                v-model="formCompra.proveedor_id"
+                required
+                class="form-input"
+              >
                 <option value="">Seleccione un proveedor</option>
-                <option v-for="prov in proveedores" :key="prov.id" :value="prov.id">
+                <option
+                  v-for="prov in proveedores"
+                  :key="prov.id"
+                  :value="prov.id"
+                >
                   {{ prov.nombre }}
                 </option>
               </select>
-              <button type="button" class="btn-agregar-cliente" @click="showNuevoProveedorModal = true"
-                title="Agregar nuevo proveedor">
+              <button
+                type="button"
+                class="btn-agregar-cliente"
+                @click="showNuevoProveedorModal = true"
+                title="Agregar nuevo proveedor"
+              >
                 <i class="fas fa-plus"></i>
               </button>
             </div>
@@ -211,7 +330,9 @@
 
         <div class="modal-buttons">
           <button @click="closeModal" class="cancel-button">Cancelar</button>
-          <button @click="registrarCompra" class="confirm-button">Registrar Compra</button>
+          <button @click="registrarCompra" class="confirm-button">
+            Registrar Compra
+          </button>
         </div>
       </div>
     </div>
@@ -224,23 +345,82 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre:</label>
-            <input v-model="formProveedor.nombre" type="text" required class="form-input" />
+            <input
+              v-model="formProveedor.nombre"
+              type="text"
+              required
+              class="form-input"
+            />
           </div>
 
           <div class="form-group">
             <label>Teléfono:</label>
-            <input v-model="formProveedor.telefono" type="text" class="form-input" />
+            <input
+              v-model="formProveedor.telefono"
+              type="text"
+              class="form-input"
+            />
           </div>
 
           <div class="form-group">
             <label>Email:</label>
-            <input v-model="formProveedor.email" type="email" class="form-input" />
+            <input
+              v-model="formProveedor.email"
+              type="email"
+              class="form-input"
+            />
           </div>
         </div>
 
         <div class="modal-buttons">
-          <button @click="showNuevoProveedorModal = false" class="cancel-button">Cancelar</button>
-          <button @click="guardarProveedor" class="confirm-button">Guardar</button>
+          <button
+            @click="showNuevoProveedorModal = false"
+            class="cancel-button"
+          >
+            Cancelar
+          </button>
+          <button @click="guardarProveedor" class="confirm-button">
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Nueva Categoría -->
+    <div v-if="showNuevaCategoriaModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Nueva Categoría</h3>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre:</label>
+            <input
+              v-model="formCategoria.nombre"
+              type="text"
+              required
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Descripción:</label>
+            <textarea
+              v-model="formCategoria.descripcion"
+              class="form-input"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button
+            @click="showNuevaCategoriaModal = false"
+            class="cancel-button"
+          >
+            Cancelar
+          </button>
+          <button @click="guardarCategoria" class="confirm-button">
+            Guardar
+          </button>
         </div>
       </div>
     </div>
@@ -249,11 +429,19 @@
     <div v-if="showConfirmModal" class="modal-overlay">
       <div class="modal-content">
         <h3>Confirmar Eliminación</h3>
-        <p>¿Está seguro de que desea eliminar el insumo "{{ insumoAEliminar?.nombre }}"?</p>
+        <p>
+          ¿Está seguro de que desea eliminar el insumo "{{
+            insumoAEliminar?.nombre
+          }}"?
+        </p>
 
         <div class="modal-buttons">
-          <button @click="showConfirmModal = false" class="cancel-button">Cancelar</button>
-          <button @click="eliminarInsumo" class="confirm-button">Eliminar</button>
+          <button @click="showConfirmModal = false" class="cancel-button">
+            Cancelar
+          </button>
+          <button @click="eliminarInsumo" class="confirm-button">
+            Eliminar
+          </button>
         </div>
       </div>
     </div>
@@ -313,6 +501,7 @@ const showModalInsumo = ref(false);
 const showModalCompra = ref(false);
 const showNuevoProveedorModal = ref(false);
 const showConfirmModal = ref(false);
+const showNuevaCategoriaModal = ref(false);
 
 // Formularios
 const formInsumo = ref({
@@ -337,6 +526,12 @@ const formProveedor = ref({
   nombre: "",
   telefono: "",
   email: "",
+});
+
+// Agregar formulario para categoría
+const formCategoria = ref({
+  nombre: "",
+  descripcion: "",
 });
 
 const esEdicion = ref(false);
@@ -408,6 +603,46 @@ const formatDecimal = (value) => {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+};
+
+// Método para guardar categoría
+const guardarCategoria = async () => {
+  try {
+    if (!formCategoria.value.nombre) {
+      alert("El nombre de la categoría es requerido");
+      return;
+    }
+
+    const response = await axios.post(
+      "/api/categorias/crear/",
+      formCategoria.value
+    );
+
+    // Actualizar lista de categorías
+    await fetchCategorias();
+
+    // Seleccionar la nueva categoría automáticamente
+    formInsumo.value.categoria_id = response.data.id;
+
+    showNuevaCategoriaModal.value = false;
+    resetFormCategoria();
+    alert("Categoría creada correctamente");
+  } catch (error) {
+    console.error("Error al guardar categoría:", error);
+    if (error.response?.status === 400 && error.response?.data?.nombre) {
+      alert("Ya existe una categoría con ese nombre");
+    } else {
+      alert("Error al guardar la categoría");
+    }
+  }
+};
+
+// Resetear formulario de categoría
+const resetFormCategoria = () => {
+  formCategoria.value = {
+    nombre: "",
+    descripcion: "",
+  };
 };
 
 // Función auxiliar para parsear números con comas
@@ -545,12 +780,9 @@ const guardarInsumo = async () => {
 
 const registrarCompra = async () => {
   try {
-    console.log("Datos de compra:", formCompra.value);
-
     const insumo = insumos.value.find(
       (i) => i.id === parseInt(formCompra.value.insumo_id)
     );
-    console.log("Insumo encontrado:", insumo);
 
     if (!insumo) {
       throw new Error("Insumo no encontrado");
@@ -608,7 +840,7 @@ const registrarCompra = async () => {
     console.error("Response status:", error.response?.status);
     alert(
       "Error al registrar la compra: " +
-      (error.response?.data?.message || error.message)
+        (error.response?.data?.message || error.message)
     );
   }
 };
@@ -625,7 +857,11 @@ const guardarProveedor = async () => {
     alert("Proveedor creado correctamente");
   } catch (error) {
     console.error("Error al guardar proveedor:", error);
-    alert("Error al guardar el proveedor");
+    if (error.response?.status === 400 && error.response?.data?.error) {
+      alert(error.response.data.error);
+    } else {
+      alert("Error al guardar el proveedor");
+    }
   }
 };
 
@@ -652,6 +888,7 @@ const closeModal = () => {
   showModalInsumo.value = false;
   showModalCompra.value = false;
   showNuevoProveedorModal.value = false;
+  showNuevaCategoriaModal.value = false;
   resetForms();
 };
 
@@ -712,7 +949,7 @@ const fetchStock = async () => {
         stock_minimo: parsearNumero(insumo.stock_minimo),
         precio_unitario: parsearNumero(insumo.precio_unitario),
         proveedor_id: insumo.proveedor?.id || null,
-        proveedor: insumo.proveedor?.nombre || "Sin Proveedor"
+        proveedor: insumo.proveedor?.nombre || "Sin Proveedor",
       }))
       .sort((a, b) => {
         if (a.bajoStock && !b.bajoStock) return -1;
@@ -1100,7 +1337,7 @@ onMounted(() => {
   /* Para que se ajuste en pantallas pequeñas */
 }
 
-.insumo-container>span {
+.insumo-container > span {
   white-space: nowrap;
   /* Evita que se rompan los textos */
 }
