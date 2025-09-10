@@ -195,7 +195,7 @@
                             <i class="fas fa-edit"></i>
                           </button>
                           <button
-                            class="btn-accion-small"
+                            class="btn-accion-small btn-eliminar"
                             @click="
                               confirmarEliminarIngredienteExtra(ingrediente)
                             "
@@ -717,11 +717,14 @@ const pedidosFiltrados = computed(() => {
   // Filtrar por término de búsqueda
   if (searchTerm.value) {
     const term = searchTerm.value.toLowerCase();
-    filtered = filtered.filter(
-      (pedido) =>
-        pedido.cliente.nombre.toLowerCase().includes(term) ||
-        pedido.cliente.telefono.toLowerCase().includes(term)
-    );
+    filtered = filtered.filter((pedido) => {
+      // Verificar si el cliente existe y tiene nombre
+      const nombreCliente = pedido.cliente?.nombre?.toLowerCase() || "";
+      // Verificar si el cliente existe y tiene teléfono (manejar null/undefined)
+      const telefonoCliente = pedido.cliente?.telefono?.toLowerCase() || "";
+
+      return nombreCliente.includes(term) || telefonoCliente.includes(term);
+    });
   }
 
   return filtered;
@@ -1683,6 +1686,57 @@ onMounted(() => {
 
 .confirm-button:hover {
   background-color: #a1dca1;
+}
+
+/* Nuevos estilos para los botones de acción en el header de recetas */
+.receta-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background-color: #f5f5f5;
+  cursor: pointer;
+}
+
+.receta-header-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-accion-small {
+  background: none;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  color: #7b5a50;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-accion-small:hover {
+  background-color: #f5f5f5;
+}
+
+.btn-eliminar {
+  color: #dc3545;
+  border-color: #f5c6cb;
+}
+
+.btn-eliminar:hover {
+  background-color: #f8d7da;
+}
+
+/* Prevenir que los clics en botones expandan/contraigan el acordeón */
+.receta-header-acciones button {
+  pointer-events: auto;
+}
+
+.receta-header-acciones i:last-child {
+  pointer-events: none;
 }
 
 /* ----------------------------- ESTADOS ----------------------------- */
