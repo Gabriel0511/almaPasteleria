@@ -563,8 +563,7 @@ const stockFiltrado = computed(() => {
     const term = searchTerm.value.toLowerCase();
     filtered = filtered.filter(
       (item) =>
-        item.nombre.toLowerCase().includes(term) ||
-        item.categoria.toLowerCase().includes(term)
+        item.nombre.toLowerCase().includes(term) 
     );
   }
 
