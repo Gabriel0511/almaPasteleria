@@ -15,10 +15,15 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.http import HttpResponse
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
 
+def healthcheck(request):
+    return HttpResponse("OK")
+
 urlpatterns = [
+    path('', healthcheck),  # Healthcheck de Railway
     path('admin/', admin.site.urls),
     path('api/auth/', include('inicio.urls')),  # Para las rutas de autenticación
     path('api/auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # Nueva ruta
