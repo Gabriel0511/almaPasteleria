@@ -1,0 +1,4 @@
+alma-frontend/
+node_modules/
+.gitignore
+README.md
