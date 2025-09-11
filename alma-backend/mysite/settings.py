@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
-import dj_database_url
 import pymysql
 pymysql.install_as_MySQLdb()
 from decouple import config
@@ -91,6 +90,7 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
+    "https://almapasteleria-production.up.railway.app/",
     "http://localhost:8080",  # O el puerto que uses en Vue
     "http://127.0.0.1:8080",
     "http://localhost:5173",
@@ -118,14 +118,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'mysite.wsgi.application'
 
 
+# ===========================
 # Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+# ===========================
+import dj_database_url
+from decouple import config
 
-# settings.py
+DATABASE_URL = config('DATABASE_URL')
+
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL'),
-    )
+    'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
 }
 
 # Password validation
