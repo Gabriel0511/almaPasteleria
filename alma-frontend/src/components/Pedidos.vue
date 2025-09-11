@@ -67,6 +67,7 @@
               v-for="pedido in pedidosFiltrados"
               :key="pedido.id"
               class="pedido-item"
+              :class="{ 'pedido-entregado': pedido.estado === 'entregado' }"
             >
               <div class="pedido-header">
                 <div class="pedido-info">
@@ -106,14 +107,26 @@
                 </div>
               </div>
 
-              <!-- Botón para agregar receta al pedido -->
-              <div class="agregar-receta-container">
+              <!-- Botón para agregar receta al pedido (solo si no está entregado) -->
+              <div
+                class="agregar-receta-container"
+                v-if="pedido.estado !== 'entregado'"
+              >
                 <button
                   class="btn-agregar-receta"
                   @click="showAgregarRecetaModal(pedido)"
                 >
                   <i class="fas fa-plus"></i> Agregar Receta
                 </button>
+              </div>
+
+              <!-- Mensaje para pedidos entregados -->
+              <div
+                class="pedido-entregado-mensaje"
+                v-if="pedido.estado === 'entregado'"
+              >
+                <i class="fas fa-check-circle"></i> Pedido entregado - No se
+                pueden realizar modificaciones
               </div>
 
               <!-- Detalles del pedido - Recetas -->
@@ -131,20 +144,22 @@
                       >${{ calcularPrecioReceta(detalle) }}</span
                     >
                     <div class="receta-header-acciones">
-                      <button
-                        class="btn-accion-small"
-                        @click.stop="editarReceta(detalle, pedido)"
-                        title="Editar receta"
-                      >
-                        <i class="fas fa-edit"></i>
-                      </button>
-                      <button
-                        class="btn-accion-small btn-eliminar"
-                        @click.stop="confirmarEliminarReceta(detalle)"
-                        title="Eliminar receta"
-                      >
-                        <i class="fas fa-trash"></i>
-                      </button>
+                      <template v-if="pedido.estado !== 'entregado'">
+                        <button
+                          class="btn-accion-small"
+                          @click.stop="editarReceta(detalle, pedido)"
+                          title="Editar receta"
+                        >
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button
+                          class="btn-accion-small btn-eliminar"
+                          @click.stop="confirmarEliminarReceta(detalle)"
+                          title="Eliminar receta"
+                        >
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </template>
                       <i
                         class="fas"
                         :class="
@@ -184,7 +199,11 @@
                           {{ ingrediente.cantidad }}
                           {{ ingrediente.unidad_medida.abreviatura }}</span
                         >
-                        <div class="ingrediente-acciones">
+                        <!-- Ocultar botones para pedidos entregados -->
+                        <div
+                          class="ingrediente-acciones"
+                          v-if="pedido.estado !== 'entregado'"
+                        >
                           <button
                             class="btn-accion-small"
                             @click="
@@ -207,7 +226,10 @@
                       </div>
                     </div>
 
-                    <div class="receta-acciones">
+                    <div
+                      class="receta-acciones"
+                      v-if="pedido.estado !== 'entregado'"
+                    >
                       <button
                         class="btn-agregar-ingrediente"
                         @click="showNuevoIngredienteModal(detalle)"
@@ -718,16 +740,18 @@ const pedidosFiltrados = computed(() => {
   if (searchTerm.value) {
     const term = searchTerm.value.toLowerCase();
     filtered = filtered.filter((pedido) => {
-      // Verificar si el cliente existe y tiene nombre
       const nombreCliente = pedido.cliente?.nombre?.toLowerCase() || "";
-      // Verificar si el cliente existe y tiene teléfono (manejar null/undefined)
       const telefonoCliente = pedido.cliente?.telefono?.toLowerCase() || "";
-
       return nombreCliente.includes(term) || telefonoCliente.includes(term);
     });
   }
 
-  return filtered;
+  // Ordenar: pedidos entregados al final
+  return filtered.sort((a, b) => {
+    if (a.estado === "entregado" && b.estado !== "entregado") return 1;
+    if (a.estado !== "entregado" && b.estado === "entregado") return -1;
+    return 0;
+  });
 });
 
 // Métodos
@@ -791,6 +815,10 @@ const showNuevoPedidoModal = () => {
 };
 
 const editarPedido = (pedido) => {
+  if (pedido.estado === "entregado") {
+    alert("No se puede editar un pedido entregado");
+    return;
+  }
   esEdicionPedido.value = true;
   formPedido.value = {
     id: pedido.id,
@@ -803,6 +831,10 @@ const editarPedido = (pedido) => {
 };
 
 const confirmarEliminarPedido = (pedido) => {
+  if (pedido.estado === "entregado") {
+    alert("No se puede eliminar un pedido entregado");
+    return;
+  }
   pedidoAEliminar.value = pedido;
   showConfirmModalPedido.value = true;
 };
@@ -875,6 +907,13 @@ const guardarCliente = async () => {
 };
 
 const showNuevoIngredienteModal = (detalle) => {
+  const pedido = pedidos.value.find((p) =>
+    p.detalles.some((d) => d.id === detalle.id)
+  );
+  if (pedido && pedido.estado === "entregado") {
+    alert("No se pueden agregar ingredientes a un pedido entregado");
+    return;
+  }
   esEdicionIngrediente.value = false;
   detalleActual.value = detalle;
   resetFormIngrediente();
@@ -1045,6 +1084,10 @@ const resetFormIngrediente = () => {
 
 // Nuevos métodos para gestionar recetas
 const showAgregarRecetaModal = (pedido) => {
+  if (pedido.estado === "entregado") {
+    alert("No se pueden agregar recetas a un pedido entregado");
+    return;
+  }
   esEdicionReceta.value = false;
   pedidoActual.value = pedido;
   resetFormDetalle();
@@ -1053,6 +1096,10 @@ const showAgregarRecetaModal = (pedido) => {
 };
 
 const editarReceta = (detalle, pedido) => {
+  if (pedido.estado === "entregado") {
+    alert("No se puede editar recetas de un pedido entregado");
+    return;
+  }
   esEdicionReceta.value = true;
   pedidoActual.value = pedido;
   formDetalle.value = {
@@ -1737,6 +1784,52 @@ onMounted(() => {
 
 .receta-header-acciones i:last-child {
   pointer-events: none;
+}
+
+/* Estilos para pedidos entregados */
+.pedido-entregado {
+  background-color: #f8f9fa;
+  border-color: #d1ecf1;
+  opacity: 0.8;
+}
+
+.pedido-entregado .pedido-header {
+  opacity: 0.7;
+}
+
+.pedido-entregado-mensaje {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 10px;
+  border-radius: 4px;
+  margin: 10px 0;
+  text-align: center;
+  font-weight: bold;
+}
+
+.pedido-entregado-mensaje i {
+  margin-right: 8px;
+}
+
+/* Deshabilitar interacción en pedidos entregados */
+.pedido-entregado .btn-accion,
+.pedido-entregado .btn-agregar-receta,
+.pedido-entregado .btn-agregar-ingrediente {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pedido-entregado .btn-accion:hover,
+.pedido-entregado .btn-agregar-receta:hover,
+.pedido-entregado .btn-agregar-ingrediente:hover {
+  background-color: transparent;
+  transform: none;
+}
+
+/* Estado específico para entregado */
+.pedido-estado.entregado {
+  background-color: #d4edda;
+  color: #155724;
 }
 
 /* ----------------------------- ESTADOS ----------------------------- */

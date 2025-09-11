@@ -12,6 +12,7 @@ class UnidadMedidaListAPIView(generics.ListAPIView):
 class UnidadMedidaDetailAPIView(generics.RetrieveAPIView):
     queryset = UnidadMedida.objects.all()
     serializer_class = UnidadMedidaSerializer
+
 class InsumoListAPIView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     queryset = Insumo.objects.filter(activo=True)
