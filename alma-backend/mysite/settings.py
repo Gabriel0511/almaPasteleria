@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # Cambia la SECRET_KEY para usar variables de entorno
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = config('SECRET_KEY', default='clave-temporal-para-deploy-inicial-solo')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 # Configuración más segura para production
