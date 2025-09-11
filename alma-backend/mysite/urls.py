@@ -23,7 +23,7 @@ def healthcheck(request):
     return HttpResponse("OK")
 
 urlpatterns = [
-    path("", healthcheck),  # <-- ruta raíz para Railway
+    path("health/", healthcheck),  # <-- ruta raíz para Railway
     path('admin/', admin.site.urls),
     path('api/auth/', include('inicio.urls')),  # Para las rutas de autenticación
     path('api/auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # Nueva ruta

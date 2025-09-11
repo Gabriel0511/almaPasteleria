@@ -24,10 +24,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-!vi^=py4le@1ylvzhz$pow$abh5fs#lnllj!s7y_^)%j)e9^f%'
-
-# SECURITY WARNING: don't run with debug turned on in production!
+# Cambia la SECRET_KEY para usar variables de entorno
+SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
+
+# Configuración más segura para production
+if not DEBUG:
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 año
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# SECURITY WARNING: don't run with debug turned on in production!
 
 ALLOWED_HOSTS = ['*']  # solo para test
 
@@ -91,6 +101,7 @@ MIDDLEWARE = [
 
 CORS_ALLOWED_ORIGINS = [
     "https://almapasteleria-production.up.railway.app/",
+    "https://fascinating-cannoli-25b9bb.netlify.app",
     "http://localhost:8080",  # O el puerto que uses en Vue
     "http://127.0.0.1:8080",
     "http://localhost:5173",
