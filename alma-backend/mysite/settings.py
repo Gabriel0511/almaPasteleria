@@ -88,10 +88,10 @@ SIMPLE_JWT = {
 }
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # <--- agregado
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',  # CorsMiddleware debe estar antes de CommonMiddleware
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -100,10 +100,10 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    "https://almapasteleria-production.up.railway.app/",
+    "https://almapasteleria-production.up.railway.app",
     "https://fascinating-cannoli-25b9bb.netlify.app",
-    "http://localhost:8080",  # O el puerto que uses en Vue
-    "http://127.0.0.1:8080",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080", 
     "http://localhost:5173",
 ]
 
