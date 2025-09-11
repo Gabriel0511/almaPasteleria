@@ -160,6 +160,35 @@ class CategoriaInsumoCreateAPIView(generics.CreateAPIView):
             status=status.HTTP_201_CREATED,
             headers=headers
         )
+    
+class UnidadMedidaCreateAPIView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = UnidadMedida.objects.all()
+    serializer_class = UnidadMedidaSerializer
+
+    def create(self, request, *args, **kwargs):
+        # Validar si ya existe una unidadMedida con el mismo nombre
+        nombre = request.data.get('nombre', '').strip()
+        if UnidadMedida.objects.filter(nombre__iexact=nombre).exists():
+            return Response(
+                {
+                    'error': 'Ya existe una unidad con este nombre'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            {
+                'message': 'Unidad de Medida creada exitosamente',
+                'categoria': serializer.data
+            },
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
 
 class InsumoHardDeleteAPIView(generics.DestroyAPIView):
     permission_classes = [IsAuthenticated]

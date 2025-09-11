@@ -157,7 +157,8 @@
 
           <div class="form-group">
             <label>Unidad de Medida:</label>
-            <select
+            <div class="cliente-select-container">
+              <select
               v-model="formInsumo.unidad_medida_id"
               required
               class="form-input"
@@ -171,6 +172,15 @@
                 {{ unidad.nombre }} ({{ unidad.abreviatura }})
               </option>
             </select>
+            <button
+                type="button"
+                class="btn-agregar-cliente"
+                @click="showNuevaUnidadDeMedidaModal = true"
+                title="Agregar nueva categoría"
+              >
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
           </div>
 
           <div class="form-group">
@@ -425,6 +435,55 @@
       </div>
     </div>
 
+    <!-- Modal para Nueva Unidad medida -->
+    <div v-if="showNuevaUnidadDeMedidaModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Nueva Unidad de Medida</h3>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre:</label>
+            <input
+              v-model="formUnidad.nombre"
+              type="text"
+              required
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>abreviatura:</label>
+            <input
+              v-model="formUnidad.abreviatura"
+              type="text"
+              required
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Descripción:</label>
+            <textarea
+              v-model="formUnidad.descripcion"
+              class="form-input"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button
+            @click="showNuevaUnidadDeMedidaModal = false"
+            class="cancel-button"
+          >
+            Cancelar
+          </button>
+          <button @click="guardarUnidadDeMedida" class="confirm-button">
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal de confirmación para eliminar -->
     <div v-if="showConfirmModal" class="modal-overlay">
       <div class="modal-content">
@@ -502,6 +561,7 @@ const showModalCompra = ref(false);
 const showNuevoProveedorModal = ref(false);
 const showConfirmModal = ref(false);
 const showNuevaCategoriaModal = ref(false);
+const showNuevaUnidadDeMedidaModal = ref(false);
 
 // Formularios
 const formInsumo = ref({
@@ -532,6 +592,13 @@ const formProveedor = ref({
 const formCategoria = ref({
   nombre: "",
   descripcion: "",
+});
+
+// Agregar formulario para categoría
+const formUnidad = ref({
+  nombre: "",
+  abreviatura: "",
+  descripcion:"",
 });
 
 const esEdicion = ref(false);
@@ -628,10 +695,45 @@ const guardarCategoria = async () => {
     alert("Categoría creada correctamente");
   } catch (error) {
     console.error("Error al guardar categoría:", error);
-    if (error.response?.status === 400 && error.response?.data?.nombre) {
-      alert("Ya existe una categoría con ese nombre");
-    } else {
+    if (error.response?.status === 400 && error.response?.data?.error) {
+      alert(error.response.data.error);
+      resetFormCategoria();
+    }
+    else {
       alert("Error al guardar la categoría");
+      resetFormCategoria();
+    }
+  }
+};
+
+// Método para guardar unidad de medida
+const guardarUnidadDeMedida = async () => {
+  try {
+    if (!formUnidad.value.nombre) {
+      alert("El nombre de la unidad es requerido");
+      return;
+    }
+
+    const response = await axios.post(
+      "/api/unidades-medida/crear/",
+      formUnidad.value
+    );
+
+    // Actualizar lista de unidades
+    await fetchUnidadesMedida();
+
+    showNuevaUnidadDeMedidaModal.value = false;
+    resetFormUnidad();
+    alert("Unidad de Medida creada correctamente");
+  } catch (error) {
+    console.error("Error al guardar la unidad de medida:", error);
+    if (error.response?.status === 400 && error.response?.data?.error) {
+      alert(error.response.data.error);
+      resetFormUnidad();
+    }
+    else {
+      alert("Error al guardar la categoría");
+      resetFormUnidad();
     }
   }
 };
@@ -640,6 +742,15 @@ const guardarCategoria = async () => {
 const resetFormCategoria = () => {
   formCategoria.value = {
     nombre: "",
+    descripcion: "",
+  };
+};
+
+// Resetear formulario de unidad
+const resetFormUnidad = () => {
+  formUnidad.value = {
+    nombre: "",
+    abreviatura:"",
     descripcion: "",
   };
 };
@@ -772,8 +883,14 @@ const guardarInsumo = async () => {
         : "Insumo creado correctamente"
     );
   } catch (error) {
-    console.error("Error completo al guardar insumo:", error);
-    alert("Error al guardar el insumo");
+    if (error.response?.status === 400 && error.response?.data?.error) {
+      alert(error.response.data.error);
+      resetFormInsumo();
+    }
+    else {
+      alert("Error al guardar el insumo");
+      resetFormInsumo();
+    }
   }
 };
 
@@ -858,8 +975,10 @@ const guardarProveedor = async () => {
     console.error("Error al guardar proveedor:", error);
     if (error.response?.status === 400 && error.response?.data?.error) {
       alert(error.response.data.error);
+      resetFormProveedor();
     } else {
       alert("Error al guardar el proveedor");
+      resetFormProveedor();
     }
   }
 };
