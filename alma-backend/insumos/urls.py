@@ -1,7 +1,7 @@
 # urls.py - Versión actualizada
 from django.urls import path
 from . import views
-from .views import UnidadMedidaListAPIView, UnidadMedidaDetailAPIView, CategoriaInsumoListAPIView, ProveedorListAPIView, ProveedorCreateAPIView, CategoriaInsumoCreateAPIView
+from .views import UnidadMedidaListAPIView, UnidadMedidaDetailAPIView, UnidadMedidaCreateAPIView , CategoriaInsumoListAPIView, ProveedorListAPIView, ProveedorCreateAPIView, CategoriaInsumoCreateAPIView
 
 urlpatterns = [
     # GET - Listar todos los insumos
@@ -25,11 +25,16 @@ urlpatterns = [
 
     path('unidades-medida/', UnidadMedidaListAPIView.as_view(), name='unidades-medida-list'),
     path('unidades-medida/<int:pk>/', UnidadMedidaDetailAPIView.as_view(), name='unidades-medida-detail'),
-    
+    path('unidades-medida/crear/', UnidadMedidaCreateAPIView.as_view(), name='unidades-medidas-create'),
+
     # Rutas para categorías
     path('categorias/', CategoriaInsumoListAPIView.as_view(), name='categorias-list'),
     path('categorias/crear/', CategoriaInsumoCreateAPIView.as_view(), name='categorias-create'),
     
+ # Rutas para Unidad Mediad
+    path('Unidades/', CategoriaInsumoListAPIView.as_view(), name='categorias-list'),
+    path('categorias/crear/', CategoriaInsumoCreateAPIView.as_view(), name='categorias-create'),
+
     # Rutas para proveedores - CORREGIDAS
     path('proveedores/', ProveedorListAPIView.as_view(), name='proveedores-list'),
     path('proveedores/crear/', ProveedorCreateAPIView.as_view(), name='proveedores-create'),
