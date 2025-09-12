@@ -140,7 +140,11 @@ from decouple import config
 DATABASE_URL = config('DATABASE_URL')
 
 DATABASES = {
-    'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=os.environ.get('DJANGO_ENV') == 'production'
+    )
 }
 
 # Password validation
