@@ -14,6 +14,8 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse
@@ -31,3 +33,6 @@ urlpatterns = [
     path('api/', include('recetas.urls')),# Para las rutas de insumos
     path('api/', include('pedidos.urls')),# Para las rutas de insumos
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
