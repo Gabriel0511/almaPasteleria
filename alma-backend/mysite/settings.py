@@ -100,7 +100,7 @@ MIDDLEWARE = [
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 CORS_ALLOWED_ORIGINS = [
-    "https://almapasteleria-production.up.railway.app",
+    "https://almapasteleria-production-a6ba.up.railway.app",
     "https://fascinating-cannoli-25b9bb.netlify.app",
     "http://localhost:8080",
     "http://127.0.0.1:8080", 
