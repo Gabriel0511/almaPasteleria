@@ -88,7 +88,7 @@ SIMPLE_JWT = {
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # <--- agregado
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -135,15 +135,24 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 import dj_database_url
 from decouple import config
 
-DATABASE_URL = config('DATABASE_URL')
-
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=os.environ.get('DJANGO_ENV') == 'production'
-    )
-}
+# Configuración para desarrollo y producción
+if DEBUG:
+    # Base de datos local para desarrollo
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else:
+    # Base de datos de Railway para producción
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.getenv('DATABASE_URL'),
+            conn_max_age=600,
+            ssl_require=True
+        )
+    }
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -178,8 +187,18 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
+# Static files configuration
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Agrega esto para desarrollo local
+if DEBUG:
+    STATICFILES_DIRS = [
+        os.path.join(BASE_DIR, 'static'),
+    ]
+else:
+    # Configuración para producción
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
