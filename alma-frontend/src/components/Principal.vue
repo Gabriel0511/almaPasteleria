@@ -40,6 +40,7 @@
 
           <!-- Cards del medio -->
           <div class="middle-cards">
+            <!-- Card de Entregar Hoy -->
             <div class="card tasks">
               <h3 class="card-title">Entregar Hoy</h3>
               <div v-if="entregarHoy.length === 0" class="empty-state">
@@ -51,18 +52,19 @@
                   " />
                 <strong>{{ task.nombre }}</strong>
                 <span class="pedido-info">
-                  - Estado: {{ task.estado }} -
-                  <span v-for="detalle in task.detalles" :key="detalle.id">
-                    {{ detalle.receta.nombre }} (x{{ detalle.cantidad }})
+                  - Estado: {{ task.estado }} - 
+                  <span v-for="(detalle, index) in task.detalles" :key="detalle.id">
+                    {{ index > 0 ? ', ' : '' }}{{ detalle.receta.nombre }} (x{{ detalle.cantidad }})
                   </span>
                 </span>
               </label>
             </div>
 
+            <!-- Card de Hacer Hoy -->
             <div class="card tasks">
-              <h3 class="card-title">Hacer Hoy</h3>
+              <h3 class="card-title">Hacer Hoy (Próximos 3 días)</h3>
               <div v-if="hacerHoy.length === 0" class="empty-state">
-                No hay pedidos para fabricar hoy
+                No hay pedidos para los próximos 3 días
               </div>
               <label v-for="task in hacerHoy" :key="task.id">
                 <input type="checkbox" :checked="task.estado === 'en preparación'" @change="
@@ -70,10 +72,9 @@
                   " />
                 <strong>{{ task.nombre }}</strong>
                 <span class="pedido-info">
-                  - Estado: {{ task.estado }} - Entrega:
-                  {{ formatDate(task.fecha_entrega) }} -
-                  <span v-for="detalle in task.detalles" :key="detalle.id">
-                    {{ detalle.receta.nombre }} (x{{ detalle.cantidad }})
+                  - Entrega: {{ formatDate(task.fecha_entrega) }} - Estado: {{ task.estado }} - 
+                  <span v-for="(detalle, index) in task.detalles" :key="detalle.id">
+                    {{ index > 0 ? ', ' : '' }}{{ detalle.receta.nombre }} (x{{ detalle.cantidad }})
                   </span>
                 </span>
               </label>
@@ -471,9 +472,12 @@ const fetchRecetas = async () => {
     loadingRecetas.value = false;
   }
 };
+
 const fetchPedidos = async () => {
   try {
     const response = await axios.get("/api/pedidos/hoy/");
+    
+    // Para "Entregar Hoy" - pedidos con fecha_entrega = hoy
     entregarHoy.value = response.data.entregar_hoy.map((pedido) => ({
       id: pedido.id,
       nombre: pedido.cliente.nombre,
@@ -483,6 +487,7 @@ const fetchPedidos = async () => {
       fecha_entrega: pedido.fecha_entrega,
     }));
 
+    // Para "Hacer Hoy" - pedidos con fecha_entrega en próximos 3 días
     hacerHoy.value = response.data.hacer_hoy.map((pedido) => ({
       id: pedido.id,
       nombre: pedido.cliente.nombre,
