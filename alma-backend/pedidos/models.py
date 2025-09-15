@@ -29,11 +29,8 @@ class Pedido(models.Model):
     fecha_fabricacion = models.DateField(blank=True, null=True)
     estado = models.CharField(max_length=20, choices=ESTADO_PEDIDO, default='pendiente')
 
-    def save(self, *args, **kwargs):
-        # Si no se cargó fecha de fabricación manualmente, la calculamos automáticamente
-        if self.fecha_entrega and not self.fecha_fabricacion:
-            self.fecha_fabricacion = self.fecha_entrega - timedelta(days=3)
-        super().save(*args, **kwargs)
+    # ELIMINAR el método save() - Dejar que Django maneje el guardado normal
+    # La lógica de fecha_fabricacion se puede manejar en el serializer
 
     def __str__(self):
         return f"Pedido #{self.id} - {self.cliente.nombre}"
