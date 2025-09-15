@@ -62,6 +62,17 @@ class PedidoListCreateAPIView(generics.ListCreateAPIView):
         if self.request.method == 'GET':
             return PedidoReadSerializer
         return PedidoWriteSerializer
+    
+    def perform_create(self, serializer):
+        # Guardar la fecha exacta como viene del frontend
+        fecha_entrega_str = self.request.data.get('fecha_entrega')
+        if fecha_entrega_str:
+            # Parsear la fecha sin conversión de zona horaria
+            from datetime import datetime
+            fecha_entrega = datetime.strptime(fecha_entrega_str, '%Y-%m-%d').date()
+            serializer.save(fecha_entrega=fecha_entrega)
+        else:
+            serializer.save()
 
 class PedidoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Pedido.objects.all()
