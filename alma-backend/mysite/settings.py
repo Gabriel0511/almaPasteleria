@@ -183,11 +183,14 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+# Configura la zona horaria correcta para Argentina
+TIME_ZONE = 'America/Argentina/Buenos_Aires'
 
-TIME_ZONE = 'America/Argentina/Buenos_Aires'  # Ajusta según tu zona
+# Usa timezone-aware datetime
 USE_TZ = True
-USE_L10N = True
+
+# Idioma
+LANGUAGE_CODE = 'es-ar'
 
 
 # Static files (CSS, JavaScript, Images)

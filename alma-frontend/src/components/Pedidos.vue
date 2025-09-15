@@ -777,7 +777,7 @@ const logout = async () => {
 
 const formatFecha = (fecha) => {
   if (!fecha) return "";
-  return new Date(fecha).toLocaleDateString("es-ES");
+  return new Date(fecha).toLocaleDateString("es-AR");
 };
 
 const calcularPrecioReceta = (detalle) => {
