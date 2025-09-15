@@ -66,7 +66,7 @@ axios.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-axios.defaults.baseURL = "http://localhost:8000/";
+axios.defaults.baseURL = "https://almapasteleria-production-a6ba.up.railway.app/";
 // En main.js, después de configurar axios.defaults.baseURL
 const token = localStorage.getItem("access_token");
 if (token) {
