@@ -777,7 +777,35 @@ const logout = async () => {
 
 const formatFecha = (fecha) => {
   if (!fecha) return "";
-  return new Date(fecha).toLocaleDateString("es-AR");
+
+  // Crear fecha en la zona horaria local
+  const fechaLocal = new Date(fecha);
+
+  // Ajustar para compensar el offset de zona horaria
+  const fechaAjustada = new Date(
+    fechaLocal.getTime() + fechaLocal.getTimezoneOffset() * 60000
+  );
+
+  return fechaAjustada.toLocaleDateString("es-AR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+};
+
+// Función para enviar fechas al backend correctamente
+const formatFechaParaBackend = (fechaInput) => {
+  if (!fechaInput) return "";
+
+  // Crear fecha en la zona horaria local
+  const fecha = new Date(fechaInput);
+
+  // Ajustar para que se guarde como UTC pero representando la fecha local correcta
+  const fechaAjustada = new Date(
+    fecha.getTime() - fecha.getTimezoneOffset() * 60000
+  );
+
+  return fechaAjustada.toISOString().split("T")[0];
 };
 
 const calcularPrecioReceta = (detalle) => {
