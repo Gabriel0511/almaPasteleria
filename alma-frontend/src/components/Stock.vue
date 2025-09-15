@@ -1460,76 +1460,21 @@ onMounted(() => {
 }
 
 /* ----------------------------- RESPONSIVE ----------------------------- */
-@media (max-width: 1024px) {
-  .header-section {
-    flex-wrap: wrap;
-    gap: 15px;
-  }
-
-  .filtros-derecha {
-    width: 100%;
-    justify-content: flex-start;
-    margin-top: 15px;
-  }
-}
-
 @media (max-width: 768px) {
-  .header-section {
+  .filtros-derecha {
     flex-direction: column;
     align-items: stretch;
-    gap: 15px;
-  }
-
-  .header-left {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-    width: 100%;
-  }
-
-  .filtros-derecha {
-    flex-direction: column;
-    width: 100%;
-    gap: 10px;
-  }
-
-  .filtro-group {
-    width: 100%;
-  }
-
-  .filtro-input,
-  .filtro-select {
-    width: 100%;
-  }
-
-  .botones-acciones {
-    width: 100%;
-    justify-content: flex-start;
-    flex-wrap: wrap;
   }
 
   .pedido-header {
     flex-direction: column;
+    align-items: flex-start;
   }
 
   .pedido-acciones {
     align-self: flex-end;
-    margin-top: 10px;
   }
 
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
-@media (max-width: 480px) {
-  .botones-acciones {
-    flex-direction: column;
-  }
-
-  .btn-nuevo-pedido {
-    width: 100%;
-    justify-content: center;
-  }
-}
 </style>
