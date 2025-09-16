@@ -9,16 +9,18 @@
         @openPasswordModal="showPasswordModal = true"
         @logout="logout"
       />
+
       <main class="main-content">
+        <!-- Sección de filtros y nuevo pedido -->
         <section class="content pedidos-content">
           <h3 class="card-title1">Gestión de Pedidos</h3>
+
           <div class="botones-acciones">
             <button class="btn-nuevo-pedido" @click="showNuevoPedidoModal">
               <i class="fas fa-plus"></i> Nuevo Pedido
             </button>
           </div>
 
-          <!-- Filtros de pedidos alineados a la derecha -->
           <div class="filtros-derecha">
             <div class="filtro-group">
               <input
@@ -72,23 +74,25 @@
               <div class="pedido-header">
                 <div class="pedido-info">
                   <span class="cliente-container">
-                    <span class="cliente-nombre"
-                      >{{ pedido.cliente.nombre }}
+                    <span class="cliente-nombre">
+                      {{ pedido.cliente.nombre }}
                       <span
                         class="pedido-estado"
                         :class="pedido.estado.toLowerCase()"
-                        >({{ pedido.estado }})</span
                       >
+                        ({{ pedido.estado }})
+                      </span>
                     </span>
                     <span class="pedido-fechas">
                       Pedido: {{ formatFecha(pedido.fecha_pedido) }} | Entrega:
                       {{ formatFecha(pedido.fecha_entrega) }}
                     </span>
-                    <span class="pedido-total"
-                      >Total: ${{ calcularTotalPedido(pedido) }}</span
-                    >
+                    <span class="pedido-total">
+                      Total: ${{ calcularTotalPedido(pedido) }}
+                    </span>
                   </span>
                 </div>
+
                 <div class="pedido-acciones">
                   <button
                     class="btn-accion"
@@ -107,7 +111,7 @@
                 </div>
               </div>
 
-              <!-- Botón para agregar receta al pedido (solo si no está entregado) -->
+              <!-- Botón para agregar receta -->
               <div
                 class="agregar-receta-container"
                 v-if="pedido.estado !== 'entregado'"
@@ -137,12 +141,13 @@
                   class="receta-item"
                 >
                   <div class="receta-header" @click="toggleReceta(detalle.id)">
-                    <span class="receta-nombre"
-                      >{{ detalle.receta.nombre }} x{{ detalle.cantidad }}</span
-                    >
-                    <span class="receta-precio"
-                      >${{ calcularPrecioReceta(detalle) }}</span
-                    >
+                    <span class="receta-nombre">
+                      {{ detalle.receta.nombre }} x{{ detalle.cantidad }}
+                    </span>
+                    <span class="receta-precio">
+                      ${{ calcularPrecioReceta(detalle) }}
+                    </span>
+
                     <div class="receta-header-acciones">
                       <template v-if="pedido.estado !== 'entregado'">
                         <button
@@ -194,12 +199,12 @@
                         :key="ingrediente.id"
                         class="ingrediente-extra"
                       >
-                        <span
-                          >{{ ingrediente.insumo.nombre }}:
+                        <span>
+                          {{ ingrediente.insumo.nombre }}:
                           {{ ingrediente.cantidad }}
-                          {{ ingrediente.unidad_medida.abreviatura }}</span
-                        >
-                        <!-- Ocultar botones para pedidos entregados -->
+                          {{ ingrediente.unidad_medida.abreviatura }}
+                        </span>
+
                         <div
                           class="ingrediente-acciones"
                           v-if="pedido.estado !== 'entregado'"
@@ -246,7 +251,9 @@
       </main>
     </div>
 
-    <!-- Modal para Agregar/Editar Receta al Pedido -->
+    <!-- MODALES -->
+
+    <!-- Modal Agregar/Editar Receta al Pedido -->
     <div v-if="showModalReceta" class="modal-overlay">
       <div class="modal-content">
         <h3>
@@ -256,102 +263,27 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Receta:</label>
-            <select
-              v-model="formDetalle.receta_id"
-              required
-              class="form-input"
-              :disabled="esEdicionReceta"
-            >
-              <option value="">Seleccione una receta</option>
-              <option
-                v-for="receta in recetas"
-                :key="receta.id"
-                :value="receta.id"
-              >
-                {{ receta.nombre }}
-              </option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Cantidad:</label>
-            <input
-              v-model="formDetalle.cantidad"
-              type="number"
-              min="1"
-              required
-              class="form-input"
-            />
-          </div>
-
-          <div class="form-group full-width">
-            <label>Observaciones:</label>
-            <textarea
-              v-model="formDetalle.observaciones"
-              class="form-input"
-              rows="3"
-            ></textarea>
-          </div>
-        </div>
-
-        <div class="modal-buttons">
-          <button @click="closeModal" class="cancel-button">Cancelar</button>
-          <button @click="guardarDetalle" class="confirm-button">
-            {{ esEdicionReceta ? "Actualizar" : "Agregar" }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal de confirmación para eliminar receta -->
-    <div v-if="showConfirmModalReceta" class="modal-overlay">
-      <div class="modal-content">
-        <h3>Confirmar Eliminación</h3>
-        <p>
-          ¿Está seguro de que desea eliminar la receta "{{
-            recetaAEliminar?.receta?.nombre
-          }}" del pedido?
-        </p>
-
-        <div class="modal-buttons">
-          <button @click="showConfirmModalReceta = false" class="cancel-button">
-            Cancelar
-          </button>
-          <button @click="eliminarReceta" class="confirm-button">
-            Eliminar
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal para Nuevo/Editar Pedido -->
-    <div v-if="showModalPedido" class="modal-overlay">
-      <div class="modal-content">
-        <h3>{{ esEdicionPedido ? "Editar Pedido" : "Nuevo Pedido" }}</h3>
-
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Cliente:</label>
-            <div class="cliente-select-container">
+            <div class="select-with-button">
               <select
-                v-model="formPedido.cliente_id"
+                v-model="formDetalle.receta_id"
                 required
                 class="form-input"
+                :disabled="esEdicionReceta"
               >
-                <option value="">Seleccione un cliente</option>
+                <option value="">Seleccione una receta</option>
                 <option
-                  v-for="cliente in clientes"
-                  :key="cliente.id"
-                  :value="cliente.id"
+                  v-for="receta in recetas"
+                  :key="receta.id"
+                  :value="receta.id"
                 >
-                  {{ cliente.nombre }} - {{ cliente.telefono }}
+                  {{ receta.nombre }}
                 </option>
               </select>
               <button
                 type="button"
-                class="btn-agregar-cliente"
-                @click="showNuevoClienteModal = true"
-                title="Agregar nuevo cliente"
+                class="btn-agregar-nuevo"
+                @click="showNuevaRecetaModal = true"
+                title="Crear nueva receta"
               >
                 <i class="fas fa-plus"></i>
               </button>
@@ -359,115 +291,6 @@
           </div>
 
           <div class="form-group">
-            <label>Fecha de Pedido:</label>
-            <input
-              v-model="formPedido.fecha_pedido"
-              type="date"
-              required
-              class="form-input"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Fecha de Entrega:</label>
-            <input
-              v-model="formPedido.fecha_entrega"
-              type="date"
-              required
-              class="form-input"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Estado:</label>
-            <select v-model="formPedido.estado" required class="form-input">
-              <option
-                v-for="estado in estadosPedido"
-                :key="estado"
-                :value="estado"
-              >
-                {{ estado }}
-              </option>
-            </select>
-          </div>
-        </div>
-
-        <div class="modal-buttons">
-          <button @click="closeModal" class="cancel-button">Cancelar</button>
-          <button @click="guardarPedido" class="confirm-button">
-            {{ esEdicionPedido ? "Actualizar" : "Guardar" }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal para Nuevo Cliente -->
-    <div v-if="showNuevoClienteModal" class="modal-overlay">
-      <div class="modal-content">
-        <h3>Nuevo Cliente</h3>
-
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Nombre:</label>
-            <input
-              v-model="formCliente.nombre"
-              type="text"
-              required
-              class="form-input"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Teléfono:</label>
-            <input
-              v-model="formCliente.telefono"
-              type="text"
-              class="form-input"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Dirección:</label>
-            <input
-              v-model="formCliente.direccion"
-              type="text"
-              class="form-input"
-            />
-          </div>
-        </div>
-
-        <div class="modal-buttons">
-          <button @click="showNuevoClienteModal = false" class="cancel-button">
-            Cancelar
-          </button>
-          <button @click="guardarCliente" class="confirm-button">
-            Guardar
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal para Agregar/Editar Receta al Pedido -->
-    <div v-if="showModalReceta" class="modal-overlay">
-      <div class="modal-content">
-        <h3>{{ esEdicionReceta ? "Editar Receta" : "Agregar Receta" }}</h3>
-
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Receta:</label>
-            <select v-model="formDetalle.receta_id" required class="form-input">
-              <option value="">Seleccione una receta</option>
-              <option
-                v-for="receta in recetas"
-                :key="receta.id"
-                :value="receta.id"
-              >
-                {{ receta.nombre }}
-              </option>
-            </select>
-          </div>
-
-          <div class="form-group">
             <label>Cantidad:</label>
             <input
               v-model="formDetalle.cantidad"
@@ -492,6 +315,59 @@
           <button @click="closeModal" class="cancel-button">Cancelar</button>
           <button @click="guardarDetalle" class="confirm-button">
             {{ esEdicionReceta ? "Actualizar" : "Agregar" }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Nueva Receta -->
+    <div v-if="showNuevaRecetaModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Nueva Receta</h3>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre:</label>
+            <input
+              v-model="formReceta.nombre"
+              type="text"
+              required
+              class="form-input"
+              placeholder="Nombre de la receta"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Rinde:</label>
+            <input
+              v-model="formReceta.rinde"
+              type="number"
+              min="1"
+              required
+              class="form-input"
+              placeholder="Cantidad que rinde"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Unidad de Rinde:</label>
+            <select
+              v-model="formReceta.unidad_rinde"
+              required
+              class="form-input"
+            >
+              <option value="porciones">Porciones</option>
+              <option value="unidades">Unidades</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button @click="showNuevaRecetaModal = false" class="cancel-button">
+            Cancelar
+          </button>
+          <button @click="guardarNuevaReceta" class="confirm-button">
+            Guardar
           </button>
         </div>
       </div>
@@ -509,24 +385,35 @@
         </h3>
 
         <div class="form-grid">
+          <!-- Insumo con botón para agregar nuevo -->
           <div class="form-group">
             <label>Insumo:</label>
-            <select
-              v-model="formIngrediente.insumo_id"
-              required
-              class="form-input"
-            >
-              <option value="">Seleccione un insumo</option>
-              <option
-                v-for="insumo in insumos"
-                :key="insumo.id"
-                :value="insumo.id"
+            <div class="select-with-button">
+              <select
+                v-model="formIngrediente.insumo_id"
+                required
+                class="form-input"
               >
-                {{ insumo.nombre }} - ${{ insumo.precio_unitario }}/{{
-                  insumo.unidad_medida.abreviatura
-                }}
-              </option>
-            </select>
+                <option value="">Seleccione un insumo</option>
+                <option
+                  v-for="insumo in insumos"
+                  :key="insumo.id"
+                  :value="insumo.id"
+                >
+                  {{ insumo.nombre }} - ${{ insumo.precio_unitario }}/{{
+                    insumo.unidad_medida.abreviatura
+                  }}
+                </option>
+              </select>
+              <button
+                type="button"
+                class="btn-agregar-nuevo"
+                @click="showNuevoInsumoModal = true"
+                title="Crear nuevo insumo"
+              >
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
           </div>
 
           <div class="form-group">
@@ -535,27 +422,39 @@
               v-model="formIngrediente.cantidad"
               type="number"
               step="0.001"
+              min="0.001"
               required
               class="form-input"
             />
           </div>
 
+          <!-- Unidad de medida con botón para agregar nueva -->
           <div class="form-group">
             <label>Unidad de Medida:</label>
-            <select
-              v-model="formIngrediente.unidad_medida_id"
-              required
-              class="form-input"
-            >
-              <option value="">Seleccione una unidad</option>
-              <option
-                v-for="unidad in unidadesMedida"
-                :key="unidad.id"
-                :value="unidad.id"
+            <div class="select-with-button">
+              <select
+                v-model="formIngrediente.unidad_medida_id"
+                required
+                class="form-input"
               >
-                {{ unidad.nombre }} ({{ unidad.abreviatura }})
-              </option>
-            </select>
+                <option value="">Seleccione una unidad</option>
+                <option
+                  v-for="unidad in unidadesMedida"
+                  :key="unidad.id"
+                  :value="unidad.id"
+                >
+                  {{ unidad.nombre }} ({{ unidad.abreviatura }})
+                </option>
+              </select>
+              <button
+                type="button"
+                class="btn-agregar-nuevo"
+                @click="showNuevaUnidadModal = true"
+                title="Crear nueva unidad de medida"
+              >
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -563,6 +462,277 @@
           <button @click="closeModal" class="cancel-button">Cancelar</button>
           <button @click="guardarIngredienteExtra" class="confirm-button">
             {{ esEdicionIngrediente ? "Actualizar" : "Agregar" }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Nuevo Insumo -->
+    <div v-if="showNuevoInsumoModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Nuevo Insumo</h3>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre:</label>
+            <input
+              v-model="formInsumo.nombre"
+              type="text"
+              required
+              class="form-input"
+              placeholder="Nombre del insumo"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Categoría:</label>
+            <div class="cliente-select-container">
+              <select
+                v-model="formInsumo.categoria_id"
+                required
+                class="form-input"
+              >
+                <option value="">Seleccione una categoría</option>
+                <option v-for="cat in categorias" :key="cat.id" :value="cat.id">
+                  {{ cat.nombre }}
+                </option>
+              </select>
+              <button
+                type="button"
+                class="btn-agregar-cliente"
+                @click="showNuevaCategoriaModal = true"
+                title="Agregar nueva categoría"
+              >
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Unidad de Medida:</label>
+            <div class="cliente-select-container">
+              <select
+                v-model="formInsumo.unidad_medida_id"
+                required
+                class="form-input"
+              >
+                <option value="">Seleccione una unidad</option>
+                <option
+                  v-for="unidad in unidadesMedida"
+                  :key="unidad.id"
+                  :value="unidad.id"
+                >
+                  {{ unidad.nombre }} ({{ unidad.abreviatura }})
+                </option>
+              </select>
+              <button
+                type="button"
+                class="btn-agregar-cliente"
+                @click="showNuevaUnidadDeMedidaModal = true"
+                title="Agregar nueva categoría"
+              >
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Stock Mínimo:</label>
+            <input
+              v-model="formInsumo.stock_minimo"
+              type="number"
+              step="0.001"
+              required
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Precio Unitario:</label>
+            <input
+              v-model="formInsumo.precio_unitario"
+              type="number"
+              step="0.01"
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Proveedor:</label>
+            <div class="cliente-select-container">
+              <select v-model="formInsumo.proveedor_id" class="form-input">
+                <option value="">Seleccione un proveedor</option>
+                <option
+                  v-for="prov in proveedores"
+                  :key="prov.id"
+                  :value="prov.id"
+                >
+                  {{ prov.nombre }}
+                </option>
+              </select>
+              <button
+                type="button"
+                class="btn-agregar-cliente"
+                @click="showNuevoProveedorModal = true"
+                title="Agregar nuevo proveedor"
+              >
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button @click="showNuevoInsumoModal = false" class="cancel-button">
+            Cancelar
+          </button>
+          <button @click="guardarNuevoInsumo" class="confirm-button">
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Nueva Unidad de Medida -->
+    <div v-if="showNuevaUnidadModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Nueva Unidad de Medida</h3>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre:</label>
+            <input
+              v-model="formUnidadMedida.nombre"
+              type="text"
+              required
+              class="form-input"
+              placeholder="Nombre completo"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Abreviatura:</label>
+            <input
+              v-model="formUnidadMedida.abreviatura"
+              type="text"
+              required
+              class="form-input"
+              placeholder="Ej: kg, g, l, ml"
+              maxlength="10"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Descripción:</label>
+            <input
+              v-model="formUnidadMedida.descripcion"
+              type="text"
+              class="form-input"
+            />
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button @click="showNuevaUnidadModal = false" class="cancel-button">
+            Cancelar
+          </button>
+          <button @click="guardarNuevaUnidadMedida" class="confirm-button">
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Nueva Categoría -->
+    <div v-if="showNuevaCategoriaModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Nueva Categoría</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre:</label>
+            <input
+              v-model="formCategoria.nombre"
+              type="text"
+              required
+              class="form-input"
+              placeholder="Nombre de la categoría"
+            />
+          </div>
+          <div class="form-group">
+            <label>Descripción:</label>
+            <textarea
+              v-model="formCategoria.descripcion"
+              class="form-input"
+              rows="3"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-buttons">
+          <button
+            @click="showNuevaCategoriaModal = false"
+            class="cancel-button"
+          >
+            Cancelar
+          </button>
+          <button @click="guardarNuevaCategoria" class="confirm-button">
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Nuevo Proveedor -->
+    <div v-if="showNuevoProveedorModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Nuevo Proveedor</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre:</label>
+            <input
+              v-model="formProveedor.nombre"
+              type="text"
+              required
+              class="form-input"
+              placeholder="Nombre del proveedor"
+            />
+          </div>
+          <div class="form-group">
+            <label>Contacto:</label>
+            <input
+              v-model="formProveedor.contacto"
+              type="text"
+              class="form-input"
+              placeholder="Persona de contacto"
+            />
+          </div>
+          <div class="form-group">
+            <label>Teléfono:</label>
+            <input
+              v-model="formProveedor.telefono"
+              type="text"
+              class="form-input"
+              placeholder="Teléfono"
+            />
+          </div>
+          <div class="form-group">
+            <label>Email:</label>
+            <input
+              v-model="formProveedor.email"
+              type="email"
+              class="form-input"
+              placeholder="Email"
+            />
+          </div>
+        </div>
+        <div class="modal-buttons">
+          <button
+            @click="showNuevoProveedorModal = false"
+            class="cancel-button"
+          >
+            Cancelar
+          </button>
+          <button @click="guardarNuevoProveedor" class="confirm-button">
+            Guardar
           </button>
         </div>
       </div>
@@ -654,7 +824,9 @@ const pedidos = ref([]);
 const clientes = ref([]);
 const recetas = ref([]);
 const insumos = ref([]);
+const categorias = ref([]);
 const unidadesMedida = ref([]);
+const proveedores = ref([]);
 const estadoSeleccionado = ref("");
 const fechaSeleccionada = ref("");
 const searchTerm = ref("");
@@ -665,6 +837,12 @@ const detalleExpandido = ref({});
 const showModalPedido = ref(false);
 const showNuevoClienteModal = ref(false);
 const showModalReceta = ref(false);
+const showNuevoInsumoModal = ref(false);
+const showNuevaUnidadModal = ref(false);
+const showNuevaRecetaModal = ref(false);
+const showNuevaCategoriaModal = ref(false);
+const showNuevaUnidadDeMedidaModal = ref(false);
+const showNuevoProveedorModal = ref(false);
 const showModalIngrediente = ref(false);
 const showConfirmModalPedido = ref(false);
 const showConfirmModalIngrediente = ref(false);
@@ -699,6 +877,42 @@ const formIngrediente = ref({
   insumo_id: "",
   cantidad: 0,
   unidad_medida_id: "",
+});
+
+const formReceta = ref({
+  nombre: "",
+  rinde: 1,
+  unidad_rinde: "porciones",
+  costo_unitario: 0,
+  costo_total: 0,
+});
+
+const formInsumo = ref({
+  id: null,
+  nombre: "",
+  categoria_id: "",
+  unidad_medida_id: "",
+  stock_minimo: 0,
+  precio_unitario: null,
+  proveedor_id: null,
+});
+
+const formUnidadMedida = ref({
+  nombre: "",
+  abreviatura: "",
+  descripcion: "",
+});
+
+const formCategoria = ref({
+  nombre: "",
+  descripcion: "",
+});
+
+const formProveedor = ref({
+  nombre: "",
+  contacto: "",
+  telefono: "",
+  email: "",
 });
 
 const esEdicionPedido = ref(false);
@@ -934,6 +1148,176 @@ const guardarCliente = async () => {
   }
 };
 
+const guardarNuevaCategoria = async () => {
+  try {
+    if (!formCategoria.value.nombre) {
+      alert("El nombre de la categoría es requerido");
+      return;
+    }
+
+    const response = await axios.post(
+      "/api/categorias/crear/",
+      formCategoria.value
+    );
+
+    // Actualizar la lista de categorías
+    await fetchCategorias();
+
+    // Seleccionar automáticamente la nueva categoría
+    formInsumo.value.categoria_id = response.data.id;
+
+    showNuevaCategoriaModal.value = false;
+    formCategoria.value = { nombre: "", descripcion: "" };
+
+    alert("Categoría creada correctamente");
+  } catch (error) {
+    console.error("Error al guardar categoría:", error);
+    alert("Error al crear la categoría");
+  }
+};
+
+const guardarNuevoProveedor = async () => {
+  try {
+    if (!formProveedor.value.nombre) {
+      alert("El nombre del proveedor es requerido");
+      return;
+    }
+
+    const response = await axios.post(
+      "/api/proveedores/crear/",
+      formProveedor.value
+    );
+
+    // Actualizar la lista de proveedores
+    await fetchProveedores();
+
+    // Seleccionar automáticamente el nuevo proveedor
+    formInsumo.value.proveedor_id = response.data.id;
+
+    showNuevoProveedorModal.value = false;
+    formProveedor.value = { nombre: "", contacto: "", telefono: "", email: "" };
+
+    alert("Proveedor creado correctamente");
+  } catch (error) {
+    console.error("Error al guardar proveedor:", error);
+    alert("Error al crear el proveedor");
+  }
+};
+
+const guardarNuevoInsumo = async () => {
+  try {
+    if (!formInsumo.value.nombre) {
+      alert("El nombre del insumo es requerido");
+      return;
+    }
+    if (!formInsumo.value.unidad_medida_id) {
+      alert("La unidad de medida es requerida");
+      return;
+    }
+    if (!formInsumo.value.stock_minimo && formInsumo.value.stock_minimo !== 0) {
+      alert("El stock mínimo es requerido");
+      return;
+    }
+
+    // Preparar datos para enviar (sin el formateo complicado)
+    const datosParaEnviar = {
+      nombre: formInsumo.value.nombre,
+      categoria_id: formInsumo.value.categoria_id || null,
+      unidad_medida_id: formInsumo.value.unidad_medida_id,
+      stock_minimo: parseFloat(formInsumo.value.stock_minimo),
+      precio_unitario: formInsumo.value.precio_unitario
+        ? parseFloat(formInsumo.value.precio_unitario)
+        : null,
+      proveedor_id: formInsumo.value.proveedor_id || null,
+      stock_actual: 0, // Siempre empezar con stock 0 para nuevos insumos
+      activo: true,
+    };
+
+    // Solo para crear nuevo insumo (sin lógica de edición)
+    const response = await axios.post("/api/insumos/crear/", datosParaEnviar);
+
+    // Actualizar la lista de insumos
+    await fetchInsumos();
+
+    // Seleccionar automáticamente el nuevo insumo en el formulario de ingrediente
+    formIngrediente.value.insumo_id = response.data.id;
+
+    showNuevoInsumoModal.value = false;
+    resetFormInsumo();
+
+    alert("Insumo creado correctamente");
+  } catch (error) {
+    console.error("Error al guardar insumo:", error);
+
+    if (error.response?.status === 400 && error.response?.data?.error) {
+      alert(error.response.data.error);
+    } else {
+      alert("Error al crear el insumo");
+    }
+  }
+};
+
+const guardarNuevaUnidadMedida = async () => {
+  try {
+    if (!formUnidadMedida.value.nombre) {
+      alert("El nombre de la unidad es requerido");
+      return;
+    }
+    if (!formUnidadMedida.value.abreviatura) {
+      alert("La abreviatura es requerida");
+      return;
+    }
+
+    const response = await axios.post(
+      "/api/unidades-medida/crear/",
+      formUnidadMedida.value
+    );
+
+    // Actualizar la lista de unidades de medida
+    await fetchUnidadesMedida();
+
+    // Seleccionar automáticamente la nueva unidad
+    formIngrediente.value.unidad_medida_id = response.data.id;
+
+    showNuevaUnidadModal.value = false;
+    resetFormUnidadMedida();
+
+    alert("Unidad de medida creada correctamente");
+  } catch (error) {
+    console.error("Error al guardar unidad de medida:", error);
+    alert("Error al crear la unidad de medida");
+  }
+};
+
+const guardarNuevaReceta = async () => {
+  try {
+    if (!formReceta.value.nombre) {
+      alert("El nombre de la receta es requerido");
+      return;
+    }
+    if (!formReceta.value.rinde || formReceta.value.rinde <= 0) {
+      alert("El rinde debe ser mayor a 0");
+      return;
+    }
+
+    const response = await axios.post("/api/recetas/", formReceta.value);
+
+    // Actualizar la lista de recetas
+    await fetchRecetas();
+
+    // Seleccionar automáticamente la nueva receta
+    formDetalle.value.receta_id = response.data.id;
+
+    showNuevaRecetaModal.value = false;
+    resetFormReceta();
+
+    alert("Receta creada correctamente");
+  } catch (error) {
+    console.error("Error al guardar receta:", error);
+    alert("Error al crear la receta");
+  }
+};
+
 const showNuevoIngredienteModal = (detalle) => {
   const pedido = pedidos.value.find((p) =>
     p.detalles.some((d) => d.id === detalle.id)
@@ -1069,6 +1453,9 @@ const closeModal = () => {
   showNuevoClienteModal.value = false;
   showModalReceta.value = false;
   showModalIngrediente.value = false;
+  showNuevaRecetaModal.value = false;
+  showNuevoInsumoModal.value = false;
+  showNuevaUnidadModal.value = false;
   resetForms();
 };
 
@@ -1107,6 +1494,35 @@ const resetFormIngrediente = () => {
     insumo_id: "",
     cantidad: 0,
     unidad_medida_id: "",
+  };
+};
+
+const resetFormReceta = () => {
+  formReceta.value = {
+    nombre: "",
+    rinde: 1,
+    unidad_rinde: "porciones",
+    costo_unitario: 0,
+    costo_total: 0,
+  };
+};
+
+const resetFormInsumo = () => {
+  formInsumo.value = {
+    id: null,
+    nombre: "",
+    categoria_id: "",
+    unidad_medida_id: "",
+    stock_minimo: 0,
+    precio_unitario: null,
+    proveedor_id: null,
+  };
+};
+
+const resetFormUnidadMedida = () => {
+  formUnidadMedida.value = {
+    nombre: "",
+    abreviatura: "",
   };
 };
 
@@ -1231,6 +1647,9 @@ const resetForms = () => {
   resetFormCliente();
   resetFormDetalle();
   resetFormIngrediente();
+  resetFormReceta();
+  resetFormInsumo();
+  resetFormUnidadMedida();
   esEdicionPedido.value = false;
   esEdicionReceta.value = false;
   esEdicionIngrediente.value = false;
@@ -1251,6 +1670,24 @@ const fetchPedidos = async () => {
     if (err.response?.status === 401) {
       logout();
     }
+  }
+};
+
+const fetchCategorias = async () => {
+  try {
+    const response = await axios.get("/api/categorias/");
+    categorias.value = response.data;
+  } catch (err) {
+    console.error("Error en fetchCategorias:", err);
+  }
+};
+
+const fetchProveedores = async () => {
+  try {
+    const response = await axios.get("/api/proveedores/");
+    proveedores.value = response.data;
+  } catch (err) {
+    console.error("Error en fetchProveedores:", err);
   }
 };
 
@@ -1275,7 +1712,7 @@ const fetchRecetas = async () => {
 const fetchInsumos = async () => {
   try {
     const response = await axios.get("/api/insumos/");
-    insumos.value = response.data.insumos;
+    insumos.value = response.data.insumos || response.data;
   } catch (err) {
     console.error("Error en fetchInsumos:", err);
   }
@@ -1307,6 +1744,8 @@ onMounted(() => {
     fetchRecetas(),
     fetchInsumos(),
     fetchUnidadesMedida(),
+    fetchCategorias(),
+    fetchProveedores(),
   ]).catch((error) => {
     console.error("Error cargando datos:", error);
     loading.value = false;
@@ -1320,7 +1759,7 @@ onMounted(() => {
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
 
-/* ----------------------------- CONTENIDO Y CARDS ESPECÍFICOS ----------------------------- */
+/* ----------------------------- LAYOUT GENERAL ----------------------------- */
 .pedidos-content {
   display: flex;
   padding: 0 20px;
@@ -1349,7 +1788,7 @@ onMounted(() => {
   height: 38px;
 }
 
-/* BOTONES */
+/* ----------------------------- BOTONES GENERALES ----------------------------- */
 .botones-acciones {
   display: flex;
   gap: 10px;
@@ -1357,23 +1796,85 @@ onMounted(() => {
   margin-bottom: 25px;
 }
 
+.btn-nuevo-pedido,
+.btn-agregar-receta,
+.btn-agregar-ingrediente,
+.btn-agregar-cliente,
+.btn-agregar-nuevo {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: background-color 0.2s;
+}
+
 .btn-nuevo-pedido {
   background-color: #b8e6b8;
   color: #2b5d2b;
-  padding: 8px 15px;
   border: none;
   border-radius: 6px;
-  cursor: pointer;
   font-weight: bold;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  transition: background-color 0.2s;
+  padding: 8px 15px;
+  height: 38px;
+}
+.btn-nuevo-pedido:hover {
+  background-color: #a1dca1;
+}
+
+.btn-agregar-receta {
+  padding: 8px 15px;
+  border-radius: 6px;
+  font-weight: bold;
+}
+.btn-agregar-receta:hover,
+.btn-agregar-ingrediente:hover,
+.btn-agregar-cliente:hover,
+.btn-agregar-nuevo:hover {
+  background-color: #bbdefb;
+}
+
+.btn-agregar-ingrediente {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.btn-agregar-cliente,
+.btn-agregar-nuevo {
+  padding: 0 10px;
   height: 38px;
 }
 
-.btn-nuevo-pedido:hover {
-  background-color: #a1dca1;
+/* Botón de acción genérico */
+.btn-accion,
+.btn-accion-small {
+  background: none;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  color: #7b5a50;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.btn-accion:hover,
+.btn-accion-small:hover {
+  background-color: #f5f5f5;
+}
+
+/* Variante eliminar */
+.btn-eliminar {
+  color: #dc3545;
+  border-color: #f5c6cb;
+}
+.btn-eliminar:hover {
+  background-color: #f8d7da;
 }
 
 /* ----------------------------- CARD DE PEDIDOS ----------------------------- */
@@ -1423,22 +1924,18 @@ onMounted(() => {
   border-radius: 12px;
   font-weight: normal;
 }
-
 .pedido-estado.pendiente {
   background-color: #fff3cd;
   color: #856404;
 }
-
-.pedido-estado.enpreparación {
+.pedido-estado.en-preparacion {
   background-color: #d1ecf1;
   color: #0c5460;
 }
-
 .pedido-estado.entregado {
   background-color: #d4edda;
   color: #155724;
 }
-
 .pedido-estado.cancelado {
   background-color: #f8d7da;
   color: #721c24;
@@ -1459,18 +1956,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.btn-accion {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #7b5a50;
-  font-size: 16px;
-}
-
-.btn-accion:hover {
-  color: #5a3f36;
 }
 
 /* ----------------------------- RECETAS E INGREDIENTES ----------------------------- */
@@ -1496,12 +1981,17 @@ onMounted(() => {
   cursor: pointer;
 }
 
-.receta-nombre {
-  font-weight: bold;
+.receta-header-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
+.receta-nombre,
 .receta-precio {
   font-weight: bold;
+}
+.receta-precio {
   color: #2e7d32;
 }
 
@@ -1519,7 +2009,6 @@ onMounted(() => {
 .ingredientes-extras {
   margin-top: 10px;
 }
-
 .ingredientes-extras h4 {
   margin-bottom: 8px;
   font-size: 14px;
@@ -1539,112 +2028,16 @@ onMounted(() => {
   gap: 5px;
 }
 
-.btn-accion-small {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #7b5a50;
-  font-size: 12px;
-  padding: 2px 5px;
-}
-
-.btn-accion-small:hover {
-  color: #5a3f36;
-}
-
 .receta-acciones {
   margin-top: 10px;
   text-align: right;
 }
 
-.btn-agregar-ingrediente {
-  background-color: #e3f2fd;
-  color: #1565c0;
-  border: 1px solid #bbdefb;
-  padding: 5px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.btn-agregar-ingrediente:hover {
-  background-color: #bbdefb;
-}
-
-/* Nuevos estilos para el botón de agregar receta */
-.agregar-receta-container {
-  margin: 15px 0;
-  text-align: center;
-}
-
-.btn-agregar-receta {
-  background-color: #e3f2fd;
-  color: #1565c0;
-  border: 1px solid #bbdefb;
-  padding: 8px 15px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  transition: background-color 0.2s;
-}
-
-.btn-agregar-receta:hover {
-  background-color: #bbdefb;
-}
-
-/* Estilos para los botones de acción en recetas */
 .receta-acciones-superiores {
   display: flex;
   gap: 10px;
   margin-bottom: 10px;
   justify-content: flex-end;
-}
-
-.btn-accion-small {
-  background: none;
-  border: 1px solid #ddd;
-  cursor: pointer;
-  color: #7b5a50;
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.btn-accion-small:hover {
-  background-color: #f5f5f5;
-}
-
-.btn-eliminar {
-  color: #dc3545;
-  border-color: #f5c6cb;
-}
-
-.btn-eliminar:hover {
-  background-color: #f8d7da;
-}
-
-/* Ajustes para el modal de recetas */
-.modal-content {
-  max-width: 500px;
-}
-
-.form-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.form-group.full-width {
-  width: 100%;
 }
 
 /* ----------------------------- MODALES ----------------------------- */
@@ -1670,7 +2063,6 @@ onMounted(() => {
   max-height: 90vh;
   overflow-y: auto;
 }
-
 .modal-content h3 {
   margin-top: 0;
   margin-bottom: 20px;
@@ -1684,49 +2076,29 @@ onMounted(() => {
   gap: 15px;
   margin-bottom: 20px;
 }
-
 .form-group {
   display: flex;
   flex-direction: column;
   gap: 5px;
 }
-
 .form-group label {
   font-weight: bold;
   font-size: 14px;
   color: #333;
 }
-
 .form-input {
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 14px;
 }
-
 .form-group.full-width {
-  grid-column: 1 / -1;
+  width: 100%;
 }
 
 .cliente-select-container {
   display: flex;
   gap: 5px;
-}
-
-.btn-agregar-cliente {
-  background-color: #e3f2fd;
-  color: #1565c0;
-  border: 1px solid #bbdefb;
-  border-radius: 4px;
-  cursor: pointer;
-  padding: 0 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-agregar-cliente:hover {
-  background-color: #bbdefb;
 }
 
 .modal-buttons {
@@ -1735,7 +2107,6 @@ onMounted(() => {
   gap: 10px;
   margin-top: 20px;
 }
-
 .cancel-button {
   background-color: #f5f5f5;
   color: #333;
@@ -1744,7 +2115,6 @@ onMounted(() => {
   border-radius: 4px;
   cursor: pointer;
 }
-
 .cancel-button:hover {
   background-color: #e0e0e0;
 }
@@ -1758,69 +2128,16 @@ onMounted(() => {
   cursor: pointer;
   font-weight: bold;
 }
-
 .confirm-button:hover {
   background-color: #a1dca1;
 }
 
-/* Nuevos estilos para los botones de acción en el header de recetas */
-.receta-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px;
-  background-color: #f5f5f5;
-  cursor: pointer;
-}
-
-.receta-header-acciones {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.btn-accion-small {
-  background: none;
-  border: 1px solid #ddd;
-  cursor: pointer;
-  color: #7b5a50;
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.btn-accion-small:hover {
-  background-color: #f5f5f5;
-}
-
-.btn-eliminar {
-  color: #dc3545;
-  border-color: #f5c6cb;
-}
-
-.btn-eliminar:hover {
-  background-color: #f8d7da;
-}
-
-/* Prevenir que los clics en botones expandan/contraigan el acordeón */
-.receta-header-acciones button {
-  pointer-events: auto;
-}
-
-.receta-header-acciones i:last-child {
-  pointer-events: none;
-}
-
-/* Estilos para pedidos entregados */
+/* ----------------------------- ESTADOS Y VARIOS ----------------------------- */
 .pedido-entregado {
   background-color: #f8f9fa;
   border-color: #d1ecf1;
   opacity: 0.8;
 }
-
 .pedido-entregado .pedido-header {
   opacity: 0.7;
 }
@@ -1834,19 +2151,16 @@ onMounted(() => {
   text-align: center;
   font-weight: bold;
 }
-
 .pedido-entregado-mensaje i {
   margin-right: 8px;
 }
 
-/* Deshabilitar interacción en pedidos entregados */
 .pedido-entregado .btn-accion,
 .pedido-entregado .btn-agregar-receta,
 .pedido-entregado .btn-agregar-ingrediente {
   opacity: 0.5;
   cursor: not-allowed;
 }
-
 .pedido-entregado .btn-accion:hover,
 .pedido-entregado .btn-agregar-receta:hover,
 .pedido-entregado .btn-agregar-ingrediente:hover {
@@ -1854,20 +2168,12 @@ onMounted(() => {
   transform: none;
 }
 
-/* Estado específico para entregado */
-.pedido-estado.entregado {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-/* ----------------------------- ESTADOS ----------------------------- */
 .loading-state,
 .empty-state {
   text-align: center;
   padding: 40px 20px;
   color: #666;
 }
-
 .loading-state i {
   margin-right: 10px;
 }
@@ -1878,12 +2184,10 @@ onMounted(() => {
     flex-direction: column;
     align-items: stretch;
   }
-
   .pedido-header {
     flex-direction: column;
     align-items: flex-start;
   }
-
   .pedido-acciones {
     align-self: flex-end;
   }

@@ -159,20 +159,20 @@
             <label>Unidad de Medida:</label>
             <div class="cliente-select-container">
               <select
-              v-model="formInsumo.unidad_medida_id"
-              required
-              class="form-input"
-            >
-              <option value="">Seleccione una unidad</option>
-              <option
-                v-for="unidad in unidadesMedida"
-                :key="unidad.id"
-                :value="unidad.id"
+                v-model="formInsumo.unidad_medida_id"
+                required
+                class="form-input"
               >
-                {{ unidad.nombre }} ({{ unidad.abreviatura }})
-              </option>
-            </select>
-            <button
+                <option value="">Seleccione una unidad</option>
+                <option
+                  v-for="unidad in unidadesMedida"
+                  :key="unidad.id"
+                  :value="unidad.id"
+                >
+                  {{ unidad.nombre }} ({{ unidad.abreviatura }})
+                </option>
+              </select>
+              <button
                 type="button"
                 class="btn-agregar-cliente"
                 @click="showNuevaUnidadDeMedidaModal = true"
@@ -598,7 +598,7 @@ const formCategoria = ref({
 const formUnidad = ref({
   nombre: "",
   abreviatura: "",
-  descripcion:"",
+  descripcion: "",
 });
 
 const esEdicion = ref(false);
@@ -697,8 +697,7 @@ const guardarCategoria = async () => {
     if (error.response?.status === 400 && error.response?.data?.error) {
       alert(error.response.data.error);
       resetFormCategoria();
-    }
-    else {
+    } else {
       alert("Error al guardar la categoría");
       resetFormCategoria();
     }
@@ -710,6 +709,10 @@ const guardarUnidadDeMedida = async () => {
   try {
     if (!formUnidad.value.nombre) {
       alert("El nombre de la unidad es requerido");
+      return;
+    }
+    if (!formUnidad.value.abreviatura) {
+      alert("La abreviatura es requerida");
       return;
     }
 
@@ -729,8 +732,7 @@ const guardarUnidadDeMedida = async () => {
     if (error.response?.status === 400 && error.response?.data?.error) {
       alert(error.response.data.error);
       resetFormUnidad();
-    }
-    else {
+    } else {
       alert("Error al guardar la categoría");
       resetFormUnidad();
     }
@@ -749,7 +751,7 @@ const resetFormCategoria = () => {
 const resetFormUnidad = () => {
   formUnidad.value = {
     nombre: "",
-    abreviatura:"",
+    abreviatura: "",
     descripcion: "",
   };
 };
@@ -885,8 +887,7 @@ const guardarInsumo = async () => {
     if (error.response?.status === 400 && error.response?.data?.error) {
       alert(error.response.data.error);
       resetFormInsumo();
-    }
-    else {
+    } else {
       alert("Error al guardar el insumo");
       resetFormInsumo();
     }
@@ -1474,7 +1475,5 @@ onMounted(() => {
   .pedido-acciones {
     align-self: flex-end;
   }
-
 }
-
 </style>
