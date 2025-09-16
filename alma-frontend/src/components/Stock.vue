@@ -3,12 +3,7 @@
     <Sidebar @navigate="handleNavigation" />
 
     <div class="main-container">
-      <Header
-        :userEmail="userEmail"
-        title="Gestión de Stock"
-        @openPasswordModal="showPasswordModal = true"
-        @logout="logout"
-      />
+      <Header />
       <main class="main-content">
         <section class="content stock-content">
           <h3 class="card-title1">Gestión de Stock</h3>
@@ -505,32 +500,6 @@
       </div>
     </div>
 
-    <!-- Modal para cambiar contraseña -->
-    <div v-if="showPasswordModal" class="modal-overlay">
-      <div class="modal-content">
-        <h3>Cambiar contraseña</h3>
-        <div class="form-group">
-          <label>Contraseña actual:</label>
-          <input type="password" v-model="currentPassword" class="form-input" />
-        </div>
-        <div class="form-group">
-          <label>Nueva contraseña:</label>
-          <input type="password" v-model="newPassword" class="form-input" />
-        </div>
-        <div class="form-group">
-          <label>Repita la nueva contraseña:</label>
-          <input type="password" v-model="confirmPassword" class="form-input" />
-        </div>
-        <div class="modal-buttons">
-          <button @click="showPasswordModal = false" class="cancel-button">
-            Cancelar
-          </button>
-          <button @click="changePassword" class="confirm-button">
-            Aceptar
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -544,8 +513,6 @@ import axios from "axios";
 const router = useRouter();
 
 // Variables de estado
-const userEmail = ref("Usuario");
-const showPasswordModal = ref(false);
 const stock = ref([]);
 const insumos = ref([]);
 const categorias = ref([]);
@@ -1138,9 +1105,6 @@ onMounted(() => {
 
   // Cargar datos del usuario y stock
   Promise.all([
-    axios.get("/api/auth/perfil/").then((res) => {
-      userEmail.value = res.data.email || "Usuario";
-    }),
     fetchStock(),
     fetchInsumos(),
     fetchCategorias(),
