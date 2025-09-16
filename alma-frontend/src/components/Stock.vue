@@ -5,7 +5,7 @@
     <div class="main-container">
       <Header />
       <main class="main-content">
-        <section class="content stock-content">
+        <section class="stock-content">
           <h3 class="card-title1">Gestión de Stock</h3>
           <div class="botones-acciones">
             <button class="btn-nuevo-pedido" @click="showNuevoInsumoModal">
