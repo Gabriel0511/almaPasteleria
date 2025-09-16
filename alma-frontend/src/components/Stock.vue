@@ -19,12 +19,7 @@
           <!-- Filtros de stock alineados a la derecha -->
           <div class="filtros-derecha">
             <div class="filtro-group">
-              <input
-                type="text"
-                v-model="searchTerm"
-                placeholder="Buscar insumo..."
-                class="filtro-input"
-              />
+              <input type="text" v-model="searchTerm" placeholder="Buscar insumo..." class="filtro-input" />
             </div>
 
             <div class="filtro-group">
@@ -49,52 +44,30 @@
           </div>
 
           <div v-else class="pedidos-list">
-            <div
-              v-for="item in stockFiltrado"
-              :key="item.id"
-              class="pedido-item"
-              :class="{ 'bajo-stock': item.bajoStock }"
-            >
+            <div v-for="item in stockFiltrado" :key="item.id" class="pedido-item"
+              :class="{ 'bajo-stock': item.bajoStock }">
               <div class="pedido-header">
                 <div class="pedido-info">
                   <span class="insumo-container">
-                    <span class="insumo-nombre"
-                      >{{ item.nombre }}
-                      <span class="insumo-categoria"
-                        >({{ item.categoria }})</span
-                      >
+                    <span class="insumo-nombre">{{ item.nombre }}
+                      <span class="insumo-categoria">({{ item.categoria }})</span>
                     </span>
-                    <span class="insumo-cantidad"
-                      >{{ formatDecimal(item.cantidad) }}{{ item.unidad }}</span
-                    >
-                    <span class="insumo-precio" v-if="item.precio_unitario"
-                      >${{ formatDecimal(item.precio_unitario) }}/{{
+                    <span class="insumo-cantidad">{{ formatDecimal(item.cantidad) }}{{ item.unidad }}</span>
+                    <span class="insumo-precio" v-if="item.precio_unitario">${{ formatDecimal(item.precio_unitario)
+                    }}/{{
                         item.unidad
-                      }}</span
-                    >
+                      }}</span>
                     <span class="insumo-categoria">{{ item.proveedor }}</span>
                   </span>
                 </div>
                 <div class="pedido-acciones">
-                  <span
-                    class="estado-badge"
-                    :class="item.bajoStock ? 'bajo' : 'normal'"
-                    v-if="item.bajoStock"
-                  >
+                  <span class="estado-badge" :class="item.bajoStock ? 'bajo' : 'normal'" v-if="item.bajoStock">
                     Stock Bajo
                   </span>
-                  <button
-                    class="btn-accion"
-                    @click="editarInsumo(item)"
-                    title="Editar insumo"
-                  >
+                  <button class="btn-accion" @click="editarInsumo(item)" title="Editar insumo">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button
-                    class="btn-accion"
-                    @click="confirmarEliminarInsumo(item)"
-                    title="Eliminar insumo"
-                  >
+                  <button class="btn-accion" @click="confirmarEliminarInsumo(item)" title="Eliminar insumo">
                     <i class="fas fa-trash"></i>
                   </button>
                 </div>
@@ -118,33 +91,20 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre:</label>
-            <input
-              v-model="formInsumo.nombre"
-              type="text"
-              required
-              class="form-input"
-            />
+            <input v-model="formInsumo.nombre" type="text" required class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Categoría:</label>
             <div class="cliente-select-container">
-              <select
-                v-model="formInsumo.categoria_id"
-                required
-                class="form-input"
-              >
+              <select v-model="formInsumo.categoria_id" required class="form-input">
                 <option value="">Seleccione una categoría</option>
                 <option v-for="cat in categorias" :key="cat.id" :value="cat.id">
                   {{ cat.nombre }}
                 </option>
               </select>
-              <button
-                type="button"
-                class="btn-agregar-cliente"
-                @click="showNuevaCategoriaModal = true"
-                title="Agregar nueva categoría"
-              >
+              <button type="button" class="btn-agregar-cliente" @click="showNuevaCategoriaModal = true"
+                title="Agregar nueva categoría">
                 <i class="fas fa-plus"></i>
               </button>
             </div>
@@ -153,26 +113,14 @@
           <div class="form-group">
             <label>Unidad de Medida:</label>
             <div class="cliente-select-container">
-              <select
-                v-model="formInsumo.unidad_medida_id"
-                required
-                class="form-input"
-              >
+              <select v-model="formInsumo.unidad_medida_id" required class="form-input">
                 <option value="">Seleccione una unidad</option>
-                <option
-                  v-for="unidad in unidadesMedida"
-                  :key="unidad.id"
-                  :value="unidad.id"
-                >
+                <option v-for="unidad in unidadesMedida" :key="unidad.id" :value="unidad.id">
                   {{ unidad.nombre }} ({{ unidad.abreviatura }})
                 </option>
               </select>
-              <button
-                type="button"
-                class="btn-agregar-cliente"
-                @click="showNuevaUnidadDeMedidaModal = true"
-                title="Agregar nueva categoría"
-              >
+              <button type="button" class="btn-agregar-cliente" @click="showNuevaUnidadDeMedidaModal = true"
+                title="Agregar nueva categoría">
                 <i class="fas fa-plus"></i>
               </button>
             </div>
@@ -180,23 +128,12 @@
 
           <div class="form-group">
             <label>Stock Mínimo:</label>
-            <input
-              v-model="formInsumo.stock_minimo"
-              type="number"
-              step="0.001"
-              required
-              class="form-input"
-            />
+            <input v-model="formInsumo.stock_minimo" type="number" step="0.001" required class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Precio Unitario:</label>
-            <input
-              v-model="formInsumo.precio_unitario"
-              type="number"
-              step="0.01"
-              class="form-input"
-            />
+            <input v-model="formInsumo.precio_unitario" type="number" step="0.01" class="form-input" />
           </div>
 
           <div class="form-group">
@@ -204,20 +141,12 @@
             <div class="cliente-select-container">
               <select v-model="formInsumo.proveedor_id" class="form-input">
                 <option value="">Seleccione un proveedor</option>
-                <option
-                  v-for="prov in proveedores"
-                  :key="prov.id"
-                  :value="prov.id"
-                >
+                <option v-for="prov in proveedores" :key="prov.id" :value="prov.id">
                   {{ prov.nombre }}
                 </option>
               </select>
-              <button
-                type="button"
-                class="btn-agregar-cliente"
-                @click="showNuevoProveedorModal = true"
-                title="Agregar nuevo proveedor"
-              >
+              <button type="button" class="btn-agregar-cliente" @click="showNuevoProveedorModal = true"
+                title="Agregar nuevo proveedor">
                 <i class="fas fa-plus"></i>
               </button>
             </div>
@@ -241,18 +170,9 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Insumo:</label>
-            <select
-              v-model="formCompra.insumo_id"
-              required
-              class="form-input"
-              @change="actualizarUnidadMedida"
-            >
+            <select v-model="formCompra.insumo_id" required class="form-input" @change="actualizarUnidadMedida">
               <option value="">Seleccione un insumo</option>
-              <option
-                v-for="insumo in insumos"
-                :key="insumo.id"
-                :value="insumo.id"
-              >
+              <option v-for="insumo in insumos" :key="insumo.id" :value="insumo.id">
                 {{ insumo.nombre }} (Stock:
                 {{ formatDecimal(insumo.stock_actual) }}
                 {{ insumo.unidad_medida.abreviatura }})
@@ -262,71 +182,36 @@
 
           <div class="form-group">
             <label>Cantidad:</label>
-            <input
-              v-model="formCompra.cantidad"
-              type="number"
-              step="0.001"
-              required
-              class="form-input"
-            />
+            <input v-model="formCompra.cantidad" type="number" step="0.001" required class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Unidad de Medida:</label>
-            <input
-              :value="unidadCompra"
-              type="text"
-              disabled
-              class="form-input"
-            />
+            <input :value="unidadCompra" type="text" disabled class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Precio Total:</label>
-            <input
-              v-model="formCompra.precio_total"
-              type="number"
-              step="0.01"
-              required
-              class="form-input"
-              @input="calcularPrecioUnitario"
-            />
+            <input v-model="formCompra.precio_total" type="number" step="0.01" required class="form-input"
+              @input="calcularPrecioUnitario" />
           </div>
 
           <div class="form-group">
             <label>Precio Unitario:</label>
-            <input
-              :value="formCompra.precio_unitario"
-              type="number"
-              step="0.01"
-              disabled
-              class="form-input"
-            />
+            <input :value="formCompra.precio_unitario" type="number" step="0.01" disabled class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Proveedor:</label>
             <div class="cliente-select-container">
-              <select
-                v-model="formCompra.proveedor_id"
-                required
-                class="form-input"
-              >
+              <select v-model="formCompra.proveedor_id" required class="form-input">
                 <option value="">Seleccione un proveedor</option>
-                <option
-                  v-for="prov in proveedores"
-                  :key="prov.id"
-                  :value="prov.id"
-                >
+                <option v-for="prov in proveedores" :key="prov.id" :value="prov.id">
                   {{ prov.nombre }}
                 </option>
               </select>
-              <button
-                type="button"
-                class="btn-agregar-cliente"
-                @click="showNuevoProveedorModal = true"
-                title="Agregar nuevo proveedor"
-              >
+              <button type="button" class="btn-agregar-cliente" @click="showNuevoProveedorModal = true"
+                title="Agregar nuevo proveedor">
                 <i class="fas fa-plus"></i>
               </button>
             </div>
@@ -350,38 +235,22 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre:</label>
-            <input
-              v-model="formProveedor.nombre"
-              type="text"
-              required
-              class="form-input"
-            />
+            <input v-model="formProveedor.nombre" type="text" required class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Teléfono:</label>
-            <input
-              v-model="formProveedor.telefono"
-              type="text"
-              class="form-input"
-            />
+            <input v-model="formProveedor.telefono" type="text" class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Email:</label>
-            <input
-              v-model="formProveedor.email"
-              type="email"
-              class="form-input"
-            />
+            <input v-model="formProveedor.email" type="email" class="form-input" />
           </div>
         </div>
 
         <div class="modal-buttons">
-          <button
-            @click="showNuevoProveedorModal = false"
-            class="cancel-button"
-          >
+          <button @click="showNuevoProveedorModal = false" class="cancel-button">
             Cancelar
           </button>
           <button @click="guardarProveedor" class="confirm-button">
@@ -399,28 +268,17 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre:</label>
-            <input
-              v-model="formCategoria.nombre"
-              type="text"
-              required
-              class="form-input"
-            />
+            <input v-model="formCategoria.nombre" type="text" required class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Descripción:</label>
-            <textarea
-              v-model="formCategoria.descripcion"
-              class="form-input"
-            ></textarea>
+            <textarea v-model="formCategoria.descripcion" class="form-input"></textarea>
           </div>
         </div>
 
         <div class="modal-buttons">
-          <button
-            @click="showNuevaCategoriaModal = false"
-            class="cancel-button"
-          >
+          <button @click="showNuevaCategoriaModal = false" class="cancel-button">
             Cancelar
           </button>
           <button @click="guardarCategoria" class="confirm-button">
@@ -438,38 +296,22 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre:</label>
-            <input
-              v-model="formUnidad.nombre"
-              type="text"
-              required
-              class="form-input"
-            />
+            <input v-model="formUnidad.nombre" type="text" required class="form-input" />
           </div>
 
           <div class="form-group">
             <label>abreviatura:</label>
-            <input
-              v-model="formUnidad.abreviatura"
-              type="text"
-              required
-              class="form-input"
-            />
+            <input v-model="formUnidad.abreviatura" type="text" required class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Descripción:</label>
-            <textarea
-              v-model="formUnidad.descripcion"
-              class="form-input"
-            ></textarea>
+            <textarea v-model="formUnidad.descripcion" class="form-input"></textarea>
           </div>
         </div>
 
         <div class="modal-buttons">
-          <button
-            @click="showNuevaUnidadDeMedidaModal = false"
-            class="cancel-button"
-          >
+          <button @click="showNuevaUnidadDeMedidaModal = false" class="cancel-button">
             Cancelar
           </button>
           <button @click="guardarUnidadDeMedida" class="confirm-button">
@@ -917,7 +759,9 @@ const guardarInsumo = async () => {
       response = await axios.post("/api/insumos/crear/", datosParaEnviar);
     }
 
+    // Refrescar tanto stock como insumos
     await fetchStock();
+    await fetchInsumos();
     closeModal();
 
     notificationSystem.show({
@@ -999,6 +843,9 @@ const registrarCompra = async () => {
       `/api/insumos/${formCompra.value.insumo_id}/actualizar-parcial/`,
       datosActualizacion
     );
+    // Refrescar tanto stock como insumos
+    await fetchStock();
+    await fetchInsumos();
 
     console.log("Respuesta del servidor:", response.data);
 
@@ -1532,7 +1379,7 @@ onMounted(() => {
   /* Para que se ajuste en pantallas pequeñas */
 }
 
-.insumo-container > span {
+.insumo-container>span {
   white-space: nowrap;
   /* Evita que se rompan los textos */
 }
