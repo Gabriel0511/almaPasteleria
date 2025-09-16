@@ -957,6 +957,8 @@ const router = useRouter();
 const notificationSystem = inject("notifications");
 
 // Variables de estado
+const userEmail = ref("Usuario");
+const showPasswordModal = ref(false);
 const pedidos = ref([]);
 const clientes = ref([]);
 const recetas = ref([]);
@@ -1109,6 +1111,22 @@ const pedidosFiltrados = computed(() => {
 // Métodos
 const handleNavigation = (route) => {
   router.push(route);
+};
+
+const logout = async () => {
+  try {
+    const refreshToken = localStorage.getItem("refresh_token");
+    if (refreshToken) {
+      await axios.post("/api/auth/logout/", { refresh: refreshToken });
+    }
+  } catch (err) {
+    console.error("Error al cerrar sesión:", err.response?.data || err);
+  } finally {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    delete axios.defaults.headers.common["Authorization"];
+    router.push("/login");
+  }
 };
 
 const formatFecha = (fecha) => {
