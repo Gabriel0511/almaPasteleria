@@ -389,7 +389,6 @@ html,
   padding: 8px;
   padding-top: 2px;
   overflow-y: auto;
-  height: 100%;
 }
 
 .card h3 {
@@ -509,7 +508,7 @@ html,
   grid-template-columns: 1fr 0.8fr 1fr;
   grid-template-areas: "stock middle recetas";
   gap: 20px;
-  min-height: 100vh;
+  height: 100%;
 }
 
 /* ----------------------------- STOCK (ESPECÍFICO) ----------------------------- */
