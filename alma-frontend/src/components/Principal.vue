@@ -3,7 +3,7 @@
     <Sidebar @navigate="handleNavigation" />
 
     <div class="main-container">
-      <Header :userEmail="userEmail" title="Panel Principal" @openPasswordModal="showPasswordModal = true" @logout="logout" />
+       <Header/>
       <main class="main-content">
         <section class="content">
           <!-- Stock -->
@@ -141,15 +141,10 @@ import { onMounted, ref, computed, inject } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 import Sidebar from "./Sidebar.vue";
-import NotificationMenu from "./NotificationMenu.vue";
-import UserMenu from "./UserMenu.vue";
-import Header from "./Header.vue"; // Importa el nuevo componente
+import Header from "./Header.vue";
 
 const router = useRouter();
 const notificationSystem = inject('notifications');
-
-// AGREGAR esta variable para las notificaciones
-const notifications = ref([]); // Inicializar como array vacío
 
 const handleNavigation = (route) => {
   router.push(route);
@@ -157,7 +152,6 @@ const handleNavigation = (route) => {
 
 const categoriaSeleccionada = ref(""); // "" significa "Todas"
 const categoriasStock = computed(() => {
-  // Obtener categorías únicas
   const categorias = stock.value.map(item => item.categoria);
   return [...new Set(categorias)];
 });
@@ -167,26 +161,6 @@ const stockFiltradoPorCategoria = computed(() => {
   if (!categoriaSeleccionada.value) return stock.value; // todas
   return stock.value.filter(item => item.categoria === categoriaSeleccionada.value);
 });
-
-
-// ----------------------
-// 🔹 Estado del Menú y Usuario
-// ----------------------
-const menuItems = ref([
-  { text: "Inicio", icon: "fas fa-house", route: "/inicio" },
-  { text: "Stock", icon: "fas fa-box", route: "/stock" },
-  { text: "Pedidos", icon: "fas fa-clipboard-list", route: "/pedidos" },
-  { text: "Recetas", icon: "fas fa-book", route: "/recetas" },
-  { text: "Reportes", icon: "fas fa-chart-line", route: "/reportes" },
-]);
-
-const showUserMenu = ref(false);
-const showNotfMenu = ref(false);
-const showPasswordModal = ref(false);
-const userEmail = ref("Usuario");
-const currentPassword = ref("");
-const newPassword = ref("");
-const confirmPassword = ref("");
 
 // ----------------------
 // 🔹 Stock
@@ -211,24 +185,20 @@ const incrementarContador = async (receta) => {
     const response = await axios.post(`/api/recetas/${receta.id}/incrementar/`);
 
     if (response.data.error) {
-      // ✅ Notificación detallada con información específica
       notificationSystem.show({
         type: 'error',
         title: `Stock insuficiente para ${response.data.receta_nombre || receta.nombre}`,
         message: response.data.error,
         insuficientes: response.data.insuficientes || [],
-        timeout: 10000 // 10 segundos para que el usuario pueda leer la lista
+        timeout: 10000
       });
       return;
     }
 
-    // Actualizar en tiempo real
     receta.vecesHecha = response.data.nuevo_contador;
 
     if (response.data.stock_actualizado) {
       await fetchStock();
-
-      // ✅ Notificación de éxito
       notificationSystem.show({
         type: 'success',
         title: '¡Receta preparada!',
@@ -238,7 +208,6 @@ const incrementarContador = async (receta) => {
     }
   } catch (err) {
     console.error("Error al incrementar:", err);
-
     notificationSystem.show({
       type: 'error',
       title: 'Error',
@@ -264,13 +233,10 @@ const decrementarContador = async (receta) => {
       return;
     }
 
-    // Actualizar en tiempo real
     receta.vecesHecha = response.data.nuevo_contador;
 
     if (response.data.stock_actualizado) {
       await fetchStock();
-
-      // ✅ Notificación informativa con detalles
       notificationSystem.show({
         type: 'info',
         title: 'Preparación revertida',
@@ -281,7 +247,6 @@ const decrementarContador = async (receta) => {
     }
   } catch (err) {
     console.error("Error al decrementar:", err);
-
     notificationSystem.show({
       type: 'error',
       title: 'Error',
@@ -312,12 +277,10 @@ const actualizarEstadoPedido = async (pedidoId, nuevoEstado, lista) => {
       estado: nuevoEstado,
     });
 
-    // Actualizar el estado localmente
     if (lista === "entregarHoy") {
       const index = entregarHoy.value.findIndex((p) => p.id === pedidoId);
       if (index !== -1) {
         entregarHoy.value[index].estado = nuevoEstado;
-        // Si se marca como entregado, podrías querer removerlo de la lista
         if (nuevoEstado === "entregado") {
           entregarHoy.value.splice(index, 1);
         }
@@ -346,85 +309,6 @@ const filteredRecetas = computed(() => {
 });
 
 // ----------------------
-// 🔹 Funciones de Usuario
-// ----------------------
-const toggleUserMenu = () => {
-  showUserMenu.value = !showUserMenu.value;
-  showNotfMenu.value = false;
-};
-
-const toggleNotfMenu = () => {
-  showNotfMenu.value = !showNotfMenu.value;
-  showUserMenu.value = false;
-};
-
-const openChangePassword = () => {
-  showUserMenu.value = false;
-  showNotfMenu.value = false;
-  showPasswordModal.value = true;
-};
-
-const changePassword = async () => {
-  if (newPassword.value !== confirmPassword.value) {
-    notificationSystem.show({
-      type: 'warning',
-      title: 'Contraseñas no coinciden',
-      message: 'Las contraseñas ingresadas no son iguales',
-      timeout: 4000
-    });
-    return;
-  }
-
-  try {
-    await axios.post("/api/auth/change-password/", {
-      old_password: currentPassword.value,
-      new_password1: newPassword.value,
-      new_password2: confirmPassword.value,
-    });
-
-    notificationSystem.show({
-      type: 'success',
-      title: '¡Contraseña cambiada!',
-      message: 'Tu contraseña ha sido actualizada exitosamente',
-      timeout: 4000
-    });
-    showPasswordModal.value = false;
-    currentPassword.value = "";
-    newPassword.value = "";
-    confirmPassword.value = "";
-  } catch (error) {
-    console.error("Error al cambiar contraseña:", error);
-
-    let errorMessage = "Error al cambiar la contraseña";
-    if (error.response?.data?.errors) {
-      errorMessage = Object.values(error.response.data.errors)
-        .flat()
-        .join("\n");
-    } else if (error.response?.data?.detail) {
-      errorMessage = error.response.data.detail;
-    }
-
-    alert(errorMessage);
-  }
-};
-
-const logout = async () => {
-  try {
-    const refreshToken = localStorage.getItem("refresh_token");
-    if (refreshToken) {
-      await axios.post("/api/auth/logout/", { refresh: refreshToken });
-    }
-  } catch (err) {
-    console.error("Error al cerrar sesión:", err.response?.data || err);
-  } finally {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    delete axios.defaults.headers.common["Authorization"];
-    router.push("/login");
-  }
-};
-
-// ----------------------
 // 🔹 Fetch Datos
 // ----------------------
 const fetchStock = async () => {
@@ -439,8 +323,8 @@ const fetchStock = async () => {
     stock.value = response.data.insumos
       .map((insumo) => ({
         nombre: insumo.nombre,
-        cantidad: insumo.stock_actual, // Guardar el valor numérico para formatear
-        unidad: insumo.unidad_medida.abreviatura, // Guardar la unidad por separado
+        cantidad: insumo.stock_actual,
+        unidad: insumo.unidad_medida.abreviatura,
         bajoStock: insumo.necesita_reposicion,
         categoria: insumo.categoria?.nombre || "Sin categoría",
       }))
@@ -453,7 +337,7 @@ const fetchStock = async () => {
     error.value = err.response?.data?.detail || "Error al cargar los insumos";
     if (err.response?.status === 401) {
       alert("Tu sesión ha expirado, por favor inicia sesión nuevamente");
-      logout();
+      router.push("/login");
     }
     console.error("Error en fetchStock:", err);
   } finally {
@@ -467,7 +351,7 @@ const fetchRecetas = async () => {
     const response = await axios.get("/api/recetas/");
     recetas.value = response.data.map((receta) => ({
       ...receta,
-      vecesHecha: receta.veces_hecha, // Usar el valor persistente del backend
+      vecesHecha: receta.veces_hecha,
     }));
   } catch (err) {
     errorRecetas.value = "Error al cargar las recetas";
@@ -481,7 +365,6 @@ const fetchPedidos = async () => {
   try {
     const response = await axios.get("/api/pedidos/hoy/");
     
-    // Para "Entregar Hoy" - pedidos con fecha_entrega = hoy
     entregarHoy.value = response.data.entregar_hoy.map((pedido) => ({
       id: pedido.id,
       nombre: pedido.cliente.nombre,
@@ -491,7 +374,6 @@ const fetchPedidos = async () => {
       fecha_entrega: pedido.fecha_entrega,
     }));
 
-    // Para "Hacer Hoy" - pedidos con fecha_entrega en próximos 3 días
     hacerHoy.value = response.data.hacer_hoy.map((pedido) => ({
       id: pedido.id,
       nombre: pedido.cliente.nombre,
@@ -508,49 +390,29 @@ const fetchPedidos = async () => {
 // ----------------------
 // 🔹 Utilidades
 // ----------------------
-
 const formatDate = (dateString) => {
   if (!dateString) return "";
   const options = { day: "2-digit", month: "2-digit", year: "numeric" };
   return new Date(dateString).toLocaleDateString(undefined, options);
 };
 
-const updatePedidoStatus = async (pedidoId, nuevoEstado) => {
-  try {
-    await axios.patch(`/api/pedidos/hoy/${pedidoId}/`, { estado: nuevoEstado });
-    fetchPedidos();
-  } catch (err) {
-    console.error("Error updating pedido:", err);
-  }
-};
-
 // ----------------------
 // 🔹 Montaje Inicial
 // ----------------------
 onMounted(() => {
-  document.addEventListener("click", (event) => {
-    if (!event.target.closest(".user-menu-container")) {
-      showUserMenu.value = false;
-      showNotfMenu.value = false;
-    }
-  });
-
   if (!localStorage.getItem("access_token")) {
     router.push("/login");
     return;
   }
 
   Promise.all([
-    axios.get("/api/auth/perfil/").then((res) => {
-      userEmail.value = res.data.email || "Usuario";
-    }),
     fetchStock(),
     fetchRecetas(),
     fetchPedidos(),
   ]).catch((error) => {
     console.error("Error cargando datos:", error);
     if (error.response?.status === 401) {
-      logout();
+      router.push("/login");
     }
   });
 });
