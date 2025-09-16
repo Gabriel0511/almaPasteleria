@@ -499,18 +499,18 @@
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
 <script setup>
 import { useRouter } from "vue-router";
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch, inject } from "vue";
 import Sidebar from "./Sidebar.vue";
 import Header from "./Header.vue";
 import axios from "axios";
 
 const router = useRouter();
+const notificationSystem = inject("notifications");
 
 // Variables de estado
 const stock = ref([]);
@@ -641,7 +641,12 @@ const formatDecimal = (value) => {
 const guardarCategoria = async () => {
   try {
     if (!formCategoria.value.nombre) {
-      alert("El nombre de la categoría es requerido");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "El nombre de la categoría es requerido",
+        timeout: 4000,
+      });
       return;
     }
 
@@ -658,14 +663,30 @@ const guardarCategoria = async () => {
 
     showNuevaCategoriaModal.value = false;
     resetFormCategoria();
-    alert("Categoría creada correctamente");
+
+    notificationSystem.show({
+      type: "success",
+      title: "Categoría creada",
+      message: "Categoría creada correctamente",
+      timeout: 4000,
+    });
   } catch (error) {
     console.error("Error al guardar categoría:", error);
     if (error.response?.status === 400 && error.response?.data?.error) {
-      alert(error.response.data.error);
+      notificationSystem.show({
+        type: "error",
+        title: "Error al crear categoría",
+        message: error.response.data.error,
+        timeout: 6000,
+      });
       resetFormCategoria();
     } else {
-      alert("Error al guardar la categoría");
+      notificationSystem.show({
+        type: "error",
+        title: "Error",
+        message: "Error al guardar la categoría",
+        timeout: 6000,
+      });
       resetFormCategoria();
     }
   }
@@ -675,11 +696,21 @@ const guardarCategoria = async () => {
 const guardarUnidadDeMedida = async () => {
   try {
     if (!formUnidad.value.nombre) {
-      alert("El nombre de la unidad es requerido");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "El nombre de la unidad es requerido",
+        timeout: 4000,
+      });
       return;
     }
     if (!formUnidad.value.abreviatura) {
-      alert("La abreviatura es requerida");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "La abreviatura es requerida",
+        timeout: 4000,
+      });
       return;
     }
 
@@ -693,14 +724,30 @@ const guardarUnidadDeMedida = async () => {
 
     showNuevaUnidadDeMedidaModal.value = false;
     resetFormUnidad();
-    alert("Unidad de Medida creada correctamente");
+
+    notificationSystem.show({
+      type: "success",
+      title: "Unidad de medida creada",
+      message: "Unidad de Medida creada correctamente",
+      timeout: 4000,
+    });
   } catch (error) {
     console.error("Error al guardar la unidad de medida:", error);
     if (error.response?.status === 400 && error.response?.data?.error) {
-      alert(error.response.data.error);
+      notificationSystem.show({
+        type: "error",
+        title: "Error al crear unidad",
+        message: error.response.data.error,
+        timeout: 6000,
+      });
       resetFormUnidad();
     } else {
-      alert("Error al guardar la categoría");
+      notificationSystem.show({
+        type: "error",
+        title: "Error",
+        message: "Error al guardar la unidad de medida",
+        timeout: 6000,
+      });
       resetFormUnidad();
     }
   }
@@ -786,25 +833,52 @@ const eliminarInsumo = async () => {
     }
 
     showConfirmModal.value = false;
-    alert("Insumo eliminado correctamente");
+
+    notificationSystem.show({
+      type: "success",
+      title: "Insumo eliminado",
+      message: "Insumo eliminado correctamente",
+      timeout: 4000,
+    });
   } catch (error) {
     console.error("Error al eliminar insumo:", error);
-    alert("Error al eliminar el insumo");
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: "Error al eliminar el insumo",
+      timeout: 6000,
+    });
   }
 };
 
 const guardarInsumo = async () => {
   try {
     if (!formInsumo.value.nombre) {
-      alert("El nombre es requerido");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "El nombre es requerido",
+        timeout: 4000,
+      });
       return;
     }
     if (!formInsumo.value.unidad_medida_id) {
-      alert("La unidad de medida es requerida");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "La unidad de medida es requerida",
+        timeout: 4000,
+      });
       return;
     }
     if (!formInsumo.value.stock_minimo && formInsumo.value.stock_minimo !== 0) {
-      alert("El stock mínimo es requerido");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "El stock mínimo es requerido",
+        timeout: 4000,
+      });
       return;
     }
 
@@ -845,17 +919,31 @@ const guardarInsumo = async () => {
 
     await fetchStock();
     closeModal();
-    alert(
-      esEdicion.value
+
+    notificationSystem.show({
+      type: "success",
+      title: esEdicion.value ? "Insumo actualizado" : "Insumo creado",
+      message: esEdicion.value
         ? "Insumo actualizado correctamente"
-        : "Insumo creado correctamente"
-    );
+        : "Insumo creado correctamente",
+      timeout: 4000,
+    });
   } catch (error) {
     if (error.response?.status === 400 && error.response?.data?.error) {
-      alert(error.response.data.error);
+      notificationSystem.show({
+        type: "error",
+        title: "Error al guardar insumo",
+        message: error.response.data.error,
+        timeout: 6000,
+      });
       resetFormInsumo();
     } else {
-      alert("Error al guardar el insumo");
+      notificationSystem.show({
+        type: "error",
+        title: "Error",
+        message: "Error al guardar el insumo",
+        timeout: 6000,
+      });
       resetFormInsumo();
     }
   }
@@ -916,15 +1004,24 @@ const registrarCompra = async () => {
 
     await fetchStock();
     closeModal();
-    alert("Compra registrada correctamente");
+
+    notificationSystem.show({
+      type: "success",
+      title: "Compra registrada",
+      message: "Compra registrada correctamente",
+      timeout: 4000,
+    });
   } catch (error) {
     console.error("Error completo al registrar compra:", error);
     console.error("Response data:", error.response?.data);
     console.error("Response status:", error.response?.status);
-    alert(
-      "Error al registrar la compra: " +
-        (error.response?.data?.message || error.message)
-    );
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error al registrar compra",
+      message: error.response?.data?.message || error.message,
+      timeout: 6000,
+    });
   }
 };
 
@@ -937,14 +1034,30 @@ const guardarProveedor = async () => {
     await fetchProveedores();
     showNuevoProveedorModal.value = false;
     resetFormProveedor();
-    alert("Proveedor creado correctamente");
+
+    notificationSystem.show({
+      type: "success",
+      title: "Proveedor creado",
+      message: "Proveedor creado correctamente",
+      timeout: 4000,
+    });
   } catch (error) {
     console.error("Error al guardar proveedor:", error);
     if (error.response?.status === 400 && error.response?.data?.error) {
-      alert(error.response.data.error);
+      notificationSystem.show({
+        type: "error",
+        title: "Error al crear proveedor",
+        message: error.response.data.error,
+        timeout: 6000,
+      });
       resetFormProveedor();
     } else {
-      alert("Error al guardar el proveedor");
+      notificationSystem.show({
+        type: "error",
+        title: "Error",
+        message: "Error al guardar el proveedor",
+        timeout: 6000,
+      });
       resetFormProveedor();
     }
   }
