@@ -16,6 +16,8 @@ class RecetaListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = RecetaSerializer
 
     def perform_create(self, serializer):
+        # Log para debugging
+        print("Datos recibidos:", self.request.data)
         serializer.save()
 
 class RecetaRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):

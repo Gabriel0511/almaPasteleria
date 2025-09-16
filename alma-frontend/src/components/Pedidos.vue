@@ -486,6 +486,45 @@
               <option value="unidades">Unidades</option>
             </select>
           </div>
+
+          <div class="form-group">
+            <label>Costo unitario:</label>
+            <input
+              v-model="formReceta.costo_unitario"
+              type="number"
+              step="0.01"
+              min="0.01"
+              required
+              class="form-input"
+              placeholder="Costo unitario (por porción o unidad)"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Costo total:</label>
+            <input
+              v-model="formReceta.costo_total"
+              type="number"
+              step="0.01"
+              min="0.01"
+              required
+              class="form-input"
+              placeholder="Costo total"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Precio de venta:</label>
+            <input
+              v-model="formReceta.precio_venta"
+              type="number"
+              step="0.01"
+              min="0.01"
+              required
+              class="form-input"
+              placeholder="Precio de venta"
+            />
+          </div>
         </div>
 
         <div class="modal-buttons">
@@ -1012,6 +1051,7 @@ const formReceta = ref({
   unidad_rinde: "porciones",
   costo_unitario: 0,
   costo_total: 0,
+  precio_venta: 0,
 });
 
 const formInsumo = ref({
@@ -1573,8 +1613,27 @@ const guardarNuevaReceta = async () => {
       });
       return;
     }
+    if (!formReceta.value.precio_venta || formReceta.value.precio_venta <= 0) {
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "El precio de venta debe ser mayor a 0",
+        timeout: 4000,
+      });
+      return;
+    }
 
-    const response = await axios.post("/api/recetas/", formReceta.value);
+    // Preparar datos para enviar
+    const datosReceta = {
+      nombre: formReceta.value.nombre,
+      rinde: formReceta.value.rinde,
+      unidad_rinde: formReceta.value.unidad_rinde,
+      costo_unitario: parseFloat(formReceta.value.costo_unitario) || 0,
+      costo_total: parseFloat(formReceta.value.costo_total) || 0,
+      precio_venta: parseFloat(formReceta.value.precio_venta) || 0,
+    };
+
+    const response = await axios.post("/api/recetas/", datosReceta);
 
     // Actualizar la lista de recetas
     await fetchRecetas();
@@ -1593,11 +1652,21 @@ const guardarNuevaReceta = async () => {
     });
   } catch (error) {
     console.error("Error al guardar receta:", error);
+    console.error("Respuesta del servidor:", error.response?.data);
+
+    let mensajeError = "Error al crear la receta";
+    if (error.response?.data) {
+      if (typeof error.response.data === "object") {
+        mensajeError += ": " + JSON.stringify(error.response.data);
+      } else {
+        mensajeError += ": " + error.response.data;
+      }
+    }
 
     notificationSystem.show({
       type: "error",
       title: "Error",
-      message: "Error al crear la receta",
+      message: mensajeError,
       timeout: 6000,
     });
   }
@@ -1833,6 +1902,7 @@ const resetFormReceta = () => {
     unidad_rinde: "porciones",
     costo_unitario: 0,
     costo_total: 0,
+    precio_venta: 0,
   };
 };
 

@@ -18,6 +18,7 @@ class Receta(models.Model):
     unidad_rinde = models.CharField(max_length=20, choices=UNIDADES_RINDE)
     costo_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     costo_total = models.DecimalField(max_digits=10, decimal_places=2)
+    precio_venta = models.DecimalField(max_digits=10, decimal_places=2)
     creado_en = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
