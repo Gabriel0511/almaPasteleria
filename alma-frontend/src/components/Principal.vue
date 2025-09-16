@@ -108,31 +108,6 @@
       </main>
     </div>
   </div>
-
-  <!-- modal para cambiar contraseña -->
-  <div v-if="showPasswordModal" class="modal-overlay">
-    <div class="modal-content">
-      <h3>Cambiar contraseña</h3>
-      <div class="form-group">
-        <label>Contraseña actual:</label>
-        <input type="password" v-model="currentPassword" class="form-input" />
-      </div>
-      <div class="form-group">
-        <label>Nueva contraseña:</label>
-        <input type="password" v-model="newPassword" class="form-input" />
-      </div>
-      <div class="form-group">
-        <label>Repita la nueva contraseña:</label>
-        <input type="password" v-model="confirmPassword" class="form-input" />
-      </div>
-      <div class="modal-buttons">
-        <button @click="showPasswordModal = false" class="cancel-button">
-          Cancelar
-        </button>
-        <button @click="changePassword" class="confirm-button">Aceptar</button>
-      </div>
-    </div>
-  </div>
 </template>
 
 <script setup>
