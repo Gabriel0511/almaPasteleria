@@ -943,33 +943,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Modal para cambiar contraseña -->
-    <div v-if="showPasswordModal" class="modal-overlay">
-      <div class="modal-content">
-        <h3>Cambiar contraseña</h3>
-        <div class="form-group">
-          <label>Contraseña actual:</label>
-          <input type="password" v-model="currentPassword" class="form-input" />
-        </div>
-        <div class="form-group">
-          <label>Nueva contraseña:</label>
-          <input type="password" v-model="newPassword" class="form-input" />
-        </div>
-        <div class="form-group">
-          <label>Repita la nueva contraseña:</label>
-          <input type="password" v-model="confirmPassword" class="form-input" />
-        </div>
-        <div class="modal-buttons">
-          <button @click="showPasswordModal = false" class="cancel-button">
-            Cancelar
-          </button>
-          <button @click="changePassword" class="confirm-button">
-            Aceptar
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -984,8 +957,6 @@ const router = useRouter();
 const notificationSystem = inject("notifications");
 
 // Variables de estado
-const userEmail = ref("Usuario");
-const showPasswordModal = ref(false);
 const pedidos = ref([]);
 const clientes = ref([]);
 const recetas = ref([]);
@@ -1138,22 +1109,6 @@ const pedidosFiltrados = computed(() => {
 // Métodos
 const handleNavigation = (route) => {
   router.push(route);
-};
-
-const logout = async () => {
-  try {
-    const refreshToken = localStorage.getItem("refresh_token");
-    if (refreshToken) {
-      await axios.post("/api/auth/logout/", { refresh: refreshToken });
-    }
-  } catch (err) {
-    console.error("Error al cerrar sesión:", err.response?.data || err);
-  } finally {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    delete axios.defaults.headers.common["Authorization"];
-    router.push("/login");
-  }
 };
 
 const formatFecha = (fecha) => {
