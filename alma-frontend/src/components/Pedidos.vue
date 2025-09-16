@@ -253,6 +253,133 @@
 
     <!-- MODALES -->
 
+    <!-- Modal para Nuevo/Editar Pedido -->
+    <div v-if="showModalPedido" class="modal-overlay">
+      <div class="modal-content">
+        <h3>{{ esEdicionPedido ? "Editar Pedido" : "Nuevo Pedido" }}</h3>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Cliente:</label>
+            <div class="select-with-button">
+              <select
+                v-model="formPedido.cliente_id"
+                required
+                class="form-input"
+              >
+                <option value="">Seleccione un cliente</option>
+                <option
+                  v-for="cliente in clientes"
+                  :key="cliente.id"
+                  :value="cliente.id"
+                >
+                  {{ cliente.nombre }}
+                </option>
+              </select>
+              <button
+                type="button"
+                class="btn-agregar-nuevo"
+                @click="showNuevoClienteModal = true"
+                title="Agregar nuevo cliente"
+              >
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Fecha de Pedido:</label>
+            <input
+              v-model="formPedido.fecha_pedido"
+              type="date"
+              required
+              class="form-input"
+              :disabled="esEdicionPedido"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Fecha de Entrega:</label>
+            <input
+              v-model="formPedido.fecha_entrega"
+              type="date"
+              required
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Estado:</label>
+            <select v-model="formPedido.estado" required class="form-input">
+              <option
+                v-for="estado in estadosPedido"
+                :key="estado"
+                :value="estado"
+              >
+                {{ estado }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button @click="closeModal" class="cancel-button">Cancelar</button>
+          <button @click="guardarPedido" class="confirm-button">
+            {{ esEdicionPedido ? "Actualizar" : "Crear" }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Nuevo Cliente -->
+    <div v-if="showNuevoClienteModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Nuevo Cliente</h3>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre:</label>
+            <input
+              v-model="formCliente.nombre"
+              type="text"
+              required
+              class="form-input"
+              placeholder="Nombre del cliente"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Teléfono:</label>
+            <input
+              v-model="formCliente.telefono"
+              type="text"
+              class="form-input"
+              placeholder="Teléfono"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Dirección:</label>
+            <textarea
+              v-model="formCliente.direccion"
+              class="form-input"
+              rows="3"
+              placeholder="Dirección"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button @click="showNuevoClienteModal = false" class="cancel-button">
+            Cancelar
+          </button>
+          <button @click="guardarCliente" class="confirm-button">
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal Agregar/Editar Receta al Pedido -->
     <div v-if="showModalReceta" class="modal-overlay">
       <div class="modal-content">
@@ -810,12 +937,13 @@
 
 <script setup>
 import { useRouter } from "vue-router";
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch, inject } from "vue";
 import Sidebar from "./Sidebar.vue";
 import Header from "./Header.vue";
 import axios from "axios";
 
 const router = useRouter();
+const notificationSystem = inject("notifications");
 
 // Variables de estado
 const userEmail = ref("Usuario");
@@ -1058,7 +1186,12 @@ const showNuevoPedidoModal = () => {
 
 const editarPedido = (pedido) => {
   if (pedido.estado === "entregado") {
-    alert("No se puede editar un pedido entregado");
+    notificationSystem.show({
+      type: "warning",
+      title: "No se puede editar",
+      message: "No se puede editar un pedido entregado",
+      timeout: 4000,
+    });
     return;
   }
   esEdicionPedido.value = true;
@@ -1074,7 +1207,12 @@ const editarPedido = (pedido) => {
 
 const confirmarEliminarPedido = (pedido) => {
   if (pedido.estado === "entregado") {
-    alert("No se puede eliminar un pedido entregado");
+    notificationSystem.show({
+      type: "warning",
+      title: "No se puede eliminar",
+      message: "No se puede eliminar un pedido entregado",
+      timeout: 4000,
+    });
     return;
   }
   pedidoAEliminar.value = pedido;
@@ -1094,21 +1232,43 @@ const eliminarPedido = async () => {
     }
 
     showConfirmModalPedido.value = false;
-    alert("Pedido eliminado correctamente");
+
+    notificationSystem.show({
+      type: "success",
+      title: "Pedido eliminado",
+      message: "Pedido eliminado correctamente",
+      timeout: 4000,
+    });
   } catch (error) {
     console.error("Error al eliminar pedido:", error);
-    alert("Error al eliminar el pedido");
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: "Error al eliminar el pedido",
+      timeout: 6000,
+    });
   }
 };
 
 const guardarPedido = async () => {
   try {
     if (!formPedido.value.cliente_id) {
-      alert("El cliente es requerido");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "El cliente es requerido",
+        timeout: 4000,
+      });
       return;
     }
     if (!formPedido.value.fecha_entrega) {
-      alert("La fecha de entrega es requerida");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "La fecha de entrega es requerida",
+        timeout: 4000,
+      });
       return;
     }
 
@@ -1124,14 +1284,24 @@ const guardarPedido = async () => {
 
     await fetchPedidos();
     closeModal();
-    alert(
-      esEdicionPedido.value
+
+    notificationSystem.show({
+      type: "success",
+      title: esEdicionPedido.value ? "Pedido actualizado" : "Pedido creado",
+      message: esEdicionPedido.value
         ? "Pedido actualizado correctamente"
-        : "Pedido creado correctamente"
-    );
+        : "Pedido creado correctamente",
+      timeout: 4000,
+    });
   } catch (error) {
     console.error("Error al guardar pedido:", error);
-    alert("Error al guardar el pedido");
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: "Error al guardar el pedido",
+      timeout: 6000,
+    });
   }
 };
 
@@ -1141,17 +1311,34 @@ const guardarCliente = async () => {
     await fetchClientes();
     showNuevoClienteModal.value = false;
     resetFormCliente();
-    alert("Cliente creado correctamente");
+
+    notificationSystem.show({
+      type: "success",
+      title: "Cliente creado",
+      message: "Cliente creado correctamente",
+      timeout: 4000,
+    });
   } catch (error) {
     console.error("Error al guardar cliente:", error);
-    alert("Error al guardar el cliente");
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: "Error al guardar el cliente",
+      timeout: 6000,
+    });
   }
 };
 
 const guardarNuevaCategoria = async () => {
   try {
     if (!formCategoria.value.nombre) {
-      alert("El nombre de la categoría es requerido");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "El nombre de la categoría es requerido",
+        timeout: 4000,
+      });
       return;
     }
 
@@ -1169,17 +1356,33 @@ const guardarNuevaCategoria = async () => {
     showNuevaCategoriaModal.value = false;
     formCategoria.value = { nombre: "", descripcion: "" };
 
-    alert("Categoría creada correctamente");
+    notificationSystem.show({
+      type: "success",
+      title: "Categoría creada",
+      message: "Categoría creada correctamente",
+      timeout: 4000,
+    });
   } catch (error) {
     console.error("Error al guardar categoría:", error);
-    alert("Error al crear la categoría");
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: "Error al crear la categoría",
+      timeout: 6000,
+    });
   }
 };
 
 const guardarNuevoProveedor = async () => {
   try {
     if (!formProveedor.value.nombre) {
-      alert("El nombre del proveedor es requerido");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "El nombre del proveedor es requerido",
+        timeout: 4000,
+      });
       return;
     }
 
@@ -1197,25 +1400,51 @@ const guardarNuevoProveedor = async () => {
     showNuevoProveedorModal.value = false;
     formProveedor.value = { nombre: "", contacto: "", telefono: "", email: "" };
 
-    alert("Proveedor creado correctamente");
+    notificationSystem.show({
+      type: "success",
+      title: "Proveedor creado",
+      message: "Proveedor creado correctamente",
+      timeout: 4000,
+    });
   } catch (error) {
     console.error("Error al guardar proveedor:", error);
-    alert("Error al crear el proveedor");
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: "Error al crear el proveedor",
+      timeout: 6000,
+    });
   }
 };
 
 const guardarNuevoInsumo = async () => {
   try {
     if (!formInsumo.value.nombre) {
-      alert("El nombre del insumo es requerido");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "El nombre del insumo es requerido",
+        timeout: 4000,
+      });
       return;
     }
     if (!formInsumo.value.unidad_medida_id) {
-      alert("La unidad de medida es requerida");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "La unidad de medida es requerida",
+        timeout: 4000,
+      });
       return;
     }
     if (!formInsumo.value.stock_minimo && formInsumo.value.stock_minimo !== 0) {
-      alert("El stock mínimo es requerido");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "El stock mínimo es requerido",
+        timeout: 4000,
+      });
       return;
     }
 
@@ -1245,14 +1474,29 @@ const guardarNuevoInsumo = async () => {
     showNuevoInsumoModal.value = false;
     resetFormInsumo();
 
-    alert("Insumo creado correctamente");
+    notificationSystem.show({
+      type: "success",
+      title: "Insumo creado",
+      message: "Insumo creado correctamente",
+      timeout: 4000,
+    });
   } catch (error) {
     console.error("Error al guardar insumo:", error);
 
     if (error.response?.status === 400 && error.response?.data?.error) {
-      alert(error.response.data.error);
+      notificationSystem.show({
+        type: "error",
+        title: "Error al crear insumo",
+        message: error.response.data.error,
+        timeout: 6000,
+      });
     } else {
-      alert("Error al crear el insumo");
+      notificationSystem.show({
+        type: "error",
+        title: "Error",
+        message: "Error al crear el insumo",
+        timeout: 6000,
+      });
     }
   }
 };
@@ -1260,11 +1504,21 @@ const guardarNuevoInsumo = async () => {
 const guardarNuevaUnidadMedida = async () => {
   try {
     if (!formUnidadMedida.value.nombre) {
-      alert("El nombre de la unidad es requerido");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "El nombre de la unidad es requerido",
+        timeout: 4000,
+      });
       return;
     }
     if (!formUnidadMedida.value.abreviatura) {
-      alert("La abreviatura es requerida");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "La abreviatura es requerida",
+        timeout: 4000,
+      });
       return;
     }
 
@@ -1282,21 +1536,42 @@ const guardarNuevaUnidadMedida = async () => {
     showNuevaUnidadModal.value = false;
     resetFormUnidadMedida();
 
-    alert("Unidad de medida creada correctamente");
+    notificationSystem.show({
+      type: "success",
+      title: "Unidad de medida creada",
+      message: "Unidad de medida creada correctamente",
+      timeout: 4000,
+    });
   } catch (error) {
     console.error("Error al guardar unidad de medida:", error);
-    alert("Error al crear la unidad de medida");
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: "Error al crear la unidad de medida",
+      timeout: 6000,
+    });
   }
 };
 
 const guardarNuevaReceta = async () => {
   try {
     if (!formReceta.value.nombre) {
-      alert("El nombre de la receta es requerido");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "El nombre de la receta es requerido",
+        timeout: 4000,
+      });
       return;
     }
     if (!formReceta.value.rinde || formReceta.value.rinde <= 0) {
-      alert("El rinde debe ser mayor a 0");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "El rinde debe ser mayor a 0",
+        timeout: 4000,
+      });
       return;
     }
 
@@ -1311,10 +1586,21 @@ const guardarNuevaReceta = async () => {
     showNuevaRecetaModal.value = false;
     resetFormReceta();
 
-    alert("Receta creada correctamente");
+    notificationSystem.show({
+      type: "success",
+      title: "Receta creada",
+      message: "Receta creada correctamente",
+      timeout: 4000,
+    });
   } catch (error) {
     console.error("Error al guardar receta:", error);
-    alert("Error al crear la receta");
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: "Error al crear la receta",
+      timeout: 6000,
+    });
   }
 };
 
@@ -1323,7 +1609,12 @@ const showNuevoIngredienteModal = (detalle) => {
     p.detalles.some((d) => d.id === detalle.id)
   );
   if (pedido && pedido.estado === "entregado") {
-    alert("No se pueden agregar ingredientes a un pedido entregado");
+    notificationSystem.show({
+      type: "warning",
+      title: "No se puede agregar",
+      message: "No se pueden agregar ingredientes a un pedido entregado",
+      timeout: 4000,
+    });
     return;
   }
   esEdicionIngrediente.value = false;
@@ -1380,28 +1671,55 @@ const eliminarIngredienteExtra = async () => {
     }
 
     showConfirmModalIngrediente.value = false;
-    alert("Ingrediente extra eliminado correctamente");
+
+    notificationSystem.show({
+      type: "success",
+      title: "Ingrediente eliminado",
+      message: "Ingrediente extra eliminado correctamente",
+      timeout: 4000,
+    });
   } catch (error) {
     console.error("Error al eliminar ingrediente extra:", error);
-    alert("Error al eliminar el ingrediente extra");
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: "Error al eliminar el ingrediente extra",
+      timeout: 6000,
+    });
   }
 };
 
 const guardarIngredienteExtra = async () => {
   try {
     if (!formIngrediente.value.insumo_id) {
-      alert("El insumo es requerido");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "El insumo es requerido",
+        timeout: 4000,
+      });
       return;
     }
     if (
       !formIngrediente.value.cantidad ||
       formIngrediente.value.cantidad <= 0
     ) {
-      alert("La cantidad debe ser mayor a 0");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "La cantidad debe ser mayor a 0",
+        timeout: 4000,
+      });
       return;
     }
     if (!formIngrediente.value.unidad_medida_id) {
-      alert("La unidad de medida es requerida");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "La unidad de medida es requerida",
+        timeout: 4000,
+      });
       return;
     }
 
@@ -1426,11 +1744,17 @@ const guardarIngredienteExtra = async () => {
     // Actualizar el pedido localmente
     await fetchPedidos();
     closeModal();
-    alert(
-      esEdicionIngrediente.value
+
+    notificationSystem.show({
+      type: "success",
+      title: esEdicionIngrediente.value
+        ? "Ingrediente actualizado"
+        : "Ingrediente agregado",
+      message: esEdicionIngrediente.value
         ? "Ingrediente extra actualizado correctamente"
-        : "Ingrediente extra agregado correctamente"
-    );
+        : "Ingrediente extra agregado correctamente",
+      timeout: 4000,
+    });
   } catch (error) {
     console.error("Error al guardar ingrediente extra:", error);
     console.error("Datos enviados:", error.config?.data);
@@ -1444,7 +1768,13 @@ const guardarIngredienteExtra = async () => {
         mensajeError += ": " + error.response.data;
       }
     }
-    alert(mensajeError);
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error al guardar ingrediente",
+      message: mensajeError,
+      timeout: 6000,
+    });
   }
 };
 
@@ -1529,7 +1859,12 @@ const resetFormUnidadMedida = () => {
 // Nuevos métodos para gestionar recetas
 const showAgregarRecetaModal = (pedido) => {
   if (pedido.estado === "entregado") {
-    alert("No se pueden agregar recetas a un pedido entregado");
+    notificationSystem.show({
+      type: "warning",
+      title: "No se puede agregar",
+      message: "No se pueden agregar recetas a un pedido entregado",
+      timeout: 4000,
+    });
     return;
   }
   esEdicionReceta.value = false;
@@ -1541,7 +1876,12 @@ const showAgregarRecetaModal = (pedido) => {
 
 const editarReceta = (detalle, pedido) => {
   if (pedido.estado === "entregado") {
-    alert("No se puede editar recetas de un pedido entregado");
+    notificationSystem.show({
+      type: "warning",
+      title: "No se puede editar",
+      message: "No se puede editar recetas de un pedido entregado",
+      timeout: 4000,
+    });
     return;
   }
   esEdicionReceta.value = true;
@@ -1581,21 +1921,43 @@ const eliminarReceta = async () => {
     }
 
     showConfirmModalReceta.value = false;
-    alert("Receta eliminada correctamente del pedido");
+
+    notificationSystem.show({
+      type: "success",
+      title: "Receta eliminada",
+      message: "Receta eliminada correctamente del pedido",
+      timeout: 4000,
+    });
   } catch (error) {
     console.error("Error al eliminar receta:", error);
-    alert("Error al eliminar la receta del pedido");
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: "Error al eliminar la receta del pedido",
+      timeout: 6000,
+    });
   }
 };
 
 const guardarDetalle = async () => {
   try {
     if (!formDetalle.value.receta_id) {
-      alert("La receta es requerida");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "La receta es requerida",
+        timeout: 4000,
+      });
       return;
     }
     if (!formDetalle.value.cantidad || formDetalle.value.cantidad <= 0) {
-      alert("La cantidad debe ser mayor a 0");
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "La cantidad debe ser mayor a 0",
+        timeout: 4000,
+      });
       return;
     }
 
@@ -1620,11 +1982,15 @@ const guardarDetalle = async () => {
     // Actualizar el pedido localmente
     await fetchPedidos();
     closeModal();
-    alert(
-      esEdicionReceta.value
+
+    notificationSystem.show({
+      type: "success",
+      title: esEdicionReceta.value ? "Receta actualizada" : "Receta agregada",
+      message: esEdicionReceta.value
         ? "Receta actualizada correctamente"
-        : "Receta agregada correctamente al pedido"
-    );
+        : "Receta agregada correctamente al pedido",
+      timeout: 4000,
+    });
   } catch (error) {
     console.error("Error al guardar detalle:", error);
     console.error("Datos enviados:", error.config?.data);
@@ -1638,7 +2004,13 @@ const guardarDetalle = async () => {
         mensajeError += ": " + error.response.data;
       }
     }
-    alert(mensajeError);
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error al guardar receta",
+      message: mensajeError,
+      timeout: 6000,
+    });
   }
 };
 
