@@ -70,7 +70,7 @@
                 <input type="checkbox" :checked="task.estado === 'en preparación'" @change="
                   actualizarEstadoPedido(task.id, 'en preparación', 'hacerHoy')
                   " />
-                <strong>{{ task.nombre }}</strong>
+                <strong style="margin-left: 8px;">{{ task.nombre }}</strong>
                 <span class="pedido-info">
                   - Entrega: {{ formatDate(task.fecha_entrega) }} - Estado: {{ task.estado }} - 
                   <span v-for="(detalle, index) in task.detalles" :key="detalle.id">
@@ -392,5 +392,9 @@ onMounted(() => {
   });
 });
 </script>
-
-<style scoped></style>
+<style scoped>
+.pedido-info {
+  margin-top: 100%;
+  padding-top: 100%;
+}
+</style>

@@ -3,12 +3,7 @@
     <Sidebar @navigate="handleNavigation" />
 
     <div class="main-container">
-      <Header
-        :userEmail="userEmail"
-        title="Gestión de Pedidos"
-        @openPasswordModal="showPasswordModal = true"
-        @logout="logout"
-      />
+      <Header/>
 
       <main class="main-content">
         <section class="pedidos-content">
@@ -2150,9 +2145,6 @@ onMounted(() => {
 
   // Cargar datos del usuario y pedidos
   Promise.all([
-    axios.get("/api/auth/perfil/").then((res) => {
-      userEmail.value = res.data.email || "Usuario";
-    }),
     fetchPedidos(),
     fetchClientes(),
     fetchRecetas(),
