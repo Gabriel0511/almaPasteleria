@@ -11,8 +11,7 @@
       />
 
       <main class="main-content">
-        <!-- Sección de filtros y nuevo pedido -->
-        <section class="content pedidos-content">
+        <section class="pedidos-content">
           <h3 class="card-title1">Gestión de Pedidos</h3>
 
           <div class="botones-acciones">
