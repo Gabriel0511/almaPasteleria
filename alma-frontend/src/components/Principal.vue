@@ -256,9 +256,6 @@ const actualizarEstadoPedido = async (pedidoId, nuevoEstado, lista) => {
       const index = entregarHoy.value.findIndex((p) => p.id === pedidoId);
       if (index !== -1) {
         entregarHoy.value[index].estado = nuevoEstado;
-        if (nuevoEstado === "entregado") {
-          entregarHoy.value.splice(index, 1);
-        }
       }
     } else if (lista === "hacerHoy") {
       const index = hacerHoy.value.findIndex((p) => p.id === pedidoId);
