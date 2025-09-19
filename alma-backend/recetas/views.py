@@ -16,12 +16,9 @@ class RecetaListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = RecetaSerializer
 
     def perform_create(self, serializer):
-        # Guardar primero para obtener el ID
-        receta = serializer.save()
-        
-        # Calcular costos basados en los insumos
-        receta.calcular_costos()  # Necesitarías implementar este método en el modelo
-        receta.save()
+        # Log para debugging
+        print("Datos recibidos:", self.request.data)
+        serializer.save()
 
 class RecetaRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Receta.objects.all()
