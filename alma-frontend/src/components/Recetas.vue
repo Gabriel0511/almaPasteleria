@@ -497,15 +497,13 @@ const guardarReceta = async () => {
       }
     }
 
-    // Preparar datos para enviar - FORMATO CORREGIDO
-    // NOTA: No enviamos costo_unitario y costo_total ya que el backend los calcula automáticamente
     const datosParaEnviar = {
       nombre: formReceta.value.nombre,
       rinde: formReceta.value.rinde,
       unidad_rinde: formReceta.value.unidad_rinde,
       precio_venta: formReceta.value.precio_venta,
-      // Enviar los insumos en el formato que espera el backend
-      insumos: formReceta.value.insumos.map((insumo) => ({
+      // Cambiar "insumos" por "receta_insumos"
+      receta_insumos: formReceta.value.insumos.map((insumo) => ({
         insumo: insumo.insumo_id,
         cantidad: insumo.cantidad,
         unidad_medida: insumo.unidad_medida_id,
