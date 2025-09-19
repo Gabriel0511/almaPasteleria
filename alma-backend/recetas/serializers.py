@@ -37,3 +37,7 @@ class RecetaSerializer(serializers.ModelSerializer):
         model = Receta
         fields = ['id', 'nombre', 'veces_hecha', 'rinde', 'unidad_rinde', 
                  'costo_unitario', 'costo_total', 'precio_venta', 'creado_en', 'insumos']
+        extra_kwargs = {
+            'costo_unitario': {'required': False},
+            'costo_total': {'required': False},
+        }

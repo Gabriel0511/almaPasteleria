@@ -3,7 +3,7 @@
     <Sidebar @navigate="handleNavigation" />
 
     <div class="main-container">
-      <Header/>
+      <Header />
 
       <main class="main-content">
         <section class="pedidos-content">
@@ -1157,28 +1157,91 @@ const formatFechaParaBackend = (fechaInput) => {
   return fechaAjustada.toISOString().split("T")[0];
 };
 
-const calcularPrecioReceta = (detalle) => {
-  const precioReceta = detalle.receta.precio_venta || 0;
-  return (precioReceta * detalle.cantidad).toFixed(2);
+// Función de conversión de unidades
+const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => {
+  // Tabla de conversiones básicas
+  const conversiones = {
+    // Peso
+    kg: { g: 1000, mg: 1000000, kg: 1 },
+    g: { kg: 0.001, mg: 1000, g: 1 },
+    mg: { kg: 0.000001, g: 0.001, mg: 1 },
+
+    // Volumen
+    l: { ml: 1000, cl: 100, l: 1 },
+    ml: { l: 0.001, cl: 0.1, ml: 1 },
+    cl: { l: 0.01, ml: 10, cl: 1 },
+
+    // Unidades (si no hay conversión, asumimos 1:1)
+    unidad: { unidad: 1, u: 1, pz: 1 },
+    u: { unidad: 1, u: 1, pz: 1 },
+    pz: { unidad: 1, u: 1, pz: 1 },
+  };
+
+  // Si las unidades son iguales, no hay conversión
+  if (unidadOrigen === unidadDestino) return cantidad;
+
+  // Buscar conversión
+  if (conversiones[unidadOrigen] && conversiones[unidadOrigen][unidadDestino]) {
+    return cantidad * conversiones[unidadOrigen][unidadDestino];
+  }
+
+  // Si no encuentra conversión, devolver la cantidad original (asumir misma unidad)
+  console.warn(
+    `No se encontró conversión de ${unidadOrigen} a ${unidadDestino}`
+  );
+  return cantidad;
 };
 
+// Función corregida para calcular total del pedido
 const calcularTotalPedido = (pedido) => {
   let total = 0;
+
   if (pedido.detalles) {
     pedido.detalles.forEach((detalle) => {
-      const precioReceta = detalle.receta.precio_venta || 0;
-      total += precioReceta * detalle.cantidad;
+      // Calcular subtotal de la receta
+      const precioReceta = parseFloat(detalle.receta?.precio_venta) || 0;
+      const cantidadReceta = parseFloat(detalle.cantidad) || 0;
+      const subtotalReceta = precioReceta * cantidadReceta;
+      total += subtotalReceta;
 
-      // Sumar ingredientes extras si existen
-      if (detalle.ingredientes_extra) {
+      // Calcular subtotal de ingredientes extras
+      if (
+        detalle.ingredientes_extra &&
+        Array.isArray(detalle.ingredientes_extra)
+      ) {
         detalle.ingredientes_extra.forEach((ingrediente) => {
-          const precioIngrediente = ingrediente.insumo.precio_unitario || 0;
-          total += precioIngrediente * ingrediente.cantidad;
+          const precioIngrediente =
+            parseFloat(ingrediente.insumo?.precio_unitario) || 0;
+          const cantidadIngrediente = parseFloat(ingrediente.cantidad) || 0;
+
+          // Obtener unidades
+          const unidadInsumo =
+            ingrediente.insumo?.unidad_medida?.abreviatura || "unidad";
+          const unidadIngrediente =
+            ingrediente.unidad_medida?.abreviatura || "unidad";
+
+          // Convertir a la unidad del insumo para calcular el precio correctamente
+          const cantidadConvertida = convertirUnidad(
+            cantidadIngrediente,
+            unidadIngrediente.toLowerCase(),
+            unidadInsumo.toLowerCase()
+          );
+
+          const subtotalIngrediente = precioIngrediente * cantidadConvertida;
+          total += subtotalIngrediente;
         });
       }
     });
   }
+
   return total.toFixed(2);
+};
+
+// También corrige calcularPrecioReceta por consistencia
+const calcularPrecioReceta = (detalle) => {
+  const precioReceta = parseFloat(detalle.receta?.precio_venta) || 0;
+  const cantidad = parseFloat(detalle.cantidad) || 0;
+  return (precioReceta * cantidad).toFixed(2);
 };
 
 const toggleReceta = (detalleId) => {
