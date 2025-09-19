@@ -23,6 +23,26 @@ class Receta(models.Model):
 
     def __str__(self):
         return self.nombre
+    
+    def calcular_costos(self):
+        from decimal import Decimal
+        costo_total = Decimal('0.00')
+        
+        # Calcular costo total sumando el costo de todos los insumos
+        for receta_insumo in self.recetainsumo_set.all():
+            if receta_insumo.insumo.precio_unitario:
+                # Convertir la cantidad a la unidad del insumo si es necesario
+                cantidad = receta_insumo.get_cantidad_en_unidad_insumo()
+                costo_insumo = receta_insumo.insumo.precio_unitario * cantidad
+                costo_total += costo_insumo
+        
+        self.costo_total = costo_total
+        
+        # Calcular costo unitario (costo total dividido por el rendimiento)
+        if self.rinde > 0:
+            self.costo_unitario = costo_total / Decimal(self.rinde)
+        else:
+            self.costo_unitario = Decimal('0.00')
 
 class RecetaInsumo(models.Model):
     receta = models.ForeignKey(Receta, on_delete=models.CASCADE)
