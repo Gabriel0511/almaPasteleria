@@ -498,12 +498,11 @@ const agregarInsumoAReceta = async () => {
       return;
     }
 
-    // Prepara los datos con el formato CORRECTO que espera el serializer
+    // Estructura simple con IDs numéricos
     const insumoData = {
-      insumo: parseInt(nuevoInsumo.value.insumo_id), // Cambiado de insumo_id a insumo
-      unidad_medida: parseInt(nuevoInsumo.value.unidad_medida_id), // Cambiado de unidad_medida_id a unidad_medida
+      insumo: parseInt(nuevoInsumo.value.insumo_id),
+      unidad_medida: parseInt(nuevoInsumo.value.unidad_medida_id),
       cantidad: parseFloat(nuevoInsumo.value.cantidad),
-      // NO incluir receta_id aquí, ya que viene en la URL
     };
 
     console.log("Enviando datos:", insumoData);
@@ -529,14 +528,12 @@ const agregarInsumoAReceta = async () => {
   } catch (error) {
     console.error("Error al agregar insumo:", error);
 
-    // Mostrar detalles del error específico
     let errorMessage = "Error al agregar el insumo a la receta";
 
     if (error.response?.data) {
       console.error("Detalles del error:", error.response.data);
 
       if (typeof error.response.data === "object") {
-        // Procesar errores de validación del backend
         const errors = [];
         for (const key in error.response.data) {
           if (Array.isArray(error.response.data[key])) {

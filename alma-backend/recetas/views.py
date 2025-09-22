@@ -26,18 +26,16 @@ class RecetaRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
 class RecetaInsumoListCreateAPIView(generics.ListCreateAPIView):
-    # Para listar usa el serializer con detalles completos
-    # Para crear usa el serializer simplificado
-    def get_serializer_class(self):
-        if self.request.method == 'POST':
-            return RecetaInsumoCreateSerializer
-        return RecetaInsumoSerializer
-    
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         receta_id = self.kwargs['receta_id']
         return RecetaInsumo.objects.filter(receta_id=receta_id)
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return RecetaInsumoCreateSerializer
+        return RecetaInsumoSerializer
 
     def perform_create(self, serializer):
         receta_id = self.kwargs['receta_id']
