@@ -37,3 +37,20 @@ class RecetaSerializer(serializers.ModelSerializer):
         model = Receta
         fields = ['id', 'nombre', 'veces_hecha', 'rinde', 'unidad_rinde', 
                  'costo_unitario', 'costo_total', 'precio_venta', 'creado_en', 'insumos']
+        
+class RecetaInsumoCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RecetaInsumo
+        fields = ['id', 'insumo', 'cantidad', 'unidad_medida']
+        
+    def validate_insumo(self, value):
+        """Valida que el insumo exista"""
+        if not Insumo.objects.filter(id=value.id).exists():
+            raise serializers.ValidationError("El insumo no existe")
+        return value
+        
+    def validate_unidad_medida(self, value):
+        """Valida que la unidad de medida exista"""
+        if not UnidadMedida.objects.filter(id=value.id).exists():
+            raise serializers.ValidationError("La unidad de medida no existe")
+        return value

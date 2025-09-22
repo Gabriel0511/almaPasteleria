@@ -1,6 +1,6 @@
 from rest_framework import generics, permissions
 from .models import Receta, RecetaInsumo
-from .serializers import RecetaSerializer, RecetaInsumoSerializer
+from .serializers import RecetaSerializer, RecetaInsumoSerializer, RecetaInsumoCreateSerializer
 from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
 from rest_framework.response import Response
@@ -26,7 +26,13 @@ class RecetaRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
 class RecetaInsumoListCreateAPIView(generics.ListCreateAPIView):
-    serializer_class = RecetaInsumoSerializer
+    # Para listar usa el serializer con detalles completos
+    # Para crear usa el serializer simplificado
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return RecetaInsumoCreateSerializer
+        return RecetaInsumoSerializer
+    
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
