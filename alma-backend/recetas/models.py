@@ -34,33 +34,34 @@ class RecetaInsumo(models.Model):
         return f"{self.insumo.nombre} en {self.receta.nombre}"
     
     def save(self, *args, **kwargs):
-        from insumos.conversiones import convertir_unidad
+        # Validar que la cantidad sea positiva
+        if self.cantidad <= 0:
+            raise ValueError("La cantidad debe ser mayor a cero")
         
-        # Si la unidad de medida es diferente a la del insumo, convertir
-        if self.unidad_medida != self.insumo.unidad_medida:
-            try:
-                # Convertir a la unidad del insumo para cálculos internos
-                cantidad_convertida = convertir_unidad(
-                    self.cantidad,
-                    self.unidad_medida.abreviatura,
-                    self.insumo.unidad_medida.abreviatura
-                )
-                # Guardamos la cantidad original pero manejamos conversiones en los métodos
-                super().save(*args, **kwargs)
-            except ValueError as e:
-                raise ValueError(f"Error de conversión: {e}")
-        else:
-            super().save(*args, **kwargs)
+        # Validar que el insumo y unidad de medida existan
+        if not self.insumo_id:
+            raise ValueError("El insumo es requerido")
+        if not self.unidad_medida_id:
+            raise ValueError("La unidad de medida es requerida")
+        
+        super().save(*args, **kwargs)
     
     def get_cantidad_en_unidad_insumo(self):
         """Devuelve la cantidad convertida a la unidad del insumo"""
         from insumos.conversiones import convertir_unidad
         
-        if self.unidad_medida == self.insumo.unidad_medida.abreviatura:
-            return self.cantidad
+        # Verificar si las unidades son diferentes
+        if self.unidad_medida.abreviatura == self.insumo.unidad_medida.abreviatura:
+            return float(self.cantidad)
         
-        return convertir_unidad(
-            self.cantidad,
-            self.unidad_medida.abreviatura,
-            self.insumo.unidad_medida.abreviatura
-        )
+        try:
+            cantidad_convertida = convertir_unidad(
+                float(self.cantidad),
+                self.unidad_medida.abreviatura.lower(),  # Usar minúsculas para consistencia
+                self.insumo.unidad_medida.abreviatura.lower()
+            )
+            return float(cantidad_convertida)
+        except (ValueError, TypeError, KeyError) as e:
+            # Si hay error en la conversión, devolver la cantidad original
+            print(f"Error en conversión de {self.unidad_medida.abreviatura} a {self.insumo.unidad_medida.abreviatura}: {e}")
+            return float(self.cantidad)

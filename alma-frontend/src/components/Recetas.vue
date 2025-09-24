@@ -419,6 +419,39 @@ const formatDecimal = (value) => {
   });
 };
 
+const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => {
+  const conversiones = {
+    // Peso
+    kg: { g: 1000, mg: 1000000, kg: 1 },
+    g: { kg: 0.001, mg: 1000, g: 1 },
+    mg: { kg: 0.000001, g: 0.001, mg: 1 },
+
+    // Volumen
+    l: { ml: 1000, cl: 100, l: 1 },
+    ml: { l: 0.001, cl: 0.1, ml: 1 },
+    cl: { l: 0.01, ml: 10, cl: 1 },
+
+    // Unidades (si no hay conversión, asumimos 1:1)
+    unidad: { unidad: 1, u: 1, pz: 1 },
+    u: { unidad: 1, u: 1, pz: 1 },
+    pz: { unidad: 1, u: 1, pz: 1 },
+  };
+
+  // Si las unidades son iguales, no hay conversión
+  if (unidadOrigen === unidadDestino) return cantidad;
+
+  // Buscar conversión
+  if (conversiones[unidadOrigen] && conversiones[unidadOrigen][unidadDestino]) {
+    return cantidad * conversiones[unidadOrigen][unidadDestino];
+  }
+
+  // Si no encuentra conversión, devolver la cantidad original (asumir misma unidad)
+  console.warn(
+    `No se encontró conversión de ${unidadOrigen} a ${unidadDestino}`
+  );
+  return cantidad;
+};
+
 const calcularCostoInsumo = (insumoReceta) => {
   if (!insumoReceta.insumo.precio_unitario) return 0;
 
@@ -429,7 +462,19 @@ const calcularCostoInsumo = (insumoReceta) => {
     insumoReceta.cantidad.toString().replace(",", ".")
   );
 
-  return precioUnitario * cantidad;
+  // Obtener unidades
+  const unidadInsumo =
+    insumoReceta.insumo.unidad_medida.abreviatura.toLowerCase();
+  const unidadReceta = insumoReceta.unidad_medida.abreviatura.toLowerCase();
+
+  // Convertir a la unidad del insumo para cálculo correcto
+  const cantidadConvertida = convertirUnidad(
+    cantidad,
+    unidadReceta,
+    unidadInsumo
+  );
+
+  return precioUnitario * cantidadConvertida;
 };
 
 const resetFilters = () => {
@@ -478,9 +523,21 @@ const actualizarUnidadNuevoInsumo = () => {
   );
 
   if (insumo && insumo.unidad_medida) {
-    nuevoInsumo.value.unidad_medida_id = insumo.unidad_medida.id.toString();
-    // También establecer una cantidad por defecto si es necesario
-    nuevoInsumo.value.cantidad = 1;
+    // Establecer la unidad de medida por defecto del insumo
+    nuevoInsumo.value.unidad_medida_id = insumo.unidad_medida.id;
+
+    // Establecer una cantidad por defecto pequeña
+    if (!nuevoInsumo.value.cantidad || nuevoInsumo.value.cantidad === 0) {
+      // Dependiendo de la unidad, establecer un valor por defecto razonable
+      const unidad = insumo.unidad_medida.abreviatura.toLowerCase();
+      if (unidad === "kg" || unidad === "l") {
+        nuevoInsumo.value.cantidad = 0.1; // 100g o 100ml por defecto
+      } else if (unidad === "g" || unidad === "ml") {
+        nuevoInsumo.value.cantidad = 100; // 100g o 100ml por defecto
+      } else {
+        nuevoInsumo.value.cantidad = 1; // 1 unidad por defecto
+      }
+    }
   } else {
     nuevoInsumo.value.unidad_medida_id = "";
   }
@@ -493,6 +550,17 @@ const agregarInsumoAReceta = async () => {
         type: "error",
         title: "Error de validación",
         message: "Complete todos los campos del insumo",
+        timeout: 4000,
+      });
+      return;
+    }
+
+    // Validar que la cantidad sea positiva
+    if (nuevoInsumo.value.cantidad <= 0) {
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "La cantidad debe ser mayor a cero",
         timeout: 4000,
       });
       return;
