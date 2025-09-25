@@ -59,7 +59,7 @@ class RecetaInsumo(models.Model):
             if unidad_receta == unidad_insumo:
                 return self.cantidad
                 
-            # Usar el módulo de conversioness
+            # Usar el módulo de conversiones
             try:
                 cantidad_convertida = convertir_unidad(
                     Decimal(str(self.cantidad)), 

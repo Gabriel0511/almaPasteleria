@@ -275,12 +275,13 @@
                 <div class="form-group">
                   <label>Cantidad:</label>
                   <input
-                    v-model="insumo.cantidadEdit"
+                    v-model.number="insumo.cantidadEdit"
                     type="number"
                     step="0.001"
                     min="0.001"
                     class="form-input-small"
-                    placeholder="Cantidad"
+                    placeholder="0.000"
+                    @input="formatearCantidadInput($event, insumo)"
                   />
                 </div>
                 <div class="form-group">
@@ -1026,9 +1027,7 @@ const guardarNuevoInsumo = async () => {
   }
 };
 
-// Métodos para la edición de insumos
 const activarEdicionInsumo = (insumo) => {
-  // Desactivar edición de otros insumos
   if (recetaSeleccionada.value?.insumos) {
     recetaSeleccionada.value.insumos.forEach((i) => {
       i.editando = false;
@@ -1036,14 +1035,23 @@ const activarEdicionInsumo = (insumo) => {
   }
 
   insumo.editando = true;
-  insumo.cantidadEdit = insumo.cantidad;
+
+  // Usar punto decimal en lugar de coma
+  insumo.cantidadEdit = parseFloat(
+    insumo.cantidad.toString().replace(",", ".")
+  );
+
+  // Guardar el ID del insumo también (necesario para la actualización)
+  insumo.insumo_id_edit = insumo.insumo.id;
   insumo.unidad_medida_id_edit = insumo.unidad_medida.id;
+
   insumoEditando.value = insumo;
 };
 
 const cancelarEdicionInsumo = (insumo) => {
   insumo.editando = false;
   delete insumo.cantidadEdit;
+  delete insumo.insumo_id_edit;
   delete insumo.unidad_medida_id_edit;
   insumoEditando.value = null;
 };
@@ -1071,9 +1079,11 @@ const guardarEdicionInsumo = async (insumo) => {
       return;
     }
 
+    // Estructura correcta que espera el backend
     const datosActualizacion = {
+      insumo: insumo.insumo.id, // Incluir el insumo (requerido)
       cantidad: parseFloat(insumo.cantidadEdit),
-      unidad_medida: parseInt(insumo.unidad_medida_id_edit),
+      unidad_medida: parseInt(insumo.unidad_medida_id_edit), // Nombre correcto del campo
     };
 
     console.log("Enviando datos de actualización:", datosActualizacion);
@@ -1099,6 +1109,7 @@ const guardarEdicionInsumo = async (insumo) => {
     // Desactivar modo edición
     insumo.editando = false;
     delete insumo.cantidadEdit;
+    delete insumo.insumo_id_edit;
     delete insumo.unidad_medida_id_edit;
     insumoEditando.value = null;
 
@@ -1123,6 +1134,15 @@ const guardarEdicionInsumo = async (insumo) => {
         for (const key in error.response.data) {
           if (Array.isArray(error.response.data[key])) {
             errors.push(...error.response.data[key]);
+          } else if (typeof error.response.data[key] === "object") {
+            // Si es un objeto anidado, extraer sus valores
+            for (const subKey in error.response.data[key]) {
+              if (Array.isArray(error.response.data[key][subKey])) {
+                errors.push(...error.response.data[key][subKey]);
+              } else {
+                errors.push(error.response.data[key][subKey]);
+              }
+            }
           } else {
             errors.push(error.response.data[key]);
           }
@@ -1139,6 +1159,20 @@ const guardarEdicionInsumo = async (insumo) => {
       message: errorMessage,
       timeout: 8000,
     });
+  }
+};
+
+// Agrega esta función para manejar el formato de números
+const formatearCantidadInput = (event, insumo) => {
+  const input = event.target;
+  let value = input.value;
+
+  // Reemplazar coma por punto
+  value = value.replace(",", ".");
+
+  // Validar que sea un número válido
+  if (!isNaN(value) && value !== "") {
+    insumo.cantidadEdit = parseFloat(value);
   }
 };
 
