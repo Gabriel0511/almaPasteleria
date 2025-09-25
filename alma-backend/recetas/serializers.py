@@ -46,3 +46,10 @@ class RecetaInsumoCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = RecetaInsumo
         fields = ['id', 'insumo', 'cantidad', 'unidad_medida']
+    
+    def update(self, instance, validated_data):
+        # Actualizar solo los campos permitidos
+        instance.cantidad = validated_data.get('cantidad', instance.cantidad)
+        instance.unidad_medida = validated_data.get('unidad_medida', instance.unidad_medida)
+        instance.save()
+        return instance

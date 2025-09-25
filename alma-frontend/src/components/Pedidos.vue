@@ -67,7 +67,7 @@
             >
               <div class="pedido-header">
                 <div class="pedido-info">
-                  <span class="cliente-container">
+                  <span class="insumo-container">
                     <span class="cliente-nombre">
                       {{ pedido.cliente.nombre }}
                       <span

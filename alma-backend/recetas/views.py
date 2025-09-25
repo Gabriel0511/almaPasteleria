@@ -43,7 +43,6 @@ class RecetaInsumoListCreateAPIView(generics.ListCreateAPIView):
         receta_id = self.kwargs['receta_id']
         serializer.save(receta_id=receta_id)
 
-
 class RecetaInsumoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = RecetaInsumoSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -51,6 +50,16 @@ class RecetaInsumoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPI
     def get_queryset(self):
         receta_id = self.kwargs['receta_id']
         return RecetaInsumo.objects.filter(receta_id=receta_id)
+
+    def update(self, request, *args, **kwargs):
+        print("🔧 Actualizando insumo de receta")
+        print("Datos recibidos:", request.data)
+        print("Receta ID:", kwargs.get('receta_id'))
+        print("Insumo ID:", kwargs.get('pk'))
+        
+        response = super().update(request, *args, **kwargs)
+        print("Respuesta:", response.data)
+        return response
 
 
 # -------------------------

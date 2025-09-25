@@ -417,6 +417,15 @@ html,
   padding: 4px;
 }
 
+.insumo-container {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  /* Espacio uniforme entre todos los elementos */
+  flex-wrap: wrap;
+  /* Para que se ajuste en pantallas pequeñas */
+}
+
 /* ----------------------------- SCROLL PERSONALIZADO ----------------------------- */
 ::-webkit-scrollbar {
   width: 8px;

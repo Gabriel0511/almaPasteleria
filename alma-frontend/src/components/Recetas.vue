@@ -44,7 +44,7 @@
             >
               <div class="receta-header">
                 <div class="receta-info">
-                  <span class="receta-container">
+                  <span class="insumo-container">
                     <span class="receta-nombre"
                       >{{ receta.nombre }}
                       <span class="receta-veces-hecha"
@@ -63,27 +63,6 @@
                   </span>
                 </div>
                 <div class="receta-acciones">
-                  <button
-                    class="btn-accion"
-                    @click="incrementarReceta(receta)"
-                    title="Preparar receta"
-                  >
-                    <i class="fas fa-plus-circle"></i>
-                  </button>
-                  <button
-                    class="btn-accion"
-                    @click="decrementarReceta(receta)"
-                    title="Revertir preparación"
-                  >
-                    <i class="fas fa-minus-circle"></i>
-                  </button>
-                  <button
-                    class="btn-accion"
-                    @click="agregarInsumosAReceta(receta)"
-                    title="Agregar/editar insumos"
-                  >
-                    <i class="fas fa-utensils"></i>
-                  </button>
                   <button
                     class="btn-accion"
                     @click="editarReceta(receta)"
@@ -131,6 +110,13 @@
                   <i class="fas fa-info-circle"></i>
                   Esta receta no tiene insumos asignados
                 </div>
+                <button
+                  class="btn-agregar-insumo"
+                  @click="agregarInsumosAReceta(receta)"
+                  title="Agregar/editar insumos"
+                >
+                  <i class="fas fa-plus"></i> Agregar Insumos
+                </button>
               </div>
             </div>
           </div>
@@ -274,17 +260,83 @@
             :key="insumo.id"
             class="insumo-existente-item"
           >
-            <span class="insumo-info">
+            <!-- Mostrar modo visualización -->
+            <span v-if="!insumo.editando" class="insumo-info">
               {{ insumo.insumo.nombre }} - {{ formatDecimal(insumo.cantidad) }}
               {{ insumo.unidad_medida.abreviatura }}
+              <span class="insumo-costo" v-if="insumo.insumo.precio_unitario">
+                (Costo: ${{ formatDecimal(calcularCostoInsumo(insumo)) }})
+              </span>
             </span>
-            <button
-              class="btn-eliminar-insumo-existente"
-              @click="eliminarInsumoDeReceta(recetaSeleccionada, insumo)"
-              title="Eliminar insumo"
-            >
-              <i class="fas fa-trash"></i>
-            </button>
+
+            <!-- Mostrar modo edición -->
+            <div v-else class="insumo-edit-form">
+              <div class="edit-form-grid">
+                <div class="form-group">
+                  <label>Cantidad:</label>
+                  <input
+                    v-model="insumo.cantidadEdit"
+                    type="number"
+                    step="0.001"
+                    min="0.001"
+                    class="form-input-small"
+                    placeholder="Cantidad"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>Unidad:</label>
+                  <select
+                    v-model="insumo.unidad_medida_id_edit"
+                    class="form-input-small"
+                    required
+                  >
+                    <option value="">Seleccione...</option>
+                    <option
+                      v-for="unidad in unidadesMedida"
+                      :key="unidad.id"
+                      :value="unidad.id"
+                    >
+                      {{ unidad.abreviatura }} ({{ unidad.nombre }})
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="insumo-acciones">
+              <button
+                v-if="!insumo.editando"
+                class="btn-accion-small"
+                @click="activarEdicionInsumo(insumo)"
+                title="Editar insumo"
+              >
+                <i class="fas fa-edit"></i>
+              </button>
+              <button
+                v-else
+                class="btn-accion-small btn-confirmar"
+                @click="guardarEdicionInsumo(insumo)"
+                title="Guardar cambios"
+              >
+                <i class="fas fa-check"></i>
+              </button>
+              <button
+                v-if="!insumo.editando"
+                class="btn-accion-small btn-eliminar"
+                @click="eliminarInsumoDeReceta(recetaSeleccionada, insumo)"
+                title="Eliminar insumo"
+              >
+                <i class="fas fa-trash"></i>
+              </button>
+              <button
+                v-else
+                class="btn-accion-small btn-cancelar"
+                @click="cancelarEdicionInsumo(insumo)"
+                title="Cancelar edición"
+              >
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
           </div>
           <div v-if="!recetaSeleccionada?.insumos?.length" class="sin-insumos">
             No hay insumos agregados
@@ -294,6 +346,76 @@
         <div class="modal-buttons">
           <button @click="showModalInsumos = false" class="cancel-button">
             Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Nuevo Insumo -->
+    <div v-if="showNuevoInsumoModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Nuevo Insumo</h3>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre:</label>
+            <input
+              v-model="formNuevoInsumo.nombre"
+              type="text"
+              required
+              class="form-input"
+              placeholder="Nombre del insumo"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Unidad de Medida:</label>
+            <select
+              v-model="formNuevoInsumo.unidad_medida_id"
+              required
+              class="form-input"
+            >
+              <option value="">Seleccione una unidad</option>
+              <option
+                v-for="unidad in unidadesMedida"
+                :key="unidad.id"
+                :value="unidad.id"
+              >
+                {{ unidad.nombre }} ({{ unidad.abreviatura }})
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Stock Mínimo:</label>
+            <input
+              v-model="formNuevoInsumo.stock_minimo"
+              type="number"
+              step="0.001"
+              required
+              class="form-input"
+              placeholder="0.000"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Precio Unitario:</label>
+            <input
+              v-model="formNuevoInsumo.precio_unitario"
+              type="number"
+              step="0.01"
+              class="form-input"
+              placeholder="0.00"
+            />
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button @click="showNuevoInsumoModal = false" class="cancel-button">
+            Cancelar
+          </button>
+          <button @click="guardarNuevoInsumo" class="confirm-button">
+            Guardar
           </button>
         </div>
       </div>
@@ -338,11 +460,13 @@ const insumosDisponibles = ref([]);
 const unidadesMedida = ref([]);
 const searchTerm = ref("");
 const loading = ref(true);
+const insumoEditando = ref(null);
 
 // Modales
 const showModalReceta = ref(false);
 const showModalInsumos = ref(false);
 const showConfirmModal = ref(false);
+const showNuevoInsumoModal = ref(false);
 
 // Formularios
 const formReceta = ref({
@@ -386,6 +510,13 @@ const puedeAgregarInsumo = computed(() => {
   );
 });
 
+const formNuevoInsumo = ref({
+  nombre: "",
+  unidad_medida_id: "",
+  stock_minimo: 0,
+  precio_unitario: null,
+});
+
 // Métodos
 const handleNavigation = (route) => {
   router.push(route);
@@ -420,32 +551,47 @@ const formatDecimal = (value) => {
 };
 
 const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => {
-  const conversiones = {
-    // Peso
-    kg: { g: 1000, mg: 1000000, kg: 1 },
-    g: { kg: 0.001, mg: 1000, g: 1 },
-    mg: { kg: 0.000001, g: 0.001, mg: 1 },
-
-    // Volumen
-    l: { ml: 1000, cl: 100, l: 1 },
-    ml: { l: 0.001, cl: 0.1, ml: 1 },
-    cl: { l: 0.01, ml: 10, cl: 1 },
-
-    // Unidades (si no hay conversión, asumimos 1:1)
-    unidad: { unidad: 1, u: 1, pz: 1 },
-    u: { unidad: 1, u: 1, pz: 1 },
-    pz: { unidad: 1, u: 1, pz: 1 },
-  };
-
-  // Si las unidades son iguales, no hay conversión
   if (unidadOrigen === unidadDestino) return cantidad;
 
-  // Buscar conversión
+  const conversiones = {
+    // Peso
+    kg: { g: 1000, mg: 1000000 },
+    g: { kg: 0.001, mg: 1000 },
+    mg: { kg: 0.000001, g: 0.001 },
+
+    // Volumen
+    l: { ml: 1000, cl: 100 },
+    ml: { l: 0.001, cl: 0.1 },
+    cl: { l: 0.01, ml: 10 },
+
+    // Unidades (1:1 por defecto)
+    unidad: { u: 1, pz: 1 },
+    u: { unidad: 1, pz: 1 },
+    pz: { unidad: 1, u: 1 },
+
+    // Agregar más conversiones si es necesario
+    docena: { unidad: 12, u: 12 },
+    doc: { unidad: 12, u: 12 },
+  };
+
+  // Normalizar unidades
+  unidadOrigen = unidadOrigen.toLowerCase();
+  unidadDestino = unidadDestino.toLowerCase();
+
+  // Buscar conversión directa
   if (conversiones[unidadOrigen] && conversiones[unidadOrigen][unidadDestino]) {
     return cantidad * conversiones[unidadOrigen][unidadDestino];
   }
 
-  // Si no encuentra conversión, devolver la cantidad original (asumir misma unidad)
+  // Buscar conversión inversa
+  if (
+    conversiones[unidadDestino] &&
+    conversiones[unidadDestino][unidadOrigen]
+  ) {
+    return cantidad / conversiones[unidadDestino][unidadOrigen];
+  }
+
+  // Si no encuentra conversión, mostrar advertencia y devolver cantidad original
   console.warn(
     `No se encontró conversión de ${unidadOrigen} a ${unidadDestino}`
   );
@@ -455,26 +601,37 @@ const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => {
 const calcularCostoInsumo = (insumoReceta) => {
   if (!insumoReceta.insumo.precio_unitario) return 0;
 
-  const precioUnitario = parseFloat(
-    insumoReceta.insumo.precio_unitario.toString().replace(",", ".")
-  );
-  const cantidad = parseFloat(
-    insumoReceta.cantidad.toString().replace(",", ".")
-  );
+  try {
+    const precioUnitario = parseFloat(
+      insumoReceta.insumo.precio_unitario.toString().replace(",", ".")
+    );
+    const cantidad = parseFloat(
+      insumoReceta.cantidad.toString().replace(",", ".")
+    );
 
-  // Obtener unidades
-  const unidadInsumo =
-    insumoReceta.insumo.unidad_medida.abreviatura.toLowerCase();
-  const unidadReceta = insumoReceta.unidad_medida.abreviatura.toLowerCase();
+    // Obtener unidades
+    const unidadInsumo =
+      insumoReceta.insumo.unidad_medida.abreviatura.toLowerCase();
+    const unidadReceta = insumoReceta.unidad_medida.abreviatura.toLowerCase();
 
-  // Convertir a la unidad del insumo para cálculo correcto
-  const cantidadConvertida = convertirUnidad(
-    cantidad,
-    unidadReceta,
-    unidadInsumo
-  );
+    // Si las unidades son iguales, cálculo directo
+    if (unidadInsumo === unidadReceta) {
+      return precioUnitario * cantidad;
+    }
 
-  return precioUnitario * cantidadConvertida;
+    // Convertir a la unidad del insumo para cálculo correcto
+    const cantidadConvertida = convertirUnidad(
+      cantidad,
+      unidadReceta,
+      unidadInsumo
+    );
+
+    const costo = precioUnitario * cantidadConvertida;
+    return isNaN(costo) ? 0 : costo;
+  } catch (error) {
+    console.error("Error al calcular costo del insumo:", error);
+    return 0;
+  }
 };
 
 const resetFilters = () => {
@@ -582,8 +739,25 @@ const agregarInsumoAReceta = async () => {
 
     console.log("Respuesta del servidor:", response.data);
 
-    // Recargar la receta para obtener los insumos actualizados
-    await fetchRecetas();
+    // ACTUALIZACIÓN EN TIEMPO REAL: Agregar el nuevo insumo a la lista local
+    const nuevoInsumoObj = {
+      ...response.data,
+      editando: false,
+      insumo: insumosDisponibles.value.find(
+        (i) => i.id === parseInt(nuevoInsumo.value.insumo_id)
+      ),
+      unidad_medida: unidadesMedida.value.find(
+        (u) => u.id === parseInt(nuevoInsumo.value.unidad_medida_id)
+      ),
+    };
+
+    if (!recetaSeleccionada.value.insumos) {
+      recetaSeleccionada.value.insumos = [];
+    }
+    recetaSeleccionada.value.insumos.push(nuevoInsumoObj);
+
+    // Recalcular costos
+    await recalcularCostosReceta();
 
     notificationSystem.show({
       type: "success",
@@ -625,12 +799,19 @@ const agregarInsumoAReceta = async () => {
   }
 };
 
+// Modificar eliminarInsumoDeReceta para actualizar en tiempo real
 const eliminarInsumoDeReceta = async (receta, insumo) => {
   try {
     await axios.delete(`/api/recetas/${receta.id}/insumos/${insumo.id}/`);
 
-    // Recargar la receta para obtener los insumos actualizados
-    await fetchRecetas();
+    // ACTUALIZACIÓN EN TIEMPO REAL: Eliminar de la lista local
+    const insumoIndex = receta.insumos.findIndex((i) => i.id === insumo.id);
+    if (insumoIndex !== -1) {
+      receta.insumos.splice(insumoIndex, 1);
+    }
+
+    // Recalcular costos
+    await recalcularCostosReceta();
 
     notificationSystem.show({
       type: "success",
@@ -774,95 +955,227 @@ const eliminarReceta = async () => {
   }
 };
 
-const incrementarReceta = async (receta) => {
+// Agregar este método para guardar el nuevo insumo
+const guardarNuevoInsumo = async () => {
   try {
-    const response = await axios.post(`/api/recetas/${receta.id}/incrementar/`);
-
-    if (response.data.stock_actualizado) {
+    if (!formNuevoInsumo.value.nombre) {
       notificationSystem.show({
-        type: "success",
-        title: "Receta preparada",
-        message: response.data.mensaje,
+        type: "error",
+        title: "Error de validación",
+        message: "El nombre del insumo es requerido",
         timeout: 4000,
       });
-
-      // Actualizar el contador en la lista local
-      const index = recetas.value.findIndex((r) => r.id === receta.id);
-      if (index !== -1) {
-        recetas.value[index].veces_hecha = response.data.nuevo_contador;
-      }
-
-      // Recargar insumos para actualizar stock
-      await fetchInsumosDisponibles();
+      return;
     }
-  } catch (error) {
-    console.error("Error al incrementar receta:", error);
-
-    if (error.response?.status === 400 && error.response?.data?.insuficientes) {
-      const insuficientes = error.response.data.insuficientes;
-      let mensaje = `Stock insuficiente para preparar "${receta.nombre}":\n`;
-
-      insuficientes.forEach((ins) => {
-        mensaje += `- ${ins.nombre}: Necesita ${ins.necesario} ${ins.unidad}, tiene ${ins.disponible} ${ins.unidad}\n`;
-      });
-
+    if (!formNuevoInsumo.value.unidad_medida_id) {
       notificationSystem.show({
         type: "error",
-        title: "Stock insuficiente",
-        message: mensaje,
-        timeout: 8000,
-      });
-    } else {
-      notificationSystem.show({
-        type: "error",
-        title: "Error",
-        message: "Error al preparar la receta",
-        timeout: 6000,
-      });
-    }
-  }
-};
-
-const decrementarReceta = async (receta) => {
-  try {
-    if (receta.veces_hecha <= 0) {
-      notificationSystem.show({
-        type: "warning",
-        title: "No se puede revertir",
-        message: "Esta receta no ha sido preparada aún",
+        title: "Error de validación",
+        message: "La unidad de medida es requerida",
         timeout: 4000,
       });
       return;
     }
 
-    const response = await axios.post(`/api/recetas/${receta.id}/decrementar/`);
+    const datosParaEnviar = {
+      nombre: formNuevoInsumo.value.nombre,
+      unidad_medida_id: formNuevoInsumo.value.unidad_medida_id,
+      stock_minimo: parseFloat(formNuevoInsumo.value.stock_minimo) || 0,
+      precio_unitario: formNuevoInsumo.value.precio_unitario
+        ? parseFloat(formNuevoInsumo.value.precio_unitario)
+        : null,
+      stock_actual: 0, // Empezar con stock 0
+      activo: true,
+    };
 
-    if (response.data.stock_actualizado) {
-      notificationSystem.show({
-        type: "success",
-        title: "Preparación revertida",
-        message: response.data.mensaje,
-        timeout: 4000,
-      });
+    const response = await axios.post("/api/insumos/crear/", datosParaEnviar);
 
-      // Actualizar el contador en la lista local
-      const index = recetas.value.findIndex((r) => r.id === receta.id);
-      if (index !== -1) {
-        recetas.value[index].veces_hecha = response.data.nuevo_contador;
-      }
+    // Actualizar la lista de insumos disponibles
+    await fetchInsumosDisponibles();
 
-      // Recargar insumos para actualizar stock
-      await fetchInsumosDisponibles();
-    }
+    // Seleccionar automáticamente el nuevo insumo
+    nuevoInsumo.value.insumo_id = response.data.id;
+
+    showNuevoInsumoModal.value = false;
+    resetFormNuevoInsumo();
+
+    notificationSystem.show({
+      type: "success",
+      title: "Insumo creado",
+      message: "Insumo creado correctamente",
+      timeout: 4000,
+    });
   } catch (error) {
-    console.error("Error al decrementar receta:", error);
+    console.error("Error al guardar insumo:", error);
+
+    let errorMessage = "Error al crear el insumo";
+    if (error.response?.data) {
+      if (typeof error.response.data === "object") {
+        errorMessage = Object.values(error.response.data).join(", ");
+      } else {
+        errorMessage = error.response.data;
+      }
+    }
 
     notificationSystem.show({
       type: "error",
       title: "Error",
-      message: "Error al revertir la preparación",
+      message: errorMessage,
       timeout: 6000,
     });
+  }
+};
+
+// Métodos para la edición de insumos
+const activarEdicionInsumo = (insumo) => {
+  // Desactivar edición de otros insumos
+  if (recetaSeleccionada.value?.insumos) {
+    recetaSeleccionada.value.insumos.forEach((i) => {
+      i.editando = false;
+    });
+  }
+
+  insumo.editando = true;
+  insumo.cantidadEdit = insumo.cantidad;
+  insumo.unidad_medida_id_edit = insumo.unidad_medida.id;
+  insumoEditando.value = insumo;
+};
+
+const cancelarEdicionInsumo = (insumo) => {
+  insumo.editando = false;
+  delete insumo.cantidadEdit;
+  delete insumo.unidad_medida_id_edit;
+  insumoEditando.value = null;
+};
+
+const guardarEdicionInsumo = async (insumo) => {
+  try {
+    if (!insumo.cantidadEdit || insumo.cantidadEdit <= 0) {
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "La cantidad debe ser mayor a cero",
+        timeout: 4000,
+      });
+      return;
+    }
+
+    // Validar que la unidad de medida sea válida
+    if (!insumo.unidad_medida_id_edit) {
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "Seleccione una unidad de medida válida",
+        timeout: 4000,
+      });
+      return;
+    }
+
+    const datosActualizacion = {
+      cantidad: parseFloat(insumo.cantidadEdit),
+      unidad_medida: parseInt(insumo.unidad_medida_id_edit),
+    };
+
+    console.log("Enviando datos de actualización:", datosActualizacion);
+
+    const response = await axios.put(
+      `/api/recetas/${recetaSeleccionada.value.id}/insumos/${insumo.id}/`,
+      datosActualizacion
+    );
+
+    console.log("Respuesta del servidor:", response.data);
+
+    // Actualizar los datos locales en tiempo real
+    insumo.cantidad = parseFloat(insumo.cantidadEdit);
+
+    // Buscar y asignar la nueva unidad de medida
+    const nuevaUnidad = unidadesMedida.value.find(
+      (u) => u.id === parseInt(insumo.unidad_medida_id_edit)
+    );
+    if (nuevaUnidad) {
+      insumo.unidad_medida = nuevaUnidad;
+    }
+
+    // Desactivar modo edición
+    insumo.editando = false;
+    delete insumo.cantidadEdit;
+    delete insumo.unidad_medida_id_edit;
+    insumoEditando.value = null;
+
+    // Recalcular costos de la receta
+    await recalcularCostosReceta();
+
+    notificationSystem.show({
+      type: "success",
+      title: "Insumo actualizado",
+      message: "Insumo actualizado correctamente",
+      timeout: 4000,
+    });
+  } catch (error) {
+    console.error("Error al actualizar insumo:", error);
+
+    let errorMessage = "Error al actualizar el insumo";
+    if (error.response?.data) {
+      console.error("Detalles del error:", error.response.data);
+
+      if (typeof error.response.data === "object") {
+        const errors = [];
+        for (const key in error.response.data) {
+          if (Array.isArray(error.response.data[key])) {
+            errors.push(...error.response.data[key]);
+          } else {
+            errors.push(error.response.data[key]);
+          }
+        }
+        errorMessage = errors.join(", ");
+      } else if (typeof error.response.data === "string") {
+        errorMessage = error.response.data;
+      }
+    }
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: errorMessage,
+      timeout: 8000,
+    });
+  }
+};
+
+// Método para recalcular costos en tiempo real
+const recalcularCostosReceta = async () => {
+  if (!recetaSeleccionada.value) return;
+
+  try {
+    // Recalcular costo total de la receta
+    let costoTotal = 0;
+
+    if (recetaSeleccionada.value.insumos) {
+      recetaSeleccionada.value.insumos.forEach((insumo) => {
+        costoTotal += calcularCostoInsumo(insumo);
+      });
+    }
+
+    // Actualizar localmente
+    recetaSeleccionada.value.costo_total = costoTotal;
+
+    // También actualizar en la lista principal de recetas
+    const recetaIndex = recetas.value.findIndex(
+      (r) => r.id === recetaSeleccionada.value.id
+    );
+    if (recetaIndex !== -1) {
+      recetas.value[recetaIndex].costo_total = costoTotal;
+
+      // También actualizar el costo unitario si el rinde es mayor a 0
+      if (recetas.value[recetaIndex].rinde > 0) {
+        recetas.value[recetaIndex].costo_unitario =
+          costoTotal / recetas.value[recetaIndex].rinde;
+      }
+    }
+
+    console.log("Costos recalculados:", costoTotal);
+  } catch (error) {
+    console.error("Error al recalcular costos:", error);
   }
 };
 
@@ -870,6 +1183,7 @@ const closeModal = () => {
   showModalReceta.value = false;
   showModalInsumos.value = false;
   showConfirmModal.value = false;
+  showNuevoInsumoModal.value = false;
   resetFormReceta();
 };
 
@@ -889,6 +1203,16 @@ const resetNuevoInsumo = () => {
     insumo_id: "",
     cantidad: 0,
     unidad_medida_id: "",
+  };
+};
+
+// Agregar método para resetear el formulario de nuevo insumo
+const resetFormNuevoInsumo = () => {
+  formNuevoInsumo.value = {
+    nombre: "",
+    unidad_medida_id: "",
+    stock_minimo: 0,
+    precio_unitario: null,
   };
 };
 
@@ -1327,6 +1651,123 @@ onMounted(() => {
   background-color: #f9f9f9;
 }
 
+.select-with-button {
+  display: flex;
+  gap: 5px;
+}
+
+.btn-agregar-nuevo {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: background-color 0.2s;
+  padding: 0 10px;
+  height: 38px;
+}
+
+.btn-agregar-nuevo:hover {
+  background-color: #bbdefb;
+}
+
+.insumo-existente-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  gap: 10px;
+}
+
+.insumo-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.insumo-costo {
+  font-size: 12px;
+  color: #2e7d32;
+  font-style: italic;
+}
+
+.insumo-acciones {
+  display: flex;
+  gap: 5px;
+}
+
+.insumo-edit-form {
+  flex: 1;
+}
+
+.edit-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: end;
+}
+
+.form-input-small {
+  padding: 6px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  width: 100%;
+}
+
+.btn-accion-small {
+  background: none;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  color: #7b5a50;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.btn-accion-small:hover {
+  background-color: #f5f5f5;
+}
+
+.btn-confirmar {
+  color: #28a745;
+  border-color: #28a745;
+}
+
+.btn-confirmar:hover {
+  background-color: #d4edda;
+}
+
+.btn-cancelar {
+  color: #dc3545;
+  border-color: #dc3545;
+}
+
+.btn-cancelar:hover {
+  background-color: #f8d7da;
+}
+
+.btn-eliminar {
+  color: #dc3545;
+  border-color: #f5c6cb;
+}
+
+.btn-eliminar:hover {
+  background-color: #f8d7da;
+}
+
+.sin-insumos {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 20px;
+}
 /* ----------------------------- RESPONSIVE ----------------------------- */
 @media (max-width: 768px) {
   .filtros-derecha {
