@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from django.db import transaction
 from decimal import Decimal
 
+# Importar los modelos correctamente
 from .models import Receta, RecetaInsumo
 from .serializers import RecetaSerializer, RecetaInsumoSerializer, RecetaInsumoCreateSerializer
 from insumos.models import Insumo
@@ -65,12 +66,31 @@ class IncrementarRecetaView(APIView):
                 # Verificar stock antes de incrementar
                 insuficientes = []
                 for detalle in detalles:
-                    cantidad_necesaria = detalle.get_cantidad_en_unidad_insumo()  # ya es Decimal
+                    # DEBUG: Verificar si el método existe
+                    if not hasattr(detalle, 'get_cantidad_en_unidad_insumo'):
+                        return Response({
+                            'error': f'Método no encontrado en objeto tipo {type(detalle)}'
+                        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    
+                    # Intentar llamar al método
+                    try:
+                        cantidad_necesaria = detalle.get_cantidad_en_unidad_insumo()
+                    except AttributeError as e:
+                        return Response({
+                            'error': f'Error al llamar método: {str(e)}'
+                        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    
+                    if not isinstance(cantidad_necesaria, Decimal):
+                        cantidad_necesaria = Decimal(str(cantidad_necesaria))
 
-                    if detalle.insumo.stock_actual < cantidad_necesaria:
+                    stock_actual = detalle.insumo.stock_actual
+                    if not isinstance(stock_actual, Decimal):
+                        stock_actual = Decimal(str(stock_actual))
+
+                    if stock_actual < cantidad_necesaria:
                         insuficientes.append({
                             'nombre': detalle.insumo.nombre,
-                            'disponible': float(detalle.insumo.stock_actual),
+                            'disponible': float(stock_actual),
                             'necesario': float(cantidad_necesaria),
                             'unidad': detalle.insumo.unidad_medida.abreviatura
                         })
@@ -82,10 +102,16 @@ class IncrementarRecetaView(APIView):
                         'receta_nombre': receta.nombre
                     }, status=status.HTTP_400_BAD_REQUEST)
 
-                # Reducir stock
+                # Reducir stock (usando cantidad directa temporalmente)
                 for detalle in detalles:
-                    cantidad_necesaria = detalle.get_cantidad_en_unidad_insumo()
-                    cantidad_necesaria = Decimal(str(cantidad_necesaria))  # 🔑 asegurar Decimal
+                    # Usar cantidad directa en lugar del método problemático
+                    cantidad_necesaria = detalle.cantidad
+                    if not isinstance(cantidad_necesaria, Decimal):
+                        cantidad_necesaria = Decimal(str(cantidad_necesaria))
+                    
+                    if not isinstance(detalle.insumo.stock_actual, Decimal):
+                        detalle.insumo.stock_actual = Decimal(str(detalle.insumo.stock_actual))
+                    
                     detalle.insumo.stock_actual -= cantidad_necesaria
                     detalle.insumo.save()
 
@@ -103,8 +129,6 @@ class IncrementarRecetaView(APIView):
         except Exception as e:
             return Response({'error': f'Error interno del servidor: {str(e)}'},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 # -------------------------
 # 🔹 Decrementar Receta
 # -------------------------
@@ -125,8 +149,13 @@ class DecrementarRecetaView(APIView):
                 for detalle in detalles:
                     insumo = detalle.insumo
                     cantidad_devolver = detalle.get_cantidad_en_unidad_insumo()
-                    cantidad_devolver = Decimal(str(cantidad_devolver))  # 🔑 asegurar Decimal
+                    if not isinstance(cantidad_devolver, Decimal):
+                        cantidad_devolver = Decimal(str(cantidad_devolver))
 
+                    # Asegurar que stock_actual sea Decimal
+                    if not isinstance(insumo.stock_actual, Decimal):
+                        insumo.stock_actual = Decimal(str(insumo.stock_actual))
+                    
                     insumo.stock_actual += cantidad_devolver
                     insumo.save()
 
