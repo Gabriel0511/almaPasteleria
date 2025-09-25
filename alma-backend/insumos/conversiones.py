@@ -16,6 +16,10 @@ def convertir_unidad(cantidad, unidad_origen, unidad_destino):
         return cantidad
     
     try:
+        # Asegurarse de que las unidades estén en minúsculas
+        unidad_origen = unidad_origen.lower()
+        unidad_destino = unidad_destino.lower()
+
         factor = CONVERSIONES[unidad_origen][unidad_destino]
         return cantidad * Decimal(str(factor))
     except KeyError:

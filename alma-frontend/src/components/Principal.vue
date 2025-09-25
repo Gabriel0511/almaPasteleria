@@ -88,21 +88,20 @@
             <form autocomplete="off">
               <input autocomplete="off" v-model="searchTerm" type="text" placeholder="Buscar receta..." />
             </form>
-            <ul class="recetas-list">
-              <li v-for="receta in filteredRecetas" :key="receta.id">
-                <span>
-                  {{ receta.nombre }} (Rinde {{ receta.rinde }} {{ singularizeUnidad(receta.rinde, receta.unidad_rinde)
-                  }})
-                </span>
-                <div class="contador">
-                  <button @click="decrementarContador(receta)" :disabled="!receta.vecesHecha">
-                    -
-                  </button>
-                  <span>{{ receta.vecesHecha || 0 }}</span>
-                  <button @click="incrementarContador(receta)">+</button>
-                </div>
-              </li>
-            </ul>
+              <ul class="recetas-list">
+                <li v-for="receta in filteredRecetas" :key="receta.id">
+                  <span>
+                    {{ receta.nombre }} (Rinde {{ receta.rinde }} {{ singularizeUnidad(receta.rinde, receta.unidad_rinde) }})
+                  </span>
+                  <div class="contador">
+                    <button @click="decrementarContador(receta)" :disabled="!receta.veces_hecha">
+                      -
+                    </button>
+                    <span>{{ receta.veces_hecha || 0 }}</span>
+                    <button @click="incrementarContador(receta)">+</button>
+                  </div>
+                </li>
+              </ul>
           </div>
         </section>
       </main>
@@ -157,20 +156,38 @@ const contador = ref(0);
 
 const incrementarContador = async (receta) => {
   try {
+    console.log("Incrementando receta:", receta.id, receta.nombre);
+    console.log("Stock actual antes de incrementar:", stock.value);
+    
     const response = await axios.post(`/api/recetas/${receta.id}/incrementar/`);
 
+    console.log("Respuesta del servidor:", response.data);
+
     if (response.data.error) {
+      // Mostrar detalles específicos del error de stock
+      let mensajeError = response.data.error;
+      if (response.data.insuficientes && response.data.insuficientes.length > 0) {
+        mensajeError += "\n\nInsumos insuficientes:";
+        response.data.insuficientes.forEach(ins => {
+          mensajeError += `\n- ${ins.nombre}: Necesita ${ins.necesario} ${ins.unidad}, tiene ${ins.disponible} ${ins.unidad}`;
+        });
+      }
+      
       notificationSystem.show({
         type: 'error',
         title: `Stock insuficiente para ${response.data.receta_nombre || receta.nombre}`,
-        message: response.data.error,
-        insuficientes: response.data.insuficientes || [],
+        message: mensajeError,
         timeout: 10000
       });
       return;
     }
 
-    receta.vecesHecha = response.data.nuevo_contador;
+    // Actualizar el contador correctamente
+    const recetaIndex = recetas.value.findIndex(r => r.id === receta.id);
+    if (recetaIndex !== -1) {
+      recetas.value[recetaIndex].veces_hecha = response.data.nuevo_contador;
+      recetas.value[recetaIndex].vecesHecha = response.data.nuevo_contador;
+    }
 
     if (response.data.stock_actualizado) {
       await fetchStock();
@@ -183,20 +200,48 @@ const incrementarContador = async (receta) => {
     }
   } catch (err) {
     console.error("Error al incrementar:", err);
+    
+    // Mostrar detalles específicos del error
+    let mensajeError = "Error al incrementar receta";
+    if (err.response?.data) {
+      console.error("Detalles del error:", err.response.data);
+      
+      if (err.response.data.insuficientes) {
+        mensajeError = `Stock insuficiente para preparar "${receta.nombre}":\n`;
+        err.response.data.insuficientes.forEach(ins => {
+          mensajeError += `\n- ${ins.nombre}: Necesita ${ins.necesario} ${ins.unidad}, tiene ${ins.disponible} ${ins.unidad}`;
+        });
+      } else if (err.response.data.error) {
+        mensajeError = err.response.data.error;
+      }
+    }
+    
     notificationSystem.show({
       type: 'error',
       title: 'Error',
-      message: err.response?.data?.error || "Error al incrementar receta",
-      timeout: 6000
+      message: mensajeError,
+      timeout: 8000
     });
   }
 };
 
 const decrementarContador = async (receta) => {
   try {
-    if (receta.vecesHecha <= 0) return;
+    if (receta.veces_hecha <= 0) {
+      notificationSystem.show({
+        type: 'warning',
+        title: 'No se puede revertir',
+        message: 'Esta receta no ha sido preparada aún',
+        timeout: 4000
+      });
+      return;
+    }
 
+    console.log("Decrementando receta:", receta.id, receta.nombre);
+    
     const response = await axios.post(`/api/recetas/${receta.id}/decrementar/`);
+
+    console.log("Respuesta del servidor:", response.data);
 
     if (response.data.error) {
       notificationSystem.show({
@@ -208,16 +253,29 @@ const decrementarContador = async (receta) => {
       return;
     }
 
-    receta.vecesHecha = response.data.nuevo_contador;
+    // Actualizar el contador correctamente
+    const recetaIndex = recetas.value.findIndex(r => r.id === receta.id);
+    if (recetaIndex !== -1) {
+      recetas.value[recetaIndex].veces_hecha = response.data.nuevo_contador;
+      recetas.value[recetaIndex].vecesHecha = response.data.nuevo_contador;
+    }
 
     if (response.data.stock_actualizado) {
       await fetchStock();
+      
+      let mensajeExito = response.data.mensaje || `Se ha revertido la preparación de ${receta.nombre}`;
+      if (response.data.insumos_devueltos && response.data.insumos_devueltos.length > 0) {
+        mensajeExito += "\n\nInsumos devueltos al stock:";
+        response.data.insumos_devueltos.forEach(ins => {
+          mensajeExito += `\n- ${ins.nombre}: ${ins.cantidad} ${ins.unidad}`;
+        });
+      }
+      
       notificationSystem.show({
         type: 'info',
         title: 'Preparación revertida',
-        message: response.data.mensaje || `Se ha decrementado el contador de ${receta.nombre}`,
-        insumos_devueltos: response.data.insumos_devueltos || [],
-        timeout: 6000
+        message: mensajeExito,
+        timeout: 8000
       });
     }
   } catch (err) {
@@ -321,9 +379,15 @@ const fetchRecetas = async () => {
   try {
     loadingRecetas.value = true;
     const response = await axios.get("/api/recetas/");
+    
+    // Mapear correctamente los datos del backend
     recetas.value = response.data.map((receta) => ({
-      ...receta,
-      vecesHecha: receta.veces_hecha,
+      id: receta.id,
+      nombre: receta.nombre,
+      rinde: receta.rinde,
+      unidad_rinde: receta.unidad_rinde,
+      veces_hecha: receta.veces_hecha || 0, // Usar el nombre correcto del campo
+      vecesHecha: receta.veces_hecha || 0, // Mantener compatibilidad con el template
     }));
   } catch (err) {
     errorRecetas.value = "Error al cargar las recetas";
