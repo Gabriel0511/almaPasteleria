@@ -46,22 +46,24 @@ class RecetaInsumo(models.Model):
         
         super().save(*args, **kwargs)
     
-    def get_cantidad_en_unidad_insumo(self):
-        """Devuelve la cantidad convertida a la unidad del insumo"""
-        from insumos.conversiones import convertir_unidad
-        
-        # Verificar si las unidades son diferentes
-        if self.unidad_medida.abreviatura == self.insumo.unidad_medida.abreviatura:
-            return float(self.cantidad)
-        
-        try:
-            cantidad_convertida = convertir_unidad(
-                float(self.cantidad),
-                self.unidad_medida.abreviatura.lower(),  # Usar minúsculas para consistencia
-                self.insumo.unidad_medida.abreviatura.lower()
-            )
-            return float(cantidad_convertida)
-        except (ValueError, TypeError, KeyError) as e:
-            # Si hay error en la conversión, devolver la cantidad original
-            print(f"Error en conversión de {self.unidad_medida.abreviatura} a {self.insumo.unidad_medida.abreviatura}: {e}")
-            return float(self.cantidad)
+
+def get_cantidad_en_unidad_insumo(self):
+    """Devuelve la cantidad convertida a la unidad del insumo, siempre como Decimal"""
+    from insumos.conversiones import convertir_unidad
+    
+    # Si las unidades ya coinciden, devolvemos directamente la cantidad (que ya es Decimal)
+    if self.unidad_medida.abreviatura == self.insumo.unidad_medida.abreviatura:
+        return self.cantidad
+    
+    try:
+        # convertir_unidad puede devolver float, lo pasamos a str para no perder precisión
+        cantidad_convertida = convertir_unidad(
+            float(self.cantidad),  # convertir_unidad espera float
+            self.unidad_medida.abreviatura.lower(),
+            self.insumo.unidad_medida.abreviatura.lower()
+        )
+        return Decimal(str(cantidad_convertida))
+    except (ValueError, TypeError, KeyError) as e:
+        # Si hay error en la conversión, devolvemos la cantidad original
+        print(f"Error en conversión de {self.unidad_medida.abreviatura} a {self.insumo.unidad_medida.abreviatura}: {e}")
+        return self.cantidad
