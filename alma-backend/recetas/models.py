@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 from datetime import timedelta
 from insumos.models import Insumo, UnidadMedida
+from insumos.conversiones import convertir_unidad
 from decimal import Decimal
 
 class Receta(models.Model):
@@ -41,29 +42,36 @@ class RecetaInsumo(models.Model):
         super().save(*args, **kwargs)
     
     def get_cantidad_en_unidad_insumo(self):
-        """Versión simplificada para debug"""
-        print("✅ get_cantidad_en_unidad_insumo llamado")  # Debug
+        """Convierte la cantidad a la unidad de medida del insumo usando conversiones.py"""
         try:
             # Verificar que los objetos relacionados existan
             if not hasattr(self, 'insumo') or not self.insumo:
-                print("❌ Insumo no disponible")
                 return self.cantidad
             if not hasattr(self, 'unidad_medida') or not self.unidad_medida:
-                print("❌ Unidad medida no disponible")
+                return self.insumo
+            if not hasattr(self.insumo, 'unidad_medida') or not self.insumo.unidad_medida:
                 return self.cantidad
                 
-            print(f"🔍 Unidad receta: {self.unidad_medida.abreviatura}")
-            print(f"🔍 Unidad insumo: {self.insumo.unidad_medida.abreviatura}")
+            unidad_receta = self.unidad_medida.abreviatura.lower()
+            unidad_insumo = self.insumo.unidad_medida.abreviatura.lower()
             
             # Si las unidades coinciden, devolver la cantidad original
-            if self.unidad_medida.abreviatura == self.insumo.unidad_medida.abreviatura:
-                print("✅ Unidades iguales, retornando cantidad original")
+            if unidad_receta == unidad_insumo:
                 return self.cantidad
                 
-            print("🔄 Unidades diferentes, necesitaría conversión")
-            # Por ahora devolver la cantidad original
-            return self.cantidad
-            
+            # Usar el módulo de conversiones
+            try:
+                cantidad_convertida = convertir_unidad(
+                    Decimal(str(self.cantidad)), 
+                    unidad_receta, 
+                    unidad_insumo
+                )
+                return cantidad_convertida
+            except ValueError as e:
+                # Si no hay conversión disponible, loggear y devolver cantidad original
+                print(f"⚠️ No se pudo convertir {unidad_receta} a {unidad_insumo}: {e}")
+                return self.cantidad
+                
         except Exception as e:
             print(f"❌ Error en get_cantidad_en_unidad_insumo: {e}")
             return self.cantidad
