@@ -60,6 +60,29 @@ class RecetaInsumoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPI
         response = super().update(request, *args, **kwargs)
         print("Respuesta:", response.data)
         return response
+    
+class RecetaInsumoPartialUpdateAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def patch(self, request, receta_id, pk):
+        try:
+            receta_insumo = RecetaInsumo.objects.get(receta_id=receta_id, pk=pk)
+            
+            serializer = RecetaInsumoCreateSerializer(
+                receta_insumo, 
+                data=request.data, 
+                partial=True  # Permitir actualización parcial
+            )
+            
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        except RecetaInsumo.DoesNotExist:
+            return Response({'error': 'Insumo de receta no encontrado'}, 
+                          status=status.HTTP_404_NOT_FOUND)
 
 
 # -------------------------

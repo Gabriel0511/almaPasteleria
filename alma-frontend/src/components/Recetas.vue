@@ -1088,9 +1088,12 @@ const guardarEdicionInsumo = async (insumo) => {
 
     console.log("Enviando datos de actualización:", datosActualizacion);
 
-    const response = await axios.put(
-      `/api/recetas/${recetaSeleccionada.value.id}/insumos/${insumo.id}/`,
-      datosActualizacion
+    const response = await axios.patch(
+      `/api/recetas/${recetaSeleccionada.value.id}/insumos/${insumo.id}/actualizar/`,
+      {
+        cantidad: parseFloat(insumo.cantidadEdit),
+        unidad_medida: parseInt(insumo.unidad_medida_id_edit),
+      }
     );
 
     console.log("Respuesta del servidor:", response.data);
