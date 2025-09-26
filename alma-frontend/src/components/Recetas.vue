@@ -91,11 +91,18 @@
                   >
                   <span
                     class="insumo-costo"
-                    v-if="insumo.insumo.precio_unitario"
+                    v-if="insumo.insumo.precio_unitario != null"
                   >
                     Costo: ${{ formatDecimal(calcularCostoInsumo(insumo)) }}
                   </span>
-                  
+
+                  <span class="insumo-costo"
+                  v-else
+                  >
+                   Costo: $ -
+                    
+                  </span>
+
                   <button
                     class="btn-eliminar-insumo-lista"
                     @click="eliminarInsumoDeReceta(receta, insumo)"
