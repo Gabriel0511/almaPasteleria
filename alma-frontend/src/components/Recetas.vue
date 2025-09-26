@@ -210,6 +210,14 @@
                   {{ item.unidad_medida.abreviatura }})
                 </option>
               </select>
+              <button
+                type="button"
+                class="btn-agregar-nuevo"
+                @click="showNuevoInsumoModal = true"
+                title="Agregar nuevo insumo"
+              >
+                <i class="fas fa-plus"></i>
+              </button>
             </div>
 
             <div class="form-group">
@@ -1804,6 +1812,24 @@ onMounted(() => {
   color: #666;
   font-style: italic;
   padding: 20px;
+}
+
+.btn-agregar-insumo {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-agregar-insumo:hover {
+  background-color: #bbdefb;
 }
 /* ----------------------------- RESPONSIVE ----------------------------- */
 @media (max-width: 768px) {
