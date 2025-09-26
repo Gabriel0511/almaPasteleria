@@ -16,12 +16,7 @@
           <!-- Filtros de recetas alineados a la derecha -->
           <div class="filtros-derecha">
             <div class="filtro-group">
-              <input
-                type="text"
-                v-model="searchTerm"
-                placeholder="Buscar receta..."
-                class="filtro-input"
-              />
+              <input type="text" v-model="searchTerm" placeholder="Buscar receta..." class="filtro-input" />
             </div>
           </div>
         </section>
@@ -37,44 +32,22 @@
           </div>
 
           <div v-else class="recetas-list">
-            <div
-              v-for="receta in recetasFiltradas"
-              :key="receta.id"
-              class="receta-item"
-            >
+            <div v-for="receta in recetasFiltradas" :key="receta.id" class="receta-item">
               <div class="receta-header">
                 <div class="receta-info">
                   <span class="insumo-container">
-                    <span class="receta-nombre"
-                      >{{ receta.nombre }}
-                      <span class="receta-veces-hecha"
-                        >(Preparada {{ receta.veces_hecha }} veces)</span
-                      >
+                    <span class="receta-nombre">{{ receta.nombre }}
                     </span>
-                    <span class="receta-rinde"
-                      >Rinde: {{ receta.rinde }} {{ receta.unidad_rinde }}</span
-                    >
-                    <span class="receta-costo"
-                      >Costo: ${{ formatDecimal(receta.costo_total) }}</span
-                    >
-                    <span class="receta-precio"
-                      >Precio: ${{ formatDecimal(receta.precio_venta) }}</span
-                    >
+                    <span class="receta-rinde">Rinde: {{ receta.rinde }} {{ receta.unidad_rinde }}</span>
+                    <span class="receta-costo">Costo: ${{ formatDecimal(receta.costo_total) }}</span>
+                    <span class="receta-precio">Precio: ${{ formatDecimal(receta.precio_venta) }}</span>
                   </span>
                 </div>
                 <div class="receta-acciones">
-                  <button
-                    class="btn-accion"
-                    @click="editarReceta(receta)"
-                    title="Editar receta"
-                  >
+                  <button class="btn-accion" @click="editarReceta(receta)" title="Editar receta">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button
-                    class="btn-accion"
-                    @click="confirmarEliminarReceta(receta)"
-                    title="Eliminar receta"
-                  >
+                  <button class="btn-accion" @click="confirmarEliminarReceta(receta)" title="Eliminar receta">
                     <i class="fas fa-trash"></i>
                   </button>
                 </div>
@@ -82,27 +55,22 @@
 
               <div class="receta-insumos">
                 <h4>Insumos ({{ receta.insumos.length }}):</h4>
-                <div
-                  v-for="insumo in receta.insumos"
-                  :key="insumo.id"
-                  class="insumo-item"
-                >
+                <div v-for="insumo in receta.insumos" :key="insumo.id" class="insumo-item">
                   <span class="insumo-nombre">{{ insumo.insumo.nombre }}</span>
-                  <span class="insumo-cantidad"
-                    >{{ formatDecimal(insumo.cantidad) }}
-                    {{ insumo.unidad_medida.abreviatura }}</span
-                  >
-                  <span
-                    class="insumo-costo"
-                    v-if="insumo.insumo.precio_unitario"
-                  >
-                    Costo: ${{ formatDecimal(calcularCostoInsumo(insumo)) }}
+                  <span class="insumo-cantidad">{{ formatDecimal(insumo.cantidad) }}
+                    {{ insumo.unidad_medida.abreviatura }}</span>
+
+                  <span class="insumo-costo" v-if="insumo.insumo.precio_unitario != null">
+                    Costo: ${{
+                    formatDecimal(calcularCostoInsumo(insumo)) }} 
                   </span>
-                  <button
-                    class="btn-eliminar-insumo-lista"
-                    @click="eliminarInsumoDeReceta(receta, insumo)"
-                    title="Eliminar insumo"
-                  >
+                  
+                  <span class="insumo-costo" v-else>
+                    Costo: $ -
+                  </span>
+
+                  <button class="btn-eliminar-insumo-lista" @click="eliminarInsumoDeReceta(receta, insumo)"
+                    title="Eliminar insumo">
                     <i class="fas fa-times"></i>
                   </button>
                 </div>
@@ -110,11 +78,8 @@
                   <i class="fas fa-info-circle"></i>
                   Esta receta no tiene insumos asignados
                 </div>
-                <button
-                  class="btn-agregar-insumo"
-                  @click="agregarInsumosAReceta(receta)"
-                  title="Agregar/editar insumos"
-                >
+                <button class="btn-agregar-insumo" @click="agregarInsumosAReceta(receta)"
+                  title="Agregar/editar insumos">
                   <i class="fas fa-plus"></i> Agregar Insumos
                 </button>
               </div>
@@ -132,31 +97,17 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre:</label>
-            <input
-              v-model="formReceta.nombre"
-              type="text"
-              required
-              class="form-input"
-            />
+            <input v-model="formReceta.nombre" type="text" required class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Rinde:</label>
-            <input
-              v-model="formReceta.rinde"
-              type="number"
-              required
-              class="form-input"
-            />
+            <input v-model="formReceta.rinde" type="number" required class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Unidad de Rinde:</label>
-            <select
-              v-model="formReceta.unidad_rinde"
-              required
-              class="form-input"
-            >
+            <select v-model="formReceta.unidad_rinde" required class="form-input">
               <option value="porciones">Porciones</option>
               <option value="unidades">Unidades</option>
             </select>
@@ -164,13 +115,7 @@
 
           <div class="form-group">
             <label>Precio de Venta:</label>
-            <input
-              v-model="formReceta.precio_venta"
-              type="number"
-              step="0.01"
-              required
-              class="form-input"
-            />
+            <input v-model="formReceta.precio_venta" type="number" step="0.01" required class="form-input" />
           </div>
         </div>
 
@@ -193,68 +138,37 @@
           <div class="form-grid">
             <div class="form-group">
               <label>Insumo:</label>
-              <select
-                v-model="nuevoInsumo.insumo_id"
-                required
-                class="form-input"
-                @change="actualizarUnidadNuevoInsumo"
-              >
+              <select v-model="nuevoInsumo.insumo_id" required class="form-input" @change="actualizarUnidadNuevoInsumo">
                 <option value="">Seleccione un insumo</option>
-                <option
-                  v-for="item in insumosDisponibles"
-                  :key="item.id"
-                  :value="item.id"
-                >
+                <option v-for="item in insumosDisponibles" :key="item.id" :value="item.id">
                   {{ item.nombre }} (Stock:
                   {{ formatDecimal(item.stock_actual) }}
                   {{ item.unidad_medida.abreviatura }})
                 </option>
               </select>
-              <button
-                type="button"
-                class="btn-agregar-nuevo"
-                @click="showNuevoInsumoModal = true"
-                title="Agregar nuevo insumo"
-              >
+              <button type="button" class="btn-agregar-nuevo" @click="showNuevoInsumoModal = true"
+                title="Agregar nuevo insumo">
                 <i class="fas fa-plus"></i>
               </button>
             </div>
 
             <div class="form-group">
               <label>Cantidad:</label>
-              <input
-                v-model="nuevoInsumo.cantidad"
-                type="number"
-                step="0.001"
-                required
-                class="form-input"
-              />
+              <input v-model="nuevoInsumo.cantidad" type="number" step="0.001" required class="form-input" />
             </div>
 
             <div class="form-group">
               <label>Unidad de Medida:</label>
-              <select
-                v-model="nuevoInsumo.unidad_medida_id"
-                required
-                class="form-input"
-              >
+              <select v-model="nuevoInsumo.unidad_medida_id" required class="form-input">
                 <option value="">Seleccione una unidad</option>
-                <option
-                  v-for="unidad in unidadesMedida"
-                  :key="unidad.id"
-                  :value="unidad.id"
-                >
+                <option v-for="unidad in unidadesMedida" :key="unidad.id" :value="unidad.id">
                   {{ unidad.nombre }} ({{ unidad.abreviatura }})
                 </option>
               </select>
             </div>
 
             <div class="form-group">
-              <button
-                class="btn-agregar-insumo-modal"
-                @click="agregarInsumoAReceta"
-                :disabled="!puedeAgregarInsumo"
-              >
+              <button class="btn-agregar-insumo-modal" @click="agregarInsumoAReceta" :disabled="!puedeAgregarInsumo">
                 <i class="fas fa-plus"></i> Agregar
               </button>
             </div>
@@ -263,11 +177,7 @@
 
         <div class="insumos-existente-section">
           <h4>Insumos Actuales:</h4>
-          <div
-            v-for="insumo in recetaSeleccionada?.insumos || []"
-            :key="insumo.id"
-            class="insumo-existente-item"
-          >
+          <div v-for="insumo in recetaSeleccionada?.insumos || []" :key="insumo.id" class="insumo-existente-item">
             <!-- Mostrar modo visualización -->
             <span v-if="!insumo.editando" class="insumo-info">
               {{ insumo.insumo.nombre }} - {{ formatDecimal(insumo.cantidad) }}
@@ -282,29 +192,14 @@
               <div class="edit-form-grid">
                 <div class="form-group">
                   <label>Cantidad:</label>
-                  <input
-                    v-model.number="insumo.cantidadEdit"
-                    type="number"
-                    step="0.001"
-                    min="0.001"
-                    class="form-input-small"
-                    placeholder="0.000"
-                    @input="formatearCantidadInput($event, insumo)"
-                  />
+                  <input v-model.number="insumo.cantidadEdit" type="number" step="0.001" min="0.001"
+                    class="form-input-small" placeholder="0.000" @input="formatearCantidadInput($event, insumo)" />
                 </div>
                 <div class="form-group">
                   <label>Unidad:</label>
-                  <select
-                    v-model="insumo.unidad_medida_id_edit"
-                    class="form-input-small"
-                    required
-                  >
+                  <select v-model="insumo.unidad_medida_id_edit" class="form-input-small" required>
                     <option value="">Seleccione...</option>
-                    <option
-                      v-for="unidad in unidadesMedida"
-                      :key="unidad.id"
-                      :value="unidad.id"
-                    >
+                    <option v-for="unidad in unidadesMedida" :key="unidad.id" :value="unidad.id">
                       {{ unidad.abreviatura }} ({{ unidad.nombre }})
                     </option>
                   </select>
@@ -313,36 +208,20 @@
             </div>
 
             <div class="insumo-acciones">
-              <button
-                v-if="!insumo.editando"
-                class="btn-accion-small"
-                @click="activarEdicionInsumo(insumo)"
-                title="Editar insumo"
-              >
+              <button v-if="!insumo.editando" class="btn-accion-small" @click="activarEdicionInsumo(insumo)"
+                title="Editar insumo">
                 <i class="fas fa-edit"></i>
               </button>
-              <button
-                v-else
-                class="btn-accion-small btn-confirmar"
-                @click="guardarEdicionInsumo(insumo)"
-                title="Guardar cambios"
-              >
+              <button v-else class="btn-accion-small btn-confirmar" @click="guardarEdicionInsumo(insumo)"
+                title="Guardar cambios">
                 <i class="fas fa-check"></i>
               </button>
-              <button
-                v-if="!insumo.editando"
-                class="btn-accion-small btn-eliminar"
-                @click="eliminarInsumoDeReceta(recetaSeleccionada, insumo)"
-                title="Eliminar insumo"
-              >
+              <button v-if="!insumo.editando" class="btn-accion-small btn-eliminar"
+                @click="eliminarInsumoDeReceta(recetaSeleccionada, insumo)" title="Eliminar insumo">
                 <i class="fas fa-trash"></i>
               </button>
-              <button
-                v-else
-                class="btn-accion-small btn-cancelar"
-                @click="cancelarEdicionInsumo(insumo)"
-                title="Cancelar edición"
-              >
+              <button v-else class="btn-accion-small btn-cancelar" @click="cancelarEdicionInsumo(insumo)"
+                title="Cancelar edición">
                 <i class="fas fa-times"></i>
               </button>
             </div>
@@ -368,28 +247,15 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre:</label>
-            <input
-              v-model="formNuevoInsumo.nombre"
-              type="text"
-              required
-              class="form-input"
-              placeholder="Nombre del insumo"
-            />
+            <input v-model="formNuevoInsumo.nombre" type="text" required class="form-input"
+              placeholder="Nombre del insumo" />
           </div>
 
           <div class="form-group">
             <label>Unidad de Medida:</label>
-            <select
-              v-model="formNuevoInsumo.unidad_medida_id"
-              required
-              class="form-input"
-            >
+            <select v-model="formNuevoInsumo.unidad_medida_id" required class="form-input">
               <option value="">Seleccione una unidad</option>
-              <option
-                v-for="unidad in unidadesMedida"
-                :key="unidad.id"
-                :value="unidad.id"
-              >
+              <option v-for="unidad in unidadesMedida" :key="unidad.id" :value="unidad.id">
                 {{ unidad.nombre }} ({{ unidad.abreviatura }})
               </option>
             </select>
@@ -397,25 +263,14 @@
 
           <div class="form-group">
             <label>Stock Mínimo:</label>
-            <input
-              v-model="formNuevoInsumo.stock_minimo"
-              type="number"
-              step="0.001"
-              required
-              class="form-input"
-              placeholder="0.000"
-            />
+            <input v-model="formNuevoInsumo.stock_minimo" type="number" step="0.001" required class="form-input"
+              placeholder="0.000" />
           </div>
 
           <div class="form-group">
             <label>Precio Unitario:</label>
-            <input
-              v-model="formNuevoInsumo.precio_unitario"
-              type="number"
-              step="0.01"
-              class="form-input"
-              placeholder="0.00"
-            />
+            <input v-model="formNuevoInsumo.precio_unitario" type="number" step="0.01" class="form-input"
+              placeholder="0.00" />
           </div>
         </div>
 
@@ -1831,6 +1686,7 @@ onMounted(() => {
 .btn-agregar-insumo:hover {
   background-color: #bbdefb;
 }
+
 /* ----------------------------- RESPONSIVE ----------------------------- */
 @media (max-width: 768px) {
   .filtros-derecha {
