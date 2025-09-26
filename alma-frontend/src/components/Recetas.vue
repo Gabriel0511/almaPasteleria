@@ -59,9 +59,12 @@
                   <span class="insumo-nombre">{{ insumo.insumo.nombre }}</span>
                   <span class="insumo-cantidad">{{ formatDecimal(insumo.cantidad) }}
                     {{ insumo.unidad_medida.abreviatura }}</span>
-
                   <span class="insumo-costo" v-if="insumo.insumo.precio_unitario">
-                    Costo: ${{formatDecimal(calcularCostoInsumo(insumo)) }} 
+                    Costo: ${{ formatDecimal(calcularCostoInsumo(insumo)) }}
+                  </span>
+
+                  <span class="insumo-costo" v-else>
+                    Costo: $ -
                   </span>
 
                   <button class="btn-eliminar-insumo-lista" @click="eliminarInsumoDeReceta(receta, insumo)"
