@@ -47,9 +47,6 @@
                   <span class="insumo-container">
                     <span class="receta-nombre"
                       >{{ receta.nombre }}
-                      <span class="receta-veces-hecha"
-                        >(Preparada {{ receta.veces_hecha }} veces)</span
-                      >
                     </span>
                     <span class="receta-rinde"
                       >Rinde: {{ receta.rinde }} {{ receta.unidad_rinde }}</span
@@ -94,10 +91,18 @@
                   >
                   <span
                     class="insumo-costo"
-                    v-if="insumo.insumo.precio_unitario"
+                    v-if="insumo.insumo.precio_unitario != null"
                   >
                     Costo: ${{ formatDecimal(calcularCostoInsumo(insumo)) }}
                   </span>
+
+                  <span class="insumo-costo"
+                  v-else
+                  >
+                   Costo: $ -
+                    
+                  </span>
+
                   <button
                     class="btn-eliminar-insumo-lista"
                     @click="eliminarInsumoDeReceta(receta, insumo)"
