@@ -93,24 +93,27 @@ class IncrementarRecetaView(APIView):
         try:
             with transaction.atomic():
                 receta = Receta.objects.get(pk=pk)
-                detalles = RecetaInsumo.objects.filter(receta=receta)
+                detalles = RecetaInsumo.objects.filter(receta=receta).select_related(
+                    'insumo', 'insumo__unidad_medida', 'unidad_medida'
+                )
 
                 # Verificar stock antes de incrementar
                 insuficientes = []
                 for detalle in detalles:
-                    # DEBUG: Verificar si el método existe
-                    if not hasattr(detalle, 'get_cantidad_en_unidad_insumo'):
-                        return Response({
-                            'error': f'Método no encontrado en objeto tipo {type(detalle)}'
-                        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    # DEBUG: Log para verificar los datos
+                    print(f"🔍 Procesando: {detalle.insumo.nombre}")
+                    print(f"   - Unidad receta: {detalle.unidad_medida.abreviatura}")
+                    print(f"   - Unidad insumo: {detalle.insumo.unidad_medida.abreviatura}")
+                    print(f"   - Cantidad original: {detalle.cantidad} {detalle.unidad_medida.abreviatura}")
                     
-                    # Intentar llamar al método
+                    # Usar el método de conversión
                     try:
                         cantidad_necesaria = detalle.get_cantidad_en_unidad_insumo()
-                    except AttributeError as e:
-                        return Response({
-                            'error': f'Error al llamar método: {str(e)}'
-                        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                        print(f"   - Cantidad convertida: {cantidad_necesaria} {detalle.insumo.unidad_medida.abreviatura}")
+                    except Exception as e:
+                        print(f"❌ Error en conversión: {e}")
+                        # Fallback a cantidad original
+                        cantidad_necesaria = detalle.cantidad
                     
                     if not isinstance(cantidad_necesaria, Decimal):
                         cantidad_necesaria = Decimal(str(cantidad_necesaria))
@@ -118,6 +121,9 @@ class IncrementarRecetaView(APIView):
                     stock_actual = detalle.insumo.stock_actual
                     if not isinstance(stock_actual, Decimal):
                         stock_actual = Decimal(str(stock_actual))
+
+                    print(f"   - Stock actual: {stock_actual} {detalle.insumo.unidad_medida.abreviatura}")
+                    print(f"   - ¿Suficiente? {stock_actual >= cantidad_necesaria}")
 
                     if stock_actual < cantidad_necesaria:
                         insuficientes.append({
@@ -134,15 +140,22 @@ class IncrementarRecetaView(APIView):
                         'receta_nombre': receta.nombre
                     }, status=status.HTTP_400_BAD_REQUEST)
 
-                # Reducir stock (usando cantidad directa temporalmente)
+                # Reducir stock usando la cantidad convertida
                 for detalle in detalles:
-                    # Usar cantidad directa en lugar del método problemático
-                    cantidad_necesaria = detalle.cantidad
+                    # Obtener la cantidad convertida
+                    try:
+                        cantidad_necesaria = detalle.get_cantidad_en_unidad_insumo()
+                    except Exception as e:
+                        print(f"⚠️ Error en conversión durante descuento: {e}")
+                        cantidad_necesaria = detalle.cantidad
+                    
                     if not isinstance(cantidad_necesaria, Decimal):
                         cantidad_necesaria = Decimal(str(cantidad_necesaria))
                     
                     if not isinstance(detalle.insumo.stock_actual, Decimal):
                         detalle.insumo.stock_actual = Decimal(str(detalle.insumo.stock_actual))
+                    
+                    print(f"💰 Descontando: {cantidad_necesaria} {detalle.insumo.unidad_medida.abreviatura} de {detalle.insumo.nombre}")
                     
                     detalle.insumo.stock_actual -= cantidad_necesaria
                     detalle.insumo.save()

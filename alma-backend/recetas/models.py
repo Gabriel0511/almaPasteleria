@@ -42,36 +42,46 @@ class RecetaInsumo(models.Model):
         super().save(*args, **kwargs)
     
     def get_cantidad_en_unidad_insumo(self):
-        """Convierte la cantidad a la unidad de medida del insumo usando conversiones.py"""
+        """Convierte la cantidad a la unidad de medida del insumo"""
         try:
-            # Verificar que los objetos relacionados existan
-            if not hasattr(self, 'insumo') or not self.insumo:
-                return self.cantidad
-            if not hasattr(self, 'unidad_medida') or not self.unidad_medida:
-                return self.insumo
-            if not hasattr(self.insumo, 'unidad_medida') or not self.insumo.unidad_medida:
-                return self.cantidad
-                
+            # Asegurarse de que tenemos los objetos relacionados cargados
+            if not hasattr(self, '_insumo_cache'):
+                self.insumo = Insumo.objects.select_related('unidad_medida').get(pk=self.insumo_id)
+            
+            if not hasattr(self, '_unidad_medida_cache'):
+                self.unidad_medida = UnidadMedida.objects.get(pk=self.unidad_medida_id)
+            
+            cantidad_decimal = Decimal(str(self.cantidad))
             unidad_receta = self.unidad_medida.abreviatura.lower()
             unidad_insumo = self.insumo.unidad_medida.abreviatura.lower()
             
-            # Si las unidades coinciden, devolver la cantidad original
+            # Si las unidades coinciden, no hay conversión necesaria
             if unidad_receta == unidad_insumo:
-                return self.cantidad
-                
-            # Usar el módulo de conversiones
+                return cantidad_decimal
+            
+            # Usar conversiones.py
             try:
                 cantidad_convertida = convertir_unidad(
-                    Decimal(str(self.cantidad)), 
+                    cantidad_decimal, 
                     unidad_receta, 
                     unidad_insumo
                 )
                 return cantidad_convertida
             except ValueError as e:
-                # Si no hay conversión disponible, loggear y devolver cantidad original
                 print(f"⚠️ No se pudo convertir {unidad_receta} a {unidad_insumo}: {e}")
-                return self.cantidad
+                # Intentar con el sistema de factores
+                try:
+                    if (hasattr(self.unidad_medida, 'factor_conversion_base') and 
+                        hasattr(self.insumo.unidad_medida, 'factor_conversion_base')):
+                        
+                        cantidad_base = cantidad_decimal * self.unidad_medida.factor_conversion_base
+                        cantidad_convertida = cantidad_base / self.insumo.unidad_medida.factor_conversion_base
+                        return cantidad_convertida
+                except Exception as factor_error:
+                    print(f"⚠️ Error en conversión por factores: {factor_error}")
                 
+                return cantidad_decimal
+                    
         except Exception as e:
             print(f"❌ Error en get_cantidad_en_unidad_insumo: {e}")
-            return self.cantidad
+            return Decimal(str(self.cantidad))
