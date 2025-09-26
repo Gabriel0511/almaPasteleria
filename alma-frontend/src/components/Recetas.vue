@@ -64,10 +64,6 @@
                     Costo: ${{formatDecimal(calcularCostoInsumo(insumo)) }} 
                   </span>
 
-                  <span class="insumo-costo" v-else>
-                    Costo: $ -
-                  </span>
-
                   <button class="btn-eliminar-insumo-lista" @click="eliminarInsumoDeReceta(receta, insumo)"
                     title="Eliminar insumo">
                     <i class="fas fa-times"></i>
