@@ -60,11 +60,10 @@
                   <span class="insumo-cantidad">{{ formatDecimal(insumo.cantidad) }}
                     {{ insumo.unidad_medida.abreviatura }}</span>
 
-                  <span class="insumo-costo" v-if="insumo.insumo.precio_unitario != null">
-                    Costo: ${{
-                    formatDecimal(calcularCostoInsumo(insumo)) }} 
+                  <span class="insumo-costo" v-if="insumo.insumo.precio_unitario">
+                    Costo: ${{formatDecimal(calcularCostoInsumo(insumo)) }} 
                   </span>
-                  
+
                   <span class="insumo-costo" v-else>
                     Costo: $ -
                   </span>
