@@ -14,18 +14,18 @@ class PedidosHoyView(APIView):
     def get(self, request):
         hoy = date.today()
         
-        # Entregar hoy: pedidos con fecha_entrega = hoy
+        # Entregar Hoy: pedidos con fecha_entrega = hoy y estado preparable
         entregar_hoy = Pedido.objects.filter(
             fecha_entrega=hoy,
-            estado__in=['pendiente', 'en preparación']
-        )
+            estado__in=['pendiente', 'en preparación']  # Pueden estar en prep o pendientes
+        ).order_by('estado', 'fecha_entrega')  # Ordenar por estado primero
         
-        # Hacer hoy: pedidos con fecha_entrega en los próximos 3 días (hoy+1, hoy+2, hoy+3)
+        # Hacer Hoy: pedidos próximos 3 días que aún están pendientes
         fecha_limite = hoy + timedelta(days=3)
         hacer_hoy = Pedido.objects.filter(
-            fecha_entrega__range=[hoy + timedelta(days=1), fecha_limite],
-            estado__in=['pendiente', 'en preparación']
-        )
+            fecha_entrega__range=[hoy, fecha_limite],  # Incluye hoy también
+            estado='pendiente'  # Solo los que necesitan empezar preparación
+        ).order_by('fecha_entrega')
         
         entregar_serializer = PedidoReadSerializer(entregar_hoy, many=True)
         hacer_serializer = PedidoReadSerializer(hacer_hoy, many=True)
