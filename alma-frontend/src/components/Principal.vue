@@ -538,7 +538,7 @@ const empezarPreparacion = async (task) => {
 
     notificationSystem.show({
       type: "info",
-      title: "Preparación iniciada",
+      title: "Pedido Terminado",
       message: `El pedido de ${task.nombre} ahora está listo`,
       timeout: 3000,
     });
@@ -548,7 +548,7 @@ const empezarPreparacion = async (task) => {
       fetchPedidos();
     }, 1000);
   } catch (error) {
-    console.error("Error al iniciar preparación:", error);
+    console.error("Error al terminar pedido:", error);
   }
 };
 
