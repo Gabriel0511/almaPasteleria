@@ -20,16 +20,9 @@
               <div class="stock-header">
                 <span>
                   Nombre
-                  <select
-                    v-model="categoriaSeleccionada"
-                    class="category-select"
-                  >
+                  <select v-model="categoriaSeleccionada" class="category-select">
                     <option value="">Todas</option>
-                    <option
-                      v-for="cat in categoriasStock"
-                      :key="cat"
-                      :value="cat"
-                    >
+                    <option v-for="cat in categoriasStock" :key="cat" :value="cat">
                       {{ cat }}
                     </option>
                   </select>
@@ -39,21 +32,11 @@
             </div>
 
             <ul class="stock-list">
-              <li
-                v-for="item in stockFiltradoPorCategoria"
-                :key="item.nombre"
-                :class="{ 'low-stock': item.bajoStock }"
-                class="stock-item"
-              >
-                <span class="item-name"
-                  >{{ item.nombre }}
-                  <span class="item-category"
-                    >({{ item.categoria }})</span
-                  ></span
-                >
-                <span class="item-quantity"
-                  >{{ formatDecimal(item.cantidad) }} {{ item.unidad }}</span
-                >
+              <li v-for="item in stockFiltradoPorCategoria" :key="item.nombre" :class="{ 'low-stock': item.bajoStock }"
+                class="stock-item">
+                <span class="item-name">{{ item.nombre }}
+                  <span class="item-category">({{ item.categoria }})</span></span>
+                <span class="item-quantity">{{ formatDecimal(item.cantidad) }} {{ item.unidad }}</span>
               </li>
             </ul>
           </div>
@@ -62,119 +45,106 @@
           <div class="middle-cards">
             <!-- Card de Entregar Hoy -->
             <div class="card tasks entregar-hoy">
-              <div class="card-header">
-                <h3 class="card-title">📦 Entregar Hoy</h3>
-                <span
-                  class="badge"
-                  :class="entregarHoy.length > 0 ? 'alert' : 'success'"
-                >
-                  {{ entregarHoy.length }}
-                </span>
+              <div class="entregar-hoy-header-container">
+                <div class="card-header sticky-header">
+                  <h3 class="card-title">📦 Entregar Hoy</h3>
+                  <span class="badge" :class="entregarHoyOrdenados.length > 0 ? 'alert' : 'success'">
+                    {{ entregarHoyOrdenados.length }}
+                  </span>
+                </div>
               </div>
 
-              <div v-if="entregarHoy.length === 0" class="empty-state">
-                🎉 No hay pedidos para entregar hoy
-              </div>
+              <div class="entregar-hoy-list">
+                <div v-if="entregarHoyOrdenados.length === 0" class="empty-state">
+                  🎉 No hay pedidos para entregar hoy
+                </div>
 
-              <div
-                v-for="task in entregarHoy"
-                :key="task.id"
-                class="task-item"
-                :class="task.estado"
-              >
-                <label class="task-checkbox">
-                  <input
-                    type="checkbox"
-                    :checked="task.estado === 'entregado'"
-                    :disabled="task.estado === 'entregado'"
-                    @change="marcarComoEntregado(task)"
-                  />
-                  <span class="checkmark"></span>
-                </label>
-                <div class="task-content">
-                  <div class="task-header">
-                    <strong class="cliente-nombre">{{ task.nombre }}</strong>
-                    <span class="estado-badge" :class="task.estado">
-                      {{ getEstadoText(task.estado) }}
-                    </span>
-                  </div>
+                <div v-for="task in entregarHoyOrdenados" :key="task.id" class="task-item" :class="task.estado">
+                  <label class="task-checkbox">
+                    <input type="checkbox" :checked="task.estado === 'entregado'"
+                      :disabled="task.estado === 'entregado'" @change="confirmarEntrega(task)" />
+                    <span class="checkmark"></span>
+                  </label>
+                  <div class="task-content">
+                    <div class="task-header">
+                      <strong class="cliente-nombre">{{ task.nombre }}</strong>
+                      <span class="estado-badge" :class="task.estado">
+                        {{ getEstadoText(task.estado) }}
+                      </span>
+                    </div>
 
-                  <div class="task-details">
-                    <span class="fecha"
-                      >Entrega: {{ formatDate(task.fecha_entrega) }}</span
-                    >
-                    <span class="recetas">
-                      {{ getRecetasText(task.detalles) }}
-                    </span>
-                  </div>
+                    <div class="task-details">
+                      <span class="fecha">Entrega: {{ formatDate(task.fecha_entrega) }}</span>
+                      <span class="recetas">
+                        {{ getRecetasText(task.detalles) }}
+                      </span>
+                    </div>
 
-                  <div
-                    v-if="task.estado === 'en preparación'"
-                    class="alert-preparacion"
-                  >
-                    ⚠️ Listo para entregar
+                    <div v-if="task.estado === 'en preparación'" class="alert-preparacion">
+                      ⚠️ Listo para entregar
+                    </div>
+                    <div v-if="task.estado === 'entregado'" class="entregado-info">
+                      ✅ Entregado hoy
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Card de Hacer Hoy CORREGIDA -->
+            <!-- Card de Hacer Hoy -->
             <div class="card tasks hacer-hoy">
-              <div class="card-header">
-                <h3 class="card-title">👨‍🍳 Hacer Hoy (Próximos 3 días)</h3>
-                <span
-                  class="badge"
-                  :class="hacerHoy.length > 0 ? 'warning' : 'success'"
-                >
-                  {{ hacerHoy.length }}
-                </span>
+              <div class="hacer-hoy-header-container">
+                <div class="card-header sticky-header">
+                  <h3 class="card-title">👨‍🍳 Hacer Hoy (Próximos 3 días)</h3>
+                  <span class="badge" :class="hacerHoyOrdenados.length > 0 ? 'warning' : 'success'">
+                    {{ hacerHoyOrdenados.length }}
+                  </span>
+                </div>
               </div>
 
-              <div v-if="hacerHoy.length === 0" class="empty-state">
-                ✅ No hay pedidos pendientes para los próximos 3 días
-              </div>
+              <div class="hacer-hoy-list">
+                <div v-if="hacerHoyOrdenados.length === 0" class="empty-state">
+                  ✅ No hay pedidos pendientes para los próximos 3 días
+                </div>
 
-              <div
-                v-for="task in hacerHoy"
-                :key="task.id"
-                class="task-item"
-                :class="task.estado"
-              >
-                <label class="task-checkbox">
-                  <input
-                    type="checkbox"
-                    :checked="task.estado === 'en preparación'"
-                    :disabled="
-                      task.estado === 'en preparación' ||
+                <div v-for="task in hacerHoyOrdenados" :key="task.id" class="task-item" :class="task.estado">
+                  <label class="task-checkbox">
+                    <input type="checkbox" :checked="task.estado === 'en preparación'" :disabled="task.estado === 'en preparación' ||
                       task.estado === 'entregado'
-                    "
-                    @change="empezarPreparacion(task)"
-                  />
-                  <span class="checkmark"></span>
-                </label>
+                      " @change="confirmarPreparacion(task)" />
+                    <span class="checkmark"></span>
+                  </label>
 
-                <div class="task-content">
-                  <div class="task-header">
-                    <strong class="cliente-nombre">{{ task.nombre }}</strong>
-                    <span class="estado-badge" :class="task.estado">
-                      {{ getEstadoText(task.estado) }}
-                    </span>
-                  </div>
+                  <div class="task-content">
+                    <div class="task-header">
+                      <strong class="cliente-nombre">{{ task.nombre }}</strong>
+                      <span class="estado-badge" :class="task.estado">
+                        {{ getEstadoText(task.estado) }}
+                      </span>
+                    </div>
 
-                  <div class="task-details">
-                    <span
-                      class="fecha"
-                      :class="{ destacada: isHoy(task.fecha_entrega) }"
-                    >
-                      📅 {{ formatDate(task.fecha_entrega) }}
-                    </span>
-                    <span class="recetas">
-                      {{ getRecetasText(task.detalles) }}
-                    </span>
-                  </div>
+                    <div class="task-details">
+                      <span class="fecha" :class="{
+                        'destacada': isHoy(task.fecha_entrega),
+                        'atrasado': isAtrasado(task.fecha_entrega)
+                      }">
+                        📅 {{ formatDate(task.fecha_entrega) }}
+                        <span v-if="isAtrasado(task.fecha_entrega)" class="atrasado-badge">
+                          ⚠️ Atrasado
+                        </span>
+                      </span>
+                      <span class="recetas">
+                        {{ getRecetasText(task.detalles) }}
+                      </span>
+                    </div>
 
-                  <div class="dias-restantes">
-                    {{ getDiasRestantes(task.fecha_entrega) }}
+                    <div class="dias-restantes">
+                      {{ getDiasRestantes(task.fecha_entrega) }}
+                    </div>
+
+                    <div v-if="task.estado === 'en preparación'" class="preparacion-info">
+                      👨‍🍳 En preparación
+                    </div>
                   </div>
                 </div>
               </div>
@@ -186,22 +156,13 @@
             <div class="recetas-header">
               <h3 class="card-title">📋 Recetas</h3>
               <form autocomplete="off" class="search-form">
-                <input
-                  autocomplete="off"
-                  v-model="searchTerm"
-                  type="text"
-                  placeholder="🔍 Buscar receta..."
-                  class="search-input"
-                />
+                <input autocomplete="off" v-model="searchTerm" type="text" placeholder="🔍 Buscar receta..."
+                  class="search-input" />
               </form>
             </div>
 
             <ul class="recetas-list">
-              <li
-                v-for="receta in filteredRecetas"
-                :key="receta.id"
-                class="receta-item"
-              >
+              <li v-for="receta in filteredRecetas" :key="receta.id" class="receta-item">
                 <span class="receta-info">
                   {{ receta.nombre }}
                   <span class="receta-rinde">
@@ -210,20 +171,13 @@
                   </span>
                 </span>
                 <div class="contador">
-                  <button
-                    @click="decrementarContador(receta)"
-                    :disabled="!receta.veces_hecha"
-                    class="btn-contador"
-                  >
+                  <button @click="decrementarContador(receta)" :disabled="!receta.veces_hecha" class="btn-contador">
                     -
                   </button>
                   <span class="contador-value">{{
                     receta.veces_hecha || 0
                   }}</span>
-                  <button
-                    @click="incrementarContador(receta)"
-                    class="btn-contador"
-                  >
+                  <button @click="incrementarContador(receta)" class="btn-contador">
                     +
                   </button>
                 </div>
@@ -232,6 +186,41 @@
           </div>
         </section>
       </main>
+    </div>
+
+    <!-- Modal de Confirmación -->
+    <div v-if="showConfirmModal" class="modal-overlay">
+      <div class="modal-content confirm-modal">
+        <div class="modal-header">
+          <h3 class="modal-title">{{ modalTitle }}</h3>
+        </div>
+
+        <div class="modal-body">
+          <div class="confirm-icon">
+            <i class="fas" :class="modalIcon"></i>
+          </div>
+          <p class="confirm-message">{{ modalMessage }}</p>
+          <div v-if="modalDetails" class="confirm-details">
+            {{ modalDetails }}
+          </div>
+          <div class="confirm-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            ⚠️ Esta acción no se puede deshacer
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button @click="cancelAction" class="cancel-button">
+            <i class="fas fa-times"></i>
+            Cancelar
+          </button>
+          <button @click="confirmAction" class="confirm-button"
+            :class="{ 'danger': modalType === 'entrega', 'warning': modalType === 'preparacion' }">
+            <i class="fas" :class="modalConfirmIcon"></i>
+            {{ modalConfirmText }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -263,6 +252,78 @@ const stockFiltradoPorCategoria = computed(() => {
     (item) => item.categoria === categoriaSeleccionada.value
   );
 });
+
+// ----------------------
+// 🔹 Modal de Confirmación
+// ----------------------
+const showConfirmModal = ref(false);
+const modalTitle = ref("");
+const modalMessage = ref("");
+const modalDetails = ref("");
+const modalType = ref(""); // 'entrega' o 'preparacion'
+const modalAction = ref(null);
+const currentTask = ref(null);
+
+const modalIcon = computed(() => {
+  return modalType.value === 'entrega'
+    ? 'fa-truck'
+    : 'fa-utensils';
+});
+
+const modalConfirmIcon = computed(() => {
+  return modalType.value === 'entrega'
+    ? 'fa-check-circle'
+    : 'fa-play-circle';
+});
+
+const modalConfirmText = computed(() => {
+  return modalType.value === 'entrega'
+    ? 'Sí, Entregar'
+    : 'Sí, Iniciar Preparación';
+});
+
+// Método para confirmar entrega
+const confirmarEntrega = (task) => {
+  if (task.estado === 'entregado') return;
+
+  currentTask.value = task;
+  modalType.value = 'entrega';
+  modalTitle.value = 'Confirmar Entrega';
+  modalMessage.value = `¿Estás seguro que quieres marcar como ENTREGADO el pedido?`;
+  modalDetails.value = `Cliente: ${task.nombre}`;
+  modalAction.value = () => marcarComoEntregado(task);
+
+  showConfirmModal.value = true;
+};
+
+// Método para confirmar preparación
+const confirmarPreparacion = (task) => {
+  if (task.estado === 'en preparación' || task.estado === 'entregado') return;
+
+  currentTask.value = task;
+  modalType.value = 'preparacion';
+  modalTitle.value = 'Iniciar Preparación';
+  modalMessage.value = `¿Estás seguro que quieres INICIAR LA PREPARACIÓN del pedido?`;
+  modalDetails.value = `Cliente: ${task.nombre}\nFecha de entrega: ${formatDate(task.fecha_entrega)}`;
+  modalAction.value = () => empezarPreparacion(task);
+
+  showConfirmModal.value = true;
+};
+
+const confirmAction = () => {
+  if (modalAction.value && currentTask.value) {
+    modalAction.value();
+  }
+  showConfirmModal.value = false;
+  currentTask.value = null;
+  modalAction.value = null;
+};
+
+const cancelAction = () => {
+  showConfirmModal.value = false;
+  currentTask.value = null;
+  modalAction.value = null;
+};
 
 // ----------------------
 // 🔹 Stock
@@ -299,9 +360,8 @@ const incrementarContador = async (receta) => {
 
       notificationSystem.show({
         type: "error",
-        title: `Stock insuficiente para ${
-          response.data.receta_nombre || receta.nombre
-        }`,
+        title: `Stock insuficiente para ${response.data.receta_nombre || receta.nombre
+          }`,
         message: mensajeError,
         timeout: 10000,
       });
@@ -422,6 +482,34 @@ const singularizeUnidad = (rinde, unidad) => {
 const entregarHoy = ref([]);
 const hacerHoy = ref([]);
 
+// Computed properties para ordenar pedidos
+const entregarHoyOrdenados = computed(() => {
+  return [...entregarHoy.value].sort((a, b) => {
+    // Primero los pendientes, luego los entregados
+    if (a.estado !== 'entregado' && b.estado === 'entregado') return -1;
+    if (a.estado === 'entregado' && b.estado !== 'entregado') return 1;
+    // Luego por fecha
+    return new Date(a.fecha_entrega) - new Date(b.fecha_entrega);
+  });
+});
+
+const hacerHoyOrdenados = computed(() => {
+  return [...hacerHoy.value].sort((a, b) => {
+    // Primero los pendientes, luego los en preparación
+    if (a.estado === 'pendiente' && b.estado !== 'pendiente') return -1;
+    if (a.estado !== 'pendiente' && b.estado === 'pendiente') return 1;
+    // Luego por fecha más próxima
+    return new Date(a.fecha_entrega) - new Date(b.fecha_entrega);
+  });
+});
+
+// Método para verificar si un pedido está atrasado
+const isAtrasado = (fechaEntrega) => {
+  const hoy = new Date();
+  const entrega = new Date(fechaEntrega);
+  return entrega < hoy && !isHoy(fechaEntrega);
+};
+
 // Método específico para entregar
 const marcarComoEntregado = async (task) => {
   try {
@@ -540,6 +628,7 @@ const getDiasRestantes = (fechaEntrega) => {
   if (diffDays === 0) return "🎯 ¡Entrega hoy!";
   if (diffDays === 1) return "📌 Mañana";
   if (diffDays === 2) return "⏳ Pasado mañana";
+  if (diffDays < 0) return `⚠️ ${Math.abs(diffDays)} día(s) de retraso`;
   return `⏳ En ${diffDays} días`;
 };
 
@@ -673,6 +762,18 @@ onMounted(() => {
   border-bottom: 2px solid #e9ecef;
 }
 
+/* Header fijo para scroll */
+.sticky-header {
+  position: sticky;
+  top: 0;
+  background: var(--color-background);
+  z-index: 10;
+  padding: 15px 8px;
+  margin: -8px -8px 15px -8px;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
 /* -------------------- BADGES MEJORADOS -------------------- */
 .badge {
   padding: 0.25rem 0.75rem;
@@ -713,6 +814,11 @@ onMounted(() => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+.task-item.pendiente {
+  border-left-color: #e74c3c;
+  background: #fff5f5;
+}
+
 .task-item.en.preparación {
   border-left-color: #f39c12;
   background: #fffaf0;
@@ -721,7 +827,7 @@ onMounted(() => {
 .task-item.entregado {
   border-left-color: #27ae60;
   background: #f0fff4;
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 .task-content {
@@ -774,6 +880,20 @@ onMounted(() => {
   font-weight: bold;
 }
 
+.fecha.atrasado {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+.atrasado-badge {
+  background: #dc3545;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  margin-left: 5px;
+}
+
 .dias-restantes {
   margin-top: 0.5rem;
   font-size: 0.8rem;
@@ -788,6 +908,24 @@ onMounted(() => {
   border: 1px solid #ffeaa7;
   border-radius: 6px;
   font-size: 0.8rem;
+  color: #856404;
+}
+
+.entregado-info,
+.preparacion-info {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: #155724;
+  font-weight: bold;
+}
+
+.preparacion-info {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
   color: #856404;
 }
 
@@ -944,6 +1082,10 @@ onMounted(() => {
   .cliente-nombre {
     font-size: 1rem;
   }
+
+  .sticky-header {
+    padding: 10px 8px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -959,25 +1101,6 @@ onMounted(() => {
   .dias-restantes {
     font-size: 0.7rem;
   }
-}
-
-/* -------------------- UTILITARIOS ADICIONALES -------------------- */
-.text-truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.flex-between {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 /* -------------------- CHECKBOX PERSONALIZADO CORREGIDO -------------------- */
@@ -1016,12 +1139,12 @@ onMounted(() => {
 }
 
 /* Al pasar el mouse sobre el checkmark */
-.task-checkbox:hover input:not(:disabled) ~ .checkmark {
+.task-checkbox:hover input:not(:disabled)~.checkmark {
   border-color: #7b5a50;
 }
 
 /* Cuando el checkbox está checked */
-.task-checkbox input:checked ~ .checkmark {
+.task-checkbox input:checked~.checkmark {
   background: #27ae60;
   border-color: #27ae60;
 }
@@ -1043,23 +1166,231 @@ onMounted(() => {
 }
 
 /* Mostrar el checkmark cuando está checked */
-.task-checkbox input:checked ~ .checkmark:after {
+.task-checkbox input:checked~.checkmark:after {
   display: block;
 }
 
 /* Estilos para estado deshabilitado */
-.task-checkbox input:disabled ~ .checkmark {
+.task-checkbox input:disabled~.checkmark {
   background: #f0f0f0;
   border-color: #ddd;
   cursor: not-allowed;
 }
 
-.task-checkbox input:disabled:checked ~ .checkmark {
+.task-checkbox input:disabled:checked~.checkmark {
   background: #95a5a6;
   border-color: #95a5a6;
 }
 
-.task-checkbox input:disabled ~ .checkmark:after {
+.task-checkbox input:disabled~.checkmark:after {
   border-color: #bdc3c7;
+}
+
+/* -------------------- ESTILOS PARA EL MODAL DE CONFIRMACIÓN -------------------- */
+.confirm-modal {
+  max-width: 450px;
+  text-align: center;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  border-bottom: 1px solid #eee;
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+}
+
+.modal-title {
+  color: var(--color-primary);
+  font-size: 1.4rem;
+  margin: 0;
+  font-weight: 600;
+}
+
+.modal-body {
+  padding: 10px 0;
+}
+
+.confirm-icon {
+  font-size: 3.5rem;
+  margin-bottom: 20px;
+  color: var(--color-primary);
+}
+
+.confirm-message {
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+  line-height: 1.5;
+  color: #333;
+}
+
+.confirm-details {
+  background-color: rgba(123, 90, 80, 0.1);
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  font-size: 0.95rem;
+  white-space: pre-line;
+  border-left: 4px solid var(--color-primary);
+  text-align: left;
+  line-height: 1.4;
+}
+
+.confirm-warning {
+  background-color: rgba(255, 193, 7, 0.2);
+  color: #856404;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 25px;
+}
+
+.modal-buttons button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  min-width: 150px;
+  justify-content: center;
+  font-size: 0.95rem;
+}
+
+.cancel-button {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+}
+
+.cancel-button:hover {
+  background-color: #e2e6ea;
+  transform: translateY(-2px);
+}
+
+.confirm-button.danger {
+  background-color: var(--color-danger);
+  color: white;
+}
+
+.confirm-button.danger:hover {
+  background-color: #c82333;
+  transform: translateY(-2px);
+}
+
+.confirm-button.warning {
+  background-color: var(--color-warning);
+  color: #000;
+}
+
+.confirm-button.warning:hover {
+  background-color: #e0a800;
+  transform: translateY(-2px);
+}
+
+/* Animación de entrada del modal */
+.modal-overlay {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.confirm-modal {
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* -------------------- CARDS CON HEADER FIJO MEJORADO -------------------- */
+.card.entregar-hoy,
+.card.hacer-hoy {
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.entregar-hoy-header-container,
+.hacer-hoy-header-container {
+  flex-shrink: 0;
+  background: var(--color-background);
+  border-radius: 10px 10px 0 0;
+}
+
+.entregar-hoy-list,
+.hacer-hoy-list {
+  overflow-y: auto;
+  flex-grow: 1;
+  padding: 10px;
+  margin: 0;
+}
+
+/* Header fijo para todas las cards */
+.card-header.sticky-header {
+  position: sticky;
+  top: 0;
+  background: var(--color-background);
+  z-index: 10;
+  padding: 15px 8px;
+  margin: -8px -8px 15px -8px;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  border-bottom: 2px solid #e9ecef;
+}
+
+/* Estilos específicos para las cards de tareas */
+.card.entregar-hoy {
+  border-top: 3px solid #27ae60;
+}
+
+.card.hacer-hoy {
+  border-top: 3px solid #f39c12;
+}
+
+/* Asegurar que el contenido de las tareas se vea bien */
+.entregar-hoy-list,
+.hacer-hoy-list {
+  padding: 0 8px 8px 8px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #7f8c8d;
+  font-style: italic;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin: 1rem 0;
 }
 </style>

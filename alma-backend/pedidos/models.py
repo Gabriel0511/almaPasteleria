@@ -18,7 +18,7 @@ class Cliente(models.Model):
 class Pedido(models.Model):
     ESTADO_PEDIDO = [
         ('pendiente', 'Pendiente'),
-        ('en preparación', 'En preparación'),
+        ('listo', 'Listo'),
         ('entregado', 'Entregado'),
         ('cancelado', 'Cancelado'),
     ]
