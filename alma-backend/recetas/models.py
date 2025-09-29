@@ -15,22 +15,76 @@ class Receta(models.Model):
     veces_hecha = models.PositiveIntegerField(default=0)
     rinde = models.PositiveIntegerField()
     unidad_rinde = models.CharField(max_length=20, choices=UNIDADES_RINDE)
-    costo_unitario = models.DecimalField(max_digits=10, decimal_places=2)
-    costo_total = models.DecimalField(max_digits=10, decimal_places=2)
+    costo_unitario = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    costo_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     precio_venta = models.DecimalField(max_digits=10, decimal_places=2)
     creado_en = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.nombre
+    
+    def calcular_costo_total(self):
+        """Calcula el costo total sumando el costo de todos los insumos"""
+        costo_total = Decimal('0.00')
+        for insumo_receta in self.insumos.all():
+            costo_insumo = insumo_receta.calcular_costo()
+            costo_total += costo_insumo
+        return costo_total
+    
+    def actualizar_costos(self):
+        """Actualiza los costos sin guardar el objeto (para evitar recursión)"""
+        self.costo_total = self.calcular_costo_total()
+        if self.rinde and self.rinde > 0:
+            self.costo_unitario = self.costo_total / Decimal(str(self.rinde))
+        else:
+            self.costo_unitario = Decimal('0.00')
+        
+        # Guardar solo si el objeto ya existe en la BD
+        if self.pk:
+            # Usar update para evitar recursión en save()
+            Receta.objects.filter(pk=self.pk).update(
+                costo_total=self.costo_total,
+                costo_unitario=self.costo_unitario
+            )
+    
+    def save(self, *args, **kwargs):
+        # Si es un objeto nuevo, establecer valores por defecto
+        if not self.pk:
+            self.costo_total = Decimal('0.00')
+            self.costo_unitario = Decimal('0.00')
+        
+        # Llamar al save original
+        super().save(*args, **kwargs)
+        
+        # Si ya existe en la BD, actualizar costos después de guardar
+        if self.pk:
+            self.actualizar_costos()
 
 class RecetaInsumo(models.Model):
-    receta = models.ForeignKey(Receta, on_delete=models.CASCADE)
+    receta = models.ForeignKey(Receta, on_delete=models.CASCADE, related_name='insumos')
     insumo = models.ForeignKey(Insumo, on_delete=models.CASCADE)
     cantidad = models.DecimalField(max_digits=10, decimal_places=3)
     unidad_medida = models.ForeignKey('insumos.UnidadMedida', on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.insumo.nombre} en {self.receta.nombre}"
+    
+    def calcular_costo(self):
+        """Calcula el costo de este insumo en la receta"""
+        try:
+            if not self.insumo.precio_unitario:
+                return Decimal('0.00')
+            
+            # Obtener la cantidad en la unidad del insumo
+            cantidad_en_unidad_insumo = self.get_cantidad_en_unidad_insumo()
+            
+            # Calcular costo
+            costo = self.insumo.precio_unitario * cantidad_en_unidad_insumo
+            return costo.quantize(Decimal('0.01'))  # Redondear a 2 decimales
+            
+        except Exception as e:
+            print(f"❌ Error calculando costo para {self.insumo.nombre}: {e}")
+            return Decimal('0.00')
     
     def save(self, *args, **kwargs):
         if self.cantidad <= 0:
@@ -39,7 +93,12 @@ class RecetaInsumo(models.Model):
             raise ValueError("El insumo es requerido")
         if not self.unidad_medida_id:
             raise ValueError("La unidad de medida es requerida")
+        
         super().save(*args, **kwargs)
+        
+        # Recalcular el costo de la receta cuando se guarda un insumo
+        if self.receta:
+            self.receta.actualizar_costos()
     
     def get_cantidad_en_unidad_insumo(self):
         """Convierte la cantidad a la unidad de medida del insumo"""
