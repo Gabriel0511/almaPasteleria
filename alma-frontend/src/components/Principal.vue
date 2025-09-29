@@ -80,7 +80,7 @@
                       </span>
                     </div>
 
-                    <div v-if="task.estado === 'en preparación'" class="alert-preparacion">
+                    <div v-if="task.estado === 'listo'" class="alert-preparacion">
                       ⚠️ Listo para entregar
                     </div>
                     <div v-if="task.estado === 'entregado'" class="entregado-info">
@@ -109,7 +109,7 @@
 
                 <div v-for="task in hacerHoyOrdenados" :key="task.id" class="task-item" :class="task.estado">
                   <label class="task-checkbox">
-                    <input type="checkbox" :checked="task.estado === 'en preparación'" :disabled="task.estado === 'en preparación' ||
+                    <input type="checkbox" :checked="task.estado === 'listo'" :disabled="task.estado === 'listo' ||
                       task.estado === 'entregado'
                       " @change="confirmarPreparacion(task)" />
                     <span class="checkmark"></span>
@@ -142,8 +142,8 @@
                       {{ getDiasRestantes(task.fecha_entrega) }}
                     </div>
 
-                    <div v-if="task.estado === 'en preparación'" class="preparacion-info">
-                      👨‍🍳 En preparación
+                    <div v-if="task.estado === 'listo'" class="preparacion-info">
+                      👨‍🍳 Listo
                     </div>
                   </div>
                 </div>
@@ -279,7 +279,7 @@ const modalConfirmIcon = computed(() => {
 const modalConfirmText = computed(() => {
   return modalType.value === 'entrega'
     ? 'Sí, Entregar'
-    : 'Sí, Iniciar Preparación';
+    : 'Sí, terminar pedido';
 });
 
 // Método para confirmar entrega
@@ -298,12 +298,12 @@ const confirmarEntrega = (task) => {
 
 // Método para confirmar preparación
 const confirmarPreparacion = (task) => {
-  if (task.estado === 'en preparación' || task.estado === 'entregado') return;
+  if (task.estado === 'listo' || task.estado === 'entregado') return;
 
   currentTask.value = task;
   modalType.value = 'preparacion';
-  modalTitle.value = 'Iniciar Preparación';
-  modalMessage.value = `¿Estás seguro que quieres INICIAR LA PREPARACIÓN del pedido?`;
+  modalTitle.value = 'Terminar pedido';
+  modalMessage.value = `¿Estás seguro que quieres terminar el pedido?`;
   modalDetails.value = `Cliente: ${task.nombre}\nFecha de entrega: ${formatDate(task.fecha_entrega)}`;
   modalAction.value = () => empezarPreparacion(task);
 
@@ -534,12 +534,12 @@ const marcarComoEntregado = async (task) => {
 // Método específico para empezar preparación
 const empezarPreparacion = async (task) => {
   try {
-    await actualizarEstadoPedido(task.id, "en preparación", "hacerHoy");
+    await actualizarEstadoPedido(task.id, "listo", "hacerHoy");
 
     notificationSystem.show({
       type: "info",
-      title: "Preparación iniciada",
-      message: `El pedido de ${task.nombre} ahora está en preparación`,
+      title: "Pedido Terminado",
+      message: `El pedido de ${task.nombre} ahora está listo`,
       timeout: 3000,
     });
 
@@ -548,7 +548,7 @@ const empezarPreparacion = async (task) => {
       fetchPedidos();
     }, 1000);
   } catch (error) {
-    console.error("Error al iniciar preparación:", error);
+    console.error("Error al terminar pedido:", error);
   }
 };
 
@@ -607,7 +607,7 @@ const actualizarEstadoPedido = async (pedidoId, nuevoEstado, lista) => {
 const getEstadoText = (estado) => {
   const estados = {
     pendiente: "Pendiente",
-    "en preparación": "En preparación",
+    "listo": "Listo",
     entregado: "Entregado",
   };
   return estados[estado] || estado;
@@ -1332,7 +1332,6 @@ onMounted(() => {
     transform: translateY(0) scale(1);
   }
 }
-
 /* -------------------- CARDS CON HEADER FIJO MEJORADO -------------------- */
 .card.entregar-hoy,
 .card.hacer-hoy {

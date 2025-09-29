@@ -17,14 +17,14 @@ class PedidosHoyView(APIView):
         # Entregar hoy: pedidos con fecha_entrega = hoy
         entregar_hoy = Pedido.objects.filter(
             fecha_entrega=hoy,
-            estado__in=['pendiente', 'en preparación']
+            estado__in=['pendiente', 'listo']
         )
         
         # Hacer hoy: pedidos con fecha_entrega en los próximos 3 días (hoy+1, hoy+2, hoy+3)
         fecha_limite = hoy + timedelta(days=3)
         hacer_hoy = Pedido.objects.filter(
             fecha_entrega__range=[hoy + timedelta(days=1), fecha_limite],
-            estado__in=['pendiente', 'en preparación']
+            estado__in=['pendiente', 'listo']
         )
         
         entregar_serializer = PedidoReadSerializer(entregar_hoy, many=True)
@@ -41,11 +41,11 @@ class ActualizarEstadoPedidoView(APIView):
         nuevo_estado = request.data.get('estado')
         
         # Validar transición de estado
-        if pedido.estado in ['pendiente', 'en preparación'] and nuevo_estado == 'entregado':
+        if pedido.estado in ['pendiente', 'listo'] and nuevo_estado == 'entregado':
             pedido.estado = 'entregado'
             pedido.save()
-        elif pedido.estado == 'pendiente' and nuevo_estado == 'en preparación':
-            pedido.estado = 'en preparación'
+        elif pedido.estado == 'pendiente' and nuevo_estado == 'listo':
+            pedido.estado = 'listo'
             pedido.save()
         else:
             return Response(
