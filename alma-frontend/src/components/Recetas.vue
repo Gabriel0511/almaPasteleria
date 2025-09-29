@@ -1425,7 +1425,6 @@ onMounted(() => {
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(123, 90, 80, 0.1);
   padding: 25px;
-  width: 75%;
   margin: 0 auto;
   border: 1px solid rgba(123, 90, 80, 0.1);
 }

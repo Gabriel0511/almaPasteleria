@@ -7,16 +7,8 @@
       <main class="main-content">
         <section class="stock-content">
           <h3 class="card-title1">Gestión de Stock</h3>
-          <div class="botones-acciones">
-            <button class="btn-nuevo-pedido" @click="showNuevoInsumoModal">
-              <i class="fas fa-plus"></i> Nuevo Insumo
-            </button>
-            <button class="btn-nuevo-pedido" @click="showNuevaCompraModal">
-              <i class="fas fa-shopping-cart"></i> Nueva Compra
-            </button>
-          </div>
 
-          <!-- Filtros de stock alineados a la derecha -->
+          <!-- Filtros de stock -->
           <div class="filtros-derecha">
             <div class="filtro-group">
               <input
@@ -35,6 +27,12 @@
                 </option>
               </select>
             </div>
+
+            <div class="botones-acciones">
+              <button class="btn-nuevo-insumo" @click="showNuevoInsumoModal">
+                <i class="fas fa-plus"></i> Nuevo Insumo
+              </button>
+            </div>
           </div>
         </section>
 
@@ -45,68 +43,223 @@
           </div>
 
           <div v-else-if="stockFiltrado.length === 0" class="empty-state">
-            No hay insumos que coincidan con los filtros seleccionados
+            <i class="fas fa-search"></i>
+            <p>No hay insumos que coincidan con los filtros seleccionados</p>
           </div>
 
-          <div v-else class="pedidos-list">
+          <div v-else class="stock-list">
             <div
               v-for="item in stockFiltrado"
               :key="item.id"
-              class="pedido-item"
-              :class="{ 'bajo-stock': item.bajoStock }"
+              class="stock-item"
+              :class="{
+                'bajo-stock': item.bajoStock,
+                'stock-critico': item.cantidad <= item.stock_minimo * 0.5,
+                expanded: stockDesplegado[item.id],
+              }"
             >
-              <div class="pedido-header">
-                <div class="pedido-info">
-                  <span class="insumo-container">
-                    <span class="insumo-nombre"
-                      >{{ item.nombre }}
-                      <span class="insumo-categoria"
-                        >({{ item.categoria }})</span
-                      >
-                    </span>
-                    <span class="insumo-cantidad"
-                      >{{ formatDecimal(item.cantidad) }}{{ item.unidad }}</span
-                    >
-                    <span class="insumo-precio" v-if="item.precio_unitario"
-                      >${{ formatDecimal(item.precio_unitario) }}/{{
-                        item.unidad
-                      }}</span
-                    >
-                    <span class="insumo-categoria">{{ item.proveedor }}</span>
-                  </span>
-                </div>
-                <div class="pedido-acciones">
-                  <span
-                    class="estado-badge"
-                    :class="item.bajoStock ? 'bajo' : 'normal'"
-                    v-if="item.bajoStock"
-                  >
-                    Stock Bajo
-                  </span>
-                  <button
-                    class="btn-accion"
-                    @click="editarInsumo(item)"
-                    title="Editar insumo"
-                  >
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button
-                    class="btn-accion"
-                    @click="confirmarEliminarInsumo(item)"
-                    title="Eliminar insumo"
-                  >
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </div>
-              </div>
+              <!-- Contenedor principal del header -->
+              <div class="stock-item-main">
+                <!-- Header que ocupa todo el ancho -->
+                <div class="stock-header-full">
+                  <div class="stock-header-content">
+                    <div class="stock-info-main">
+                      <div class="stock-titulo">
+                        <span class="insumo-nombre">{{ item.nombre }}</span>
+                        <span class="insumo-badge">{{ item.categoria }}</span>
+                      </div>
+                      <div class="stock-datos-compact">
+                        <div class="dato-grupo">
+                          <i class="fas fa-box"></i>
+                          <span class="stock-cantidad">
+                            {{ formatDecimal(item.cantidad) }} {{ item.unidad }}
+                          </span>
+                        </div>
+                        <div class="dato-grupo" v-if="item.precio_unitario">
+                          <i class="fas fa-dollar-sign"></i>
+                          <span class="stock-precio">
+                            ${{ formatDecimal(item.precio_unitario) }}
+                          </span>
+                        </div>
+                        <div class="dato-grupo">
+                          <i class="fas fa-truck"></i>
+                          <span class="stock-proveedor">{{
+                            item.proveedor
+                          }}</span>
+                        </div>
+                      </div>
+                    </div>
 
-              <div class="stock-minimo" v-if="item.bajoStock">
-                ⚠️ Stock mínimo: {{ formatDecimal(item.stock_minimo) }}
-                {{ item.unidad }}
+                    <div class="stock-header-right">
+                      <span
+                        class="stock-estado-badge"
+                        :class="{
+                          critico: item.cantidad <= item.stock_minimo * 0.5,
+                          bajo:
+                            item.bajoStock &&
+                            item.cantidad > item.stock_minimo * 0.5,
+                          normal: !item.bajoStock,
+                        }"
+                      >
+                        <i
+                          class="fas"
+                          :class="{
+                            'fa-exclamation-triangle':
+                              item.cantidad <= item.stock_minimo * 0.5,
+                            'fa-exclamation-circle':
+                              item.bajoStock &&
+                              item.cantidad > item.stock_minimo * 0.5,
+                            'fa-check-circle': !item.bajoStock,
+                          }"
+                        ></i>
+                        {{
+                          item.cantidad <= item.stock_minimo * 0.5
+                            ? "Crítico"
+                            : item.bajoStock
+                            ? "Bajo"
+                            : "Normal"
+                        }}
+                      </span>
+
+                      <div class="stock-acciones">
+                        <button
+                          class="btn-accion btn-editar"
+                          @click.stop="editarInsumo(item)"
+                          title="Editar insumo"
+                        >
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button
+                          class="btn-accion btn-eliminar"
+                          @click.stop="confirmarEliminarInsumo(item)"
+                          title="Eliminar insumo"
+                        >
+                          <i class="fas fa-trash"></i>
+                        </button>
+                        <button
+                          class="btn-accion btn-desplegable"
+                          @click.stop="toggleStock(item.id)"
+                          :title="
+                            stockDesplegado[item.id]
+                              ? 'Ocultar detalles'
+                              : 'Mostrar detalles'
+                          "
+                        >
+                          <i
+                            class="fas"
+                            :class="
+                              stockDesplegado[item.id]
+                                ? 'fa-chevron-up'
+                                : 'fa-chevron-down'
+                            "
+                          ></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Desplegable que aparece en la parte inferior del stock-item -->
+                <div
+                  v-if="stockDesplegado[item.id]"
+                  class="stock-detalles-container"
+                >
+                  <div class="detalles-content">
+                    <!-- Información de stock mínimo -->
+                    <div class="stock-minimo-info">
+                      <h4>
+                        <i class="fas fa-info-circle"></i> Información de Stock
+                      </h4>
+                      <div class="stock-minimo-grid">
+                        <div class="minimo-item">
+                          <span class="minimo-label">Stock Mínimo:</span>
+                          <span class="minimo-valor">
+                            {{ formatDecimal(item.stock_minimo) }}
+                            {{ item.unidad }}
+                          </span>
+                        </div>
+                        <div class="minimo-item">
+                          <span class="minimo-label">Stock Actual:</span>
+                          <span
+                            class="minimo-valor"
+                            :class="{
+                              critico: item.cantidad <= item.stock_minimo * 0.5,
+                              bajo:
+                                item.bajoStock &&
+                                item.cantidad > item.stock_minimo * 0.5,
+                              normal: !item.bajoStock,
+                            }"
+                          >
+                            {{ formatDecimal(item.cantidad) }} {{ item.unidad }}
+                          </span>
+                        </div>
+                        <div class="minimo-item">
+                          <span class="minimo-label">Diferencia:</span>
+                          <span
+                            class="minimo-valor"
+                            :class="{
+                              negativo: item.cantidad < item.stock_minimo,
+                              positivo: item.cantidad >= item.stock_minimo,
+                            }"
+                          >
+                            {{
+                              formatDecimal(item.cantidad - item.stock_minimo)
+                            }}
+                            {{ item.unidad }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Alertas de stock -->
+                    <div
+                      v-if="item.bajoStock"
+                      class="stock-alerta"
+                      :class="{
+                        'alerta-critica':
+                          item.cantidad <= item.stock_minimo * 0.5,
+                        'alerta-baja':
+                          item.bajoStock &&
+                          item.cantidad > item.stock_minimo * 0.5,
+                      }"
+                    >
+                      <i
+                        class="fas"
+                        :class="{
+                          'fa-exclamation-triangle':
+                            item.cantidad <= item.stock_minimo * 0.5,
+                          'fa-exclamation-circle':
+                            item.bajoStock &&
+                            item.cantidad > item.stock_minimo * 0.5,
+                        }"
+                      ></i>
+                      <span v-if="item.cantidad <= item.stock_minimo * 0.5">
+                        ¡Stock crítico! Necesita reposición urgente.
+                      </span>
+                      <span v-else> Stock bajo. Considerar reposición. </span>
+                    </div>
+
+                    <!-- Acciones rápidas -->
+                    <div class="stock-acciones-rapidas" v-if="item.bajoStock">
+                      <button
+                        class="btn-reposicion"
+                        @click="reponerStockRapido(item)"
+                      >
+                        <i class="fas fa-bolt"></i> Reposición Rápida
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        <!-- Botón Nueva Compra flotante -->
+        <button class="btn-nueva-compra-flotante" @click="showNuevaCompraModal">
+          <i class="fas fa-shopping-cart"></i>
+          <span>Nueva Compra</span>
+        </button>
       </main>
     </div>
 
@@ -521,6 +674,7 @@ const proveedores = ref([]);
 const categoriaSeleccionada = ref("");
 const searchTerm = ref("");
 const loading = ref(true);
+const stockDesplegado = ref({});
 
 // Modales
 const showModalInsumo = ref(false);
@@ -600,7 +754,17 @@ const stockFiltrado = computed(() => {
     );
   }
 
-  return filtered;
+  // Ordenar: stock crítico primero, luego bajo, luego normal
+  return filtered.sort((a, b) => {
+    const aCritico = a.cantidad <= a.stock_minimo * 0.5;
+    const bCritico = b.cantidad <= b.stock_minimo * 0.5;
+
+    if (aCritico && !bCritico) return -1;
+    if (!aCritico && bCritico) return 1;
+    if (a.bajoStock && !b.bajoStock) return -1;
+    if (!a.bajoStock && b.bajoStock) return 1;
+    return 0;
+  });
 });
 
 // Métodos
@@ -622,6 +786,22 @@ const logout = async () => {
     delete axios.defaults.headers.common["Authorization"];
     router.push("/login");
   }
+};
+
+// Nuevo método para toggle del desplegable
+const toggleStock = (stockId) => {
+  stockDesplegado.value = {
+    ...stockDesplegado.value,
+    [stockId]: !stockDesplegado.value[stockId],
+  };
+};
+
+// Método para reposición rápida
+const reponerStockRapido = (item) => {
+  // Seleccionar automáticamente el insumo en el modal de compra
+  formCompra.value.insumo_id = item.id;
+  actualizarUnidadMedida();
+  showModalCompra.value = true;
 };
 
 const formatDecimal = (value) => {
@@ -1241,35 +1421,30 @@ onMounted(() => {
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
 
-/* ----------------------------- CONTENIDO Y CARDS ESPECÍFICOS ----------------------------- */
+/* ----------------------------- CONTENIDO PRINCIPAL ----------------------------- */
 .stock-content {
-  display: flex;
-  padding: 0 20px;
-}
-
-.header-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: nowrap;
-  /* Evita que se envuelvan a la siguiente línea */
+  margin-bottom: 25px;
+  flex-wrap: wrap;
   gap: 20px;
-  margin-bottom: 20px;
+  padding: 0 10px;
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  flex-shrink: 0;
-  /* Evita que se encojan demasiado */
+.card-title1 {
+  color: var(--color-primary);
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(123, 90, 80, 0.1);
 }
 
+/* ----------------------------- FILTROS ----------------------------- */
 .filtros-derecha {
   display: flex;
   gap: 15px;
-  margin-bottom: 20px;
-  align-items: flex-end;
+  align-items: center;
   flex-wrap: wrap;
 }
 
@@ -1281,272 +1456,525 @@ onMounted(() => {
 
 .filtro-input,
 .filtro-select {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  padding: 12px 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
   font-size: 14px;
-  height: 38px;
-  /* Misma altura que los botones */
+  height: 46px;
+  transition: all 0.3s ease;
+  background: white;
+  min-width: 200px;
 }
 
-/* BOTONES */
+.filtro-input:focus,
+.filtro-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(123, 90, 80, 0.1);
+  transform: translateY(-1px);
+}
+
+/* ----------------------------- BOTONES GENERALES ----------------------------- */
 .botones-acciones {
   display: flex;
   gap: 10px;
-  margin-right: auto;
-  /* ← Esto los lleva a la izq */
-  margin-bottom: 25px;
 }
 
-.btn-nuevo-pedido {
-  background-color: #b8e6b8;
-  color: #2b5d2b;
-  padding: 8px 15px;
+.btn-nuevo-insumo,
+.btn-nueva-compra {
+  background: linear-gradient(135deg, var(--color-success), #218838);
+  color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 10px;
+  padding: 12px 20px;
   cursor: pointer;
-  font-weight: bold;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 5px;
-  transition: background-color 0.2s;
-  height: 38px;
-  /* Altura consistente */
+  gap: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
+  font-size: 0.9rem;
 }
 
-.btn-nuevo-pedido:hover {
-  background-color: #a1dca1;
+.btn-nuevo-insumo:hover,
+.btn-nueva-compra:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+}
+
+.btn-nueva-compra {
+  background: linear-gradient(135deg, #17a2b8, #138496);
+}
+
+.btn-nueva-compra:hover {
+  box-shadow: 0 6px 20px rgba(23, 162, 184, 0.3);
 }
 
 /* ----------------------------- CARD DE STOCK ----------------------------- */
 .stock-card {
   max-height: calc(100vh - 200px);
   overflow-y: auto;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(123, 90, 80, 0.1);
+  padding: 25px;
+  margin: 0 auto;
+  border: 1px solid rgba(123, 90, 80, 0.1);
 }
 
-.pedidos-list {
+.stock-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
 }
 
-.pedido-item {
-  border: 1px solid #e0e0e0;
+.stock-item {
+  position: relative;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.stock-item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--color-primary), #f1d0cb);
+  opacity: 0.8;
+}
+
+.stock-item.bajo-stock::before {
+  background: linear-gradient(to bottom, #ffc107, #ffcd39);
+}
+
+.stock-item.stock-critico::before {
+  background: linear-gradient(to bottom, #dc3545, #e74c3c);
+}
+
+.stock-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(123, 90, 80, 0.15);
+  border-color: var(--color-primary);
+}
+
+.stock-item.expanded {
+  padding-bottom: 0;
+}
+
+.stock-item-main {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.stock-header-full {
+  width: 100%;
+  cursor: pointer;
+  transition: background-color 0.2s;
   border-radius: 8px;
-  padding: 15px;
-  background-color: #f9f9f9;
+  padding: 15px 20px;
+  flex-shrink: 0;
 }
 
-.pedido-item.bajo-stock {
-  border-left: 4px solid #ffcc00;
-  background-color: #fff9e6;
+.stock-header-full:hover {
+  background-color: rgba(123, 90, 80, 0.05);
 }
 
-.pedido-header {
+.stock-header-content {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 10px;
-  flex-wrap: wrap;
-  gap: 10px;
+  width: 100%;
+  gap: 20px;
 }
 
-.pedido-info {
+.stock-info-main {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  flex: 1;
+  gap: 12px;
+}
+
+.stock-titulo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .insumo-nombre {
-  font-weight: bold;
-  font-size: 16px;
-  color: #333;
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: #2c3e50;
+  margin: 0;
 }
 
-.insumo-categoria {
+.insumo-badge {
+  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.stock-datos-compact {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.stock-datos-compact .dato-grupo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6c757d;
+  font-size: 0.9rem;
+  background: rgba(123, 90, 80, 0.05);
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+.stock-datos-compact .dato-grupo i {
+  color: var(--color-primary);
+  width: 14px;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.stock-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* ----------------------------- BOTONES DE ACCIÓN ----------------------------- */
+.stock-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.stock-estado-badge {
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s ease;
+}
+
+.stock-estado-badge.critico {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+}
+
+.stock-estado-badge.bajo {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  color: #212529;
+}
+
+.stock-estado-badge.normal {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.btn-accion {
+  border: none;
+  cursor: pointer;
   font-size: 14px;
-  color: #666;
-  font-style: italic;
+  padding: 10px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
 }
 
-.insumo-cantidad {
-  font-size: 14px;
-  color: #666;
+.btn-editar {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
 }
 
-.insumo-precio {
-  font-size: 14px;
-  color: #2e7d32;
-  font-weight: bold;
+.btn-editar:hover {
+  background: linear-gradient(135deg, #2980b9, #21618c);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
 }
 
-.pedido-acciones {
+.btn-eliminar {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+}
+
+.btn-eliminar:hover {
+  background: linear-gradient(135deg, #c0392b, #a93226);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.btn-desplegable {
+  background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+  color: white;
+}
+
+.btn-desplegable:hover {
+  background: linear-gradient(135deg, #7f8c8d, #6c7a7d);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
+}
+
+/* ----------------------------- DESPLEGABLE DE DETALLES ----------------------------- */
+.stock-detalles-container {
+  width: 100%;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-top: 1px solid #dee2e6;
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
+.detalles-content {
+  padding: 20px;
+  border-radius: 0 0 12px 12px;
+}
+
+.stock-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.stock-minimo-info h4 {
+  margin: 0 0 15px 0;
+  font-size: 1.1rem;
+  color: var(--color-primary);
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.estado-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: bold;
+.stock-minimo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
 }
 
-.estado-badge.bajo {
-  background-color: #fff3cd;
+.minimo-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.minimo-label {
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.minimo-valor {
+  font-weight: 600;
+}
+
+.minimo-valor.critico {
+  color: #dc3545;
+}
+
+.minimo-valor.bajo {
+  color: #ffc107;
+}
+
+.minimo-valor.normal {
+  color: #28a745;
+}
+
+.minimo-valor.negativo {
+  color: #dc3545;
+}
+
+.minimo-valor.positivo {
+  color: #28a745;
+}
+
+/* ----------------------------- ALERTAS DE STOCK ----------------------------- */
+.stock-alerta {
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.alerta-critica {
+  background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.alerta-baja {
+  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
   color: #856404;
+  border: 1px solid #ffeaa7;
 }
 
-.estado-badge.normal {
-  background-color: #d4edda;
-  color: #155724;
+/* ----------------------------- ACCIONES RÁPIDAS ----------------------------- */
+.stock-acciones-rapidas {
+  text-align: right;
 }
 
-.btn-accion {
-  background: none;
+.btn-reposicion {
+  background: linear-gradient(135deg, #17a2b8, #138496);
+  color: white;
   border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
   cursor: pointer;
-  color: #7b5a50;
-  font-size: 16px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 6px rgba(23, 162, 184, 0.2);
 }
 
-.btn-accion:hover {
-  color: #5a3f36;
+.btn-reposicion:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
 }
 
-.stock-minimo {
-  padding: 8px;
-  background-color: #fff3cd;
-  border-radius: 4px;
-  color: #856404;
-  font-size: 14px;
+/* ----------------------------- BOTÓN FLOTANTE NUEVA COMPRA ----------------------------- */
+.btn-nueva-compra-flotante {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: linear-gradient(135deg, #17a2b8, #138496);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 16px 24px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 20px rgba(23, 162, 184, 0.3);
+  z-index: 100;
+  font-size: 1rem;
 }
 
+.btn-nueva-compra-flotante:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(23, 162, 184, 0.4);
+  background: linear-gradient(135deg, #138496, #17a2b8);
+}
+
+/* ----------------------------- ESTADOS ----------------------------- */
 .loading-state {
   text-align: center;
-  padding: 20px;
-  color: #7b5a50;
+  padding: 60px;
+  color: var(--color-primary);
+  font-size: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.loading-state i {
+  font-size: 2rem;
 }
 
 .empty-state {
   text-align: center;
-  padding: 30px;
-  color: #666;
-  font-style: italic;
-}
-
-/* ----------------------------- MODALES ----------------------------- */
-.modal-content {
-  background-color: var(--color-white);
-  padding: 20px;
-  border-radius: 10px;
-  width: 600px;
-  max-width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-content h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  color: #7b5a50;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.form-group {
+  padding: 60px;
+  color: #6c757d;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-}
-
-.form-group label {
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.form-input {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.cliente-select-container {
-  display: flex;
-  gap: 8px;
-}
-
-.cliente-select-container select {
-  flex: 1;
-}
-
-.btn-agregar-cliente {
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 12px;
-  cursor: pointer;
-  display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 15px;
 }
 
-.btn-agregar-cliente:hover {
-  background-color: #218838;
+.empty-state i {
+  font-size: 3rem;
+  color: #bdc3c7;
 }
 
-.modal-buttons {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-  gap: 10px;
-}
-
-.cancel-button {
-  padding: 8px 16px;
-  background-color: #f0f0f0;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.confirm-button {
-  padding: 8px 16px;
-  background-color: var(--color-primary);
-  color: var(--color-white);
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.insumo-container > span {
-  white-space: nowrap;
-  /* Evita que se rompan los textos */
+.empty-state p {
+  margin: 0;
+  font-size: 1.1rem;
 }
 
 /* ----------------------------- RESPONSIVE ----------------------------- */
 @media (max-width: 768px) {
-  .filtros-derecha {
+  .stock-header-content {
     flex-direction: column;
     align-items: stretch;
+    gap: 15px;
   }
 
-  .pedido-header {
+  .stock-header-right {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .stock-datos-compact {
     flex-direction: column;
-    align-items: flex-start;
+    gap: 8px;
   }
 
-  .pedido-acciones {
-    align-self: flex-end;
+  .stock-datos-compact .dato-grupo {
+    justify-content: flex-start;
+  }
+
+  .detalles-content {
+    padding: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stock-header-full {
+    padding: 12px 15px;
+  }
+
+  .stock-header-right {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .stock-acciones {
+    align-self: center;
+  }
+
+  .insumo-nombre {
+    font-size: 1.1rem;
   }
 }
 </style>
