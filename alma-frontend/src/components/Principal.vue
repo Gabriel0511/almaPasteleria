@@ -80,7 +80,7 @@
                       </span>
                     </div>
 
-                    <div v-if="task.estado === 'en preparación'" class="alert-preparacion">
+                    <div v-if="task.estado === 'listo'" class="alert-preparacion">
                       ⚠️ Listo para entregar
                     </div>
                     <div v-if="task.estado === 'entregado'" class="entregado-info">
@@ -109,7 +109,7 @@
 
                 <div v-for="task in hacerHoyOrdenados" :key="task.id" class="task-item" :class="task.estado">
                   <label class="task-checkbox">
-                    <input type="checkbox" :checked="task.estado === 'en preparación'" :disabled="task.estado === 'en preparación' ||
+                    <input type="checkbox" :checked="task.estado === 'listo'" :disabled="task.estado === 'listo' ||
                       task.estado === 'entregado'
                       " @change="confirmarPreparacion(task)" />
                     <span class="checkmark"></span>
@@ -142,8 +142,8 @@
                       {{ getDiasRestantes(task.fecha_entrega) }}
                     </div>
 
-                    <div v-if="task.estado === 'en preparación'" class="preparacion-info">
-                      👨‍🍳 En preparación
+                    <div v-if="task.estado === 'listo'" class="preparacion-info">
+                      👨‍🍳 Listo
                     </div>
                   </div>
                 </div>
