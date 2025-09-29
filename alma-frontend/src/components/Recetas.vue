@@ -37,132 +37,258 @@
               v-for="receta in recetasFiltradas"
               :key="receta.id"
               class="receta-item"
+              :class="{
+                expanded: recetaDesplegada[receta.id],
+              }"
             >
-              <div class="receta-header">
-                <div class="receta-info">
-                  <div class="receta-titulo">
-                    <span class="receta-nombre">{{ receta.nombre }}</span>
-                    <span class="receta-badge"
-                      >{{ receta.insumos.length }} insumos</span
-                    >
-                  </div>
-                  <div class="receta-datos">
-                    <div class="dato-grupo">
-                      <i class="fas fa-utensils"></i>
-                      <span class="receta-rinde"
-                        >Rinde {{ receta.rinde }}
-                        {{ receta.unidad_rinde }}</span
-                      >
-                    </div>
-                    <div class="dato-grupo">
-                      <i class="fas fa-dollar-sign"></i>
-                      <span class="receta-costo"
-                        >Costo: ${{ formatDecimal(receta.costo_total) }}</span
-                      >
-                    </div>
-                    <div class="dato-grupo">
-                      <i class="fas fa-tag"></i>
-                      <span class="receta-precio"
-                        >Precio: ${{ formatDecimal(receta.precio_venta) }}</span
-                      >
-                    </div>
-                  </div>
-                </div>
-                <div class="receta-acciones">
-                  <button
-                    class="btn-accion btn-editar"
-                    @click="editarReceta(receta)"
-                    title="Editar receta"
-                  >
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button
-                    class="btn-accion btn-eliminar"
-                    @click="confirmarEliminarReceta(receta)"
-                    title="Eliminar receta"
-                  >
-                    <i class="fas fa-trash"></i>
-                  </button>
-                  <button
-                    class="btn-accion btn-desplegable"
-                    @click="toggleInsumos(receta.id)"
-                    :title="
-                      recetaDesplegada[receta.id]
-                        ? 'Ocultar insumos'
-                        : 'Mostrar insumos'
-                    "
-                  >
-                    <i
-                      class="fas"
-                      :class="
-                        recetaDesplegada[receta.id]
-                          ? 'fa-chevron-up'
-                          : 'fa-chevron-down'
-                      "
-                    ></i>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Desplegable de insumos -->
-              <div
-                v-if="recetaDesplegada[receta.id]"
-                class="receta-insumos-desplegable"
-                :class="{ active: recetaDesplegada[receta.id] }"
-              >
-                <div class="insumos-content">
-                  <div class="insumos-header">
-                    <h4>
-                      <i class="fas fa-list"></i> Lista de Insumos ({{
-                        receta.insumos.length
-                      }})
-                    </h4>
-                    <button
-                      class="btn-agregar-insumo"
-                      @click="agregarInsumosAReceta(receta)"
-                      title="Agregar/editar insumos"
-                    >
-                      <i class="fas fa-plus-circle"></i> Gestionar Insumos
-                    </button>
-                  </div>
-
-                  <div class="insumos-list">
-                    <div
-                      v-for="insumo in receta.insumos"
-                      :key="insumo.id"
-                      class="insumo-item"
-                    >
-                      <div class="insumo-info">
-                        <span class="insumo-nombre">
-                          <i
-                            class="fas fa-circle"
-                            style="font-size: 6px; color: #7b5a50"
-                          ></i>
-                          {{ insumo.insumo.nombre }}
-                        </span>
-                        <span class="insumo-cantidad">
-                          {{ formatDecimal(insumo.cantidad) }}
-                          {{ insumo.unidad_medida.abreviatura }}
-                        </span>
-                      </div>
-                      <div class="insumo-costo-container">
-                        <span
-                          class="insumo-costo"
-                          v-if="insumo.insumo.precio_unitario != null"
+              <!-- Contenedor principal del header -->
+              <div class="receta-item-main">
+                <!-- Header que ocupa todo el ancho -->
+                <div class="receta-header-full">
+                  <div class="receta-header-content">
+                    <div class="receta-info-main">
+                      <div class="receta-titulo">
+                        <span class="receta-nombre">{{ receta.nombre }}</span>
+                        <span class="receta-badge"
+                          >{{ receta.insumos.length }} insumos</span
                         >
-                          ${{ formatDecimal(calcularCostoInsumo(insumo)) }}
-                        </span>
-                        <span class="insumo-costo" v-else> - </span>
+                      </div>
+                      <div class="receta-datos-compact">
+                        <div class="dato-grupo">
+                          <i class="fas fa-utensils"></i>
+                          <span class="receta-rinde">
+                            Rinde {{ receta.rinde }} {{ receta.unidad_rinde }}
+                          </span>
+                        </div>
+                        <div class="dato-grupo">
+                          <i class="fas fa-dollar-sign"></i>
+                          <span class="receta-costo">
+                            ${{ formatDecimal(receta.costo_total) }}
+                          </span>
+                        </div>
+                        <div class="dato-grupo">
+                          <i class="fas fa-tag"></i>
+                          <span class="receta-precio">
+                            ${{ formatDecimal(receta.precio_venta) }}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <div v-if="receta.insumos.length === 0" class="sin-insumos">
-                      <i class="fas fa-info-circle"></i>
-                      <p>Esta receta no tiene insumos asignados</p>
+
+                    <div class="receta-header-right">
+                      <span
+                        class="receta-estado-badge"
+                        :class="{
+                          rentable: receta.precio_venta > receta.costo_total,
+                          noRentable: receta.precio_venta <= receta.costo_total,
+                        }"
+                      >
+                        <i
+                          class="fas"
+                          :class="{
+                            'fa-check-circle':
+                              receta.precio_venta > receta.costo_total,
+                            'fa-exclamation-circle':
+                              receta.precio_venta <= receta.costo_total,
+                          }"
+                        ></i>
+                        {{
+                          receta.precio_venta > receta.costo_total
+                            ? "Rentable"
+                            : "No Rentable"
+                        }}
+                      </span>
+
+                      <div class="receta-acciones">
+                        <button
+                          class="btn-accion btn-editar"
+                          @click.stop="editarReceta(receta)"
+                          title="Editar receta"
+                        >
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button
+                          class="btn-accion btn-eliminar"
+                          @click.stop="confirmarEliminarReceta(receta)"
+                          title="Eliminar receta"
+                        >
+                          <i class="fas fa-trash"></i>
+                        </button>
+                        <button
+                          class="btn-accion btn-desplegable"
+                          @click.stop="toggleReceta(receta.id)"
+                          :title="
+                            recetaDesplegada[receta.id]
+                              ? 'Ocultar detalles'
+                              : 'Mostrar detalles'
+                          "
+                        >
+                          <i
+                            class="fas"
+                            :class="
+                              recetaDesplegada[receta.id]
+                                ? 'fa-chevron-up'
+                                : 'fa-chevron-down'
+                            "
+                          ></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Desplegable que aparece en la parte inferior del receta-item -->
+                <div
+                  v-if="recetaDesplegada[receta.id]"
+                  class="receta-detalles-container"
+                >
+                  <div class="detalles-content">
+                    <!-- Información de rentabilidad -->
+                    <div class="receta-rentabilidad-info">
+                      <h4>
+                        <i class="fas fa-chart-line"></i> Información de
+                        Rentabilidad
+                      </h4>
+                      <div class="receta-rentabilidad-grid">
+                        <div class="rentabilidad-item">
+                          <span class="rentabilidad-label">Costo Total:</span>
+                          <span class="rentabilidad-valor">
+                            ${{ formatDecimal(receta.costo_total) }}
+                          </span>
+                        </div>
+                        <div class="rentabilidad-item">
+                          <span class="rentabilidad-label"
+                            >Precio de Venta:</span
+                          >
+                          <span class="rentabilidad-valor">
+                            ${{ formatDecimal(receta.precio_venta) }}
+                          </span>
+                        </div>
+                        <div class="rentabilidad-item">
+                          <span class="rentabilidad-label">Ganancia:</span>
+                          <span
+                            class="rentabilidad-valor"
+                            :class="{
+                              positiva:
+                                receta.precio_venta > receta.costo_total,
+                              negativa:
+                                receta.precio_venta <= receta.costo_total,
+                            }"
+                          >
+                            ${{
+                              formatDecimal(
+                                receta.precio_venta - receta.costo_total
+                              )
+                            }}
+                          </span>
+                        </div>
+                        <div class="rentabilidad-item">
+                          <span class="rentabilidad-label">Margen:</span>
+                          <span
+                            class="rentabilidad-valor"
+                            :class="{
+                              positiva:
+                                receta.precio_venta > receta.costo_total,
+                              negativa:
+                                receta.precio_venta <= receta.costo_total,
+                            }"
+                          >
+                            {{
+                              receta.costo_total > 0
+                                ? formatDecimal(
+                                    ((receta.precio_venta -
+                                      receta.costo_total) /
+                                      receta.costo_total) *
+                                      100
+                                  )
+                                : "0.00"
+                            }}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Lista de insumos -->
+                    <div class="receta-insumos-section">
+                      <div class="insumos-header">
+                        <h4>
+                          <i class="fas fa-list"></i> Lista de Insumos ({{
+                            receta.insumos.length
+                          }})
+                        </h4>
+                        <button
+                          class="btn-agregar-insumo"
+                          @click="agregarInsumosAReceta(receta)"
+                          title="Agregar/editar insumos"
+                        >
+                          <i class="fas fa-plus-circle"></i> Gestionar Insumos
+                        </button>
+                      </div>
+
+                      <div class="insumos-list">
+                        <div
+                          v-for="insumo in receta.insumos"
+                          :key="insumo.id"
+                          class="insumo-item"
+                        >
+                          <div class="insumo-info">
+                            <span class="insumo-nombre">
+                              <i
+                                class="fas fa-circle"
+                                style="font-size: 6px; color: #7b5a50"
+                              ></i>
+                              {{ insumo.insumo.nombre }}
+                            </span>
+                            <span class="insumo-cantidad">
+                              {{ formatDecimal(insumo.cantidad) }}
+                              {{ insumo.unidad_medida.abreviatura }}
+                            </span>
+                          </div>
+                          <div class="insumo-costo-container">
+                            <span
+                              class="insumo-costo"
+                              v-if="insumo.insumo.precio_unitario != null"
+                            >
+                              ${{ formatDecimal(calcularCostoInsumo(insumo)) }}
+                            </span>
+                            <span class="insumo-costo" v-else> - </span>
+                          </div>
+                        </div>
+                        <div
+                          v-if="receta.insumos.length === 0"
+                          class="sin-insumos"
+                        >
+                          <i class="fas fa-info-circle"></i>
+                          <p>Esta receta no tiene insumos asignados</p>
+                          <button
+                            class="btn-agregar-insumo-small"
+                            @click="agregarInsumosAReceta(receta)"
+                          >
+                            <i class="fas fa-plus"></i> Agregar Insumos
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Alertas de rentabilidad -->
+                    <div
+                      v-if="receta.precio_venta <= receta.costo_total"
+                      class="receta-alerta alerta-no-rentable"
+                    >
+                      <i class="fas fa-exclamation-circle"></i>
+                      <span>
+                        ¡Receta no rentable! El precio de venta no cubre los
+                        costos.
+                      </span>
+                    </div>
+
+                    <!-- Acciones rápidas -->
+                    <div class="receta-acciones-rapidas">
                       <button
-                        class="btn-agregar-insumo-small"
+                        class="btn-editar-insumos"
                         @click="agregarInsumosAReceta(receta)"
                       >
-                        <i class="fas fa-plus"></i> Agregar Insumos
+                        <i class="fas fa-edit"></i> Gestionar Insumos
                       </button>
                     </div>
                   </div>
@@ -571,7 +697,7 @@ const handleNavigation = (route) => {
 };
 
 // Nuevo método para toggle del desplegable
-const toggleInsumos = (recetaId) => {
+const toggleReceta = (recetaId) => {
   recetaDesplegada.value = {
     ...recetaDesplegada.value,
     [recetaId]: !recetaDesplegada.value[recetaId],
@@ -1391,6 +1517,7 @@ onMounted(() => {
   display: flex;
   gap: 15px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .filtro-group {
@@ -1405,9 +1532,9 @@ onMounted(() => {
   border-radius: 10px;
   font-size: 14px;
   height: 46px;
-  width: 300px;
   transition: all 0.3s ease;
   background: white;
+  min-width: 200px;
 }
 
 .filtro-input:focus {
@@ -1417,9 +1544,36 @@ onMounted(() => {
   transform: translateY(-1px);
 }
 
+/* ----------------------------- BOTONES GENERALES ----------------------------- */
+.botones-acciones {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-nueva-receta {
+  background: linear-gradient(135deg, var(--color-success), #218838);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
+  font-size: 0.9rem;
+}
+
+.btn-nueva-receta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+}
+
 /* ----------------------------- CARD DE RECETAS ----------------------------- */
 .recetas-card {
-  max-height: calc(100vh - 220px);
+  max-height: calc(100vh - 200px);
   overflow-y: auto;
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   border-radius: 16px;
@@ -1436,13 +1590,12 @@ onMounted(() => {
 }
 
 .receta-item {
+  position: relative;
   background: white;
   border: 1px solid #e9ecef;
   border-radius: 12px;
-  padding: 20px;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  position: relative;
   overflow: hidden;
 }
 
@@ -1463,19 +1616,42 @@ onMounted(() => {
   border-color: var(--color-primary);
 }
 
-.receta-header {
+.receta-item.expanded {
+  padding-bottom: 0;
+}
+
+.receta-item-main {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.receta-header-full {
+  width: 100%;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-radius: 8px;
+  padding: 15px 20px;
+  flex-shrink: 0;
+}
+
+.receta-header-full:hover {
+  background-color: rgba(123, 90, 80, 0.05);
+}
+
+.receta-header-content {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 0;
+  width: 100%;
   gap: 20px;
 }
 
-.receta-info {
+.receta-info-main {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  flex: 1;
 }
 
 .receta-titulo {
@@ -1501,34 +1677,36 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.receta-datos {
+.receta-datos-compact {
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
 }
 
-.dato-grupo {
+.receta-datos-compact .dato-grupo {
   display: flex;
   align-items: center;
   gap: 8px;
   color: #6c757d;
   font-size: 0.9rem;
+  background: rgba(123, 90, 80, 0.05);
+  padding: 6px 12px;
+  border-radius: 6px;
 }
 
-.dato-grupo i {
+.receta-datos-compact .dato-grupo i {
   color: var(--color-primary);
-  width: 16px;
+  width: 14px;
   text-align: center;
+  font-size: 0.8rem;
 }
 
-.receta-costo {
-  color: #e74c3c;
-  font-weight: 600;
-}
-
-.receta-precio {
-  color: var(--color-success);
-  font-weight: 600;
+.receta-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 /* ----------------------------- BOTONES DE ACCIÓN ----------------------------- */
@@ -1537,6 +1715,27 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+}
+
+.receta-estado-badge {
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s ease;
+}
+
+.receta-estado-badge.rentable {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.receta-estado-badge.noRentable {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  color: #212529;
 }
 
 .btn-accion {
@@ -1552,6 +1751,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
 }
 
 .btn-editar {
@@ -1587,31 +1787,74 @@ onMounted(() => {
   box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
 }
 
-/* ----------------------------- DESPLEGABLE DE INSUMOS ----------------------------- */
-.receta-insumos-desplegable {
-  max-height: 0;
-  overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-top: 0;
-}
-
-.receta-insumos-desplegable.active {
-  max-height: 600px;
-  margin-top: 20px;
-}
-
-.insumos-content {
+/* ----------------------------- DESPLEGABLE DE DETALLES ----------------------------- */
+.receta-detalles-container {
+  width: 100%;
   background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  border-radius: 10px;
+  border-top: 1px solid #dee2e6;
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
+.detalles-content {
   padding: 20px;
-  border: 1px solid #dee2e6;
+  border-radius: 0 0 12px 12px;
+}
+
+.receta-rentabilidad-info h4 {
+  margin: 0 0 15px 0;
+  font-size: 1.1rem;
+  color: var(--color-primary);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.receta-rentabilidad-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.rentabilidad-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.rentabilidad-label {
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.rentabilidad-valor {
+  font-weight: 600;
+}
+
+.rentabilidad-valor.positiva {
+  color: #28a745;
+}
+
+.rentabilidad-valor.negativa {
+  color: #dc3545;
+}
+
+/* ----------------------------- SECCIÓN DE INSUMOS ----------------------------- */
+.receta-insumos-section {
+  margin-bottom: 20px;
 }
 
 .insumos-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   flex-wrap: wrap;
   gap: 15px;
 }
@@ -1710,6 +1953,49 @@ onMounted(() => {
   background: rgba(40, 167, 69, 0.1);
   padding: 4px 8px;
   border-radius: 6px;
+}
+
+/* ----------------------------- ALERTAS DE RECETA ----------------------------- */
+.receta-alerta {
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.alerta-no-rentable {
+  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+/* ----------------------------- ACCIONES RÁPIDAS ----------------------------- */
+.receta-acciones-rapidas {
+  text-align: right;
+}
+
+.btn-editar-insumos {
+  background: linear-gradient(135deg, #17a2b8, #138496);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 6px rgba(23, 162, 184, 0.2);
+}
+
+.btn-editar-insumos:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
 }
 
 /* ----------------------------- BOTÓN FLOTANTE NUEVA RECETA ----------------------------- */
@@ -1815,34 +2101,30 @@ onMounted(() => {
 
 /* ----------------------------- RESPONSIVE ----------------------------- */
 @media (max-width: 768px) {
-  .recetas-content {
+  .receta-header-content {
     flex-direction: column;
     align-items: stretch;
     gap: 15px;
   }
 
-  .recetas-card {
-    width: 95%;
-    padding: 15px;
-  }
-
-  .filtro-input {
+  .receta-header-right {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
     width: 100%;
   }
 
-  .receta-header {
+  .receta-datos-compact {
     flex-direction: column;
-    align-items: stretch;
-    gap: 15px;
+    gap: 8px;
   }
 
-  .receta-acciones {
-    align-self: flex-end;
+  .receta-datos-compact .dato-grupo {
+    justify-content: flex-start;
   }
 
-  .receta-datos {
-    flex-direction: column;
-    gap: 10px;
+  .detalles-content {
+    padding: 15px;
   }
 
   .insumos-header {
@@ -1854,35 +2136,25 @@ onMounted(() => {
   .btn-agregar-insumo {
     align-self: flex-start;
   }
-
-  .btn-nueva-receta-flotante {
-    bottom: 20px;
-    right: 20px;
-    padding: 14px 20px;
-    font-size: 0.9rem;
-  }
-
-  .btn-nueva-receta-flotante span {
-    display: none;
-  }
-
-  .btn-nueva-receta-flotante::after {
-    content: "Nueva";
-    font-size: 0.9rem;
-  }
 }
 
 @media (max-width: 480px) {
-  .receta-item {
-    padding: 15px;
+  .receta-header-full {
+    padding: 12px 15px;
+  }
+
+  .receta-header-right {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .receta-acciones {
+    align-self: center;
   }
 
   .receta-nombre {
     font-size: 1.1rem;
-  }
-
-  .insumos-content {
-    padding: 15px;
   }
 
   .insumo-item {

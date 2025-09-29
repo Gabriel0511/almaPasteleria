@@ -1,7 +1,6 @@
 <template>
   <header class="header">
     <div class="header-left">
-      <h1 class="page-title">{{ title }}</h1>
       <br />
       <div class="logo">
         <img src="/src/Logo2.png" alt="Logo Pastelería" />
