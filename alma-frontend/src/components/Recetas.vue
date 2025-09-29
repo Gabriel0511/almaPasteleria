@@ -7,13 +7,8 @@
       <main class="main-content">
         <section class="recetas-content">
           <h3 class="card-title1">Gestión de Recetas</h3>
-          <div class="botones-acciones">
-            <button class="btn-nuevo-pedido" @click="showNuevaRecetaModal">
-              <i class="fas fa-plus"></i> Nueva Receta
-            </button>
-          </div>
 
-          <!-- Filtros de recetas alineados a la derecha -->
+          <!-- Filtros de recetas -->
           <div class="filtros-derecha">
             <div class="filtro-group">
               <input
@@ -33,7 +28,8 @@
           </div>
 
           <div v-else-if="recetasFiltradas.length === 0" class="empty-state">
-            No hay recetas que coincidan con los filtros seleccionados
+            <i class="fas fa-search"></i>
+            <p>No hay recetas que coincidan con los filtros seleccionados</p>
           </div>
 
           <div v-else class="recetas-list">
@@ -44,96 +40,150 @@
             >
               <div class="receta-header">
                 <div class="receta-info">
-                  <span class="insumo-container">
-                    <span class="receta-nombre"
-                      >{{ receta.nombre }}
-                    </span>
-                    <span class="receta-rinde"
-                      >Rinde: {{ receta.rinde }} {{ receta.unidad_rinde }}</span
+                  <div class="receta-titulo">
+                    <span class="receta-nombre">{{ receta.nombre }}</span>
+                    <span class="receta-badge"
+                      >{{ receta.insumos.length }} insumos</span
                     >
-                    <span class="receta-costo"
-                      >Costo: ${{ formatDecimal(receta.costo_total) }}</span
-                    >
-                    <span class="receta-precio"
-                      >Precio: ${{ formatDecimal(receta.precio_venta) }}</span
-                    >
-                  </span>
+                  </div>
+                  <div class="receta-datos">
+                    <div class="dato-grupo">
+                      <i class="fas fa-utensils"></i>
+                      <span class="receta-rinde"
+                        >Rinde {{ receta.rinde }}
+                        {{ receta.unidad_rinde }}</span
+                      >
+                    </div>
+                    <div class="dato-grupo">
+                      <i class="fas fa-dollar-sign"></i>
+                      <span class="receta-costo"
+                        >Costo: ${{ formatDecimal(receta.costo_total) }}</span
+                      >
+                    </div>
+                    <div class="dato-grupo">
+                      <i class="fas fa-tag"></i>
+                      <span class="receta-precio"
+                        >Precio: ${{ formatDecimal(receta.precio_venta) }}</span
+                      >
+                    </div>
+                  </div>
                 </div>
                 <div class="receta-acciones">
                   <button
-                    class="btn-accion"
+                    class="btn-accion btn-editar"
                     @click="editarReceta(receta)"
                     title="Editar receta"
                   >
                     <i class="fas fa-edit"></i>
                   </button>
                   <button
-                    class="btn-accion"
+                    class="btn-accion btn-eliminar"
                     @click="confirmarEliminarReceta(receta)"
                     title="Eliminar receta"
                   >
                     <i class="fas fa-trash"></i>
                   </button>
+                  <button
+                    class="btn-accion btn-desplegable"
+                    @click="toggleInsumos(receta.id)"
+                    :title="
+                      recetaDesplegada[receta.id]
+                        ? 'Ocultar insumos'
+                        : 'Mostrar insumos'
+                    "
+                  >
+                    <i
+                      class="fas"
+                      :class="
+                        recetaDesplegada[receta.id]
+                          ? 'fa-chevron-up'
+                          : 'fa-chevron-down'
+                      "
+                    ></i>
+                  </button>
                 </div>
               </div>
 
-              <div class="receta-insumos">
-                <h4>Insumos ({{ receta.insumos.length }}):</h4>
-                <div
-                  v-for="insumo in receta.insumos"
-                  :key="insumo.id"
-                  class="insumo-item"
-                >
-                  <span class="insumo-nombre">{{ insumo.insumo.nombre }}</span>
-                  <span class="insumo-cantidad"
-                    >{{ formatDecimal(insumo.cantidad) }}
-                    {{ insumo.unidad_medida.abreviatura }}</span
-                  >
-                  <span
-                    class="insumo-costo"
-                    v-if="insumo.insumo.precio_unitario != null"
-                  >
-                    Costo: ${{ formatDecimal(calcularCostoInsumo(insumo)) }}
-                  </span>
+              <!-- Desplegable de insumos -->
+              <div
+                v-if="recetaDesplegada[receta.id]"
+                class="receta-insumos-desplegable"
+                :class="{ active: recetaDesplegada[receta.id] }"
+              >
+                <div class="insumos-content">
+                  <div class="insumos-header">
+                    <h4>
+                      <i class="fas fa-list"></i> Lista de Insumos ({{
+                        receta.insumos.length
+                      }})
+                    </h4>
+                    <button
+                      class="btn-agregar-insumo"
+                      @click="agregarInsumosAReceta(receta)"
+                      title="Agregar/editar insumos"
+                    >
+                      <i class="fas fa-plus-circle"></i> Gestionar Insumos
+                    </button>
+                  </div>
 
-                  <span class="insumo-costo"
-                  v-else
-                  >
-                   Costo: $ -
-                    
-                  </span>
-
-                  <button
-                    class="btn-eliminar-insumo-lista"
-                    @click="eliminarInsumoDeReceta(receta, insumo)"
-                    title="Eliminar insumo"
-                  >
-                    <i class="fas fa-times"></i>
-                  </button>
+                  <div class="insumos-list">
+                    <div
+                      v-for="insumo in receta.insumos"
+                      :key="insumo.id"
+                      class="insumo-item"
+                    >
+                      <div class="insumo-info">
+                        <span class="insumo-nombre">
+                          <i
+                            class="fas fa-circle"
+                            style="font-size: 6px; color: #7b5a50"
+                          ></i>
+                          {{ insumo.insumo.nombre }}
+                        </span>
+                        <span class="insumo-cantidad">
+                          {{ formatDecimal(insumo.cantidad) }}
+                          {{ insumo.unidad_medida.abreviatura }}
+                        </span>
+                      </div>
+                      <div class="insumo-costo-container">
+                        <span
+                          class="insumo-costo"
+                          v-if="insumo.insumo.precio_unitario != null"
+                        >
+                          ${{ formatDecimal(calcularCostoInsumo(insumo)) }}
+                        </span>
+                        <span class="insumo-costo" v-else> - </span>
+                      </div>
+                    </div>
+                    <div v-if="receta.insumos.length === 0" class="sin-insumos">
+                      <i class="fas fa-info-circle"></i>
+                      <p>Esta receta no tiene insumos asignados</p>
+                      <button
+                        class="btn-agregar-insumo-small"
+                        @click="agregarInsumosAReceta(receta)"
+                      >
+                        <i class="fas fa-plus"></i> Agregar Insumos
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div v-if="receta.insumos.length === 0" class="sin-insumos">
-                  <i class="fas fa-info-circle"></i>
-                  Esta receta no tiene insumos asignados
-                </div>
-                <button
-                  class="btn-agregar-insumo"
-                  @click="agregarInsumosAReceta(receta)"
-                  title="Agregar/editar insumos"
-                >
-                  <i class="fas fa-plus"></i> Agregar Insumos
-                </button>
               </div>
             </div>
           </div>
         </div>
+
+        <!-- Botón Nueva Receta flotante -->
+        <button class="btn-nueva-receta-flotante" @click="showNuevaRecetaModal">
+          <i class="fas fa-plus"></i>
+          <span>Nueva Receta</span>
+        </button>
       </main>
     </div>
 
-    <!-- Modal para Nueva/Editar Receta (solo datos básicos) -->
+    <!-- Modal para Nueva/Editar Receta -->
     <div v-if="showModalReceta" class="modal-overlay">
       <div class="modal-content">
         <h3>{{ esEdicion ? "Editar Receta" : "Nueva Receta" }}</h3>
-
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre:</label>
@@ -144,7 +194,6 @@
               class="form-input"
             />
           </div>
-
           <div class="form-group">
             <label>Rinde:</label>
             <input
@@ -154,7 +203,6 @@
               class="form-input"
             />
           </div>
-
           <div class="form-group">
             <label>Unidad de Rinde:</label>
             <select
@@ -166,7 +214,6 @@
               <option value="unidades">Unidades</option>
             </select>
           </div>
-
           <div class="form-group">
             <label>Precio de Venta:</label>
             <input
@@ -178,7 +225,6 @@
             />
           </div>
         </div>
-
         <div class="modal-buttons">
           <button @click="closeModal" class="cancel-button">Cancelar</button>
           <button @click="guardarRecetaBasica" class="confirm-button">
@@ -192,39 +238,39 @@
     <div v-if="showModalInsumos" class="modal-overlay">
       <div class="modal-content">
         <h3>Agregar Insumos a: {{ recetaSeleccionada?.nombre }}</h3>
-
         <div class="insumos-section">
           <h4>Agregar Nuevo Insumo:</h4>
           <div class="form-grid">
             <div class="form-group">
               <label>Insumo:</label>
-              <select
-                v-model="nuevoInsumo.insumo_id"
-                required
-                class="form-input"
-                @change="actualizarUnidadNuevoInsumo"
-              >
-                <option value="">Seleccione un insumo</option>
-                <option
-                  v-for="item in insumosDisponibles"
-                  :key="item.id"
-                  :value="item.id"
+              <div class="select-with-button">
+                <select
+                  v-model="nuevoInsumo.insumo_id"
+                  required
+                  class="form-input"
+                  @change="actualizarUnidadNuevoInsumo"
                 >
-                  {{ item.nombre }} (Stock:
-                  {{ formatDecimal(item.stock_actual) }}
-                  {{ item.unidad_medida.abreviatura }})
-                </option>
-              </select>
-              <button
-                type="button"
-                class="btn-agregar-nuevo"
-                @click="showNuevoInsumoModal = true"
-                title="Agregar nuevo insumo"
-              >
-                <i class="fas fa-plus"></i>
-              </button>
+                  <option value="">Seleccione un insumo</option>
+                  <option
+                    v-for="item in insumosDisponibles"
+                    :key="item.id"
+                    :value="item.id"
+                  >
+                    {{ item.nombre }} (Stock:
+                    {{ formatDecimal(item.stock_actual) }}
+                    {{ item.unidad_medida.abreviatura }})
+                  </option>
+                </select>
+                <button
+                  type="button"
+                  class="btn-agregar-nuevo"
+                  @click="showNuevoInsumoModal = true"
+                  title="Agregar nuevo insumo"
+                >
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
             </div>
-
             <div class="form-group">
               <label>Cantidad:</label>
               <input
@@ -235,7 +281,6 @@
                 class="form-input"
               />
             </div>
-
             <div class="form-group">
               <label>Unidad de Medida:</label>
               <select
@@ -253,7 +298,6 @@
                 </option>
               </select>
             </div>
-
             <div class="form-group">
               <button
                 class="btn-agregar-insumo-modal"
@@ -273,7 +317,6 @@
             :key="insumo.id"
             class="insumo-existente-item"
           >
-            <!-- Mostrar modo visualización -->
             <span v-if="!insumo.editando" class="insumo-info">
               {{ insumo.insumo.nombre }} - {{ formatDecimal(insumo.cantidad) }}
               {{ insumo.unidad_medida.abreviatura }}
@@ -281,8 +324,6 @@
                 (Costo: ${{ formatDecimal(calcularCostoInsumo(insumo)) }})
               </span>
             </span>
-
-            <!-- Mostrar modo edición -->
             <div v-else class="insumo-edit-form">
               <div class="edit-form-grid">
                 <div class="form-group">
@@ -316,7 +357,6 @@
                 </div>
               </div>
             </div>
-
             <div class="insumo-acciones">
               <button
                 v-if="!insumo.editando"
@@ -356,7 +396,6 @@
             No hay insumos agregados
           </div>
         </div>
-
         <div class="modal-buttons">
           <button @click="showModalInsumos = false" class="cancel-button">
             Cerrar
@@ -369,7 +408,6 @@
     <div v-if="showNuevoInsumoModal" class="modal-overlay">
       <div class="modal-content">
         <h3>Nuevo Insumo</h3>
-
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre:</label>
@@ -381,7 +419,6 @@
               placeholder="Nombre del insumo"
             />
           </div>
-
           <div class="form-group">
             <label>Unidad de Medida:</label>
             <select
@@ -399,7 +436,6 @@
               </option>
             </select>
           </div>
-
           <div class="form-group">
             <label>Stock Mínimo:</label>
             <input
@@ -411,7 +447,6 @@
               placeholder="0.000"
             />
           </div>
-
           <div class="form-group">
             <label>Precio Unitario:</label>
             <input
@@ -423,7 +458,6 @@
             />
           </div>
         </div>
-
         <div class="modal-buttons">
           <button @click="showNuevoInsumoModal = false" class="cancel-button">
             Cancelar
@@ -444,7 +478,6 @@
             recetaAEliminar?.nombre
           }}"?
         </p>
-
         <div class="modal-buttons">
           <button @click="showConfirmModal = false" class="cancel-button">
             Cancelar
@@ -475,6 +508,7 @@ const unidadesMedida = ref([]);
 const searchTerm = ref("");
 const loading = ref(true);
 const insumoEditando = ref(null);
+const recetaDesplegada = ref({});
 
 // Modales
 const showModalReceta = ref(false);
@@ -534,6 +568,14 @@ const formNuevoInsumo = ref({
 // Métodos
 const handleNavigation = (route) => {
   router.push(route);
+};
+
+// Nuevo método para toggle del desplegable
+const toggleInsumos = (recetaId) => {
+  recetaDesplegada.value = {
+    ...recetaDesplegada.value,
+    [recetaId]: !recetaDesplegada.value[recetaId],
+  };
 };
 
 const logout = async () => {
@@ -1325,18 +1367,30 @@ onMounted(() => {
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
 
-/* ----------------------------- CONTENIDO Y CARDS ESPECÍFICOS ----------------------------- */
+/* ----------------------------- CONTENIDO PRINCIPAL ----------------------------- */
 .recetas-content {
   display: flex;
-  padding: 0 20px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 0 10px;
 }
 
+.card-title1 {
+  color: var(--color-primary);
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(123, 90, 80, 0.1);
+}
+
+/* ----------------------------- FILTROS ----------------------------- */
 .filtros-derecha {
   display: flex;
   gap: 15px;
-  margin-bottom: 20px;
-  align-items: flex-end;
-  flex-wrap: wrap;
+  align-items: center;
 }
 
 .filtro-group {
@@ -1346,523 +1400,500 @@ onMounted(() => {
 }
 
 .filtro-input {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  padding: 12px 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
   font-size: 14px;
-  height: 38px;
+  height: 46px;
+  width: 300px;
+  transition: all 0.3s ease;
+  background: white;
 }
 
-/* BOTONES */
-.botones-acciones {
-  display: flex;
-  gap: 10px;
-  margin-right: auto;
-  margin-bottom: 25px;
-}
-
-.btn-nuevo-pedido {
-  background-color: #b8e6b8;
-  color: #2b5d2b;
-  padding: 8px 15px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  transition: background-color 0.2s;
-  height: 38px;
-}
-
-.btn-nuevo-pedido:hover {
-  background-color: #a1dca1;
+.filtro-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(123, 90, 80, 0.1);
+  transform: translateY(-1px);
 }
 
 /* ----------------------------- CARD DE RECETAS ----------------------------- */
 .recetas-card {
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 220px);
   overflow-y: auto;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(123, 90, 80, 0.1);
+  padding: 25px;
+  width: 75%;
+  margin: 0 auto;
+  border: 1px solid rgba(123, 90, 80, 0.1);
 }
 
 .recetas-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
 }
 
 .receta-item {
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 15px;
-  background-color: #f9f9f9;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.receta-item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--color-primary), #f1d0cb);
+  opacity: 0.8;
+}
+
+.receta-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(123, 90, 80, 0.15);
+  border-color: var(--color-primary);
 }
 
 .receta-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 10px;
-  flex-wrap: wrap;
-  gap: 10px;
+  margin-bottom: 0;
+  gap: 20px;
 }
 
 .receta-info {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 12px;
   flex: 1;
 }
 
+.receta-titulo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .receta-nombre {
-  font-weight: bold;
-  font-size: 16px;
-  color: #333;
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: #2c3e50;
+  margin: 0;
 }
 
-.receta-veces-hecha {
-  font-size: 14px;
-  color: #666;
-  font-style: italic;
+.receta-badge {
+  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
-.receta-rinde,
-.receta-costo,
+.receta-datos {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.dato-grupo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.dato-grupo i {
+  color: var(--color-primary);
+  width: 16px;
+  text-align: center;
+}
+
+.receta-costo {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
 .receta-precio {
-  font-size: 14px;
-  color: #666;
+  color: var(--color-success);
+  font-weight: 600;
 }
 
-.receta-precio {
-  color: #2e7d32;
-  font-weight: bold;
-}
-
+/* ----------------------------- BOTONES DE ACCIÓN ----------------------------- */
 .receta-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-accion {
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 10px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-editar {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+}
+
+.btn-editar:hover {
+  background: linear-gradient(135deg, #2980b9, #21618c);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.btn-eliminar {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+}
+
+.btn-eliminar:hover {
+  background: linear-gradient(135deg, #c0392b, #a93226);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.btn-desplegable {
+  background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+  color: white;
+}
+
+.btn-desplegable:hover {
+  background: linear-gradient(135deg, #7f8c8d, #6c7a7d);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
+}
+
+/* ----------------------------- DESPLEGABLE DE INSUMOS ----------------------------- */
+.receta-insumos-desplegable {
+  max-height: 0;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: 0;
+}
+
+.receta-insumos-desplegable.active {
+  max-height: 600px;
+  margin-top: 20px;
+}
+
+.insumos-content {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid #dee2e6;
+}
+
+.insumos-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.insumos-header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--color-primary);
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.btn-accion {
-  background: none;
+.btn-agregar-insumo {
+  background: linear-gradient(135deg, var(--color-success), #218838);
+  color: white;
   border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
   cursor: pointer;
-  color: #7b5a50;
-  font-size: 16px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.2);
 }
 
-.btn-accion:hover {
-  color: #5a3f36;
+.btn-agregar-insumo:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
 }
 
-.receta-insumos {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed #ddd;
-}
-
-.receta-insumos h4 {
-  margin: 0 0 10px 0;
-  font-size: 14px;
-  color: #666;
+.insumos-list {
+  background: white;
+  border-radius: 8px;
+  padding: 0;
+  border: 1px solid #e9ecef;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .insumo-item {
   display: flex;
   justify-content: space-between;
-  padding: 5px 0;
-  border-bottom: 1px solid #f0f0f0;
-  gap: 10px;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f8f9fa;
+  transition: background-color 0.2s;
+}
+
+.insumo-item:hover {
+  background-color: rgba(123, 90, 80, 0.05);
 }
 
 .insumo-item:last-child {
   border-bottom: none;
 }
 
-.insumo-nombre {
-  font-size: 14px;
+.insumo-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex: 1;
 }
 
-.insumo-cantidad {
-  font-size: 14px;
-  color: #666;
-  min-width: 80px;
+.insumo-nombre {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.insumo-costo {
-  font-size: 14px;
-  color: #2e7d32;
-  min-width: 100px;
+.insumo-cantidad {
+  font-size: 0.85rem;
+  color: #6c757d;
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.insumo-costo-container {
+  min-width: 80px;
   text-align: right;
 }
 
+.insumo-costo {
+  font-size: 0.85rem;
+  color: var(--color-success);
+  font-weight: 600;
+  background: rgba(40, 167, 69, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+/* ----------------------------- BOTÓN FLOTANTE NUEVA RECETA ----------------------------- */
+.btn-nueva-receta-flotante {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 16px 24px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 20px rgba(123, 90, 80, 0.3);
+  z-index: 100;
+  font-size: 1rem;
+}
+
+.btn-nueva-receta-flotante:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(123, 90, 80, 0.4);
+  background: linear-gradient(135deg, #9c7a6d, var(--color-primary));
+}
+
+/* ----------------------------- ESTADOS ----------------------------- */
 .loading-state {
   text-align: center;
-  padding: 20px;
-  color: #7b5a50;
+  padding: 60px;
+  color: var(--color-primary);
+  font-size: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.loading-state i {
+  font-size: 2rem;
 }
 
 .empty-state {
   text-align: center;
-  padding: 30px;
-  color: #666;
-  font-style: italic;
-}
-
-/* ----------------------------- MODALES ----------------------------- */
-.modal-content {
-  background-color: var(--color-white);
-  padding: 20px;
-  border-radius: 10px;
-  width: 800px;
-  max-width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-content h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  color: #7b5a50;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.form-group {
+  padding: 60px;
+  color: #6c757d;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-}
-
-.form-group label {
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.form-input {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.insumos-section {
-  margin: 20px 0;
-  padding: 15px;
-  border: 1px solid #eee;
-  border-radius: 6px;
-  background-color: #f9f9f9;
-}
-
-.insumos-section h4 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  color: #7b5a50;
-}
-
-.insumo-form {
-  margin-bottom: 15px;
-  padding: 10px;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  background-color: white;
-}
-
-.btn-agregar-insumo {
-  background-color: #b8e6b8;
-  color: #2b5d2b;
-  padding: 8px 15px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  display: flex;
   align-items: center;
-  gap: 5px;
-  transition: background-color 0.2s;
+  gap: 15px;
 }
 
-.btn-agregar-insumo:hover {
-  background-color: #a1dca1;
+.empty-state i {
+  font-size: 3rem;
+  color: #bdc3c7;
 }
 
-.btn-eliminar-insumo {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #dc3545;
-  font-size: 16px;
-  align-self: flex-end;
-  margin-top: 24px;
+.empty-state p {
+  margin: 0;
+  font-size: 1.1rem;
 }
 
-.btn-eliminar-insumo:hover {
-  color: #bd2130;
-}
-
-.modal-buttons {
+.sin-insumos {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
   display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-  gap: 10px;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
 }
 
-.cancel-button {
-  padding: 8px 16px;
-  background-color: #f0f0f0;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+.sin-insumos i {
+  font-size: 2rem;
+  color: #bdc3c7;
 }
 
-.confirm-button {
-  padding: 8px 16px;
-  background-color: var(--color-primary);
-  color: var(--color-white);
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+.sin-insumos p {
+  margin: 0;
 }
 
-.btn-accion {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #7b5a50;
-  font-size: 16px;
-  margin: 0 2px;
-}
-
-.btn-eliminar-insumo-lista {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #dc3545;
-  font-size: 14px;
-  padding: 2px 6px;
-}
-
-.btn-eliminar-insumo-existente {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #dc3545;
-  font-size: 14px;
-  padding: 4px 8px;
-}
-
-.btn-agregar-insumo-modal {
-  background-color: #28a745;
+.btn-agregar-insumo-small {
+  background: var(--color-primary);
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   padding: 8px 16px;
   cursor: pointer;
-  margin-top: 24px;
-}
-
-.btn-agregar-insumo-modal:disabled {
-  background-color: #6c757d;
-  cursor: not-allowed;
-}
-
-.insumo-existente-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px;
-  border-bottom: 1px solid #eee;
-}
-
-.insumo-info {
-  flex: 1;
-}
-
-.sin-insumos {
-  text-align: center;
-  color: #666;
-  font-style: italic;
-  padding: 10px;
-}
-
-.insumos-existente-section {
-  margin-top: 20px;
-  padding: 15px;
-  border: 1px solid #eee;
-  border-radius: 6px;
-  background-color: #f9f9f9;
-}
-
-.select-with-button {
-  display: flex;
-  gap: 5px;
-}
-
-.btn-agregar-nuevo {
-  background-color: #e3f2fd;
-  color: #1565c0;
-  border: 1px solid #bbdefb;
-  border-radius: 4px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  transition: background-color 0.2s;
-  padding: 0 10px;
-  height: 38px;
-}
-
-.btn-agregar-nuevo:hover {
-  background-color: #bbdefb;
-}
-
-.insumo-existente-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-  gap: 10px;
-}
-
-.insumo-info {
-  flex: 1;
+  font-size: 0.85rem;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
+  transition: all 0.3s ease;
 }
 
-.insumo-costo {
-  font-size: 12px;
-  color: #2e7d32;
-  font-style: italic;
+.btn-agregar-insumo-small:hover {
+  background: #9c7a6d;
+  transform: translateY(-1px);
 }
 
-.insumo-acciones {
-  display: flex;
-  gap: 5px;
-}
-
-.insumo-edit-form {
-  flex: 1;
-}
-
-.edit-form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  align-items: end;
-}
-
-.form-input-small {
-  padding: 6px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  width: 100%;
-}
-
-.btn-accion-small {
-  background: none;
-  border: 1px solid #ddd;
-  cursor: pointer;
-  color: #7b5a50;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-.btn-accion-small:hover {
-  background-color: #f5f5f5;
-}
-
-.btn-confirmar {
-  color: #28a745;
-  border-color: #28a745;
-}
-
-.btn-confirmar:hover {
-  background-color: #d4edda;
-}
-
-.btn-cancelar {
-  color: #dc3545;
-  border-color: #dc3545;
-}
-
-.btn-cancelar:hover {
-  background-color: #f8d7da;
-}
-
-.btn-eliminar {
-  color: #dc3545;
-  border-color: #f5c6cb;
-}
-
-.btn-eliminar:hover {
-  background-color: #f8d7da;
-}
-
-.sin-insumos {
-  text-align: center;
-  color: #666;
-  font-style: italic;
-  padding: 20px;
-}
-
-.btn-agregar-insumo {
-  background-color: #e3f2fd;
-  color: #1565c0;
-  border: 1px solid #bbdefb;
-  border-radius: 4px;
-  padding: 8px 12px;
-  cursor: pointer;
-  font-size: 14px;
-  margin-top: 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.btn-agregar-insumo:hover {
-  background-color: #bbdefb;
-}
 /* ----------------------------- RESPONSIVE ----------------------------- */
 @media (max-width: 768px) {
-  .filtros-derecha {
+  .recetas-content {
     flex-direction: column;
     align-items: stretch;
+    gap: 15px;
+  }
+
+  .recetas-card {
+    width: 95%;
+    padding: 15px;
+  }
+
+  .filtro-input {
+    width: 100%;
   }
 
   .receta-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: 15px;
   }
 
   .receta-acciones {
     align-self: flex-end;
   }
 
-  .form-grid {
-    grid-template-columns: 1fr;
+  .receta-datos {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .insumos-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .btn-agregar-insumo {
+    align-self: flex-start;
+  }
+
+  .btn-nueva-receta-flotante {
+    bottom: 20px;
+    right: 20px;
+    padding: 14px 20px;
+    font-size: 0.9rem;
+  }
+
+  .btn-nueva-receta-flotante span {
+    display: none;
+  }
+
+  .btn-nueva-receta-flotante::after {
+    content: "Nueva";
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .receta-item {
+    padding: 15px;
+  }
+
+  .receta-nombre {
+    font-size: 1.1rem;
+  }
+
+  .insumos-content {
+    padding: 15px;
   }
 
   .insumo-item {
     flex-direction: column;
-    gap: 5px;
+    align-items: flex-start;
+    gap: 8px;
   }
 
-  .insumo-costo {
-    text-align: left;
+  .insumo-costo-container {
+    align-self: flex-end;
   }
 }
 </style>

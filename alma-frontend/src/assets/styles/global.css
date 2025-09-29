@@ -1,4 +1,5 @@
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
+
 /* ----------------------------- ESTILOS GLOBALES ----------------------------- */
 :root {
   --color-primary: #7b5a50;
@@ -34,23 +35,30 @@ html,
   min-height: 100vh;
 }
 
+.main-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left 0.3s ease;
+}
+
 .main-content {
-  margin-left: 120px; /* Mismo ancho que el sidebar */
+  margin-left: 120px;
   flex: 1;
   padding: 15px;
-  position: relative; /* Importante para el z-index */
-  z-index: 1; /* Menor que el sidebar pero sobre el fondo */
+  position: relative;
+  z-index: 1;
 }
 
 /* ----------------------------- HEADER ----------------------------- */
 .header {
   display: flex;
-  justify-content: space-between; /* Izquierda = título, derecha = botones */
+  justify-content: space-between;
   align-items: center;
   padding: 30px 20px 25px 150px;
   background-color: var(--color-primary);
   box-shadow: 0 2px 4px var(--color-background);
-  position: relative; /* Necesario para centrar el logo */
+  position: relative;
   top: 0;
   z-index: 100;
 }
@@ -63,6 +71,7 @@ html,
 
 .page-title {
   color: white;
+  font-size: 1.5rem;
 }
 
 .header-right {
@@ -84,6 +93,10 @@ html,
   transition: background-color 0.2s;
 }
 
+.icon-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
 .user-btn {
   display: flex;
   align-items: center;
@@ -92,293 +105,22 @@ html,
 
 .user-email {
   color: white;
-}
-
-.notification-badge {
-  position: absolute;
-  top: 0;
-  right: 0;
-  background-color: #e74c3c;
-  color: white;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  font-size: 0.7rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  min-width: 300px;
-  z-index: 101;
-  margin-top: 10px;
-}
-
-.notification-menu {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.notification-menu h3 {
-  padding: 15px;
-  margin: 0;
-  border-bottom: 1px solid #eee;
-  font-size: 1rem;
-}
-
-.empty-notifications {
-  padding: 20px;
-  text-align: center;
-  color: #888;
-}
-
-.notification-list {
-  padding: 0;
-}
-
-.notification-item {
-  padding: 12px 15px;
-  border-bottom: 1px solid #f0f0f0;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.notification-item:hover {
-  background-color: #f9f9f9;
-}
-
-.notification-item.unread {
-  background-color: #f0f7ff;
-}
-
-.notification-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.notification-text {
-  margin: 0 0 5px 0;
   font-size: 0.9rem;
 }
 
-.notification-time {
-  font-size: 0.8rem;
-  color: #888;
-}
-
-.user-menu {
-  padding: 10px 0;
-}
-
-.user-info {
-  padding: 10px 15px;
-}
-
-.user-info p {
-  margin: 0;
-  font-weight: 500;
-}
-
-.user-menu hr {
-  margin: 10px 0;
-  border: none;
-  border-top: 1px solid #eee;
-}
-
-.menu-options {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.menu-options li {
-  padding: 10px 15px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: background-color 0.2s;
-}
-
-.menu-options li:hover {
-  background-color: #f0f0f0;
-}
-
-.menu-options li i {
-  width: 16px;
-  text-align: center;
-}
-
-@media (max-width: 768px) {
-  .header {
-    padding: 10px 15px;
-  }
-
-  .user-email {
-    display: none;
-  }
-
-  .dropdown-menu {
-    min-width: 250px;
-    right: -10px;
-  }
-}
-
-/* Acaaa */
-
 .logo {
-  position: absolute; /* Lo saca del flujo */
-  left: 50%; /* Lo manda al centro */
-  transform: translateX(-50%); /* Lo centra perfectamente */
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
-  justify-content: center; /* Ocupa todo el ancho disponible */
+  justify-content: center;
   top: 3px;
 }
 
 .logo img {
-  height: 80px; /* Ajustá el tamaño según necesites */
+  height: 80px;
   width: auto;
-}
-
-.icon-buttons {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.icon-buttons i {
-  font-size: 20px;
-  background-color: var(--color-white);
-  padding: 8px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.icon-buttons i:hover {
-  background-color: #f0f0f0;
-}
-
-/* ----------------------------- MENÚ DE USUARIO ----------------------------- */
-.user-menu-container {
-  position: relative;
-  display: inline-block;
-}
-
-.user-menu {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  background-color: var(--color-white);
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  width: 200px;
-  z-index: 1000;
-  margin-top: 5px;
-}
-
-.menu-header {
-  padding: 10px 15px;
-  font-weight: bold;
-  border-bottom: 1px solid #eee;
-  background-color: #f8f9fa;
-  border-radius: 8px 8px 0 0;
-}
-
-.menu-item {
-  padding: 10px 15px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.menu-item:hover {
-  background-color: #f8f9fa;
-}
-
-.menu-item:last-child {
-  border-radius: 0 0 8px 8px;
-}
-
-/* ----------------------------- NOTIFICACIONES ----------------------------- */
-.notification-icon {
-  position: relative;
-}
-
-.notification-badge {
-  background-color: var(--color-danger);
-  color: var(--color-white);
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 50%;
-  position: absolute;
-  top: -10px;
-  right: -10px;
-}
-
-/* ----------------------------- MODAL ----------------------------- */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background-color: var(--color-white);
-  padding: 20px;
-  border-radius: 10px;
-  width: 400px;
-  max-width: 90%;
-}
-
-.modal-buttons {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-  gap: 10px;
-}
-
-.cancel-button {
-  padding: 8px 16px;
-  background-color: #f0f0f0;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.confirm-button {
-  padding: 8px 16px;
-  background-color: var(--color-primary);
-  color: var(--color-white);
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.form-group {
-  margin-bottom: 15px;
-}
-
-.form-input {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  margin-top: 5px;
 }
 
 /* ----------------------------- CARD BASE ----------------------------- */
@@ -391,39 +133,22 @@ html,
   overflow-y: auto;
 }
 
-.card h3 {
-  margin-top: 0;
-  font-size: 18px;
-}
-
 .card-title {
   text-align: center;
   margin: 0;
   padding: 4px;
   border-bottom: 1px solid #ccc;
-}
-
-.card-stock {
-  display: flex;
-  justify-content: space-between; /* Stock a la izquierda, filtros a la derecha */
-  align-items: center;
-  margin: 0 0 15px 0;
-  padding: 4px 10px;
+  font-size: 1.2rem;
+  color: var(--color-primary);
 }
 
 .card-title1 {
   text-align: left;
   margin: 0;
   padding: 4px;
-}
-
-.insumo-container {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  /* Espacio uniforme entre todos los elementos */
-  flex-wrap: wrap;
-  /* Para que se ajuste en pantallas pequeñas */
+  font-size: 1.3rem;
+  color: var(--color-primary);
+  margin-bottom: 15px;
 }
 
 /* ----------------------------- SCROLL PERSONALIZADO ----------------------------- */
@@ -471,47 +196,91 @@ html,
   margin-left: 8px;
 }
 
-/* ----------------------------- RESPONSIVE ----------------------------- */
-@media (max-width: 768px) {
-  .main-content {
-    margin-left: 0;
-    padding: 60px 10px 10px 10px; /* Más padding top para el botón hamburguesa */
-    z-index: 1;
-  }
-
-  .logo img {
-    height: 60px;
-  }
-
-  /* Ajustar grid para móviles */
-  .content {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "stock"
-      "middle"
-      "recetas";
-    gap: 15px;
-  }
-
-  .middle-cards {
-    flex-direction: column;
-    height: auto;
-  }
-
-  .middle-cards .card {
-    min-height: 150px;
-    max-height: none;
-  }
-
-  .card.stock,
-  .card.recetas {
-    max-height: none;
-  }
+.badge.alert {
+  background-color: var(--color-danger);
 }
 
-/* ESTILOS PAGINA PRINCIPAL */
+.badge.warning {
+  background-color: var(--color-warning);
+  color: #000;
+}
 
-/* ----------------------------- CONTENIDO Y CARDS ESPECÍFICOS ----------------------------- */
+.badge.success {
+  background-color: var(--color-success);
+}
+
+/* ----------------------------- MODAL ----------------------------- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: var(--color-white);
+  padding: 20px;
+  border-radius: 10px;
+  width: 400px;
+  max-width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+.cancel-button {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cancel-button:hover {
+  background-color: #e0e0e0;
+}
+
+.confirm-button {
+  padding: 8px 16px;
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.confirm-button:hover {
+  background-color: #5a3f36;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-top: 5px;
+  font-size: 14px;
+}
+
+/* ----------------------------- CONTENIDO PAGINA PRINCIPAL ----------------------------- */
 .content {
   display: grid;
   grid-template-columns: 1fr 0.8fr 1fr;
@@ -520,32 +289,12 @@ html,
   height: 100%;
 }
 
-/* ----------------------------- STOCK (ESPECÍFICO) ----------------------------- */
+/* STOCK */
 .card.stock {
   grid-area: stock;
-  max-height: 85%;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
-  overflow: auto;
-}
-
-.stock-list {
-  overflow-y: auto;
-  flex-grow: 1;
-  list-style: none;
-  padding-left: 10px;
-  padding-right: 10px;
-}
-
-.stock-list li {
-  display: flex;
-  justify-content: space-between;
-  padding: 4px;
-}
-
-.low-stock {
-  color: red;
-  font-weight: bold;
 }
 
 .stock-header-container {
@@ -558,22 +307,41 @@ html,
   font-weight: bold;
   padding: 10px;
   border-bottom: 1px solid #ccc;
+  background-color: rgba(123, 90, 80, 0.1);
 }
 
-.stock-header select {
-  margin-left: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
+.stock-list {
+  overflow-y: auto;
+  flex-grow: 1;
+  list-style: none;
+  padding: 10px;
+  margin: 0;
 }
 
-/* ----------------------------- MIDDLE CARDS (ESPECÍFICO) ----------------------------- */
+.stock-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 4px;
+  border-bottom: 1px solid #eee;
+}
+
+.stock-list li:last-child {
+  border-bottom: none;
+}
+
+.low-stock {
+  color: var(--color-danger);
+  font-weight: bold;
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+/* MIDDLE CARDS */
 .middle-cards {
   grid-area: middle;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-height: 85%;
+  max-height: 85vh;
 }
 
 .middle-cards .card {
@@ -581,28 +349,32 @@ html,
   min-height: 200px;
   max-height: 400px;
   overflow-y: auto;
-  padding: 8px;
-  padding-top: 2px;
 }
 
-.tasks label {
-  display: block;
-  margin-bottom: 5px;
-}
-
-/* ----------------------------- RECETAS (ESPECÍFICO) ----------------------------- */
+/* RECETAS */
 .card.recetas {
   grid-area: recetas;
-  max-height: 85%;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
 }
 
-.recetas input {
-  width: 96%;
-  padding: 5px;
+.recetas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.search-input {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
   font-size: 14px;
-  margin-bottom: 10px;
+  width: 250px;
+  max-width: 100%;
 }
 
 .recetas-list {
@@ -617,54 +389,40 @@ html,
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 10px;
-  border-bottom: 1px solid #ccc;
-  gap: 10px;
-  /* ✅ Agregar espacio entre texto y contador */
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  transition: background-color 0.2s;
 }
 
-/* CONTADOR RESPONSIVE */
+.recetas-list li:hover {
+  background-color: rgba(123, 90, 80, 0.05);
+}
+
 .contador {
   display: flex;
   align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
-  /* ✅ Evitar que se encoja */
-  min-width: 90px;
-  /* ✅ Ancho mínimo para mantener la forma */
+  gap: 8px;
 }
 
 .contador button {
-  padding: 4px 8px;
-  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  background-color: var(--color-white);
+  border-radius: 4px;
   cursor: pointer;
-  border: none;
-  background-color: #7b5a50;
-  color: white;
-  border-radius: 5px;
   font-weight: bold;
-  min-width: 28px;
-  /* ✅ Ancho mínimo para botones */
-  height: 28px;
+  min-width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s;
 }
 
-.contador button:hover {
-  background-color: #5a3f36;
-}
-
-.contador span {
-  min-width: 20px;
-  text-align: center;
-  display: inline-block;
-  font-weight: bold;
-}
-
-.loading-spinner {
-  margin-left: 5px;
-  color: #7b5a50;
+.contador button:hover:not(:disabled) {
+  background-color: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
 }
 
 .contador button:disabled {
@@ -672,7 +430,13 @@ html,
   cursor: not-allowed;
 }
 
-/* ----------------------------- RESPONSIVE (ESPECÍFICO) ----------------------------- */
+.contador span {
+  min-width: 30px;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* ----------------------------- RESPONSIVE ----------------------------- */
 @media (max-width: 1158px) {
   .content {
     grid-template-columns: 1fr 1fr;
@@ -680,18 +444,6 @@ html,
       "stock stock"
       "middle recetas";
     gap: 15px;
-  }
-
-  .recetas-list li {
-    flex-direction: column;
-    /* ✅ Apilar verticalmente en pantallas medianas */
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .contador {
-    align-self: flex-end;
-    /* ✅ Alinear contador a la derecha */
   }
 }
 
@@ -703,47 +455,38 @@ html,
       "middle"
       "recetas";
   }
-
-  .recetas-list li {
-    flex-direction: row;
-    /* ✅ Volver a horizontal en móviles */
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .contador {
-    align-self: center;
-  }
-}
-
-@media (max-width: 640px) {
-  .recetas-list li {
-    flex-direction: column;
-    /* ✅ Apilar nuevamente en móviles muy pequeños */
-    align-items: flex-start;
-  }
-
-  .contador {
-    align-self: flex-start;
-    margin-top: 5px;
-  }
-
-  .contador button {
-    padding: 6px 10px;
-    /* ✅ Botones más grandes para móviles */
-    min-width: 32px;
-    height: 32px;
-  }
 }
 
 @media (max-width: 768px) {
-  .content {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "stock"
-      "middle"
-      "recetas";
-    gap: 15px;
+  .main-content {
+    margin-left: 0;
+    padding: 60px 10px 10px 10px;
+  }
+
+  .header {
+    padding: 10px 15px;
+  }
+
+  .logo img {
+    height: 60px;
+  }
+
+  .user-email {
+    display: none;
+  }
+
+  .page-title {
+    font-size: 1rem;
+    margin-left: 40px;
+  }
+
+  .recetas-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-input {
+    width: 100%;
   }
 
   .middle-cards {
@@ -756,35 +499,96 @@ html,
     max-height: none;
   }
 
-  .recetas input {
-    width: 100%;
-  }
-
   .card.stock,
   .card.recetas {
     max-height: none;
   }
 }
 
-.main-container {
-  flex: 1;
+@media (max-width: 640px) {
+  .recetas-list li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .contador {
+    align-self: flex-start;
+  }
+}
+
+/* ----------------------------- ESTILOS ESPECÍFICOS PARA COMPONENTES ----------------------------- */
+
+/* Estilos para Principal.vue */
+.task-item {
   display: flex;
-  flex-direction: column;
-  transition: margin-left 0.3s ease;
+  align-items: flex-start;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  background: #f8f9fa;
+  border-left: 4px solid #ddd;
+  transition: all 0.3s ease;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .main-container {
-    margin-left: 0;
-  }
+.task-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-@media (max-width: 768px) {
-  .page-title {
-    font-size: 1rem;
-    margin-left: 40px;
-  }
+.task-checkbox {
+  margin-right: 12px;
+  margin-top: 2px;
 }
 
-/* Apartir de aca son los estilos generados por ia, los estilos mas importantes son todos los que estan arriba, si hay que borrar alguno que sean los de abajo. */
+.task-content {
+  flex: 1;
+}
+
+/* Estilos para Recetas.vue */
+.recetas-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.botones-acciones {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-nuevo-pedido {
+  background-color: #b8e6b8;
+  color: #2b5d2b;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background-color 0.2s;
+}
+
+.btn-nuevo-pedido:hover {
+  background-color: #a1dca1;
+}
+
+.filtros-derecha {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.filtro-input {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+/* Eliminar estilos duplicados y conflictivos que estaban al final del archivo */
