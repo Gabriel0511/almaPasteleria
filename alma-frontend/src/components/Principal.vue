@@ -80,7 +80,7 @@
                       </span>
                     </div>
 
-                    <div v-if="task.estado === 'listo'" class="alert-preparacion">
+                    <div v-if="task.estado === 'en preparación'" class="alert-preparacion">
                       ⚠️ Listo para entregar
                     </div>
                     <div v-if="task.estado === 'entregado'" class="entregado-info">
@@ -109,7 +109,7 @@
 
                 <div v-for="task in hacerHoyOrdenados" :key="task.id" class="task-item" :class="task.estado">
                   <label class="task-checkbox">
-                    <input type="checkbox" :checked="task.estado === 'listo'" :disabled="task.estado === 'listo' ||
+                    <input type="checkbox" :checked="task.estado === 'en preparación'" :disabled="task.estado === 'en preparación' ||
                       task.estado === 'entregado'
                       " @change="confirmarPreparacion(task)" />
                     <span class="checkmark"></span>
@@ -142,8 +142,8 @@
                       {{ getDiasRestantes(task.fecha_entrega) }}
                     </div>
 
-                    <div v-if="task.estado === 'listo'" class="preparacion-info">
-                      👨‍🍳 Listo
+                    <div v-if="task.estado === 'en preparación'" class="preparacion-info">
+                      👨‍🍳 En preparación
                     </div>
                   </div>
                 </div>
@@ -279,7 +279,7 @@ const modalConfirmIcon = computed(() => {
 const modalConfirmText = computed(() => {
   return modalType.value === 'entrega'
     ? 'Sí, Entregar'
-    : 'Sí, Iniciar Preparación';
+    : 'Sí, terminar pedido';
 });
 
 // Método para confirmar entrega
@@ -302,8 +302,8 @@ const confirmarPreparacion = (task) => {
 
   currentTask.value = task;
   modalType.value = 'preparacion';
-  modalTitle.value = 'Iniciar Preparación';
-  modalMessage.value = `¿Estás seguro que quieres INICIAR LA PREPARACIÓN del pedido?`;
+  modalTitle.value = 'Terminar pedido';
+  modalMessage.value = `¿Estás seguro que quieres terminar el pedido?`;
   modalDetails.value = `Cliente: ${task.nombre}\nFecha de entrega: ${formatDate(task.fecha_entrega)}`;
   modalAction.value = () => empezarPreparacion(task);
 
@@ -1332,5 +1332,64 @@ onMounted(() => {
     transform: translateY(0) scale(1);
   }
 }
+/* -------------------- CARDS CON HEADER FIJO MEJORADO -------------------- */
+.card.entregar-hoy,
+.card.hacer-hoy {
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
 
+.entregar-hoy-header-container,
+.hacer-hoy-header-container {
+  flex-shrink: 0;
+  background: var(--color-background);
+  border-radius: 10px 10px 0 0;
+}
+
+.entregar-hoy-list,
+.hacer-hoy-list {
+  overflow-y: auto;
+  flex-grow: 1;
+  padding: 10px;
+  margin: 0;
+}
+
+/* Header fijo para todas las cards */
+.card-header.sticky-header {
+  position: sticky;
+  top: 0;
+  background: var(--color-background);
+  z-index: 10;
+  padding: 15px 8px;
+  margin: -8px -8px 15px -8px;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  border-bottom: 2px solid #e9ecef;
+}
+
+/* Estilos específicos para las cards de tareas */
+.card.entregar-hoy {
+  border-top: 3px solid #27ae60;
+}
+
+.card.hacer-hoy {
+  border-top: 3px solid #f39c12;
+}
+
+/* Asegurar que el contenido de las tareas se vea bien */
+.entregar-hoy-list,
+.hacer-hoy-list {
+  padding: 0 8px 8px 8px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #7f8c8d;
+  font-style: italic;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
 </style>
