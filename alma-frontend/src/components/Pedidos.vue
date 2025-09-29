@@ -40,12 +40,6 @@
                 class="filtro-input"
               />
             </div>
-
-            <div class="botones-acciones">
-              <button class="btn-nuevo-pedido" @click="showNuevoPedidoModal">
-                <i class="fas fa-plus"></i> Nuevo Pedido
-              </button>
-            </div>
           </div>
         </section>
 
@@ -297,6 +291,11 @@
             </div>
           </div>
         </div>
+        <!-- Botón Nuevo Pedido flotante -->
+        <button class="btn-nuevo-pedido-flotante" @click="showNuevoPedidoModal">
+          <i class="fas fa-plus"></i>
+          <span>Nuevo Pedido</span>
+        </button>
       </main>
     </div>
 
@@ -2346,12 +2345,6 @@ onMounted(() => {
 }
 
 /* ----------------------------- BOTONES GENERALES ----------------------------- */
-.botones-acciones {
-  display: flex;
-  gap: 10px;
-}
-
-.btn-nuevo-pedido,
 .btn-agregar-receta,
 .btn-agregar-ingrediente {
   background: linear-gradient(135deg, var(--color-success), #218838);
@@ -2511,6 +2504,33 @@ onMounted(() => {
   color: var(--color-primary);
   width: 16px;
   text-align: center;
+}
+
+/* ----------------------------- BOTÓN FLOTANTE NUEVA RECETA ----------------------------- */
+.btn-nuevo-pedido-flotante {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 16px 24px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 20px rgba(123, 90, 80, 0.3);
+  z-index: 100;
+  font-size: 1rem;
+}
+
+.btn-nuevo-pedido-flotante:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(123, 90, 80, 0.4);
+  background: linear-gradient(135deg, #9c7a6d, var(--color-primary));
 }
 
 /* ----------------------------- BOTONES DE ACCIÓN ----------------------------- */
