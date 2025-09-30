@@ -96,7 +96,7 @@
               <div class="hacer-hoy-header-container">
                 <div class="card-header sticky-header">
                   <h3 class="card-title">👨‍🍳 Hacer Hoy (Próximos 3 días)</h3>
-                  <span class="badge" :class="hacerHoyOrdenados.length > 0 ? 'warning' : 'success'">
+                  <span class="badge" :class="hacerHoyOrdenados.length > 0 ? 'alert' : 'success'">
                     {{ hacerHoyOrdenados.length }}
                   </span>
                 </div>
@@ -109,9 +109,9 @@
 
                 <div v-for="task in hacerHoyOrdenados" :key="task.id" class="task-item" :class="task.estado">
                   <label class="task-checkbox">
-                    <input type="checkbox" :checked="task.estado === 'listo'" :disabled="task.estado === 'listo' ||
-                      task.estado === 'entregado'
-                      " @change="confirmarPreparacion(task)" />
+                    <input type="checkbox" :checked="task.estado === 'listo'" 
+                           :disabled="task.estado === 'listo' || task.estado === 'entregado'"
+                           @change="confirmarPreparacion(task)" />
                     <span class="checkmark"></span>
                   </label>
 
@@ -174,9 +174,7 @@
                   <button @click="decrementarContador(receta)" :disabled="!receta.veces_hecha" class="btn-contador">
                     -
                   </button>
-                  <span class="contador-value">{{
-                    receta.veces_hecha || 0
-                  }}</span>
+                  <span class="contador-value">{{ receta.veces_hecha || 0 }}</span>
                   <button @click="incrementarContador(receta)" class="btn-contador">
                     +
                   </button>
@@ -510,10 +508,16 @@ const isAtrasado = (fechaEntrega) => {
   return entrega < hoy && !isHoy(fechaEntrega);
 };
 
-// Método específico para entregar
+// Método específico para entregar - CORREGIDO
 const marcarComoEntregado = async (task) => {
   try {
     await actualizarEstadoPedido(task.id, "entregado", "entregarHoy");
+    
+    // ✅ Actualizar estado localmente SIN recargar
+    const index = entregarHoy.value.findIndex(p => p.id === task.id);
+    if (index !== -1) {
+      entregarHoy.value[index].estado = "entregado";
+    }
 
     notificationSystem.show({
       type: "success",
@@ -522,19 +526,24 @@ const marcarComoEntregado = async (task) => {
       timeout: 3000,
     });
 
-    // Recargar datos después de un breve delay
-    setTimeout(() => {
-      fetchPedidos();
-    }, 1000);
+    // ❌ ELIMINADO: No recargar los pedidos
+    // setTimeout(() => { fetchPedidos(); }, 1000);
+    
   } catch (error) {
     console.error("Error al marcar como entregado:", error);
   }
 };
 
-// Método específico para empezar preparación
+// Método específico para empezar preparación - CORREGIDO
 const empezarPreparacion = async (task) => {
   try {
     await actualizarEstadoPedido(task.id, "listo", "hacerHoy");
+    
+    // ✅ Actualizar estado localmente SIN recargar
+    const index = hacerHoy.value.findIndex(p => p.id === task.id);
+    if (index !== -1) {
+      hacerHoy.value[index].estado = "listo";
+    }
 
     notificationSystem.show({
       type: "info",
@@ -543,10 +552,9 @@ const empezarPreparacion = async (task) => {
       timeout: 3000,
     });
 
-    // Recargar para que posiblemente se mueva a "Entregar Hoy"
-    setTimeout(() => {
-      fetchPedidos();
-    }, 1000);
+    // ❌ ELIMINADO: No recargar los pedidos
+    // setTimeout(() => { fetchPedidos(); }, 1000);
+    
   } catch (error) {
     console.error("Error al terminar pedido:", error);
   }
@@ -603,11 +611,11 @@ const actualizarEstadoPedido = async (pedidoId, nuevoEstado, lista) => {
   }
 };
 
-// Helper methods para pedidos
+// Helper methods para pedidos - CORREGIDO
 const getEstadoText = (estado) => {
   const estados = {
     pendiente: "Pendiente",
-    "listo": "Listo",
+    listo: "Listo",
     entregado: "Entregado",
   };
   return estados[estado] || estado;
@@ -819,8 +827,8 @@ onMounted(() => {
   background: #fff5f5;
 }
 
-.task-item.en.preparación {
-  border-left-color: #f39c12;
+.task-item.listo {
+  border-left-color: #27ae60;
   background: #fffaf0;
 }
 
@@ -859,8 +867,8 @@ onMounted(() => {
   color: white;
 }
 
-.estado-badge.en.preparación {
-  background: #f39c12;
+.estado-badge.listo {
+  background: #27ae60;
   color: white;
 }
 
@@ -1049,13 +1057,48 @@ onMounted(() => {
   border-radius: 4px;
 }
 
-/* -------------------- CARDS ESPECÍFICAS PARA PEDIDOS -------------------- */
-.card.entregar-hoy {
-  border-top: 3px solid #27ae60;
+
+
+/* -------------------- CARDS CON HEADER FIJO MEJORADO -------------------- */
+.card.entregar-hoy,
+.card.hacer-hoy {
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
 }
 
-.card.hacer-hoy {
-  border-top: 3px solid #f39c12;
+.entregar-hoy-header-container,
+.hacer-hoy-header-container {
+  flex-shrink: 0;
+  background: var(--color-background);
+  border-radius: 10px 10px 0 0;
+}
+
+.entregar-hoy-list,
+.hacer-hoy-list {
+  overflow-y: auto;
+  flex-grow: 1;
+  padding: 10px;
+  margin: 0;
+}
+
+/* Header fijo para todas las cards */
+.card-header.sticky-header {
+  position: sticky;
+  top: 0;
+  background: var(--color-background);
+  z-index: 10;
+  padding: 15px 8px;
+  margin: -8px -8px 15px -8px;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  border-bottom: 2px solid #e9ecef;
+}
+
+/* Asegurar que el contenido de las tareas se vea bien */
+.entregar-hoy-list,
+.hacer-hoy-list {
+  padding: 0 8px 8px 8px;
 }
 
 /* -------------------- RESPONSIVE ESPECÍFICO -------------------- */
@@ -1331,65 +1374,5 @@ onMounted(() => {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
-}
-/* -------------------- CARDS CON HEADER FIJO MEJORADO -------------------- */
-.card.entregar-hoy,
-.card.hacer-hoy {
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.entregar-hoy-header-container,
-.hacer-hoy-header-container {
-  flex-shrink: 0;
-  background: var(--color-background);
-  border-radius: 10px 10px 0 0;
-}
-
-.entregar-hoy-list,
-.hacer-hoy-list {
-  overflow-y: auto;
-  flex-grow: 1;
-  padding: 10px;
-  margin: 0;
-}
-
-/* Header fijo para todas las cards */
-.card-header.sticky-header {
-  position: sticky;
-  top: 0;
-  background: var(--color-background);
-  z-index: 10;
-  padding: 15px 8px;
-  margin: -8px -8px 15px -8px;
-  border-radius: 10px 10px 0 0;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  border-bottom: 2px solid #e9ecef;
-}
-
-/* Estilos específicos para las cards de tareas */
-.card.entregar-hoy {
-  border-top: 3px solid #27ae60;
-}
-
-.card.hacer-hoy {
-  border-top: 3px solid #f39c12;
-}
-
-/* Asegurar que el contenido de las tareas se vea bien */
-.entregar-hoy-list,
-.hacer-hoy-list {
-  padding: 0 8px 8px 8px;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 2rem;
-  color: #7f8c8d;
-  font-style: italic;
-  background: #f8f9fa;
-  border-radius: 8px;
-  margin: 1rem 0;
 }
 </style>
