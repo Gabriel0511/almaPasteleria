@@ -31,7 +31,7 @@ class RecetaInsumoSerializer(serializers.ModelSerializer):
         fields = ['id', 'insumo', 'cantidad', 'unidad_medida']
 
 class RecetaSerializer(serializers.ModelSerializer):
-    insumos = RecetaInsumoSerializer(many=True, read_only=True, source='recetainsumo_set')
+    insumos = RecetaInsumoSerializer(many=True, read_only=True)
     
     class Meta:
         model = Receta

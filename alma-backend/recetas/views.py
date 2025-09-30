@@ -18,7 +18,13 @@ class RecetaListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         print("Datos recibidos:", self.request.data)
-        serializer.save()
+        instance = serializer.save()
+        # Forzar recálculo después de crear
+        instance.actualizar_costos()
+        instance.refresh_from_db()
+    
+    def get_queryset(self):
+        return Receta.objects.prefetch_related('insumos__insumo', 'insumos__unidad_medida').order_by('-creado_en')
 
 
 class RecetaRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
