@@ -50,7 +50,7 @@
                       <div class="receta-titulo">
                         <span class="receta-nombre">{{ receta.nombre }}</span>
                         <span class="receta-badge"
-                          >{{ receta.insumos.length }} insumos</span
+                          >{{ (receta.insumos || []).length }} insumos</span
                         >
                       </div>
                       <div class="receta-datos-compact">
@@ -213,7 +213,7 @@
                       <div class="insumos-header">
                         <h4>
                           <i class="fas fa-list"></i> Lista de Insumos ({{
-                            receta.insumos.length
+                            (receta.insumos || []).length
                           }})
                         </h4>
                         <button
@@ -227,7 +227,7 @@
 
                       <div class="insumos-list">
                         <div
-                          v-for="insumo in receta.insumos"
+                          v-for="insumo in receta.insumos || []"
                           :key="insumo.id"
                           class="insumo-item"
                         >
@@ -255,7 +255,7 @@
                           </div>
                         </div>
                         <div
-                          v-if="receta.insumos.length === 0"
+                          v-if="(receta.insumos || []).length === 0"
                           class="sin-insumos"
                         >
                           <i class="fas fa-info-circle"></i>
@@ -781,7 +781,14 @@ const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => {
 };
 
 const calcularCostoInsumo = (insumoReceta) => {
-  if (!insumoReceta.insumo.precio_unitario) return 0;
+  // Validar que el objeto insumoReceta y sus propiedades existan
+  if (
+    !insumoReceta ||
+    !insumoReceta.insumo ||
+    !insumoReceta.insumo.precio_unitario
+  ) {
+    return 0;
+  }
 
   try {
     const precioUnitario = parseFloat(
@@ -791,7 +798,11 @@ const calcularCostoInsumo = (insumoReceta) => {
       insumoReceta.cantidad.toString().replace(",", ".")
     );
 
-    // Obtener unidades
+    // Si no hay información de unidades, cálculo directo
+    if (!insumoReceta.insumo.unidad_medida || !insumoReceta.unidad_medida) {
+      return precioUnitario * cantidad;
+    }
+
     const unidadInsumo =
       insumoReceta.insumo.unidad_medida.abreviatura.toLowerCase();
     const unidadReceta = insumoReceta.unidad_medida.abreviatura.toLowerCase();
@@ -801,7 +812,7 @@ const calcularCostoInsumo = (insumoReceta) => {
       return precioUnitario * cantidad;
     }
 
-    // Convertir a la unidad del insumo para cálculo correcto
+    // Convertir a la unidad del insumo
     const cantidadConvertida = convertirUnidad(
       cantidad,
       unidadReceta,
@@ -811,13 +822,17 @@ const calcularCostoInsumo = (insumoReceta) => {
     const costo = precioUnitario * cantidadConvertida;
     return isNaN(costo) ? 0 : costo;
   } catch (error) {
-    console.error("Error al calcular costo del insumo:", error);
+    console.error("Error al calcular costo del insumo:", error, insumoReceta);
     return 0;
   }
 };
 
 const resetFilters = () => {
   searchTerm.value = "";
+};
+
+const getInsumosSeguros = (receta) => {
+  return receta?.insumos || [];
 };
 
 const showNuevaRecetaModal = () => {
@@ -1439,7 +1454,39 @@ const fetchRecetas = async () => {
   try {
     loading.value = true;
     const response = await axios.get("/api/recetas/");
-    recetas.value = response.data;
+
+    // Asegurarse de que cada receta tenga un array de insumos
+    recetas.value = response.data.map((receta) => {
+      // Si insumos es undefined, inicializarlo como array vacío
+      if (!receta.insumos) {
+        receta.insumos = [];
+      }
+
+      // Recalcular costos para cada receta
+      if (receta.insumos && receta.insumos.length > 0) {
+        let costoTotalRecalculado = 0;
+        receta.insumos.forEach((insumo) => {
+          costoTotalRecalculado += calcularCostoInsumo(insumo);
+        });
+
+        // Actualizar con el costo recalculado
+        return {
+          ...receta,
+          costo_total: costoTotalRecalculado,
+          costo_unitario:
+            receta.rinde > 0 ? costoTotalRecalculado / receta.rinde : 0,
+        };
+      }
+
+      // Si no hay insumos, asegurar que los costos sean 0
+      return {
+        ...receta,
+        insumos: receta.insumos || [], // Asegurar que siempre sea un array
+        costo_total: receta.costo_total || 0,
+        costo_unitario: receta.costo_unitario || 0,
+      };
+    });
+
     loading.value = false;
   } catch (err) {
     console.error("Error en fetchRecetas:", err);
