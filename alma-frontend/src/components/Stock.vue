@@ -313,7 +313,7 @@
               >
                 <option value="">Seleccione una unidad</option>
                 <option
-                  v-for="unidad in unidadesMedida"
+                  v-for="unidad in unidadesPermitidas"
                   :key="unidad.id"
                   :value="unidad.id"
                 >
@@ -788,6 +788,25 @@ const stockFiltrado = computed(() => {
     if (!a.bajoStock && b.bajoStock) return 1;
     return 0;
   });
+});
+
+// Agrega esta computed property que solo permite kg, litros y unidades
+const unidadesPermitidas = computed(() => {
+  const abreviaturasPermitidas = ["kg", "l", "L", "lt", "un", "ud", "u"];
+  const nombresPermitidos = [
+    "kilogramo",
+    "kilogramos",
+    "litro",
+    "litros",
+    "unidad",
+    "unidades",
+  ];
+
+  return unidadesMedida.value.filter(
+    (unidad) =>
+      abreviaturasPermitidas.includes(unidad.abreviatura.toLowerCase()) ||
+      nombresPermitidos.includes(unidad.nombre.toLowerCase())
+  );
 });
 
 // 🔍 MÉTODO PARA FILTRAR INSUMOS EN MODAL DE COMPRA
