@@ -394,12 +394,11 @@
         <div class="form-grid">
           <!-- 🔍 NUEVO CAMPO DE BÚSQUEDA -->
           <div class="form-group full-width">
-            <label>🔍 Buscar Insumo:</label>
             <input
               v-model="busquedaInsumo"
               type="text"
               placeholder="Escribe el nombre del insumo..."
-              class="form-input"
+              class="form-input search-input"
               @input="filtrarInsumos"
             />
           </div>
@@ -1485,7 +1484,6 @@ onMounted(() => {
   });
 });
 </script>
-
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
 
@@ -1997,6 +1995,58 @@ onMounted(() => {
   font-size: 1.1rem;
 }
 
+/* ----------------------------- MODALES Y FORMULARIOS ----------------------------- */
+/* Campo de búsqueda que ocupa todo el ancho */
+.full-width {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.full-width .form-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Estilo específico para el campo de búsqueda con lupa */
+.form-input.search-input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 12px center;
+  background-size: 16px;
+  padding-left: 40px;
+  width: 100%;
+}
+
+.search-info {
+  margin-top: 5px;
+  color: #6c757d;
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+/* Mejorar la apariencia del select más grande */
+.form-input[size] {
+  min-height: 120px;
+  width: 100%;
+}
+
+/* Asegurar que los formularios en modales usen una sola columna */
+.modal-content .form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+}
+
+.modal-content .form-group {
+  width: 100%;
+}
+
+.modal-content .form-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 /* ----------------------------- RESPONSIVE ----------------------------- */
 @media (max-width: 768px) {
   .stock-header-content {
@@ -2044,31 +2094,5 @@ onMounted(() => {
   .insumo-nombre {
     font-size: 1.1rem;
   }
-}
-
-/* Estilos para el campo de búsqueda */
-.full-width {
-  grid-column: 1 / -1;
-}
-
-.search-info {
-  margin-top: 5px;
-  color: #6c757d;
-  font-size: 0.8rem;
-  text-align: right;
-}
-
-/* Mejorar la apariencia del select más grande */
-.form-input[size] {
-  min-height: 120px;
-}
-
-/* Estilo para el campo de búsqueda */
-.form-input[type="text"] {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: 12px center;
-  background-size: 16px;
-  padding-left: 40px;
 }
 </style>
