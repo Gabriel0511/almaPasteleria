@@ -313,7 +313,7 @@
               >
                 <option value="">Seleccione una unidad</option>
                 <option
-                  v-for="unidad in unidadesPermitidas"
+                  v-for="unidad in unidadesMedida"
                   :key="unidad.id"
                   :value="unidad.id"
                 >
@@ -392,6 +392,18 @@
         <h3>Nueva Compra</h3>
 
         <div class="form-grid">
+          <!-- 🔍 NUEVO CAMPO DE BÚSQUEDA -->
+          <div class="form-group full-width">
+            <label>🔍 Buscar Insumo:</label>
+            <input
+              v-model="busquedaInsumo"
+              type="text"
+              placeholder="Escribe el nombre del insumo..."
+              class="form-input"
+              @input="filtrarInsumos"
+            />
+          </div>
+
           <div class="form-group">
             <label>Insumo:</label>
             <select
@@ -399,10 +411,11 @@
               required
               class="form-input"
               @change="actualizarUnidadMedida"
+              size="6"
             >
               <option value="">Seleccione un insumo</option>
               <option
-                v-for="insumo in insumos"
+                v-for="insumo in insumosFiltrados"
                 :key="insumo.id"
                 :value="insumo.id"
               >
@@ -411,6 +424,12 @@
                 {{ insumo.unidad_medida.abreviatura }})
               </option>
             </select>
+            <div class="search-info" v-if="busquedaInsumo">
+              <small>
+                Mostrando {{ insumosFiltrados.length }} de
+                {{ insumos.length }} insumos
+              </small>
+            </div>
           </div>
 
           <div class="form-group">
@@ -676,6 +695,10 @@ const searchTerm = ref("");
 const loading = ref(true);
 const stockDesplegado = ref({});
 
+// 🔍 NUEVAS VARIABLES PARA BÚSQUEDA EN MODAL DE COMPRA
+const busquedaInsumo = ref("");
+const insumosFiltrados = ref([]);
+
 // Modales
 const showModalInsumo = ref(false);
 const showModalCompra = ref(false);
@@ -767,24 +790,18 @@ const stockFiltrado = computed(() => {
   });
 });
 
-// Agrega esta computed property que solo permite kg, litros y unidades
-const unidadesPermitidas = computed(() => {
-  const abreviaturasPermitidas = ["kg", "l", "L", "lt", "un", "ud", "u"];
-  const nombresPermitidos = [
-    "kilogramo",
-    "kilogramos",
-    "litro",
-    "litros",
-    "unidad",
-    "unidades",
-  ];
+// 🔍 MÉTODO PARA FILTRAR INSUMOS EN MODAL DE COMPRA
+const filtrarInsumos = () => {
+  if (!busquedaInsumo.value) {
+    insumosFiltrados.value = insumos.value;
+    return;
+  }
 
-  return unidadesMedida.value.filter(
-    (unidad) =>
-      abreviaturasPermitidas.includes(unidad.abreviatura.toLowerCase()) ||
-      nombresPermitidos.includes(unidad.nombre.toLowerCase())
+  const termino = busquedaInsumo.value.toLowerCase().trim();
+  insumosFiltrados.value = insumos.value.filter((insumo) =>
+    insumo.nombre.toLowerCase().includes(termino)
   );
-});
+};
 
 // Métodos
 const handleNavigation = (route) => {
@@ -1315,6 +1332,8 @@ const resetFormCompra = () => {
     proveedor_id: "",
   };
   unidadCompra.value = "";
+  busquedaInsumo.value = ""; // 🔍 Resetear la búsqueda
+  insumosFiltrados.value = insumos.value; // 🔍 Resetear la lista filtrada
 };
 
 const resetFormProveedor = () => {
@@ -1374,6 +1393,8 @@ const fetchInsumos = async () => {
   try {
     const response = await axios.get("/api/insumos/");
     insumos.value = response.data.insumos;
+    // 🔍 INICIALIZAR LA LISTA FILTRADA
+    insumosFiltrados.value = response.data.insumos;
   } catch (err) {
     console.error("Error en fetchInsumos:", err);
   }
@@ -1411,6 +1432,15 @@ watch(() => formCompra.value.insumo_id, actualizarUnidadMedida);
 watch(
   () => [formCompra.value.cantidad, formCompra.value.precio_total],
   calcularPrecioUnitario
+);
+
+// 🔍 WATCHER PARA INICIALIZAR LISTA FILTRADA CUANDO SE ACTUALIZAN LOS INSUMOS
+watch(
+  () => insumos.value,
+  () => {
+    insumosFiltrados.value = insumos.value;
+  },
+  { immediate: true }
 );
 
 // Cargar datos al montar el componente
@@ -1995,5 +2025,31 @@ onMounted(() => {
   .insumo-nombre {
     font-size: 1.1rem;
   }
+}
+
+/* Estilos para el campo de búsqueda */
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.search-info {
+  margin-top: 5px;
+  color: #6c757d;
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+/* Mejorar la apariencia del select más grande */
+.form-input[size] {
+  min-height: 120px;
+}
+
+/* Estilo para el campo de búsqueda */
+.form-input[type="text"] {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 12px center;
+  background-size: 16px;
+  padding-left: 40px;
 }
 </style>

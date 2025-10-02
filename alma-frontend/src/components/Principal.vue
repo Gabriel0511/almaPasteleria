@@ -429,17 +429,6 @@ const incrementarContador = async (receta) => {
     const response = await axios.post(`/api/recetas/${receta.id}/incrementar/`);
 
     if (response.data.error) {
-      let mensajeError = response.data.error;
-      if (
-        response.data.insuficientes &&
-        response.data.insuficientes.length > 0
-      ) {
-        mensajeError += "\n\nInsumos insuficientes:";
-        response.data.insuficientes.forEach((ins) => {
-          mensajeError += `\n- ${ins.nombre}: Necesita ${ins.necesario} ${ins.unidad}, tiene ${ins.disponible} ${ins.unidad}`;
-        });
-      }
-
       notificationSystem.show({
         type: "error",
         title: `Stock insuficiente para ${
@@ -471,10 +460,15 @@ const incrementarContador = async (receta) => {
     let mensajeError = "Error al incrementar receta";
     if (err.response?.data) {
       if (err.response.data.insuficientes) {
-        mensajeError = `Stock insuficiente para preparar "${receta.nombre}":\n`;
-        err.response.data.insuficientes.forEach((ins) => {
-          mensajeError += `\n- ${ins.nombre}: Necesita ${ins.necesario} ${ins.unidad}, tiene ${ins.disponible} ${ins.unidad}`;
+        // Usar el mismo formato para errores de catch
+        notificationSystem.show({
+          type: "error",
+          title: `❌ Stock insuficiente - ${receta.nombre}`,
+          message: err.response.data.error || "No hay suficiente stock",
+          insuficientes: err.response.data.insuficientes,
+          timeout: 15000,
         });
+        return;
       } else if (err.response.data.error) {
         mensajeError = err.response.data.error;
       }
@@ -813,10 +807,22 @@ const fetchPedidos = async () => {
 // ----------------------
 // 🔹 Utilidades
 // ----------------------
-const formatDate = (dateString) => {
-  if (!dateString) return "";
-  const options = { day: "2-digit", month: "2-digit", year: "numeric" };
-  return new Date(dateString).toLocaleDateString(undefined, options);
+const formatFecha = (fecha) => {
+  if (!fecha) return "";
+
+  // Crear fecha en la zona horaria local
+  const fechaLocal = new Date(fecha);
+
+  // Ajustar para compensar el offset de zona horaria
+  const fechaAjustada = new Date(
+    fechaLocal.getTime() + fechaLocal.getTimezoneOffset() * 60000
+  );
+
+  return fechaAjustada.toLocaleDateString("es-AR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
 };
 
 // ----------------------
