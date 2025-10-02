@@ -250,8 +250,20 @@
                               v-if="insumo.insumo.precio_unitario != null"
                             >
                               ${{ formatDecimal(calcularCostoInsumo(insumo)) }}
+                              <small style="font-size: 0.7rem; opacity: 0.7">
+                                (${{
+                                  formatDecimal(insumo.insumo.precio_unitario)
+                                }}/{{
+                                  insumo.insumo.unidad_medida.abreviatura
+                                }})
+                              </small>
                             </span>
-                            <span class="insumo-costo" v-else> - </span>
+                            <span class="insumo-costo" v-else>
+                              Sin precio
+                              <small style="font-size: 0.7rem; opacity: 0.7">
+                                (Precio unitario no definido)
+                              </small>
+                            </span>
                           </div>
                         </div>
                         <div
@@ -781,12 +793,19 @@ const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => {
 };
 
 const calcularCostoInsumo = (insumoReceta) => {
+  console.log("🔍 Calculando costo para insumo:", insumoReceta);
+
   // Validar que el objeto insumoReceta y sus propiedades existan
   if (
     !insumoReceta ||
     !insumoReceta.insumo ||
-    !insumoReceta.insumo.precio_unitario
+    insumoReceta.insumo.precio_unitario === null ||
+    insumoReceta.insumo.precio_unitario === undefined
   ) {
+    console.log(
+      "❌ Datos insuficientes para calcular costo - precio_unitario:",
+      insumoReceta?.insumo?.precio_unitario
+    );
     return 0;
   }
 
@@ -798,18 +817,28 @@ const calcularCostoInsumo = (insumoReceta) => {
       insumoReceta.cantidad.toString().replace(",", ".")
     );
 
+    console.log(
+      `💰 Datos cálculo: precio=${precioUnitario}, cantidad=${cantidad}`
+    );
+
     // Si no hay información de unidades, cálculo directo
     if (!insumoReceta.insumo.unidad_medida || !insumoReceta.unidad_medida) {
-      return precioUnitario * cantidad;
+      const costoDirecto = precioUnitario * cantidad;
+      console.log(`📊 Cálculo directo: ${costoDirecto}`);
+      return costoDirecto;
     }
 
     const unidadInsumo =
       insumoReceta.insumo.unidad_medida.abreviatura.toLowerCase();
     const unidadReceta = insumoReceta.unidad_medida.abreviatura.toLowerCase();
 
+    console.log(`📏 Unidades: insumo=${unidadInsumo}, receta=${unidadReceta}`);
+
     // Si las unidades son iguales, cálculo directo
     if (unidadInsumo === unidadReceta) {
-      return precioUnitario * cantidad;
+      const costoDirecto = precioUnitario * cantidad;
+      console.log(`📊 Cálculo mismo unidad: ${costoDirecto}`);
+      return costoDirecto;
     }
 
     // Convertir a la unidad del insumo
@@ -819,10 +848,20 @@ const calcularCostoInsumo = (insumoReceta) => {
       unidadInsumo
     );
 
+    console.log(
+      `🔄 Cantidad convertida: ${cantidad} ${unidadReceta} → ${cantidadConvertida} ${unidadInsumo}`
+    );
+
     const costo = precioUnitario * cantidadConvertida;
+    console.log(`📊 Costo final: ${costo}`);
+
     return isNaN(costo) ? 0 : costo;
   } catch (error) {
-    console.error("Error al calcular costo del insumo:", error, insumoReceta);
+    console.error(
+      "❌ Error al calcular costo del insumo:",
+      error,
+      insumoReceta
+    );
     return 0;
   }
 };
@@ -1455,35 +1494,28 @@ const fetchRecetas = async () => {
     loading.value = true;
     const response = await axios.get("/api/recetas/");
 
-    // Asegurarse de que cada receta tenga un array de insumos
+    console.log("📦 Datos recibidos del backend:", response.data);
+
+    // SOLO usar los costos que vienen del backend, NO recalcular en frontend
     recetas.value = response.data.map((receta) => {
+      console.log(`🔍 Receta "${receta.nombre}":`, {
+        costo_total_backend: receta.costo_total,
+        precio_venta: receta.precio_venta,
+        insumos_count: receta.insumos?.length || 0,
+        rentable: receta.precio_venta > receta.costo_total,
+      });
+
       // Si insumos es undefined, inicializarlo como array vacío
       if (!receta.insumos) {
         receta.insumos = [];
       }
 
-      // Recalcular costos para cada receta
-      if (receta.insumos && receta.insumos.length > 0) {
-        let costoTotalRecalculado = 0;
-        receta.insumos.forEach((insumo) => {
-          costoTotalRecalculado += calcularCostoInsumo(insumo);
-        });
-
-        // Actualizar con el costo recalculado
-        return {
-          ...receta,
-          costo_total: costoTotalRecalculado,
-          costo_unitario:
-            receta.rinde > 0 ? costoTotalRecalculado / receta.rinde : 0,
-        };
-      }
-
-      // Si no hay insumos, asegurar que los costos sean 0
+      // ⚠️ IMPORTANTE: Usar SOLO los costos del backend
       return {
         ...receta,
-        insumos: receta.insumos || [], // Asegurar que siempre sea un array
-        costo_total: receta.costo_total || 0,
-        costo_unitario: receta.costo_unitario || 0,
+        insumos: receta.insumos || [],
+        costo_total: parseFloat(receta.costo_total) || 0,
+        costo_unitario: parseFloat(receta.costo_unitario) || 0,
       };
     });
 

@@ -12,7 +12,7 @@ class InsumoSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Insumo
-        fields = ['id', 'nombre', 'unidad_medida', 'stock_actual']
+        fields = ['id', 'nombre', 'unidad_medida', 'stock_actual', 'precio_unitario']
 
 class DecimalConComaField(serializers.DecimalField):
     def to_representation(self, value):
