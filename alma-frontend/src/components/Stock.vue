@@ -83,9 +83,7 @@
                         </div>
                         <div class="dato-grupo">
                           <i class="fas fa-truck"></i>
-                          <span class="stock-proveedor">{{
-                            item.proveedor
-                          }}</span>
+                          <span class="stock-proveedor">{{ item.proveedor }}</span>
                         </div>
                       </div>
                     </div>
@@ -95,20 +93,15 @@
                         class="stock-estado-badge"
                         :class="{
                           critico: item.cantidad <= item.stock_minimo * 0.5,
-                          bajo:
-                            item.bajoStock &&
-                            item.cantidad > item.stock_minimo * 0.5,
+                          bajo: item.bajoStock && item.cantidad > item.stock_minimo * 0.5,
                           normal: !item.bajoStock,
                         }"
                       >
                         <i
                           class="fas"
                           :class="{
-                            'fa-exclamation-triangle':
-                              item.cantidad <= item.stock_minimo * 0.5,
-                            'fa-exclamation-circle':
-                              item.bajoStock &&
-                              item.cantidad > item.stock_minimo * 0.5,
+                            'fa-exclamation-triangle': item.cantidad <= item.stock_minimo * 0.5,
+                            'fa-exclamation-circle': item.bajoStock && item.cantidad > item.stock_minimo * 0.5,
                             'fa-check-circle': !item.bajoStock,
                           }"
                         ></i>
@@ -139,19 +132,11 @@
                         <button
                           class="btn-accion btn-desplegable"
                           @click.stop="toggleStock(item.id)"
-                          :title="
-                            stockDesplegado[item.id]
-                              ? 'Ocultar detalles'
-                              : 'Mostrar detalles'
-                          "
+                          :title="stockDesplegado[item.id] ? 'Ocultar detalles' : 'Mostrar detalles'"
                         >
                           <i
                             class="fas"
-                            :class="
-                              stockDesplegado[item.id]
-                                ? 'fa-chevron-up'
-                                : 'fa-chevron-down'
-                            "
+                            :class="stockDesplegado[item.id] ? 'fa-chevron-up' : 'fa-chevron-down'"
                           ></i>
                         </button>
                       </div>
@@ -160,10 +145,7 @@
                 </div>
 
                 <!-- Desplegable que aparece en la parte inferior del stock-item -->
-                <div
-                  v-if="stockDesplegado[item.id]"
-                  class="stock-detalles-container"
-                >
+                <div v-if="stockDesplegado[item.id]" class="stock-detalles-container">
                   <div class="detalles-content">
                     <!-- Información de stock mínimo -->
                     <div class="stock-minimo-info">
@@ -174,8 +156,7 @@
                         <div class="minimo-item">
                           <span class="minimo-label">Stock Mínimo:</span>
                           <span class="minimo-valor">
-                            {{ formatDecimal(item.stock_minimo) }}
-                            {{ item.unidad }}
+                            {{ formatDecimal(item.stock_minimo) }} {{ item.unidad }}
                           </span>
                         </div>
                         <div class="minimo-item">
@@ -184,9 +165,7 @@
                             class="minimo-valor"
                             :class="{
                               critico: item.cantidad <= item.stock_minimo * 0.5,
-                              bajo:
-                                item.bajoStock &&
-                                item.cantidad > item.stock_minimo * 0.5,
+                              bajo: item.bajoStock && item.cantidad > item.stock_minimo * 0.5,
                               normal: !item.bajoStock,
                             }"
                           >
@@ -202,10 +181,7 @@
                               positivo: item.cantidad >= item.stock_minimo,
                             }"
                           >
-                            {{
-                              formatDecimal(item.cantidad - item.stock_minimo)
-                            }}
-                            {{ item.unidad }}
+                            {{ formatDecimal(item.cantidad - item.stock_minimo) }} {{ item.unidad }}
                           </span>
                         </div>
                       </div>
@@ -216,21 +192,15 @@
                       v-if="item.bajoStock"
                       class="stock-alerta"
                       :class="{
-                        'alerta-critica':
-                          item.cantidad <= item.stock_minimo * 0.5,
-                        'alerta-baja':
-                          item.bajoStock &&
-                          item.cantidad > item.stock_minimo * 0.5,
+                        'alerta-critica': item.cantidad <= item.stock_minimo * 0.5,
+                        'alerta-baja': item.bajoStock && item.cantidad > item.stock_minimo * 0.5,
                       }"
                     >
                       <i
                         class="fas"
                         :class="{
-                          'fa-exclamation-triangle':
-                            item.cantidad <= item.stock_minimo * 0.5,
-                          'fa-exclamation-circle':
-                            item.bajoStock &&
-                            item.cantidad > item.stock_minimo * 0.5,
+                          'fa-exclamation-triangle': item.cantidad <= item.stock_minimo * 0.5,
+                          'fa-exclamation-circle': item.bajoStock && item.cantidad > item.stock_minimo * 0.5,
                         }"
                       ></i>
                       <span v-if="item.cantidad <= item.stock_minimo * 0.5">
@@ -241,10 +211,7 @@
 
                     <!-- Acciones rápidas -->
                     <div class="stock-acciones-rapidas" v-if="item.bajoStock">
-                      <button
-                        class="btn-reposicion"
-                        @click="reponerStockRapido(item)"
-                      >
+                      <button class="btn-reposicion" @click="reponerStockRapido(item)">
                         <i class="fas fa-bolt"></i> Reposición Rápida
                       </button>
                     </div>
@@ -271,22 +238,13 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre:</label>
-            <input
-              v-model="formInsumo.nombre"
-              type="text"
-              required
-              class="form-input"
-            />
+            <input v-model="formInsumo.nombre" type="text" required class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Categoría:</label>
             <div class="cliente-select-container">
-              <select
-                v-model="formInsumo.categoria_id"
-                required
-                class="form-input"
-              >
+              <select v-model="formInsumo.categoria_id" required class="form-input">
                 <option value="">Seleccione una categoría</option>
                 <option v-for="cat in categorias" :key="cat.id" :value="cat.id">
                   {{ cat.nombre }}
@@ -306,17 +264,9 @@
           <div class="form-group">
             <label>Unidad de Medida:</label>
             <div class="cliente-select-container">
-              <select
-                v-model="formInsumo.unidad_medida_id"
-                required
-                class="form-input"
-              >
+              <select v-model="formInsumo.unidad_medida_id" required class="form-input">
                 <option value="">Seleccione una unidad</option>
-                <option
-                  v-for="unidad in unidadesMedida"
-                  :key="unidad.id"
-                  :value="unidad.id"
-                >
+                <option v-for="unidad in unidadesMedida" :key="unidad.id" :value="unidad.id">
                   {{ unidad.nombre }} ({{ unidad.abreviatura }})
                 </option>
               </select>
@@ -333,23 +283,12 @@
 
           <div class="form-group">
             <label>Stock Mínimo:</label>
-            <input
-              v-model="formInsumo.stock_minimo"
-              type="number"
-              step="0.001"
-              required
-              class="form-input"
-            />
+            <input v-model="formInsumo.stock_minimo" type="number" step="0.001" required class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Precio Unitario:</label>
-            <input
-              v-model="formInsumo.precio_unitario"
-              type="number"
-              step="0.01"
-              class="form-input"
-            />
+            <input v-model="formInsumo.precio_unitario" type="number" step="0.01" class="form-input" />
           </div>
 
           <div class="form-group">
@@ -357,11 +296,7 @@
             <div class="cliente-select-container">
               <select v-model="formInsumo.proveedor_id" class="form-input">
                 <option value="">Seleccione un proveedor</option>
-                <option
-                  v-for="prov in proveedores"
-                  :key="prov.id"
-                  :value="prov.id"
-                >
+                <option v-for="prov in proveedores" :key="prov.id" :value="prov.id">
                   {{ prov.nombre }}
                 </option>
               </select>
@@ -392,6 +327,18 @@
         <h3>Nueva Compra</h3>
 
         <div class="form-grid">
+          <!-- 🔍 NUEVO CAMPO DE BÚSQUEDA -->
+          <div class="form-group full-width">
+            <label>🔍 Buscar Insumo:</label>
+            <input
+              v-model="busquedaInsumo"
+              type="text"
+              placeholder="Escribe el nombre del insumo..."
+              class="form-input"
+              @input="filtrarInsumos"
+            />
+          </div>
+
           <div class="form-group">
             <label>Insumo:</label>
             <select
@@ -399,39 +346,26 @@
               required
               class="form-input"
               @change="actualizarUnidadMedida"
+              size="6"
             >
               <option value="">Seleccione un insumo</option>
-              <option
-                v-for="insumo in insumos"
-                :key="insumo.id"
-                :value="insumo.id"
-              >
-                {{ insumo.nombre }} (Stock:
-                {{ formatDecimal(insumo.stock_actual) }}
-                {{ insumo.unidad_medida.abreviatura }})
+              <option v-for="insumo in insumosFiltrados" :key="insumo.id" :value="insumo.id">
+                {{ insumo.nombre }} (Stock: {{ formatDecimal(insumo.stock_actual) }} {{ insumo.unidad_medida.abreviatura }})
               </option>
             </select>
+            <div class="search-info" v-if="busquedaInsumo">
+              <small> Mostrando {{ insumosFiltrados.length }} de {{ insumos.length }} insumos </small>
+            </div>
           </div>
 
           <div class="form-group">
             <label>Cantidad:</label>
-            <input
-              v-model="formCompra.cantidad"
-              type="number"
-              step="0.001"
-              required
-              class="form-input"
-            />
+            <input v-model="formCompra.cantidad" type="number" step="0.001" required class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Unidad de Medida:</label>
-            <input
-              :value="unidadCompra"
-              type="text"
-              disabled
-              class="form-input"
-            />
+            <input :value="unidadCompra" type="text" disabled class="form-input" />
           </div>
 
           <div class="form-group">
@@ -448,29 +382,15 @@
 
           <div class="form-group">
             <label>Precio Unitario:</label>
-            <input
-              :value="formCompra.precio_unitario"
-              type="number"
-              step="0.01"
-              disabled
-              class="form-input"
-            />
+            <input :value="formCompra.precio_unitario" type="number" step="0.01" disabled class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Proveedor:</label>
             <div class="cliente-select-container">
-              <select
-                v-model="formCompra.proveedor_id"
-                required
-                class="form-input"
-              >
+              <select v-model="formCompra.proveedor_id" required class="form-input">
                 <option value="">Seleccione un proveedor</option>
-                <option
-                  v-for="prov in proveedores"
-                  :key="prov.id"
-                  :value="prov.id"
-                >
+                <option v-for="prov in proveedores" :key="prov.id" :value="prov.id">
                   {{ prov.nombre }}
                 </option>
               </select>
@@ -488,9 +408,7 @@
 
         <div class="modal-buttons">
           <button @click="closeModal" class="cancel-button">Cancelar</button>
-          <button @click="registrarCompra" class="confirm-button">
-            Registrar Compra
-          </button>
+          <button @click="registrarCompra" class="confirm-button">Registrar Compra</button>
         </div>
       </div>
     </div>
@@ -503,43 +421,23 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre:</label>
-            <input
-              v-model="formProveedor.nombre"
-              type="text"
-              required
-              class="form-input"
-            />
+            <input v-model="formProveedor.nombre" type="text" required class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Teléfono:</label>
-            <input
-              v-model="formProveedor.telefono"
-              type="text"
-              class="form-input"
-            />
+            <input v-model="formProveedor.telefono" type="text" class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Email:</label>
-            <input
-              v-model="formProveedor.email"
-              type="email"
-              class="form-input"
-            />
+            <input v-model="formProveedor.email" type="email" class="form-input" />
           </div>
         </div>
 
         <div class="modal-buttons">
-          <button
-            @click="showNuevoProveedorModal = false"
-            class="cancel-button"
-          >
-            Cancelar
-          </button>
-          <button @click="guardarProveedor" class="confirm-button">
-            Guardar
-          </button>
+          <button @click="showNuevoProveedorModal = false" class="cancel-button">Cancelar</button>
+          <button @click="guardarProveedor" class="confirm-button">Guardar</button>
         </div>
       </div>
     </div>
@@ -552,33 +450,18 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre:</label>
-            <input
-              v-model="formCategoria.nombre"
-              type="text"
-              required
-              class="form-input"
-            />
+            <input v-model="formCategoria.nombre" type="text" required class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Descripción:</label>
-            <textarea
-              v-model="formCategoria.descripcion"
-              class="form-input"
-            ></textarea>
+            <textarea v-model="formCategoria.descripcion" class="form-input"></textarea>
           </div>
         </div>
 
         <div class="modal-buttons">
-          <button
-            @click="showNuevaCategoriaModal = false"
-            class="cancel-button"
-          >
-            Cancelar
-          </button>
-          <button @click="guardarCategoria" class="confirm-button">
-            Guardar
-          </button>
+          <button @click="showNuevaCategoriaModal = false" class="cancel-button">Cancelar</button>
+          <button @click="guardarCategoria" class="confirm-button">Guardar</button>
         </div>
       </div>
     </div>
@@ -591,43 +474,23 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre:</label>
-            <input
-              v-model="formUnidad.nombre"
-              type="text"
-              required
-              class="form-input"
-            />
+            <input v-model="formUnidad.nombre" type="text" required class="form-input" />
           </div>
 
           <div class="form-group">
             <label>abreviatura:</label>
-            <input
-              v-model="formUnidad.abreviatura"
-              type="text"
-              required
-              class="form-input"
-            />
+            <input v-model="formUnidad.abreviatura" type="text" required class="form-input" />
           </div>
 
           <div class="form-group">
             <label>Descripción:</label>
-            <textarea
-              v-model="formUnidad.descripcion"
-              class="form-input"
-            ></textarea>
+            <textarea v-model="formUnidad.descripcion" class="form-input"></textarea>
           </div>
         </div>
 
         <div class="modal-buttons">
-          <button
-            @click="showNuevaUnidadDeMedidaModal = false"
-            class="cancel-button"
-          >
-            Cancelar
-          </button>
-          <button @click="guardarUnidadDeMedida" class="confirm-button">
-            Guardar
-          </button>
+          <button @click="showNuevaUnidadDeMedidaModal = false" class="cancel-button">Cancelar</button>
+          <button @click="guardarUnidadDeMedida" class="confirm-button">Guardar</button>
         </div>
       </div>
     </div>
@@ -636,19 +499,11 @@
     <div v-if="showConfirmModal" class="modal-overlay">
       <div class="modal-content">
         <h3>Confirmar Eliminación</h3>
-        <p>
-          ¿Está seguro de que desea eliminar el insumo "{{
-            insumoAEliminar?.nombre
-          }}"?
-        </p>
+        <p>¿Está seguro de que desea eliminar el insumo "{{ insumoAEliminar?.nombre }}"?</p>
 
         <div class="modal-buttons">
-          <button @click="showConfirmModal = false" class="cancel-button">
-            Cancelar
-          </button>
-          <button @click="eliminarInsumo" class="confirm-button">
-            Eliminar
-          </button>
+          <button @click="showConfirmModal = false" class="cancel-button">Cancelar</button>
+          <button @click="eliminarInsumo" class="confirm-button">Eliminar</button>
         </div>
       </div>
     </div>
@@ -675,6 +530,10 @@ const categoriaSeleccionada = ref("");
 const searchTerm = ref("");
 const loading = ref(true);
 const stockDesplegado = ref({});
+
+// 🔍 NUEVAS VARIABLES PARA BÚSQUEDA EN MODAL DE COMPRA
+const busquedaInsumo = ref("");
+const insumosFiltrados = ref([]);
 
 // Modales
 const showModalInsumo = ref(false);
@@ -741,17 +600,13 @@ const stockFiltrado = computed(() => {
 
   // Filtrar por categoría
   if (categoriaSeleccionada.value) {
-    filtered = filtered.filter(
-      (item) => item.categoria === categoriaSeleccionada.value
-    );
+    filtered = filtered.filter((item) => item.categoria === categoriaSeleccionada.value);
   }
 
   // Filtrar por término de búsqueda
   if (searchTerm.value) {
     const term = searchTerm.value.toLowerCase();
-    filtered = filtered.filter((item) =>
-      item.nombre.toLowerCase().includes(term)
-    );
+    filtered = filtered.filter((item) => item.nombre.toLowerCase().includes(term));
   }
 
   // Ordenar: stock crítico primero, luego bajo, luego normal
@@ -766,6 +621,19 @@ const stockFiltrado = computed(() => {
     return 0;
   });
 });
+
+// 🔍 MÉTODO PARA FILTRAR INSUMOS EN MODAL DE COMPRA
+const filtrarInsumos = () => {
+  if (!busquedaInsumo.value) {
+    insumosFiltrados.value = insumos.value;
+    return;
+  }
+
+  const termino = busquedaInsumo.value.toLowerCase().trim();
+  insumosFiltrados.value = insumos.value.filter((insumo) =>
+    insumo.nombre.toLowerCase().includes(termino)
+  );
+};
 
 // Métodos
 const handleNavigation = (route) => {
@@ -830,10 +698,7 @@ const guardarCategoria = async () => {
       return;
     }
 
-    const response = await axios.post(
-      "/api/categorias/crear/",
-      formCategoria.value
-    );
+    const response = await axios.post("/api/categorias/crear/", formCategoria.value);
 
     // Actualizar lista de categorías
     await fetchCategorias();
@@ -894,10 +759,7 @@ const guardarUnidadDeMedida = async () => {
       return;
     }
 
-    const response = await axios.post(
-      "/api/unidades-medida/crear/",
-      formUnidad.value
-    );
+    const response = await axios.post("/api/unidades-medida/crear/", formUnidad.value);
 
     // Actualizar lista de unidades
     await fetchUnidadesMedida();
@@ -983,11 +845,9 @@ const editarInsumo = (insumo) => {
   formInsumo.value = {
     id: insumo.id,
     nombre: insumo.nombre,
-    categoria_id:
-      categorias.value.find((c) => c.nombre === insumo.categoria)?.id || "",
+    categoria_id: categorias.value.find((c) => c.nombre === insumo.categoria)?.id || "",
     unidad_medida_id:
-      unidadesMedida.value.find((u) => u.abreviatura === insumo.unidad)?.id ||
-      "",
+      unidadesMedida.value.find((u) => u.abreviatura === insumo.unidad)?.id || "",
     stock_minimo: parsearNumero(insumo.stock_minimo),
     precio_unitario: parsearNumero(insumo.precio_unitario),
     proveedor_id: insumo.proveedor_id,
@@ -1005,9 +865,7 @@ const eliminarInsumo = async () => {
     await axios.delete(`/api/insumos/${insumoAEliminar.value.id}/eliminar/`);
 
     // Actualizar la lista local inmediatamente sin recargar toda la data
-    const index = stock.value.findIndex(
-      (item) => item.id === insumoAEliminar.value.id
-    );
+    const index = stock.value.findIndex((item) => item.id === insumoAEliminar.value.id);
     if (index !== -1) {
       stock.value.splice(index, 1);
     }
@@ -1072,9 +930,7 @@ const guardarInsumo = async () => {
       nombre: formInsumo.value.nombre,
       categoria_id: formInsumo.value.categoria_id || null,
       unidad_medida_id: formInsumo.value.unidad_medida_id,
-      stock_minimo: formatearParaBackend(
-        parseFloat(formInsumo.value.stock_minimo)
-      ),
+      stock_minimo: formatearParaBackend(parseFloat(formInsumo.value.stock_minimo)),
       precio_unitario: formInsumo.value.precio_unitario
         ? formatearParaBackend(parseFloat(formInsumo.value.precio_unitario))
         : null,
@@ -1133,9 +989,7 @@ const guardarInsumo = async () => {
 
 const registrarCompra = async () => {
   try {
-    const insumo = insumos.value.find(
-      (i) => i.id === parseInt(formCompra.value.insumo_id)
-    );
+    const insumo = insumos.value.find((i) => i.id === parseInt(formCompra.value.insumo_id));
 
     if (!insumo) {
       throw new Error("Insumo no encontrado");
@@ -1212,10 +1066,7 @@ const registrarCompra = async () => {
 
 const guardarProveedor = async () => {
   try {
-    const response = await axios.post(
-      "/api/proveedores/crear/",
-      formProveedor.value
-    );
+    const response = await axios.post("/api/proveedores/crear/", formProveedor.value);
     await fetchProveedores();
     showNuevoProveedorModal.value = false;
     resetFormProveedor();
@@ -1249,9 +1100,7 @@ const guardarProveedor = async () => {
 };
 
 const actualizarUnidadMedida = () => {
-  const insumo = insumos.value.find(
-    (i) => i.id === parseInt(formCompra.value.insumo_id)
-  );
+  const insumo = insumos.value.find((i) => i.id === parseInt(formCompra.value.insumo_id));
   if (insumo && insumo.unidad_medida) {
     unidadCompra.value = insumo.unidad_medida.abreviatura;
   } else {
@@ -1296,6 +1145,8 @@ const resetFormCompra = () => {
     proveedor_id: "",
   };
   unidadCompra.value = "";
+  busquedaInsumo.value = ""; // 🔍 Resetear la búsqueda
+  insumosFiltrados.value = insumos.value; // 🔍 Resetear la lista filtrada
 };
 
 const resetFormProveedor = () => {
@@ -1355,6 +1206,8 @@ const fetchInsumos = async () => {
   try {
     const response = await axios.get("/api/insumos/");
     insumos.value = response.data.insumos;
+    // 🔍 INICIALIZAR LA LISTA FILTRADA
+    insumosFiltrados.value = response.data.insumos;
   } catch (err) {
     console.error("Error en fetchInsumos:", err);
   }
@@ -1389,10 +1242,12 @@ const fetchProveedores = async () => {
 
 // Watchers
 watch(() => formCompra.value.insumo_id, actualizarUnidadMedida);
-watch(
-  () => [formCompra.value.cantidad, formCompra.value.precio_total],
-  calcularPrecioUnitario
-);
+watch(() => [formCompra.value.cantidad, formCompra.value.precio_total], calcularPrecioUnitario);
+
+// 🔍 WATCHER PARA INICIALIZAR LISTA FILTRADA CUANDO SE ACTUALIZAN LOS INSUMOS
+watch(() => insumos.value, () => {
+  insumosFiltrados.value = insumos.value;
+}, { immediate: true });
 
 // Cargar datos al montar el componente
 onMounted(() => {
@@ -1976,5 +1831,31 @@ onMounted(() => {
   .insumo-nombre {
     font-size: 1.1rem;
   }
+}
+
+/* Estilos para el campo de búsqueda */
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.search-info {
+  margin-top: 5px;
+  color: #6c757d;
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+/* Mejorar la apariencia del select más grande */
+.form-input[size] {
+  min-height: 120px;
+}
+
+/* Estilo para el campo de búsqueda */
+.form-input[type="text"] {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 12px center;
+  background-size: 16px;
+  padding-left: 40px;
 }
 </style>
