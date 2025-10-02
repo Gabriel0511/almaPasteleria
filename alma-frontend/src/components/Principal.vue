@@ -109,7 +109,7 @@
 
                     <div class="task-details">
                       <span class="fecha"
-                        >Entrega: {{ formatDate(task.fecha_entrega) }}</span
+                        >Entrega: {{ formatFecha(task.fecha_entrega) }}</span
                       >
                       <span class="recetas">
                         {{ getRecetasText(task.detalles) }}
@@ -186,7 +186,7 @@
                           atrasado: isAtrasado(task.fecha_entrega),
                         }"
                       >
-                        📅 {{ formatDate(task.fecha_entrega) }}
+                        📅 {{ formatFecha(task.fecha_entrega) }}
                         <span
                           v-if="isAtrasado(task.fecha_entrega)"
                           class="atrasado-badge"
@@ -384,9 +384,9 @@ const confirmarPreparacion = (task) => {
   modalType.value = "preparacion";
   modalTitle.value = "Terminar pedido";
   modalMessage.value = `¿Estás seguro que quieres terminar el pedido?`;
-  modalDetails.value = `Cliente: ${task.nombre}\nFecha de entrega: ${formatDate(
-    task.fecha_entrega
-  )}`;
+  modalDetails.value = `Cliente: ${
+    task.nombre
+  }\nFecha de entrega: ${formatFecha(task.fecha_entrega)}`;
   modalAction.value = () => empezarPreparacion(task);
 
   showConfirmModal.value = true;
@@ -431,11 +431,12 @@ const incrementarContador = async (receta) => {
     if (response.data.error) {
       notificationSystem.show({
         type: "error",
-        title: `Stock insuficiente para ${
+        title: `❌ Stock insuficiente - ${
           response.data.receta_nombre || receta.nombre
         }`,
-        message: mensajeError,
-        timeout: 10000,
+        message: response.data.error,
+        insuficientes: response.data.insuficientes || [],
+        timeout: 15000,
       });
       return;
     }
@@ -604,6 +605,9 @@ const marcarComoEntregado = async (task) => {
       message: `El pedido de ${task.nombre} ha sido marcado como entregado`,
       timeout: 3000,
     });
+
+    // ❌ ELIMINADO: No recargar los pedidos
+    // setTimeout(() => { fetchPedidos(); }, 1000);
   } catch (error) {
     console.error("Error al marcar como entregado:", error);
   }
