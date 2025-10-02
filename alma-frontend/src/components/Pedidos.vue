@@ -302,696 +302,682 @@
     <!-- MODALES -->
 
     <!-- Modal para Nuevo/Editar Pedido -->
-    <div v-if="showModalPedido" class="modal-overlay">
-      <div class="modal-content">
-        <h3>{{ esEdicionPedido ? "Editar Pedido" : "Nuevo Pedido" }}</h3>
-
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Cliente:</label>
-            <div class="select-with-button">
-              <select
-                v-model="formPedido.cliente_id"
-                required
-                class="form-input"
-              >
-                <option value="">Seleccione un cliente</option>
-                <option
-                  v-for="cliente in clientes"
-                  :key="cliente.id"
-                  :value="cliente.id"
-                >
-                  {{ cliente.nombre }}
-                </option>
-              </select>
-              <button
-                type="button"
-                class="btn-agregar-nuevo"
-                @click="showNuevoClienteModal = true"
-                title="Agregar nuevo cliente"
-              >
-                <i class="fas fa-plus"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Fecha de Pedido:</label>
-            <input
-              v-model="formPedido.fecha_pedido"
-              type="date"
-              required
-              class="form-input"
-              :disabled="esEdicionPedido"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Fecha de Entrega:</label>
-            <input
-              v-model="formPedido.fecha_entrega"
-              type="date"
-              required
-              class="form-input"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Estado:</label>
-            <select v-model="formPedido.estado" required class="form-input">
+    <BaseModal
+      v-model:show="showModalPedido"
+      :title="esEdicionPedido ? 'Editar Pedido' : 'Nuevo Pedido'"
+      size="medium"
+      @close="closeModal"
+    >
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Cliente:</label>
+          <div class="select-with-button">
+            <select v-model="formPedido.cliente_id" required class="form-input">
+              <option value="">Seleccione un cliente</option>
               <option
-                v-for="estado in estadosPedido"
-                :key="estado"
-                :value="estado"
+                v-for="cliente in clientes"
+                :key="cliente.id"
+                :value="cliente.id"
               >
-                {{ estado }}
+                {{ cliente.nombre }}
               </option>
             </select>
+            <button
+              type="button"
+              class="btn-agregar-nuevo"
+              @click="showNuevoClienteModal = true"
+              title="Agregar nuevo cliente"
+            >
+              <i class="fas fa-plus"></i>
+            </button>
           </div>
         </div>
 
-        <div class="modal-buttons">
-          <button @click="closeModal" class="cancel-button">Cancelar</button>
-          <button @click="guardarPedido" class="confirm-button">
-            {{ esEdicionPedido ? "Actualizar" : "Crear" }}
-          </button>
+        <div class="form-group">
+          <label>Fecha de Pedido:</label>
+          <input
+            v-model="formPedido.fecha_pedido"
+            type="date"
+            required
+            class="form-input"
+            :disabled="esEdicionPedido"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Fecha de Entrega:</label>
+          <input
+            v-model="formPedido.fecha_entrega"
+            type="date"
+            required
+            class="form-input"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Estado:</label>
+          <select v-model="formPedido.estado" required class="form-input">
+            <option
+              v-for="estado in estadosPedido"
+              :key="estado"
+              :value="estado"
+            >
+              {{ estado }}
+            </option>
+          </select>
         </div>
       </div>
-    </div>
+
+      <template #footer>
+        <ModalButtons
+          :confirm-text="esEdicionPedido ? 'Actualizar' : 'Crear'"
+          @cancel="closeModal"
+          @confirm="guardarPedido"
+        />
+      </template>
+    </BaseModal>
 
     <!-- Modal para Nuevo Cliente -->
-    <div v-if="showNuevoClienteModal" class="modal-overlay">
-      <div class="modal-content">
-        <h3>Nuevo Cliente</h3>
-
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Nombre:</label>
-            <input
-              v-model="formCliente.nombre"
-              type="text"
-              required
-              class="form-input"
-              placeholder="Nombre del cliente"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Teléfono:</label>
-            <input
-              v-model="formCliente.telefono"
-              type="text"
-              class="form-input"
-              placeholder="Teléfono"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Dirección:</label>
-            <textarea
-              v-model="formCliente.direccion"
-              class="form-input"
-              rows="3"
-              placeholder="Dirección"
-            ></textarea>
-          </div>
+    <BaseModal
+      v-model:show="showNuevoClienteModal"
+      title="Nuevo Cliente"
+      size="medium"
+      @close="showNuevoClienteModal = false"
+    >
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre:</label>
+          <input
+            v-model="formCliente.nombre"
+            type="text"
+            required
+            class="form-input"
+            placeholder="Nombre del cliente"
+          />
         </div>
 
-        <div class="modal-buttons">
-          <button @click="showNuevoClienteModal = false" class="cancel-button">
-            Cancelar
-          </button>
-          <button @click="guardarCliente" class="confirm-button">
-            Guardar
-          </button>
+        <div class="form-group">
+          <label>Teléfono:</label>
+          <input
+            v-model="formCliente.telefono"
+            type="text"
+            class="form-input"
+            placeholder="Teléfono"
+          />
+        </div>
+
+        <div class="form-group full-width">
+          <label>Dirección:</label>
+          <textarea
+            v-model="formCliente.direccion"
+            class="form-input"
+            rows="3"
+            placeholder="Dirección"
+          ></textarea>
         </div>
       </div>
-    </div>
+
+      <template #footer>
+        <ModalButtons
+          confirm-text="Guardar"
+          @cancel="showNuevoClienteModal = false"
+          @confirm="guardarCliente"
+        />
+      </template>
+    </BaseModal>
 
     <!-- Modal Agregar/Editar Receta al Pedido -->
-    <div v-if="showModalReceta" class="modal-overlay">
-      <div class="modal-content">
-        <h3>
-          {{ esEdicionReceta ? "Editar Receta" : "Agregar Receta al Pedido" }}
-        </h3>
-
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Receta:</label>
-            <div class="select-with-button">
-              <select
-                v-model="formDetalle.receta_id"
-                required
-                class="form-input"
-                :disabled="esEdicionReceta"
-              >
-                <option value="">Seleccione una receta</option>
-                <option
-                  v-for="receta in recetas"
-                  :key="receta.id"
-                  :value="receta.id"
-                >
-                  {{ receta.nombre }}
-                </option>
-              </select>
-              <button
-                type="button"
-                class="btn-agregar-nuevo"
-                @click="showNuevaRecetaModal = true"
-                title="Crear nueva receta"
-              >
-                <i class="fas fa-plus"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Cantidad:</label>
-            <input
-              v-model="formDetalle.cantidad"
-              type="number"
-              min="1"
+    <BaseModal
+      v-model:show="showModalReceta"
+      :title="esEdicionReceta ? 'Editar Receta' : 'Agregar Receta al Pedido'"
+      size="medium"
+      @close="closeModal"
+    >
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Receta:</label>
+          <div class="select-with-button">
+            <select
+              v-model="formDetalle.receta_id"
               required
               class="form-input"
-            />
-          </div>
-
-          <div class="form-group full-width">
-            <label>Observaciones:</label>
-            <textarea
-              v-model="formDetalle.observaciones"
-              class="form-input"
-              rows="3"
-            ></textarea>
+              :disabled="esEdicionReceta"
+            >
+              <option value="">Seleccione una receta</option>
+              <option
+                v-for="receta in recetas"
+                :key="receta.id"
+                :value="receta.id"
+              >
+                {{ receta.nombre }}
+              </option>
+            </select>
+            <button
+              type="button"
+              class="btn-agregar-nuevo"
+              @click="showNuevaRecetaModal = true"
+              title="Crear nueva receta"
+            >
+              <i class="fas fa-plus"></i>
+            </button>
           </div>
         </div>
 
-        <div class="modal-buttons">
-          <button @click="closeModal" class="cancel-button">Cancelar</button>
-          <button @click="guardarDetalle" class="confirm-button">
-            {{ esEdicionReceta ? "Actualizar" : "Agregar" }}
-          </button>
+        <div class="form-group">
+          <label>Cantidad:</label>
+          <input
+            v-model="formDetalle.cantidad"
+            type="number"
+            min="1"
+            required
+            class="form-input"
+          />
+        </div>
+
+        <div class="form-group full-width">
+          <label>Observaciones:</label>
+          <textarea
+            v-model="formDetalle.observaciones"
+            class="form-input"
+            rows="3"
+          ></textarea>
         </div>
       </div>
-    </div>
+
+      <template #footer>
+        <ModalButtons
+          :confirm-text="esEdicionReceta ? 'Actualizar' : 'Agregar'"
+          @cancel="closeModal"
+          @confirm="guardarDetalle"
+        />
+      </template>
+    </BaseModal>
 
     <!-- Modal para Nueva Receta -->
-    <div v-if="showNuevaRecetaModal" class="modal-overlay">
-      <div class="modal-content">
-        <h3>Nueva Receta</h3>
+    <BaseModal
+      v-model:show="showNuevaRecetaModal"
+      title="Nueva Receta"
+      size="large"
+      @close="showNuevaRecetaModal = false"
+    >
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre:</label>
+          <input
+            v-model="formReceta.nombre"
+            type="text"
+            required
+            class="form-input"
+            placeholder="Nombre de la receta"
+          />
+        </div>
 
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Nombre:</label>
-            <input
-              v-model="formReceta.nombre"
-              type="text"
-              required
-              class="form-input"
-              placeholder="Nombre de la receta"
-            />
-          </div>
+        <div class="form-group">
+          <label>Rinde:</label>
+          <input
+            v-model="formReceta.rinde"
+            type="number"
+            min="1"
+            required
+            class="form-input"
+            placeholder="Cantidad que rinde"
+          />
+        </div>
 
-          <div class="form-group">
-            <label>Rinde:</label>
-            <input
-              v-model="formReceta.rinde"
-              type="number"
-              min="1"
-              required
-              class="form-input"
-              placeholder="Cantidad que rinde"
-            />
-          </div>
+        <div class="form-group">
+          <label>Unidad de Rinde:</label>
+          <select v-model="formReceta.unidad_rinde" required class="form-input">
+            <option value="porciones">Porciones</option>
+            <option value="unidades">Unidades</option>
+          </select>
+        </div>
 
-          <div class="form-group">
-            <label>Unidad de Rinde:</label>
+        <div class="form-group">
+          <label>Costo unitario:</label>
+          <input
+            v-model="formReceta.costo_unitario"
+            type="number"
+            step="0.01"
+            min="0.01"
+            required
+            class="form-input"
+            placeholder="Costo unitario (por porción o unidad)"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Costo total:</label>
+          <input
+            v-model="formReceta.costo_total"
+            type="number"
+            step="0.01"
+            min="0.01"
+            required
+            class="form-input"
+            placeholder="Costo total"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Precio de venta:</label>
+          <input
+            v-model="formReceta.precio_venta"
+            type="number"
+            step="0.01"
+            min="0.01"
+            required
+            class="form-input"
+            placeholder="Precio de venta"
+          />
+        </div>
+      </div>
+
+      <template #footer>
+        <ModalButtons
+          confirm-text="Guardar"
+          @cancel="showNuevaRecetaModal = false"
+          @confirm="guardarNuevaReceta"
+        />
+      </template>
+    </BaseModal>
+
+    <!-- Modal para Agregar/Editar Ingrediente Extra -->
+    <BaseModal
+      v-model:show="showModalIngrediente"
+      :title="
+        esEdicionIngrediente
+          ? 'Editar Ingrediente Extra'
+          : 'Agregar Ingrediente Extra'
+      "
+      size="medium"
+      @close="closeModal"
+    >
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Insumo:</label>
+          <div class="select-with-button">
             <select
-              v-model="formReceta.unidad_rinde"
+              v-model="formIngrediente.insumo_id"
               required
               class="form-input"
             >
-              <option value="porciones">Porciones</option>
-              <option value="unidades">Unidades</option>
+              <option value="">Seleccione un insumo</option>
+              <option
+                v-for="insumo in insumos"
+                :key="insumo.id"
+                :value="insumo.id"
+              >
+                {{ insumo.nombre }} - ${{ insumo.precio_unitario }}/{{
+                  insumo.unidad_medida.abreviatura
+                }}
+              </option>
             </select>
-          </div>
-
-          <div class="form-group">
-            <label>Costo unitario:</label>
-            <input
-              v-model="formReceta.costo_unitario"
-              type="number"
-              step="0.01"
-              min="0.01"
-              required
-              class="form-input"
-              placeholder="Costo unitario (por porción o unidad)"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Costo total:</label>
-            <input
-              v-model="formReceta.costo_total"
-              type="number"
-              step="0.01"
-              min="0.01"
-              required
-              class="form-input"
-              placeholder="Costo total"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Precio de venta:</label>
-            <input
-              v-model="formReceta.precio_venta"
-              type="number"
-              step="0.01"
-              min="0.01"
-              required
-              class="form-input"
-              placeholder="Precio de venta"
-            />
+            <button
+              type="button"
+              class="btn-agregar-nuevo"
+              @click="showNuevoInsumoModal = true"
+              title="Crear nuevo insumo"
+            >
+              <i class="fas fa-plus"></i>
+            </button>
           </div>
         </div>
 
-        <div class="modal-buttons">
-          <button @click="showNuevaRecetaModal = false" class="cancel-button">
-            Cancelar
-          </button>
-          <button @click="guardarNuevaReceta" class="confirm-button">
-            Guardar
-          </button>
+        <div class="form-group">
+          <label>Cantidad:</label>
+          <input
+            v-model="formIngrediente.cantidad"
+            type="number"
+            step="0.001"
+            min="0.001"
+            required
+            class="form-input"
+          />
         </div>
-      </div>
-    </div>
 
-    <!-- Modal para Agregar/Editar Ingrediente Extra -->
-    <div v-if="showModalIngrediente" class="modal-overlay">
-      <div class="modal-content">
-        <h3>
-          {{
-            esEdicionIngrediente
-              ? "Editar Ingrediente Extra"
-              : "Agregar Ingrediente Extra"
-          }}
-        </h3>
-
-        <div class="form-grid">
-          <!-- Insumo con botón para agregar nuevo -->
-          <div class="form-group">
-            <label>Insumo:</label>
-            <div class="select-with-button">
-              <select
-                v-model="formIngrediente.insumo_id"
-                required
-                class="form-input"
-              >
-                <option value="">Seleccione un insumo</option>
-                <option
-                  v-for="insumo in insumos"
-                  :key="insumo.id"
-                  :value="insumo.id"
-                >
-                  {{ insumo.nombre }} - ${{ insumo.precio_unitario }}/{{
-                    insumo.unidad_medida.abreviatura
-                  }}
-                </option>
-              </select>
-              <button
-                type="button"
-                class="btn-agregar-nuevo"
-                @click="showNuevoInsumoModal = true"
-                title="Crear nuevo insumo"
-              >
-                <i class="fas fa-plus"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Cantidad:</label>
-            <input
-              v-model="formIngrediente.cantidad"
-              type="number"
-              step="0.001"
-              min="0.001"
+        <div class="form-group">
+          <label>Unidad de Medida:</label>
+          <div class="select-with-button">
+            <select
+              v-model="formIngrediente.unidad_medida_id"
               required
               class="form-input"
-            />
-          </div>
-
-          <!-- Unidad de medida con botón para agregar nueva -->
-          <div class="form-group">
-            <label>Unidad de Medida:</label>
-            <div class="select-with-button">
-              <select
-                v-model="formIngrediente.unidad_medida_id"
-                required
-                class="form-input"
+            >
+              <option value="">Seleccione una unidad</option>
+              <option
+                v-for="unidad in unidadesMedida"
+                :key="unidad.id"
+                :value="unidad.id"
               >
-                <option value="">Seleccione una unidad</option>
-                <option
-                  v-for="unidad in unidadesMedida"
-                  :key="unidad.id"
-                  :value="unidad.id"
-                >
-                  {{ unidad.nombre }} ({{ unidad.abreviatura }})
-                </option>
-              </select>
-              <button
-                type="button"
-                class="btn-agregar-nuevo"
-                @click="showNuevaUnidadModal = true"
-                title="Crear nueva unidad de medida"
-              >
-                <i class="fas fa-plus"></i>
-              </button>
-            </div>
+                {{ unidad.nombre }} ({{ unidad.abreviatura }})
+              </option>
+            </select>
+            <button
+              type="button"
+              class="btn-agregar-nuevo"
+              @click="showNuevaUnidadModal = true"
+              title="Crear nueva unidad de medida"
+            >
+              <i class="fas fa-plus"></i>
+            </button>
           </div>
-        </div>
-
-        <div class="modal-buttons">
-          <button @click="closeModal" class="cancel-button">Cancelar</button>
-          <button @click="guardarIngredienteExtra" class="confirm-button">
-            {{ esEdicionIngrediente ? "Actualizar" : "Agregar" }}
-          </button>
         </div>
       </div>
-    </div>
+
+      <template #footer>
+        <ModalButtons
+          :confirm-text="esEdicionIngrediente ? 'Actualizar' : 'Agregar'"
+          @cancel="closeModal"
+          @confirm="guardarIngredienteExtra"
+        />
+      </template>
+    </BaseModal>
 
     <!-- Modal para Nuevo Insumo -->
-    <div v-if="showNuevoInsumoModal" class="modal-overlay">
-      <div class="modal-content">
-        <h3>Nuevo Insumo</h3>
+    <BaseModal
+      v-model:show="showNuevoInsumoModal"
+      title="Nuevo Insumo"
+      size="large"
+      @close="showNuevoInsumoModal = false"
+    >
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre:</label>
+          <input
+            v-model="formInsumo.nombre"
+            type="text"
+            required
+            class="form-input"
+            placeholder="Nombre del insumo"
+          />
+        </div>
 
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Nombre:</label>
-            <input
-              v-model="formInsumo.nombre"
-              type="text"
+        <div class="form-group">
+          <label>Categoría:</label>
+          <div class="select-with-button">
+            <select
+              v-model="formInsumo.categoria_id"
               required
               class="form-input"
-              placeholder="Nombre del insumo"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Categoría:</label>
-            <div class="cliente-select-container">
-              <select
-                v-model="formInsumo.categoria_id"
-                required
-                class="form-input"
-              >
-                <option value="">Seleccione una categoría</option>
-                <option v-for="cat in categorias" :key="cat.id" :value="cat.id">
-                  {{ cat.nombre }}
-                </option>
-              </select>
-              <button
-                type="button"
-                class="btn-agregar-cliente"
-                @click="showNuevaCategoriaModal = true"
-                title="Agregar nueva categoría"
-              >
-                <i class="fas fa-plus"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Unidad de Medida:</label>
-            <div class="cliente-select-container">
-              <select
-                v-model="formInsumo.unidad_medida_id"
-                required
-                class="form-input"
-              >
-                <option value="">Seleccione una unidad</option>
-                <option
-                  v-for="unidad in unidadesMedida"
-                  :key="unidad.id"
-                  :value="unidad.id"
-                >
-                  {{ unidad.nombre }} ({{ unidad.abreviatura }})
-                </option>
-              </select>
-              <button
-                type="button"
-                class="btn-agregar-cliente"
-                @click="showNuevaUnidadDeMedidaModal = true"
-                title="Agregar nueva categoría"
-              >
-                <i class="fas fa-plus"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Stock Mínimo:</label>
-            <input
-              v-model="formInsumo.stock_minimo"
-              type="number"
-              step="0.001"
-              required
-              class="form-input"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Precio Unitario:</label>
-            <input
-              v-model="formInsumo.precio_unitario"
-              type="number"
-              step="0.01"
-              class="form-input"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Proveedor:</label>
-            <div class="cliente-select-container">
-              <select v-model="formInsumo.proveedor_id" class="form-input">
-                <option value="">Seleccione un proveedor</option>
-                <option
-                  v-for="prov in proveedores"
-                  :key="prov.id"
-                  :value="prov.id"
-                >
-                  {{ prov.nombre }}
-                </option>
-              </select>
-              <button
-                type="button"
-                class="btn-agregar-cliente"
-                @click="showNuevoProveedorModal = true"
-                title="Agregar nuevo proveedor"
-              >
-                <i class="fas fa-plus"></i>
-              </button>
-            </div>
+            >
+              <option value="">Seleccione una categoría</option>
+              <option v-for="cat in categorias" :key="cat.id" :value="cat.id">
+                {{ cat.nombre }}
+              </option>
+            </select>
+            <button
+              type="button"
+              class="btn-agregar-nuevo"
+              @click="showNuevaCategoriaModal = true"
+              title="Agregar nueva categoría"
+            >
+              <i class="fas fa-plus"></i>
+            </button>
           </div>
         </div>
 
-        <div class="modal-buttons">
-          <button @click="showNuevoInsumoModal = false" class="cancel-button">
-            Cancelar
-          </button>
-          <button @click="guardarNuevoInsumo" class="confirm-button">
-            Guardar
-          </button>
+        <div class="form-group">
+          <label>Unidad de Medida:</label>
+          <div class="select-with-button">
+            <select
+              v-model="formInsumo.unidad_medida_id"
+              required
+              class="form-input"
+            >
+              <option value="">Seleccione una unidad</option>
+              <option
+                v-for="unidad in unidadesMedida"
+                :key="unidad.id"
+                :value="unidad.id"
+              >
+                {{ unidad.nombre }} ({{ unidad.abreviatura }})
+              </option>
+            </select>
+            <button
+              type="button"
+              class="btn-agregar-nuevo"
+              @click="showNuevaUnidadDeMedidaModal = true"
+              title="Agregar nueva unidad de medida"
+            >
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Stock Mínimo:</label>
+          <input
+            v-model="formInsumo.stock_minimo"
+            type="number"
+            step="0.001"
+            required
+            class="form-input"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Precio Unitario:</label>
+          <input
+            v-model="formInsumo.precio_unitario"
+            type="number"
+            step="0.01"
+            class="form-input"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Proveedor:</label>
+          <div class="select-with-button">
+            <select v-model="formInsumo.proveedor_id" class="form-input">
+              <option value="">Seleccione un proveedor</option>
+              <option
+                v-for="prov in proveedores"
+                :key="prov.id"
+                :value="prov.id"
+              >
+                {{ prov.nombre }}
+              </option>
+            </select>
+            <button
+              type="button"
+              class="btn-agregar-nuevo"
+              @click="showNuevoProveedorModal = true"
+              title="Agregar nuevo proveedor"
+            >
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      <template #footer>
+        <ModalButtons
+          confirm-text="Guardar"
+          @cancel="showNuevoInsumoModal = false"
+          @confirm="guardarNuevoInsumo"
+        />
+      </template>
+    </BaseModal>
 
     <!-- Modal para Nueva Unidad de Medida -->
-    <div v-if="showNuevaUnidadModal" class="modal-overlay">
-      <div class="modal-content">
-        <h3>Nueva Unidad de Medida</h3>
-
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Nombre:</label>
-            <input
-              v-model="formUnidadMedida.nombre"
-              type="text"
-              required
-              class="form-input"
-              placeholder="Nombre completo"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Abreviatura:</label>
-            <input
-              v-model="formUnidadMedida.abreviatura"
-              type="text"
-              required
-              class="form-input"
-              placeholder="Ej: kg, g, l, ml"
-              maxlength="10"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Descripción:</label>
-            <input
-              v-model="formUnidadMedida.descripcion"
-              type="text"
-              class="form-input"
-            />
-          </div>
+    <BaseModal
+      v-model:show="showNuevaUnidadModal"
+      title="Nueva Unidad de Medida"
+      size="small"
+      @close="showNuevaUnidadModal = false"
+    >
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre:</label>
+          <input
+            v-model="formUnidadMedida.nombre"
+            type="text"
+            required
+            class="form-input"
+            placeholder="Nombre completo"
+          />
         </div>
 
-        <div class="modal-buttons">
-          <button @click="showNuevaUnidadModal = false" class="cancel-button">
-            Cancelar
-          </button>
-          <button @click="guardarNuevaUnidadMedida" class="confirm-button">
-            Guardar
-          </button>
+        <div class="form-group">
+          <label>Abreviatura:</label>
+          <input
+            v-model="formUnidadMedida.abreviatura"
+            type="text"
+            required
+            class="form-input"
+            placeholder="Ej: kg, g, l, ml"
+            maxlength="10"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Descripción:</label>
+          <input
+            v-model="formUnidadMedida.descripcion"
+            type="text"
+            class="form-input"
+          />
         </div>
       </div>
-    </div>
+
+      <template #footer>
+        <ModalButtons
+          confirm-text="Guardar"
+          @cancel="showNuevaUnidadModal = false"
+          @confirm="guardarNuevaUnidadMedida"
+        />
+      </template>
+    </BaseModal>
 
     <!-- Modal para Nueva Categoría -->
-    <div v-if="showNuevaCategoriaModal" class="modal-overlay">
-      <div class="modal-content">
-        <h3>Nueva Categoría</h3>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Nombre:</label>
-            <input
-              v-model="formCategoria.nombre"
-              type="text"
-              required
-              class="form-input"
-              placeholder="Nombre de la categoría"
-            />
-          </div>
-          <div class="form-group">
-            <label>Descripción:</label>
-            <textarea
-              v-model="formCategoria.descripcion"
-              class="form-input"
-              rows="3"
-            ></textarea>
-          </div>
+    <BaseModal
+      v-model:show="showNuevaCategoriaModal"
+      title="Nueva Categoría"
+      size="small"
+      @close="showNuevaCategoriaModal = false"
+    >
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre:</label>
+          <input
+            v-model="formCategoria.nombre"
+            type="text"
+            required
+            class="form-input"
+            placeholder="Nombre de la categoría"
+          />
         </div>
-        <div class="modal-buttons">
-          <button
-            @click="showNuevaCategoriaModal = false"
-            class="cancel-button"
-          >
-            Cancelar
-          </button>
-          <button @click="guardarNuevaCategoria" class="confirm-button">
-            Guardar
-          </button>
+
+        <div class="form-group full-width">
+          <label>Descripción:</label>
+          <textarea
+            v-model="formCategoria.descripcion"
+            class="form-input"
+            rows="3"
+          ></textarea>
         </div>
       </div>
-    </div>
+
+      <template #footer>
+        <ModalButtons
+          confirm-text="Guardar"
+          @cancel="showNuevaCategoriaModal = false"
+          @confirm="guardarNuevaCategoria"
+        />
+      </template>
+    </BaseModal>
 
     <!-- Modal para Nuevo Proveedor -->
-    <div v-if="showNuevoProveedorModal" class="modal-overlay">
-      <div class="modal-content">
-        <h3>Nuevo Proveedor</h3>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Nombre:</label>
-            <input
-              v-model="formProveedor.nombre"
-              type="text"
-              required
-              class="form-input"
-              placeholder="Nombre del proveedor"
-            />
-          </div>
-          <div class="form-group">
-            <label>Contacto:</label>
-            <input
-              v-model="formProveedor.contacto"
-              type="text"
-              class="form-input"
-              placeholder="Persona de contacto"
-            />
-          </div>
-          <div class="form-group">
-            <label>Teléfono:</label>
-            <input
-              v-model="formProveedor.telefono"
-              type="text"
-              class="form-input"
-              placeholder="Teléfono"
-            />
-          </div>
-          <div class="form-group">
-            <label>Email:</label>
-            <input
-              v-model="formProveedor.email"
-              type="email"
-              class="form-input"
-              placeholder="Email"
-            />
-          </div>
+    <BaseModal
+      v-model:show="showNuevoProveedorModal"
+      title="Nuevo Proveedor"
+      size="medium"
+      @close="showNuevoProveedorModal = false"
+    >
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre:</label>
+          <input
+            v-model="formProveedor.nombre"
+            type="text"
+            required
+            class="form-input"
+            placeholder="Nombre del proveedor"
+          />
         </div>
-        <div class="modal-buttons">
-          <button
-            @click="showNuevoProveedorModal = false"
-            class="cancel-button"
-          >
-            Cancelar
-          </button>
-          <button @click="guardarNuevoProveedor" class="confirm-button">
-            Guardar
-          </button>
+
+        <div class="form-group">
+          <label>Contacto:</label>
+          <input
+            v-model="formProveedor.contacto"
+            type="text"
+            class="form-input"
+            placeholder="Persona de contacto"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Teléfono:</label>
+          <input
+            v-model="formProveedor.telefono"
+            type="text"
+            class="form-input"
+            placeholder="Teléfono"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Email:</label>
+          <input
+            v-model="formProveedor.email"
+            type="email"
+            class="form-input"
+            placeholder="Email"
+          />
         </div>
       </div>
-    </div>
+
+      <template #footer>
+        <ModalButtons
+          confirm-text="Guardar"
+          @cancel="showNuevoProveedorModal = false"
+          @confirm="guardarNuevoProveedor"
+        />
+      </template>
+    </BaseModal>
 
     <!-- Modal de confirmación para eliminar pedido -->
-    <div v-if="showConfirmModalPedido" class="modal-overlay">
-      <div class="modal-content">
-        <h3>Confirmar Eliminación</h3>
-        <p>
-          ¿Está seguro de que desea eliminar el pedido de "{{
-            pedidoAEliminar?.cliente?.nombre
-          }}"?
-        </p>
-
-        <div class="modal-buttons">
-          <button @click="showConfirmModalPedido = false" class="cancel-button">
-            Cancelar
-          </button>
-          <button @click="eliminarPedido" class="confirm-button">
-            Eliminar
-          </button>
-        </div>
-      </div>
-    </div>
+    <ConfirmModal
+      :show="showConfirmModalPedido"
+      title="Confirmar Eliminación"
+      :message="`¿Está seguro de que desea eliminar el pedido de '${pedidoAEliminar?.cliente?.nombre}'?`"
+      confirm-text="Eliminar"
+      @update:show="showConfirmModalPedido = $event"
+      @cancel="showConfirmModalPedido = false"
+      @confirm="eliminarPedido"
+    />
 
     <!-- Modal de confirmación para eliminar ingrediente extra -->
-    <div v-if="showConfirmModalIngrediente" class="modal-overlay">
-      <div class="modal-content">
-        <h3>Confirmar Eliminación</h3>
-        <p>¿Está seguro de que desea eliminar este ingrediente extra?</p>
+    <ConfirmModal
+      :show="showConfirmModalIngrediente"
+      title="Confirmar Eliminación"
+      message="¿Está seguro de que desea eliminar este ingrediente extra?"
+      confirm-text="Eliminar"
+      @update:show="showConfirmModalIngrediente = $event"
+      @cancel="showConfirmModalIngrediente = false"
+      @confirm="eliminarIngredienteExtra"
+    />
 
-        <div class="modal-buttons">
-          <button
-            @click="showConfirmModalIngrediente = false"
-            class="cancel-button"
-          >
-            Cancelar
-          </button>
-          <button @click="eliminarIngredienteExtra" class="confirm-button">
-            Eliminar
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Modal de confirmación para eliminar receta -->
+    <ConfirmModal
+      :show="showConfirmModalReceta"
+      title="Confirmar Eliminación"
+      message="¿Está seguro de que desea eliminar esta receta del pedido?"
+      confirm-text="Eliminar"
+      @update:show="showConfirmModalReceta = $event"
+      @cancel="showConfirmModalReceta = false"
+      @confirm="eliminarReceta"
+    />
   </div>
 </template>
 
@@ -1000,6 +986,9 @@ import { useRouter } from "vue-router";
 import { ref, computed, onMounted, watch, inject } from "vue";
 import Sidebar from "./Sidebar.vue";
 import Header from "./Header.vue";
+import BaseModal from "./Modals/BaseModal.vue";
+import ModalButtons from "./Modals/ModalButtons.vue";
+import ConfirmModal from "./Modals/ConfirmModal.vue";
 import axios from "axios";
 
 const router = useRouter();
@@ -1948,6 +1937,7 @@ const closeModal = () => {
   showNuevaRecetaModal.value = false;
   showNuevoInsumoModal.value = false;
   showNuevaUnidadModal.value = false;
+  showNuevoClienteModal.value = false;
   resetForms();
 };
 

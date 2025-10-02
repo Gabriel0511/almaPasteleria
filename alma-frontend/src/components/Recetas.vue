@@ -318,255 +318,129 @@
       </main>
     </div>
 
+    <!-- MODALES REFACTORIZADOS -->
+
     <!-- Modal para Nueva/Editar Receta -->
-    <div v-if="showModalReceta" class="modal-overlay">
-      <div class="modal-content">
-        <h3>{{ esEdicion ? "Editar Receta" : "Nueva Receta" }}</h3>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Nombre:</label>
-            <input
-              v-model="formReceta.nombre"
-              type="text"
-              required
-              class="form-input"
-            />
-          </div>
-          <div class="form-group">
-            <label>Rinde:</label>
-            <input
-              v-model="formReceta.rinde"
-              type="number"
-              required
-              class="form-input"
-            />
-          </div>
-          <div class="form-group">
-            <label>Unidad de Rinde:</label>
-            <select
-              v-model="formReceta.unidad_rinde"
-              required
-              class="form-input"
-            >
-              <option value="porciones">Porciones</option>
-              <option value="unidades">Unidades</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Precio de Venta:</label>
-            <input
-              v-model="formReceta.precio_venta"
-              type="number"
-              step="0.01"
-              required
-              class="form-input"
-            />
-          </div>
+    <BaseModal
+      v-model:show="showModalReceta"
+      :title="esEdicion ? 'Editar Receta' : 'Nueva Receta'"
+      size="medium"
+      @close="closeModal"
+    >
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre:</label>
+          <input
+            v-model="formReceta.nombre"
+            type="text"
+            required
+            class="form-input"
+            placeholder="Nombre de la receta"
+          />
         </div>
-        <div class="modal-buttons">
-          <button @click="closeModal" class="cancel-button">Cancelar</button>
-          <button @click="guardarRecetaBasica" class="confirm-button">
-            {{ esEdicion ? "Actualizar" : "Guardar Receta" }}
-          </button>
+        <div class="form-group">
+          <label>Rinde:</label>
+          <input
+            v-model="formReceta.rinde"
+            type="number"
+            min="1"
+            required
+            class="form-input"
+            placeholder="Cantidad que rinde"
+          />
+        </div>
+        <div class="form-group">
+          <label>Unidad de Rinde:</label>
+          <select v-model="formReceta.unidad_rinde" required class="form-input">
+            <option value="porciones">Porciones</option>
+            <option value="unidades">Unidades</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Precio de Venta:</label>
+          <input
+            v-model="formReceta.precio_venta"
+            type="number"
+            step="0.01"
+            min="0.01"
+            required
+            class="form-input"
+            placeholder="Precio de venta"
+          />
         </div>
       </div>
-    </div>
+
+      <template #footer>
+        <ModalButtons
+          :confirm-text="esEdicion ? 'Actualizar' : 'Guardar Receta'"
+          @cancel="closeModal"
+          @confirm="guardarRecetaBasica"
+        />
+      </template>
+    </BaseModal>
 
     <!-- Modal para Agregar/Eliminar Insumos a Receta -->
-    <div v-if="showModalInsumos" class="modal-overlay">
-      <div class="modal-content">
-        <h3>Agregar Insumos a: {{ recetaSeleccionada?.nombre }}</h3>
-        <div class="insumos-section">
-          <h4>Agregar Nuevo Insumo:</h4>
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Insumo:</label>
-              <div class="select-with-button">
-                <select
-                  v-model="nuevoInsumo.insumo_id"
-                  required
-                  class="form-input"
-                  @change="actualizarUnidadNuevoInsumo"
-                >
-                  <option value="">Seleccione un insumo</option>
-                  <option
-                    v-for="item in insumosDisponibles"
-                    :key="item.id"
-                    :value="item.id"
-                  >
-                    {{ item.nombre }} (Stock:
-                    {{ formatDecimal(item.stock_actual) }}
-                    {{ item.unidad_medida.abreviatura }})
-                  </option>
-                </select>
-                <button
-                  type="button"
-                  class="btn-agregar-nuevo"
-                  @click="showNuevoInsumoModal = true"
-                  title="Agregar nuevo insumo"
-                >
-                  <i class="fas fa-plus"></i>
-                </button>
-              </div>
-            </div>
-            <div class="form-group">
-              <label>Cantidad:</label>
-              <input
-                v-model="nuevoInsumo.cantidad"
-                type="number"
-                step="0.001"
-                required
-                class="form-input"
-              />
-            </div>
-            <div class="form-group">
-              <label>Unidad de Medida:</label>
-              <select
-                v-model="nuevoInsumo.unidad_medida_id"
-                required
-                class="form-input"
-              >
-                <option value="">Seleccione una unidad</option>
-                <option
-                  v-for="unidad in unidadesMedida"
-                  :key="unidad.id"
-                  :value="unidad.id"
-                >
-                  {{ unidad.nombre }} ({{ unidad.abreviatura }})
-                </option>
-              </select>
-            </div>
-            <div class="form-group">
-              <button
-                class="btn-agregar-insumo-modal"
-                @click="agregarInsumoAReceta"
-                :disabled="!puedeAgregarInsumo"
-              >
-                <i class="fas fa-plus"></i> Agregar
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="insumos-existente-section">
-          <h4>Insumos Actuales:</h4>
-          <div
-            v-for="insumo in recetaSeleccionada?.insumos || []"
-            :key="insumo.id"
-            class="insumo-existente-item"
-          >
-            <span v-if="!insumo.editando" class="insumo-info">
-              {{ insumo.insumo.nombre }} - {{ formatDecimal(insumo.cantidad) }}
-              {{ insumo.unidad_medida.abreviatura }}
-              <span class="insumo-costo" v-if="insumo.insumo.precio_unitario">
-                (Costo: ${{ formatDecimal(calcularCostoInsumo(insumo)) }})
-              </span>
-            </span>
-            <div v-else class="insumo-edit-form">
-              <div class="edit-form-grid">
-                <div class="form-group">
-                  <label>Cantidad:</label>
-                  <input
-                    v-model.number="insumo.cantidadEdit"
-                    type="number"
-                    step="0.001"
-                    min="0.001"
-                    class="form-input-small"
-                    placeholder="0.000"
-                    @input="formatearCantidadInput($event, insumo)"
-                  />
-                </div>
-                <div class="form-group">
-                  <label>Unidad:</label>
-                  <select
-                    v-model="insumo.unidad_medida_id_edit"
-                    class="form-input-small"
-                    required
-                  >
-                    <option value="">Seleccione...</option>
-                    <option
-                      v-for="unidad in unidadesMedida"
-                      :key="unidad.id"
-                      :value="unidad.id"
-                    >
-                      {{ unidad.abreviatura }} ({{ unidad.nombre }})
-                    </option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div class="insumo-acciones">
-              <button
-                v-if="!insumo.editando"
-                class="btn-accion-small"
-                @click="activarEdicionInsumo(insumo)"
-                title="Editar insumo"
-              >
-                <i class="fas fa-edit"></i>
-              </button>
-              <button
-                v-else
-                class="btn-accion-small btn-confirmar"
-                @click="guardarEdicionInsumo(insumo)"
-                title="Guardar cambios"
-              >
-                <i class="fas fa-check"></i>
-              </button>
-              <button
-                v-if="!insumo.editando"
-                class="btn-accion-small btn-eliminar"
-                @click="eliminarInsumoDeReceta(recetaSeleccionada, insumo)"
-                title="Eliminar insumo"
-              >
-                <i class="fas fa-trash"></i>
-              </button>
-              <button
-                v-else
-                class="btn-accion-small btn-cancelar"
-                @click="cancelarEdicionInsumo(insumo)"
-                title="Cancelar edición"
-              >
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-          </div>
-          <div v-if="!recetaSeleccionada?.insumos?.length" class="sin-insumos">
-            No hay insumos agregados
-          </div>
-        </div>
-        <div class="modal-buttons">
-          <button @click="showModalInsumos = false" class="cancel-button">
-            Cerrar
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal para Nuevo Insumo -->
-    <div v-if="showNuevoInsumoModal" class="modal-overlay">
-      <div class="modal-content">
-        <h3>Nuevo Insumo</h3>
+    <BaseModal
+      v-model:show="showModalInsumos"
+      :title="`Gestionar Insumos: ${recetaSeleccionada?.nombre || ''}`"
+      size="large"
+      @close="showModalInsumos = false"
+    >
+      <div class="insumos-section">
+        <h4>Agregar Nuevo Insumo:</h4>
         <div class="form-grid">
           <div class="form-group">
-            <label>Nombre:</label>
+            <label>Insumo:</label>
+            <div class="select-with-button">
+              <select
+                v-model="nuevoInsumo.insumo_id"
+                required
+                class="form-input"
+                @change="actualizarUnidadNuevoInsumo"
+              >
+                <option value="">Seleccione un insumo</option>
+                <option
+                  v-for="item in insumosDisponibles"
+                  :key="item.id"
+                  :value="item.id"
+                >
+                  {{ item.nombre }} (Stock:
+                  {{ formatDecimal(item.stock_actual) }}
+                  {{ item.unidad_medida.abreviatura }})
+                </option>
+              </select>
+              <button
+                type="button"
+                class="btn-agregar-nuevo"
+                @click="showNuevoInsumoModal = true"
+                title="Agregar nuevo insumo"
+              >
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Cantidad:</label>
             <input
-              v-model="formNuevoInsumo.nombre"
-              type="text"
+              v-model="nuevoInsumo.cantidad"
+              type="number"
+              step="0.001"
+              min="0.001"
               required
               class="form-input"
-              placeholder="Nombre del insumo"
+              placeholder="0.000"
             />
           </div>
           <div class="form-group">
             <label>Unidad de Medida:</label>
             <select
-              v-model="formNuevoInsumo.unidad_medida_id"
+              v-model="nuevoInsumo.unidad_medida_id"
               required
               class="form-input"
             >
               <option value="">Seleccione una unidad</option>
               <option
-                v-for="unidad in unidadesPermitidas"
+                v-for="unidad in unidadesMedida"
                 :key="unidad.id"
                 :value="unidad.id"
               >
@@ -575,57 +449,195 @@
             </select>
           </div>
           <div class="form-group">
-            <label>Stock Mínimo:</label>
-            <input
-              v-model="formNuevoInsumo.stock_minimo"
-              type="number"
-              step="0.001"
-              required
-              class="form-input"
-              placeholder="0.000"
-            />
+            <button
+              class="btn-agregar-insumo-modal"
+              @click="agregarInsumoAReceta"
+              :disabled="!puedeAgregarInsumo"
+            >
+              <i class="fas fa-plus"></i> Agregar
+            </button>
           </div>
-          <div class="form-group">
-            <label>Precio Unitario:</label>
-            <input
-              v-model="formNuevoInsumo.precio_unitario"
-              type="number"
-              step="0.01"
-              class="form-input"
-              placeholder="0.00"
-            />
-          </div>
-        </div>
-        <div class="modal-buttons">
-          <button @click="showNuevoInsumoModal = false" class="cancel-button">
-            Cancelar
-          </button>
-          <button @click="guardarNuevoInsumo" class="confirm-button">
-            Guardar
-          </button>
         </div>
       </div>
-    </div>
+
+      <div class="insumos-existente-section">
+        <h4>
+          Insumos Actuales ({{ recetaSeleccionada?.insumos?.length || 0 }}):
+        </h4>
+        <div
+          v-for="insumo in recetaSeleccionada?.insumos || []"
+          :key="insumo.id"
+          class="insumo-existente-item"
+        >
+          <span v-if="!insumo.editando" class="insumo-info">
+            {{ insumo.insumo.nombre }} - {{ formatDecimal(insumo.cantidad) }}
+            {{ insumo.unidad_medida.abreviatura }}
+            <span class="insumo-costo" v-if="insumo.insumo.precio_unitario">
+              (Costo: ${{ formatDecimal(calcularCostoInsumo(insumo)) }})
+            </span>
+          </span>
+          <div v-else class="insumo-edit-form">
+            <div class="edit-form-grid">
+              <div class="form-group">
+                <label>Cantidad:</label>
+                <input
+                  v-model.number="insumo.cantidadEdit"
+                  type="number"
+                  step="0.001"
+                  min="0.001"
+                  class="form-input-small"
+                  placeholder="0.000"
+                  @input="formatearCantidadInput($event, insumo)"
+                />
+              </div>
+              <div class="form-group">
+                <label>Unidad:</label>
+                <select
+                  v-model="insumo.unidad_medida_id_edit"
+                  class="form-input-small"
+                  required
+                >
+                  <option value="">Seleccione...</option>
+                  <option
+                    v-for="unidad in unidadesMedida"
+                    :key="unidad.id"
+                    :value="unidad.id"
+                  >
+                    {{ unidad.abreviatura }} ({{ unidad.nombre }})
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="insumo-acciones">
+            <button
+              v-if="!insumo.editando"
+              class="btn-accion-small"
+              @click="activarEdicionInsumo(insumo)"
+              title="Editar insumo"
+            >
+              <i class="fas fa-edit"></i>
+            </button>
+            <button
+              v-else
+              class="btn-accion-small btn-confirmar"
+              @click="guardarEdicionInsumo(insumo)"
+              title="Guardar cambios"
+            >
+              <i class="fas fa-check"></i>
+            </button>
+            <button
+              v-if="!insumo.editando"
+              class="btn-accion-small btn-eliminar"
+              @click="eliminarInsumoDeReceta(recetaSeleccionada, insumo)"
+              title="Eliminar insumo"
+            >
+              <i class="fas fa-trash"></i>
+            </button>
+            <button
+              v-else
+              class="btn-accion-small btn-cancelar"
+              @click="cancelarEdicionInsumo(insumo)"
+              title="Cancelar edición"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+        <div v-if="!recetaSeleccionada?.insumos?.length" class="sin-insumos">
+          <i class="fas fa-info-circle"></i>
+          No hay insumos agregados a esta receta
+        </div>
+      </div>
+
+      <template #footer>
+        <ModalButtons
+          confirm-text="Cerrar"
+          @cancel="showModalInsumos = false"
+          @confirm="showModalInsumos = false"
+        />
+      </template>
+    </BaseModal>
+
+    <!-- Modal para Nuevo Insumo -->
+    <BaseModal
+      v-model:show="showNuevoInsumoModal"
+      title="Nuevo Insumo"
+      size="medium"
+      @close="showNuevoInsumoModal = false"
+    >
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre:</label>
+          <input
+            v-model="formNuevoInsumo.nombre"
+            type="text"
+            required
+            class="form-input"
+            placeholder="Nombre del insumo"
+          />
+        </div>
+        <div class="form-group">
+          <label>Unidad de Medida:</label>
+          <select
+            v-model="formNuevoInsumo.unidad_medida_id"
+            required
+            class="form-input"
+          >
+            <option value="">Seleccione una unidad</option>
+            <option
+              v-for="unidad in unidadesPermitidas"
+              :key="unidad.id"
+              :value="unidad.id"
+            >
+              {{ unidad.nombre }} ({{ unidad.abreviatura }})
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Stock Mínimo:</label>
+          <input
+            v-model="formNuevoInsumo.stock_minimo"
+            type="number"
+            step="0.001"
+            min="0"
+            required
+            class="form-input"
+            placeholder="0.000"
+          />
+        </div>
+        <div class="form-group">
+          <label>Precio Unitario:</label>
+          <input
+            v-model="formNuevoInsumo.precio_unitario"
+            type="number"
+            step="0.01"
+            min="0"
+            class="form-input"
+            placeholder="0.00"
+          />
+        </div>
+      </div>
+
+      <template #footer>
+        <ModalButtons
+          confirm-text="Guardar"
+          @cancel="showNuevoInsumoModal = false"
+          @confirm="guardarNuevoInsumo"
+        />
+      </template>
+    </BaseModal>
 
     <!-- Modal de confirmación para eliminar receta -->
-    <div v-if="showConfirmModal" class="modal-overlay">
-      <div class="modal-content">
-        <h3>Confirmar Eliminación</h3>
-        <p>
-          ¿Está seguro de que desea eliminar la receta "{{
-            recetaAEliminar?.nombre
-          }}"?
-        </p>
-        <div class="modal-buttons">
-          <button @click="showConfirmModal = false" class="cancel-button">
-            Cancelar
-          </button>
-          <button @click="eliminarReceta" class="confirm-button">
-            Eliminar
-          </button>
-        </div>
-      </div>
-    </div>
+    <ConfirmModal
+      :show="showConfirmModal"
+      title="Confirmar Eliminación"
+      :message="`¿Está seguro de que desea eliminar la receta '${recetaAEliminar?.nombre}'?`"
+      confirm-text="Eliminar"
+      @update:show="showConfirmModal = $event"
+      @cancel="showConfirmModal = false"
+      @confirm="eliminarReceta"
+    />
   </div>
 </template>
 
@@ -634,6 +646,9 @@ import { useRouter } from "vue-router";
 import { ref, computed, onMounted, inject } from "vue";
 import Sidebar from "./Sidebar.vue";
 import Header from "./Header.vue";
+import BaseModal from "./Modals/BaseModal.vue";
+import ModalButtons from "./Modals/ModalButtons.vue";
+import ConfirmModal from "./Modals/ConfirmModal.vue";
 import axios from "axios";
 
 const router = useRouter();
