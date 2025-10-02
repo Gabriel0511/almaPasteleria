@@ -20,9 +20,16 @@
               <div class="stock-header">
                 <span>
                   Nombre
-                  <select v-model="categoriaSeleccionada" class="category-select">
+                  <select
+                    v-model="categoriaSeleccionada"
+                    class="category-select"
+                  >
                     <option value="">Todas</option>
-                    <option v-for="cat in categoriasStock" :key="cat" :value="cat">
+                    <option
+                      v-for="cat in categoriasStock"
+                      :key="cat"
+                      :value="cat"
+                    >
                       {{ cat }}
                     </option>
                   </select>
@@ -32,11 +39,21 @@
             </div>
 
             <ul class="stock-list">
-              <li v-for="item in stockFiltradoPorCategoria" :key="item.nombre" :class="{ 'low-stock': item.bajoStock }"
-                class="stock-item">
-                <span class="item-name">{{ item.nombre }}
-                  <span class="item-category">({{ item.categoria }})</span></span>
-                <span class="item-quantity">{{ formatDecimal(item.cantidad) }} {{ item.unidad }}</span>
+              <li
+                v-for="item in stockFiltradoPorCategoria"
+                :key="item.nombre"
+                :class="{ 'low-stock': item.bajoStock }"
+                class="stock-item"
+              >
+                <span class="item-name"
+                  >{{ item.nombre }}
+                  <span class="item-category"
+                    >({{ item.categoria }})</span
+                  ></span
+                >
+                <span class="item-quantity"
+                  >{{ formatDecimal(item.cantidad) }} {{ item.unidad }}</span
+                >
               </li>
             </ul>
           </div>
@@ -48,21 +65,38 @@
               <div class="entregar-hoy-header-container">
                 <div class="card-header sticky-header">
                   <h3 class="card-title">📦 Entregar Hoy</h3>
-                  <span class="badge" :class="entregarHoyOrdenados.length > 0 ? 'alert' : 'success'">
+                  <span
+                    class="badge"
+                    :class="
+                      entregarHoyOrdenados.length > 0 ? 'alert' : 'success'
+                    "
+                  >
                     {{ entregarHoyOrdenados.length }}
                   </span>
                 </div>
               </div>
 
               <div class="entregar-hoy-list">
-                <div v-if="entregarHoyOrdenados.length === 0" class="empty-state">
+                <div
+                  v-if="entregarHoyOrdenados.length === 0"
+                  class="empty-state"
+                >
                   🎉 No hay pedidos para entregar hoy
                 </div>
 
-                <div v-for="task in entregarHoyOrdenados" :key="task.id" class="task-item" :class="task.estado">
+                <div
+                  v-for="task in entregarHoyOrdenados"
+                  :key="task.id"
+                  class="task-item"
+                  :class="task.estado"
+                >
                   <label class="task-checkbox">
-                    <input type="checkbox" :checked="task.estado === 'entregado'"
-                      :disabled="task.estado === 'entregado'" @change="confirmarEntrega(task)" />
+                    <input
+                      type="checkbox"
+                      :checked="task.estado === 'entregado'"
+                      :disabled="task.estado === 'entregado'"
+                      @change="confirmarEntrega(task)"
+                    />
                     <span class="checkmark"></span>
                   </label>
                   <div class="task-content">
@@ -74,16 +108,24 @@
                     </div>
 
                     <div class="task-details">
-                      <span class="fecha">Entrega: {{ formatDate(task.fecha_entrega) }}</span>
+                      <span class="fecha"
+                        >Entrega: {{ formatDate(task.fecha_entrega) }}</span
+                      >
                       <span class="recetas">
                         {{ getRecetasText(task.detalles) }}
                       </span>
                     </div>
 
-                    <div v-if="task.estado === 'listo'" class="alert-preparacion">
+                    <div
+                      v-if="task.estado === 'listo'"
+                      class="alert-preparacion"
+                    >
                       ⚠️ Listo para entregar
                     </div>
-                    <div v-if="task.estado === 'entregado'" class="entregado-info">
+                    <div
+                      v-if="task.estado === 'entregado'"
+                      class="entregado-info"
+                    >
                       ✅ Entregado hoy
                     </div>
                   </div>
@@ -96,7 +138,10 @@
               <div class="hacer-hoy-header-container">
                 <div class="card-header sticky-header">
                   <h3 class="card-title">👨‍🍳 Hacer Hoy (Próximos 3 días)</h3>
-                  <span class="badge" :class="hacerHoyOrdenados.length > 0 ? 'alert' : 'success'">
+                  <span
+                    class="badge"
+                    :class="hacerHoyOrdenados.length > 0 ? 'alert' : 'success'"
+                  >
                     {{ hacerHoyOrdenados.length }}
                   </span>
                 </div>
@@ -107,11 +152,21 @@
                   ✅ No hay pedidos pendientes para los próximos 3 días
                 </div>
 
-                <div v-for="task in hacerHoyOrdenados" :key="task.id" class="task-item" :class="task.estado">
+                <div
+                  v-for="task in hacerHoyOrdenados"
+                  :key="task.id"
+                  class="task-item"
+                  :class="task.estado"
+                >
                   <label class="task-checkbox">
-                    <input type="checkbox" :checked="task.estado === 'listo'" 
-                           :disabled="task.estado === 'listo' || task.estado === 'entregado'"
-                           @change="confirmarPreparacion(task)" />
+                    <input
+                      type="checkbox"
+                      :checked="task.estado === 'listo'"
+                      :disabled="
+                        task.estado === 'listo' || task.estado === 'entregado'
+                      "
+                      @change="confirmarPreparacion(task)"
+                    />
                     <span class="checkmark"></span>
                   </label>
 
@@ -124,12 +179,18 @@
                     </div>
 
                     <div class="task-details">
-                      <span class="fecha" :class="{
-                        'destacada': isHoy(task.fecha_entrega),
-                        'atrasado': isAtrasado(task.fecha_entrega)
-                      }">
+                      <span
+                        class="fecha"
+                        :class="{
+                          destacada: isHoy(task.fecha_entrega),
+                          atrasado: isAtrasado(task.fecha_entrega),
+                        }"
+                      >
                         📅 {{ formatDate(task.fecha_entrega) }}
-                        <span v-if="isAtrasado(task.fecha_entrega)" class="atrasado-badge">
+                        <span
+                          v-if="isAtrasado(task.fecha_entrega)"
+                          class="atrasado-badge"
+                        >
                           ⚠️ Atrasado
                         </span>
                       </span>
@@ -142,7 +203,10 @@
                       {{ getDiasRestantes(task.fecha_entrega) }}
                     </div>
 
-                    <div v-if="task.estado === 'listo'" class="preparacion-info">
+                    <div
+                      v-if="task.estado === 'listo'"
+                      class="preparacion-info"
+                    >
                       👨‍🍳 Listo
                     </div>
                   </div>
@@ -156,13 +220,22 @@
             <div class="recetas-header">
               <h3 class="card-title">📋 Recetas</h3>
               <form autocomplete="off" class="search-form">
-                <input autocomplete="off" v-model="searchTerm" type="text" placeholder="🔍 Buscar receta..."
-                  class="search-input" />
+                <input
+                  autocomplete="off"
+                  v-model="searchTerm"
+                  type="text"
+                  placeholder="🔍 Buscar receta..."
+                  class="search-input"
+                />
               </form>
             </div>
 
             <ul class="recetas-list">
-              <li v-for="receta in filteredRecetas" :key="receta.id" class="receta-item">
+              <li
+                v-for="receta in filteredRecetas"
+                :key="receta.id"
+                class="receta-item"
+              >
                 <span class="receta-info">
                   {{ receta.nombre }}
                   <span class="receta-rinde">
@@ -171,11 +244,20 @@
                   </span>
                 </span>
                 <div class="contador">
-                  <button @click="decrementarContador(receta)" :disabled="!receta.veces_hecha" class="btn-contador">
+                  <button
+                    @click="decrementarContador(receta)"
+                    :disabled="!receta.veces_hecha"
+                    class="btn-contador"
+                  >
                     -
                   </button>
-                  <span class="contador-value">{{ receta.veces_hecha || 0 }}</span>
-                  <button @click="incrementarContador(receta)" class="btn-contador">
+                  <span class="contador-value">{{
+                    receta.veces_hecha || 0
+                  }}</span>
+                  <button
+                    @click="incrementarContador(receta)"
+                    class="btn-contador"
+                  >
                     +
                   </button>
                 </div>
@@ -212,8 +294,14 @@
             <i class="fas fa-times"></i>
             Cancelar
           </button>
-          <button @click="confirmAction" class="confirm-button"
-            :class="{ 'danger': modalType === 'entrega', 'warning': modalType === 'preparacion' }">
+          <button
+            @click="confirmAction"
+            class="confirm-button"
+            :class="{
+              danger: modalType === 'entrega',
+              warning: modalType === 'preparacion',
+            }"
+          >
             <i class="fas" :class="modalConfirmIcon"></i>
             {{ modalConfirmText }}
           </button>
@@ -263,30 +351,24 @@ const modalAction = ref(null);
 const currentTask = ref(null);
 
 const modalIcon = computed(() => {
-  return modalType.value === 'entrega'
-    ? 'fa-truck'
-    : 'fa-utensils';
+  return modalType.value === "entrega" ? "fa-truck" : "fa-utensils";
 });
 
 const modalConfirmIcon = computed(() => {
-  return modalType.value === 'entrega'
-    ? 'fa-check-circle'
-    : 'fa-play-circle';
+  return modalType.value === "entrega" ? "fa-check-circle" : "fa-play-circle";
 });
 
 const modalConfirmText = computed(() => {
-  return modalType.value === 'entrega'
-    ? 'Sí, Entregar'
-    : 'Sí, terminar pedido';
+  return modalType.value === "entrega" ? "Sí, Entregar" : "Sí, terminar pedido";
 });
 
 // Método para confirmar entrega
 const confirmarEntrega = (task) => {
-  if (task.estado === 'entregado') return;
+  if (task.estado === "entregado") return;
 
   currentTask.value = task;
-  modalType.value = 'entrega';
-  modalTitle.value = 'Confirmar Entrega';
+  modalType.value = "entrega";
+  modalTitle.value = "Confirmar Entrega";
   modalMessage.value = `¿Estás seguro que quieres marcar como ENTREGADO el pedido?`;
   modalDetails.value = `Cliente: ${task.nombre}`;
   modalAction.value = () => marcarComoEntregado(task);
@@ -296,13 +378,15 @@ const confirmarEntrega = (task) => {
 
 // Método para confirmar preparación
 const confirmarPreparacion = (task) => {
-  if (task.estado === 'listo' || task.estado === 'entregado') return;
+  if (task.estado === "listo" || task.estado === "entregado") return;
 
   currentTask.value = task;
-  modalType.value = 'preparacion';
-  modalTitle.value = 'Terminar pedido';
+  modalType.value = "preparacion";
+  modalTitle.value = "Terminar pedido";
   modalMessage.value = `¿Estás seguro que quieres terminar el pedido?`;
-  modalDetails.value = `Cliente: ${task.nombre}\nFecha de entrega: ${formatDate(task.fecha_entrega)}`;
+  modalDetails.value = `Cliente: ${task.nombre}\nFecha de entrega: ${formatDate(
+    task.fecha_entrega
+  )}`;
   modalAction.value = () => empezarPreparacion(task);
 
   showConfirmModal.value = true;
@@ -358,8 +442,9 @@ const incrementarContador = async (receta) => {
 
       notificationSystem.show({
         type: "error",
-        title: `Stock insuficiente para ${response.data.receta_nombre || receta.nombre
-          }`,
+        title: `Stock insuficiente para ${
+          response.data.receta_nombre || receta.nombre
+        }`,
         message: mensajeError,
         timeout: 10000,
       });
@@ -484,8 +569,8 @@ const hacerHoy = ref([]);
 const entregarHoyOrdenados = computed(() => {
   return [...entregarHoy.value].sort((a, b) => {
     // Primero los pendientes, luego los entregados
-    if (a.estado !== 'entregado' && b.estado === 'entregado') return -1;
-    if (a.estado === 'entregado' && b.estado !== 'entregado') return 1;
+    if (a.estado !== "entregado" && b.estado === "entregado") return -1;
+    if (a.estado === "entregado" && b.estado !== "entregado") return 1;
     // Luego por fecha
     return new Date(a.fecha_entrega) - new Date(b.fecha_entrega);
   });
@@ -494,8 +579,8 @@ const entregarHoyOrdenados = computed(() => {
 const hacerHoyOrdenados = computed(() => {
   return [...hacerHoy.value].sort((a, b) => {
     // Primero los pendientes, luego los en preparación
-    if (a.estado === 'pendiente' && b.estado !== 'pendiente') return -1;
-    if (a.estado !== 'pendiente' && b.estado === 'pendiente') return 1;
+    if (a.estado === "pendiente" && b.estado !== "pendiente") return -1;
+    if (a.estado !== "pendiente" && b.estado === "pendiente") return 1;
     // Luego por fecha más próxima
     return new Date(a.fecha_entrega) - new Date(b.fecha_entrega);
   });
@@ -512,9 +597,9 @@ const isAtrasado = (fechaEntrega) => {
 const marcarComoEntregado = async (task) => {
   try {
     await actualizarEstadoPedido(task.id, "entregado", "entregarHoy");
-    
+
     // ✅ Actualizar estado localmente SIN recargar
-    const index = entregarHoy.value.findIndex(p => p.id === task.id);
+    const index = entregarHoy.value.findIndex((p) => p.id === task.id);
     if (index !== -1) {
       entregarHoy.value[index].estado = "entregado";
     }
@@ -525,10 +610,6 @@ const marcarComoEntregado = async (task) => {
       message: `El pedido de ${task.nombre} ha sido marcado como entregado`,
       timeout: 3000,
     });
-
-    // ❌ ELIMINADO: No recargar los pedidos
-    // setTimeout(() => { fetchPedidos(); }, 1000);
-    
   } catch (error) {
     console.error("Error al marcar como entregado:", error);
   }
@@ -538,9 +619,9 @@ const marcarComoEntregado = async (task) => {
 const empezarPreparacion = async (task) => {
   try {
     await actualizarEstadoPedido(task.id, "listo", "hacerHoy");
-    
+
     // ✅ Actualizar estado localmente SIN recargar
-    const index = hacerHoy.value.findIndex(p => p.id === task.id);
+    const index = hacerHoy.value.findIndex((p) => p.id === task.id);
     if (index !== -1) {
       hacerHoy.value[index].estado = "listo";
     }
@@ -554,7 +635,6 @@ const empezarPreparacion = async (task) => {
 
     // ❌ ELIMINADO: No recargar los pedidos
     // setTimeout(() => { fetchPedidos(); }, 1000);
-    
   } catch (error) {
     console.error("Error al terminar pedido:", error);
   }
@@ -1057,8 +1137,6 @@ onMounted(() => {
   border-radius: 4px;
 }
 
-
-
 /* -------------------- CARDS CON HEADER FIJO MEJORADO -------------------- */
 .card.entregar-hoy,
 .card.hacer-hoy {
@@ -1091,7 +1169,7 @@ onMounted(() => {
   padding: 15px 8px;
   margin: -8px -8px 15px -8px;
   border-radius: 10px 10px 0 0;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   border-bottom: 2px solid #e9ecef;
 }
 
@@ -1182,12 +1260,12 @@ onMounted(() => {
 }
 
 /* Al pasar el mouse sobre el checkmark */
-.task-checkbox:hover input:not(:disabled)~.checkmark {
+.task-checkbox:hover input:not(:disabled) ~ .checkmark {
   border-color: #7b5a50;
 }
 
 /* Cuando el checkbox está checked */
-.task-checkbox input:checked~.checkmark {
+.task-checkbox input:checked ~ .checkmark {
   background: #27ae60;
   border-color: #27ae60;
 }
@@ -1209,23 +1287,23 @@ onMounted(() => {
 }
 
 /* Mostrar el checkmark cuando está checked */
-.task-checkbox input:checked~.checkmark:after {
+.task-checkbox input:checked ~ .checkmark:after {
   display: block;
 }
 
 /* Estilos para estado deshabilitado */
-.task-checkbox input:disabled~.checkmark {
+.task-checkbox input:disabled ~ .checkmark {
   background: #f0f0f0;
   border-color: #ddd;
   cursor: not-allowed;
 }
 
-.task-checkbox input:disabled:checked~.checkmark {
+.task-checkbox input:disabled:checked ~ .checkmark {
   background: #95a5a6;
   border-color: #95a5a6;
 }
 
-.task-checkbox input:disabled~.checkmark:after {
+.task-checkbox input:disabled ~ .checkmark:after {
   border-color: #bdc3c7;
 }
 
