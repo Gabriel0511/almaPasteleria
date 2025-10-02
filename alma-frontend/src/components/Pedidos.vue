@@ -61,7 +61,12 @@
               class="pedido-item"
               :class="{ 'pedido-entregado': pedido.estado === 'entregado' }"
             >
-              <div class="pedido-header">
+              <!-- En la sección del pedido-item, modificar el pedido-header -->
+              <div
+                class="pedido-header"
+                @click="togglePedido(pedido.id)"
+                :class="{ 'cursor-pointer': true }"
+              >
                 <div class="pedido-info">
                   <div class="pedido-titulo">
                     <span class="cliente-nombre">
@@ -98,7 +103,8 @@
                     </div>
                   </div>
                 </div>
-                <div class="pedido-acciones">
+                <div class="pedido-acciones" @click.stop>
+                  <!-- Los botones de acción mantienen el @click.stop para evitar que el evento se propague -->
                   <button
                     class="btn-accion btn-editar"
                     @click="editarPedido(pedido)"
@@ -135,7 +141,6 @@
                   </button>
                 </div>
               </div>
-
               <!-- Desplegable de detalles del pedido -->
               <div
                 v-if="pedidoDesplegado[pedido.id]"
@@ -2799,6 +2804,34 @@ onMounted(() => {
 .empty-state p {
   margin: 0;
   font-size: 1.1rem;
+}
+
+/* Añadir al final de la sección de estilos */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.pedido-header:hover {
+  background-color: rgba(123, 90, 80, 0.03);
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+/* Indicador visual de que es clickeable */
+.pedido-header::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 12px;
+  pointer-events: none;
+  transition: box-shadow 0.2s ease;
+}
+
+.pedido-header:hover::after {
+  box-shadow: inset 0 0 0 2px rgba(123, 90, 80, 0.1);
 }
 
 /* ----------------------------- RESPONSIVE ----------------------------- */

@@ -44,7 +44,11 @@
               <!-- Contenedor principal del header -->
               <div class="receta-item-main">
                 <!-- Header que ocupa todo el ancho -->
-                <div class="receta-header-full">
+                <!-- En la sección del receta-item, modificar el receta-header-full -->
+                <div
+                  class="receta-header-full cursor-pointer"
+                  @click="toggleReceta(receta.id)"
+                >
                   <div class="receta-header-content">
                     <div class="receta-info-main">
                       <div class="receta-titulo">
@@ -75,7 +79,7 @@
                       </div>
                     </div>
 
-                    <div class="receta-header-right">
+                    <div class="receta-header-right" @click.stop>
                       <span
                         class="receta-estado-badge"
                         :class="{
@@ -102,21 +106,21 @@
                       <div class="receta-acciones">
                         <button
                           class="btn-accion btn-editar"
-                          @click.stop="editarReceta(receta)"
+                          @click="editarReceta(receta)"
                           title="Editar receta"
                         >
                           <i class="fas fa-edit"></i>
                         </button>
                         <button
                           class="btn-accion btn-eliminar"
-                          @click.stop="confirmarEliminarReceta(receta)"
+                          @click="confirmarEliminarReceta(receta)"
                           title="Eliminar receta"
                         >
                           <i class="fas fa-trash"></i>
                         </button>
                         <button
                           class="btn-accion btn-desplegable"
-                          @click.stop="toggleReceta(receta.id)"
+                          @click="toggleReceta(receta.id)"
                           :title="
                             recetaDesplegada[receta.id]
                               ? 'Ocultar detalles'
@@ -2210,6 +2214,45 @@ onMounted(() => {
 .btn-agregar-insumo-small:hover {
   background: #9c7a6d;
   transform: translateY(-1px);
+}
+
+/* Añadir al final de la sección de estilos */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.receta-header-full:hover {
+  background-color: rgba(123, 90, 80, 0.05);
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+/* Indicador visual de que es clickeable */
+.receta-header-full::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 12px;
+  pointer-events: none;
+  transition: box-shadow 0.2s ease;
+}
+
+.receta-header-full:hover::after {
+  box-shadow: inset 0 0 0 2px rgba(123, 90, 80, 0.1);
+}
+
+/* Mejorar la transición del desplegable */
+.receta-detalles-container {
+  transition: all 0.3s ease;
+  max-height: 0;
+  overflow: hidden;
+}
+
+.receta-item.expanded .receta-detalles-container {
+  max-height: 1000px;
 }
 
 /* ----------------------------- RESPONSIVE ----------------------------- */
