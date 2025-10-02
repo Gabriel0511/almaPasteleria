@@ -11,12 +11,7 @@
           <!-- Filtros de stock -->
           <div class="filtros-derecha">
             <div class="filtro-group">
-              <input
-                type="text"
-                v-model="searchTerm"
-                placeholder="Buscar insumo..."
-                class="filtro-input"
-              />
+              <input type="text" v-model="searchTerm" placeholder="Buscar insumo..." class="filtro-input" />
             </div>
 
             <div class="filtro-group">
@@ -48,16 +43,11 @@
           </div>
 
           <div v-else class="stock-list">
-            <div
-              v-for="item in stockFiltrado"
-              :key="item.id"
-              class="stock-item"
-              :class="{
-                'bajo-stock': item.bajoStock,
-                'stock-critico': item.cantidad <= item.stock_minimo * 0.5,
-                expanded: stockDesplegado[item.id],
-              }"
-            >
+            <div v-for="item in stockFiltrado" :key="item.id" class="stock-item" :class="{
+              'bajo-stock': item.bajoStock,
+              'stock-critico': item.cantidad <= item.stock_minimo * 0.5,
+              expanded: stockDesplegado[item.id],
+            }">
               <!-- Contenedor principal del header -->
               <div class="stock-item-main">
                 <!-- Header que ocupa todo el ancho -->
@@ -83,87 +73,47 @@
                         </div>
                         <div class="dato-grupo">
                           <i class="fas fa-truck"></i>
-                          <span class="stock-proveedor">{{
-                            item.proveedor
-                          }}</span>
+                          <span class="stock-proveedor">{{ item.proveedor }}</span>
                         </div>
                       </div>
                     </div>
 
                     <div class="stock-header-right">
-                      <span
-                        class="stock-estado-badge"
-                        :class="{
-                          critico: item.cantidad <= item.stock_minimo * 0.5,
-                          bajo:
-                            item.bajoStock &&
-                            item.cantidad > item.stock_minimo * 0.5,
-                          normal: !item.bajoStock,
-                        }"
-                      >
-                        <i
-                          class="fas"
-                          :class="{
-                            'fa-exclamation-triangle':
-                              item.cantidad <= item.stock_minimo * 0.5,
-                            'fa-exclamation-circle':
-                              item.bajoStock &&
-                              item.cantidad > item.stock_minimo * 0.5,
-                            'fa-check-circle': !item.bajoStock,
-                          }"
-                        ></i>
+                      <span class="stock-estado-badge" :class="{
+                        critico: item.cantidad <= item.stock_minimo * 0.5,
+                        bajo: item.bajoStock && item.cantidad > item.stock_minimo * 0.5,
+                        normal: !item.bajoStock,
+                      }">
+                        <i class="fas" :class="{
+                          'fa-exclamation-triangle': item.cantidad <= item.stock_minimo * 0.5,
+                          'fa-exclamation-circle': item.bajoStock && item.cantidad > item.stock_minimo * 0.5,
+                          'fa-check-circle': !item.bajoStock,
+                        }"></i>
                         {{
-                          item.cantidad <= item.stock_minimo * 0.5
-                            ? "Crítico"
-                            : item.bajoStock
-                            ? "Bajo"
-                            : "Normal"
-                        }}
-                      </span>
+                          item.cantidad <= item.stock_minimo * 0.5 ? "Crítico" : item.bajoStock ? "Bajo" : "Normal" }}
+                          </span>
 
-                      <div class="stock-acciones">
-                        <button
-                          class="btn-accion btn-editar"
-                          @click.stop="editarInsumo(item)"
-                          title="Editar insumo"
-                        >
-                          <i class="fas fa-edit"></i>
-                        </button>
-                        <button
-                          class="btn-accion btn-eliminar"
-                          @click.stop="confirmarEliminarInsumo(item)"
-                          title="Eliminar insumo"
-                        >
-                          <i class="fas fa-trash"></i>
-                        </button>
-                        <button
-                          class="btn-accion btn-desplegable"
-                          @click.stop="toggleStock(item.id)"
-                          :title="
-                            stockDesplegado[item.id]
-                              ? 'Ocultar detalles'
-                              : 'Mostrar detalles'
-                          "
-                        >
-                          <i
-                            class="fas"
-                            :class="
-                              stockDesplegado[item.id]
-                                ? 'fa-chevron-up'
-                                : 'fa-chevron-down'
-                            "
-                          ></i>
-                        </button>
-                      </div>
+                          <div class="stock-acciones">
+                            <button class="btn-accion btn-editar" @click.stop="editarInsumo(item)"
+                              title="Editar insumo">
+                              <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-accion btn-eliminar" @click.stop="confirmarEliminarInsumo(item)"
+                              title="Eliminar insumo">
+                              <i class="fas fa-trash"></i>
+                            </button>
+                            <button class="btn-accion btn-desplegable" @click.stop="toggleStock(item.id)"
+                              :title="stockDesplegado[item.id] ? 'Ocultar detalles' : 'Mostrar detalles'">
+                              <i class="fas"
+                                :class="stockDesplegado[item.id] ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                            </button>
+                          </div>
                     </div>
                   </div>
                 </div>
 
                 <!-- Desplegable que aparece en la parte inferior del stock-item -->
-                <div
-                  v-if="stockDesplegado[item.id]"
-                  class="stock-detalles-container"
-                >
+                <div v-if="stockDesplegado[item.id]" class="stock-detalles-container">
                   <div class="detalles-content">
                     <!-- Información de stock mínimo -->
                     <div class="stock-minimo-info">
@@ -174,65 +124,40 @@
                         <div class="minimo-item">
                           <span class="minimo-label">Stock Mínimo:</span>
                           <span class="minimo-valor">
-                            {{ formatDecimal(item.stock_minimo) }}
-                            {{ item.unidad }}
+                            {{ formatDecimal(item.stock_minimo) }} {{ item.unidad }}
                           </span>
                         </div>
                         <div class="minimo-item">
                           <span class="minimo-label">Stock Actual:</span>
-                          <span
-                            class="minimo-valor"
-                            :class="{
-                              critico: item.cantidad <= item.stock_minimo * 0.5,
-                              bajo:
-                                item.bajoStock &&
-                                item.cantidad > item.stock_minimo * 0.5,
-                              normal: !item.bajoStock,
-                            }"
-                          >
+                          <span class="minimo-valor" :class="{
+                            critico: item.cantidad <= item.stock_minimo * 0.5,
+                            bajo: item.bajoStock && item.cantidad > item.stock_minimo * 0.5,
+                            normal: !item.bajoStock,
+                          }">
                             {{ formatDecimal(item.cantidad) }} {{ item.unidad }}
                           </span>
                         </div>
                         <div class="minimo-item">
                           <span class="minimo-label">Diferencia:</span>
-                          <span
-                            class="minimo-valor"
-                            :class="{
-                              negativo: item.cantidad < item.stock_minimo,
-                              positivo: item.cantidad >= item.stock_minimo,
-                            }"
-                          >
-                            {{
-                              formatDecimal(item.cantidad - item.stock_minimo)
-                            }}
-                            {{ item.unidad }}
+                          <span class="minimo-valor" :class="{
+                            negativo: item.cantidad < item.stock_minimo,
+                            positivo: item.cantidad >= item.stock_minimo,
+                          }">
+                            {{ formatDecimal(item.cantidad - item.stock_minimo) }} {{ item.unidad }}
                           </span>
                         </div>
                       </div>
                     </div>
 
                     <!-- Alertas de stock -->
-                    <div
-                      v-if="item.bajoStock"
-                      class="stock-alerta"
-                      :class="{
-                        'alerta-critica':
-                          item.cantidad <= item.stock_minimo * 0.5,
-                        'alerta-baja':
-                          item.bajoStock &&
-                          item.cantidad > item.stock_minimo * 0.5,
-                      }"
-                    >
-                      <i
-                        class="fas"
-                        :class="{
-                          'fa-exclamation-triangle':
-                            item.cantidad <= item.stock_minimo * 0.5,
-                          'fa-exclamation-circle':
-                            item.bajoStock &&
-                            item.cantidad > item.stock_minimo * 0.5,
-                        }"
-                      ></i>
+                    <div v-if="item.bajoStock" class="stock-alerta" :class="{
+                      'alerta-critica': item.cantidad <= item.stock_minimo * 0.5,
+                      'alerta-baja': item.bajoStock && item.cantidad > item.stock_minimo * 0.5,
+                    }">
+                      <i class="fas" :class="{
+                        'fa-exclamation-triangle': item.cantidad <= item.stock_minimo * 0.5,
+                        'fa-exclamation-circle': item.bajoStock && item.cantidad > item.stock_minimo * 0.5,
+                      }"></i>
                       <span v-if="item.cantidad <= item.stock_minimo * 0.5">
                         ¡Stock crítico! Necesita reposición urgente.
                       </span>
@@ -241,10 +166,7 @@
 
                     <!-- Acciones rápidas -->
                     <div class="stock-acciones-rapidas" v-if="item.bajoStock">
-                      <button
-                        class="btn-reposicion"
-                        @click="reponerStockRapido(item)"
-                      >
+                      <button class="btn-reposicion" @click="reponerStockRapido(item)">
                         <i class="fas fa-bolt"></i> Reposición Rápida
                       </button>
                     </div>
@@ -262,6 +184,8 @@
         </button>
       </main>
     </div>
+
+    <!-- MODALES REFACTORIZADOS -->
 
     <!-- MODALES REFACTORIZADOS -->
 
@@ -783,17 +707,13 @@ const stockFiltrado = computed(() => {
 
   // Filtrar por categoría
   if (categoriaSeleccionada.value) {
-    filtered = filtered.filter(
-      (item) => item.categoria === categoriaSeleccionada.value
-    );
+    filtered = filtered.filter((item) => item.categoria === categoriaSeleccionada.value);
   }
 
   // Filtrar por término de búsqueda
   if (searchTerm.value) {
     const term = searchTerm.value.toLowerCase();
-    filtered = filtered.filter((item) =>
-      item.nombre.toLowerCase().includes(term)
-    );
+    filtered = filtered.filter((item) => item.nombre.toLowerCase().includes(term));
   }
 
   // Ordenar: stock crítico primero, luego bajo, luego normal
@@ -807,25 +727,6 @@ const stockFiltrado = computed(() => {
     if (!a.bajoStock && b.bajoStock) return 1;
     return 0;
   });
-});
-
-// Agrega esta computed property que solo permite kg, litros y unidades
-const unidadesPermitidas = computed(() => {
-  const abreviaturasPermitidas = ["kg", "l", "L", "lt", "un", "ud", "u"];
-  const nombresPermitidos = [
-    "kilogramo",
-    "kilogramos",
-    "litro",
-    "litros",
-    "unidad",
-    "unidades",
-  ];
-
-  return unidadesMedida.value.filter(
-    (unidad) =>
-      abreviaturasPermitidas.includes(unidad.abreviatura.toLowerCase()) ||
-      nombresPermitidos.includes(unidad.nombre.toLowerCase())
-  );
 });
 
 // 🔍 MÉTODO PARA FILTRAR INSUMOS EN MODAL DE COMPRA
@@ -904,10 +805,7 @@ const guardarCategoria = async () => {
       return;
     }
 
-    const response = await axios.post(
-      "/api/categorias/crear/",
-      formCategoria.value
-    );
+    const response = await axios.post("/api/categorias/crear/", formCategoria.value);
 
     // Actualizar lista de categorías
     await fetchCategorias();
@@ -968,10 +866,7 @@ const guardarUnidadDeMedida = async () => {
       return;
     }
 
-    const response = await axios.post(
-      "/api/unidades-medida/crear/",
-      formUnidad.value
-    );
+    const response = await axios.post("/api/unidades-medida/crear/", formUnidad.value);
 
     // Actualizar lista de unidades
     await fetchUnidadesMedida();
@@ -1057,11 +952,9 @@ const editarInsumo = (insumo) => {
   formInsumo.value = {
     id: insumo.id,
     nombre: insumo.nombre,
-    categoria_id:
-      categorias.value.find((c) => c.nombre === insumo.categoria)?.id || "",
+    categoria_id: categorias.value.find((c) => c.nombre === insumo.categoria)?.id || "",
     unidad_medida_id:
-      unidadesMedida.value.find((u) => u.abreviatura === insumo.unidad)?.id ||
-      "",
+      unidadesMedida.value.find((u) => u.abreviatura === insumo.unidad)?.id || "",
     stock_minimo: parsearNumero(insumo.stock_minimo),
     precio_unitario: parsearNumero(insumo.precio_unitario),
     proveedor_id: insumo.proveedor_id,
@@ -1079,9 +972,7 @@ const eliminarInsumo = async () => {
     await axios.delete(`/api/insumos/${insumoAEliminar.value.id}/eliminar/`);
 
     // Actualizar la lista local inmediatamente sin recargar toda la data
-    const index = stock.value.findIndex(
-      (item) => item.id === insumoAEliminar.value.id
-    );
+    const index = stock.value.findIndex((item) => item.id === insumoAEliminar.value.id);
     if (index !== -1) {
       stock.value.splice(index, 1);
     }
@@ -1146,9 +1037,7 @@ const guardarInsumo = async () => {
       nombre: formInsumo.value.nombre,
       categoria_id: formInsumo.value.categoria_id || null,
       unidad_medida_id: formInsumo.value.unidad_medida_id,
-      stock_minimo: formatearParaBackend(
-        parseFloat(formInsumo.value.stock_minimo)
-      ),
+      stock_minimo: formatearParaBackend(parseFloat(formInsumo.value.stock_minimo)),
       precio_unitario: formInsumo.value.precio_unitario
         ? formatearParaBackend(parseFloat(formInsumo.value.precio_unitario))
         : null,
@@ -1207,9 +1096,7 @@ const guardarInsumo = async () => {
 
 const registrarCompra = async () => {
   try {
-    const insumo = insumos.value.find(
-      (i) => i.id === parseInt(formCompra.value.insumo_id)
-    );
+    const insumo = insumos.value.find((i) => i.id === parseInt(formCompra.value.insumo_id));
 
     if (!insumo) {
       throw new Error("Insumo no encontrado");
@@ -1286,10 +1173,7 @@ const registrarCompra = async () => {
 
 const guardarProveedor = async () => {
   try {
-    const response = await axios.post(
-      "/api/proveedores/crear/",
-      formProveedor.value
-    );
+    const response = await axios.post("/api/proveedores/crear/", formProveedor.value);
     await fetchProveedores();
     showNuevoProveedorModal.value = false;
     resetFormProveedor();
@@ -1323,9 +1207,7 @@ const guardarProveedor = async () => {
 };
 
 const actualizarUnidadMedida = () => {
-  const insumo = insumos.value.find(
-    (i) => i.id === parseInt(formCompra.value.insumo_id)
-  );
+  const insumo = insumos.value.find((i) => i.id === parseInt(formCompra.value.insumo_id));
   if (insumo && insumo.unidad_medida) {
     unidadCompra.value = insumo.unidad_medida.abreviatura;
   } else {
@@ -1467,19 +1349,12 @@ const fetchProveedores = async () => {
 
 // Watchers
 watch(() => formCompra.value.insumo_id, actualizarUnidadMedida);
-watch(
-  () => [formCompra.value.cantidad, formCompra.value.precio_total],
-  calcularPrecioUnitario
-);
+watch(() => [formCompra.value.cantidad, formCompra.value.precio_total], calcularPrecioUnitario);
 
 // 🔍 WATCHER PARA INICIALIZAR LISTA FILTRADA CUANDO SE ACTUALIZAN LOS INSUMOS
-watch(
-  () => insumos.value,
-  () => {
-    insumosFiltrados.value = insumos.value;
-  },
-  { immediate: true }
-);
+watch(() => insumos.value, () => {
+  insumosFiltrados.value = insumos.value;
+}, { immediate: true });
 
 // Cargar datos al montar el componente
 onMounted(() => {
@@ -2114,5 +1989,38 @@ onMounted(() => {
   .insumo-nombre {
     font-size: 1.1rem;
   }
+}
+
+/* BOTONES agregar algo */
+.btn-agregar {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 36px;
+  height: 36px;
+}
+
+.btn-agregar:hover {
+  background-color: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-agregar:active {
+  transform: translateY(0);
+}
+
+.btn-agregar i {
+  font-size: 0.8rem;
 }
 </style>
