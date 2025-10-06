@@ -339,17 +339,6 @@
         </div>
 
         <div class="form-group">
-          <label>Fecha de Pedido:</label>
-          <input
-            v-model="formPedido.fecha_pedido"
-            type="date"
-            required
-            class="form-input"
-            :disabled="esEdicionPedido"
-          />
-        </div>
-
-        <div class="form-group">
           <label>Fecha de Entrega:</label>
           <input
             v-model="formPedido.fecha_entrega"
@@ -1411,21 +1400,42 @@ const guardarPedido = async () => {
         `/api/pedidos/${formPedido.value.id}/`,
         formPedido.value
       );
+
+      await fetchPedidos();
+      closeModal();
+
+      notificationSystem.show({
+        type: "success",
+        title: "Pedido actualizado",
+        message: "Pedido actualizado correctamente",
+        timeout: 4000,
+      });
     } else {
       response = await axios.post("/api/pedidos/", formPedido.value);
+
+      await fetchPedidos();
+      closeModal();
+
+      notificationSystem.show({
+        type: "success",
+        title: "Pedido creado",
+        message: "Pedido creado correctamente",
+        timeout: 4000,
+      });
+
+      // 🆕 ABRIR MODAL DE AGREGAR RECETA AUTOMÁTICAMENTE
+      // Buscar el pedido recién creado en la lista actualizada
+      const nuevoPedido = pedidos.value.find(
+        (pedido) => pedido.id === response.data.id
+      );
+
+      if (nuevoPedido) {
+        // Pequeño delay para que el usuario vea la notificación
+        setTimeout(() => {
+          showAgregarRecetaModal(nuevoPedido);
+        }, 500);
+      }
     }
-
-    await fetchPedidos();
-    closeModal();
-
-    notificationSystem.show({
-      type: "success",
-      title: esEdicionPedido.value ? "Pedido actualizado" : "Pedido creado",
-      message: esEdicionPedido.value
-        ? "Pedido actualizado correctamente"
-        : "Pedido creado correctamente",
-      timeout: 4000,
-    });
   } catch (error) {
     console.error("Error al guardar pedido:", error);
 
