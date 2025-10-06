@@ -269,8 +269,6 @@
 
     <!-- MODALES REFACTORIZADOS -->
 
-    <!-- MODALES REFACTORIZADOS -->
-
     <!-- Modal para Nuevo/Editar Insumo -->
     <BaseModal
       v-model:show="showModalInsumo"
@@ -305,7 +303,7 @@
             </select>
             <button
               type="button"
-              class="btn-agregar-nuevo"
+              class="btn-agregar"
               @click="showNuevaCategoriaModal = true"
               title="Agregar nueva categoría"
             >
@@ -333,7 +331,7 @@
             </select>
             <button
               type="button"
-              class="btn-agregar-nuevo"
+              class="btn-agregar"
               @click="showNuevaUnidadDeMedidaModal = true"
               title="Agregar nueva unidad de medida"
             >
@@ -382,7 +380,7 @@
             </select>
             <button
               type="button"
-              class="btn-agregar-nuevo"
+              class="btn-agregar"
               @click="showNuevoProveedorModal = true"
               title="Agregar nuevo proveedor"
             >
@@ -515,7 +513,7 @@
             </select>
             <button
               type="button"
-              class="btn-agregar-nuevo"
+              class="btn-agregar"
               @click="showNuevoProveedorModal = true"
               title="Agregar nuevo proveedor"
             >
@@ -1491,6 +1489,7 @@ onMounted(() => {
   });
 });
 </script>
+
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
 
@@ -2225,5 +2224,22 @@ onMounted(() => {
 
 .btn-agregar i {
   font-size: 0.8rem;
+}
+
+/* Contenedor para select + botón */
+.select-with-button {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.select-with-button .form-input {
+  flex: 1;
+  min-width: 0; /* Permite que se reduzca correctamente */
+}
+
+.select-with-button .btn-agregar {
+  flex-shrink: 0;
+  align-self: stretch; /* Hace que el botón tenga la misma altura que el select */
 }
 </style>
