@@ -1125,6 +1125,9 @@ const pedidosFiltrados = computed(() => {
     filtered = filtered.filter(
       (pedido) => pedido.estado === estadoSeleccionado.value
     );
+  } else {
+    // Si no hay estado seleccionado, excluir los entregados
+    filtered = filtered.filter((pedido) => pedido.estado !== "entregado");
   }
 
   // Filtrar por fecha
@@ -1144,11 +1147,14 @@ const pedidosFiltrados = computed(() => {
     });
   }
 
-  // Ordenar: pedidos entregados al final
+  // Ordenar por fecha de pedido (más reciente primero)
   return filtered.sort((a, b) => {
-    if (a.estado === "entregado" && b.estado !== "entregado") return 1;
-    if (a.estado !== "entregado" && b.estado === "entregado") return -1;
-    return 0;
+    // Convertir fechas a timestamps para comparar
+    const fechaA = new Date(a.fecha_pedido).getTime();
+    const fechaB = new Date(b.fecha_pedido).getTime();
+
+    // Orden descendente (más reciente primero)
+    return fechaB - fechaA;
   });
 });
 

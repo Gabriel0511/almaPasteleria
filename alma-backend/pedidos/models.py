@@ -24,7 +24,7 @@ class Pedido(models.Model):
     ]
 
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
-    fecha_pedido = models.DateField()
+    fecha_pedido = models.DateTimeField(default=timezone.now)
     fecha_entrega = models.DateField()
     fecha_fabricacion = models.DateField(blank=True, null=True)
     estado = models.CharField(max_length=20, choices=ESTADO_PEDIDO, default='pendiente')
@@ -34,6 +34,9 @@ class Pedido(models.Model):
 
     def __str__(self):
         return f"Pedido #{self.id} - {self.cliente.nombre}"
+    
+    class Meta:
+        ordering = ['-fecha_pedido']  # ← Orden descendente por defecto
 
 class DetallePedido(models.Model):
     pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='detalles')
