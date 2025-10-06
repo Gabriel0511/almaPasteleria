@@ -11,12 +11,7 @@
           <!-- Filtros de stock -->
           <div class="filtros-derecha">
             <div class="filtro-group">
-              <input
-                type="text"
-                v-model="searchTerm"
-                placeholder="Buscar insumo..."
-                class="filtro-input"
-              />
+              <input type="text" v-model="searchTerm" placeholder="Buscar insumo..." class="filtro-input" />
             </div>
 
             <div class="filtro-group">
@@ -48,24 +43,16 @@
           </div>
 
           <div v-else class="stock-list">
-            <div
-              v-for="item in stockFiltrado"
-              :key="item.id"
-              class="stock-item"
-              :class="{
-                'bajo-stock': item.bajoStock,
-                'stock-critico': item.cantidad <= item.stock_minimo * 0.5,
-                expanded: stockDesplegado[item.id],
-              }"
-            >
+            <div v-for="item in stockFiltrado" :key="item.id" class="stock-item" :class="{
+              'bajo-stock': item.bajoStock,
+              'stock-critico': item.cantidad <= item.stock_minimo * 0.5,
+              expanded: stockDesplegado[item.id],
+            }">
               <!-- Contenedor principal del header -->
               <div class="stock-item-main">
                 <!-- Header que ocupa todo el ancho -->
                 <!-- En la sección del stock-item, modificar el stock-header-full -->
-                <div
-                  class="stock-header-full cursor-pointer"
-                  @click="toggleStock(item.id)"
-                >
+                <div class="stock-header-full cursor-pointer" @click="toggleStock(item.id)">
                   <div class="stock-header-content">
                     <div class="stock-info-main">
                       <div class="stock-titulo">
@@ -95,79 +82,49 @@
                     </div>
 
                     <div class="stock-header-right" @click.stop>
-                      <span
-                        class="stock-estado-badge"
-                        :class="{
-                          critico: item.cantidad <= item.stock_minimo * 0.5,
-                          bajo:
+                      <span class="stock-estado-badge" :class="{
+                        critico: item.cantidad <= item.stock_minimo * 0.5,
+                        bajo:
+                          item.bajoStock &&
+                          item.cantidad > item.stock_minimo * 0.5,
+                        normal: !item.bajoStock,
+                      }">
+                        <i class="fas" :class="{
+                          'fa-exclamation-triangle':
+                            item.cantidad <= item.stock_minimo * 0.5,
+                          'fa-exclamation-circle':
                             item.bajoStock &&
                             item.cantidad > item.stock_minimo * 0.5,
-                          normal: !item.bajoStock,
-                        }"
-                      >
-                        <i
-                          class="fas"
-                          :class="{
-                            'fa-exclamation-triangle':
-                              item.cantidad <= item.stock_minimo * 0.5,
-                            'fa-exclamation-circle':
-                              item.bajoStock &&
-                              item.cantidad > item.stock_minimo * 0.5,
-                            'fa-check-circle': !item.bajoStock,
-                          }"
-                        ></i>
+                          'fa-check-circle': !item.bajoStock,
+                        }"></i>
                         {{
-                          item.cantidad <= item.stock_minimo * 0.5
-                            ? "Crítico"
-                            : item.bajoStock
-                            ? "Bajo"
-                            : "Normal"
-                        }}
-                      </span>
+                          item.cantidad <= item.stock_minimo * 0.5 ? "Crítico" : item.bajoStock ? "Bajo" : "Normal" }}
+                          </span>
 
-                      <div class="stock-acciones">
-                        <button
-                          class="btn-accion btn-editar"
-                          @click="editarInsumo(item)"
-                          title="Editar insumo"
-                        >
-                          <i class="fas fa-edit"></i>
-                        </button>
-                        <button
-                          class="btn-accion btn-eliminar"
-                          @click="confirmarEliminarInsumo(item)"
-                          title="Eliminar insumo"
-                        >
-                          <i class="fas fa-trash"></i>
-                        </button>
-                        <button
-                          class="btn-accion btn-desplegable"
-                          @click="toggleStock(item.id)"
-                          :title="
-                            stockDesplegado[item.id]
+                          <div class="stock-acciones">
+                            <button class="btn-accion btn-editar" @click="editarInsumo(item)" title="Editar insumo">
+                              <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-accion btn-eliminar" @click="confirmarEliminarInsumo(item)"
+                              title="Eliminar insumo">
+                              <i class="fas fa-trash"></i>
+                            </button>
+                            <button class="btn-accion btn-desplegable" @click="toggleStock(item.id)" :title="stockDesplegado[item.id]
                               ? 'Ocultar detalles'
                               : 'Mostrar detalles'
-                          "
-                        >
-                          <i
-                            class="fas"
-                            :class="
-                              stockDesplegado[item.id]
+                              ">
+                              <i class="fas" :class="stockDesplegado[item.id]
                                 ? 'fa-chevron-up'
                                 : 'fa-chevron-down'
-                            "
-                          ></i>
-                        </button>
-                      </div>
+                                "></i>
+                            </button>
+                          </div>
                     </div>
                   </div>
                 </div>
 
                 <!-- Desplegable que aparece en la parte inferior del stock-item -->
-                <div
-                  v-if="stockDesplegado[item.id]"
-                  class="stock-detalles-container"
-                >
+                <div v-if="stockDesplegado[item.id]" class="stock-detalles-container">
                   <div class="detalles-content">
                     <!-- Información de stock mínimo -->
                     <div class="stock-minimo-info">
@@ -184,28 +141,22 @@
                         </div>
                         <div class="minimo-item">
                           <span class="minimo-label">Stock Actual:</span>
-                          <span
-                            class="minimo-valor"
-                            :class="{
-                              critico: item.cantidad <= item.stock_minimo * 0.5,
-                              bajo:
-                                item.bajoStock &&
-                                item.cantidad > item.stock_minimo * 0.5,
-                              normal: !item.bajoStock,
-                            }"
-                          >
+                          <span class="minimo-valor" :class="{
+                            critico: item.cantidad <= item.stock_minimo * 0.5,
+                            bajo:
+                              item.bajoStock &&
+                              item.cantidad > item.stock_minimo * 0.5,
+                            normal: !item.bajoStock,
+                          }">
                             {{ formatDecimal(item.cantidad) }} {{ item.unidad }}
                           </span>
                         </div>
                         <div class="minimo-item">
                           <span class="minimo-label">Diferencia:</span>
-                          <span
-                            class="minimo-valor"
-                            :class="{
-                              negativo: item.cantidad < item.stock_minimo,
-                              positivo: item.cantidad >= item.stock_minimo,
-                            }"
-                          >
+                          <span class="minimo-valor" :class="{
+                            negativo: item.cantidad < item.stock_minimo,
+                            positivo: item.cantidad >= item.stock_minimo,
+                          }">
                             {{
                               formatDecimal(item.cantidad - item.stock_minimo)
                             }}
@@ -216,27 +167,20 @@
                     </div>
 
                     <!-- Alertas de stock -->
-                    <div
-                      v-if="item.bajoStock"
-                      class="stock-alerta"
-                      :class="{
-                        'alerta-critica':
+                    <div v-if="item.bajoStock" class="stock-alerta" :class="{
+                      'alerta-critica':
+                        item.cantidad <= item.stock_minimo * 0.5,
+                      'alerta-baja':
+                        item.bajoStock &&
+                        item.cantidad > item.stock_minimo * 0.5,
+                    }">
+                      <i class="fas" :class="{
+                        'fa-exclamation-triangle':
                           item.cantidad <= item.stock_minimo * 0.5,
-                        'alerta-baja':
+                        'fa-exclamation-circle':
                           item.bajoStock &&
                           item.cantidad > item.stock_minimo * 0.5,
-                      }"
-                    >
-                      <i
-                        class="fas"
-                        :class="{
-                          'fa-exclamation-triangle':
-                            item.cantidad <= item.stock_minimo * 0.5,
-                          'fa-exclamation-circle':
-                            item.bajoStock &&
-                            item.cantidad > item.stock_minimo * 0.5,
-                        }"
-                      ></i>
+                      }"></i>
                       <span v-if="item.cantidad <= item.stock_minimo * 0.5">
                         ¡Stock crítico! Necesita reposición urgente.
                       </span>
@@ -245,10 +189,7 @@
 
                     <!-- Acciones rápidas -->
                     <div class="stock-acciones-rapidas" v-if="item.bajoStock">
-                      <button
-                        class="btn-reposicion"
-                        @click="reponerStockRapido(item)"
-                      >
+                      <button class="btn-reposicion" @click="reponerStockRapido(item)">
                         <i class="fas fa-bolt"></i> Reposición Rápida
                       </button>
                     </div>
@@ -270,43 +211,25 @@
     <!-- MODALES REFACTORIZADOS -->
 
     <!-- Modal para Nuevo/Editar Insumo -->
-    <BaseModal
-      v-model:show="showModalInsumo"
-      :title="esEdicion ? 'Editar Insumo' : 'Nuevo Insumo'"
-      size="large"
-      @close="closeModal"
-    >
+    <BaseModal v-model:show="showModalInsumo" :title="esEdicion ? 'Editar Insumo' : 'Nuevo Insumo'" size="large"
+      @close="closeModal">
       <div class="form-grid">
         <div class="form-group">
           <label>Nombre:</label>
-          <input
-            v-model="formInsumo.nombre"
-            type="text"
-            required
-            class="form-input"
-            placeholder="Nombre del insumo"
-          />
+          <input v-model="formInsumo.nombre" type="text" required class="form-input" placeholder="Nombre del insumo" />
         </div>
 
         <div class="form-group">
           <label>Categoría:</label>
           <div class="select-with-button">
-            <select
-              v-model="formInsumo.categoria_id"
-              required
-              class="form-input"
-            >
+            <select v-model="formInsumo.categoria_id" required class="form-input">
               <option value="">Seleccione una categoría</option>
               <option v-for="cat in categorias" :key="cat.id" :value="cat.id">
                 {{ cat.nombre }}
               </option>
             </select>
-            <button
-              type="button"
-              class="btn-agregar"
-              @click="showNuevaCategoriaModal = true"
-              title="Agregar nueva categoría"
-            >
+            <button type="button" class="btn-agregar" @click="showNuevaCategoriaModal = true"
+              title="Agregar nueva categoría">
               <i class="fas fa-plus"></i>
             </button>
           </div>
@@ -315,26 +238,14 @@
         <div class="form-group">
           <label>Unidad de Medida:</label>
           <div class="select-with-button">
-            <select
-              v-model="formInsumo.unidad_medida_id"
-              required
-              class="form-input"
-            >
+            <select v-model="formInsumo.unidad_medida_id" required class="form-input">
               <option value="">Seleccione una unidad</option>
-              <option
-                v-for="unidad in unidadesPermitidas"
-                :key="unidad.id"
-                :value="unidad.id"
-              >
+              <option v-for="unidad in unidadesPermitidas" :key="unidad.id" :value="unidad.id">
                 {{ unidad.nombre }} ({{ unidad.abreviatura }})
               </option>
             </select>
-            <button
-              type="button"
-              class="btn-agregar"
-              @click="showNuevaUnidadDeMedidaModal = true"
-              title="Agregar nueva unidad de medida"
-            >
+            <button type="button" class="btn-agregar" @click="showNuevaUnidadDeMedidaModal = true"
+              title="Agregar nueva unidad de medida">
               <i class="fas fa-plus"></i>
             </button>
           </div>
@@ -342,27 +253,14 @@
 
         <div class="form-group">
           <label>Stock Mínimo:</label>
-          <input
-            v-model="formInsumo.stock_minimo"
-            type="number"
-            step="0.001"
-            min="0"
-            required
-            class="form-input"
-            placeholder="0.000"
-          />
+          <input v-model="formInsumo.stock_minimo" type="number" step="0.001" min="0" required class="form-input"
+            placeholder="0.000" />
         </div>
 
         <div class="form-group">
           <label>Precio Unitario:</label>
-          <input
-            v-model="formInsumo.precio_unitario"
-            type="number"
-            step="0.01"
-            min="0"
-            class="form-input"
-            placeholder="0.00"
-          />
+          <input v-model="formInsumo.precio_unitario" type="number" step="0.01" min="0" class="form-input"
+            placeholder="0.00" />
         </div>
 
         <div class="form-group">
@@ -370,20 +268,12 @@
           <div class="select-with-button">
             <select v-model="formInsumo.proveedor_id" class="form-input">
               <option value="">Seleccione un proveedor</option>
-              <option
-                v-for="prov in proveedores"
-                :key="prov.id"
-                :value="prov.id"
-              >
+              <option v-for="prov in proveedores" :key="prov.id" :value="prov.id">
                 {{ prov.nombre }}
               </option>
             </select>
-            <button
-              type="button"
-              class="btn-agregar"
-              @click="showNuevoProveedorModal = true"
-              title="Agregar nuevo proveedor"
-            >
+            <button type="button" class="btn-agregar" @click="showNuevoProveedorModal = true"
+              title="Agregar nuevo proveedor">
               <i class="fas fa-plus"></i>
             </button>
           </div>
@@ -391,306 +281,178 @@
       </div>
 
       <template #footer>
-        <ModalButtons
-          :confirm-text="esEdicion ? 'Actualizar' : 'Guardar'"
-          @cancel="closeModal"
-          @confirm="guardarInsumo"
-        />
+        <ModalButtons :confirm-text="esEdicion ? 'Actualizar' : 'Guardar'" @cancel="closeModal"
+          @confirm="guardarInsumo" />
       </template>
     </BaseModal>
 
     <!-- Modal para Nueva Compra -->
-    <BaseModal
-      v-model:show="showModalCompra"
-      title="Nueva Compra"
-      size="large"
-      @close="showModalCompra = false"
-    >
-      <div class="form-grid">
-        <!-- 🔍 CAMPO DE BÚSQUEDA -->
-        <div class="form-group full-width">
-          <input
-            v-model="busquedaInsumo"
-            type="text"
-            placeholder="Escribe el nombre del insumo..."
-            class="form-input search-input"
-            @input="filtrarInsumos"
-          />
-        </div>
+<BaseModal v-model:show="showModalCompra" :title="esReposicionRapida ? 'Reposición Rápida' : 'Nueva Compra'"
+  size="large" @close="cerrarModalCompra">
+  <div class="form-grid">
+    <div class="form-group">
+      <label>Insumo:</label>
 
-        <div class="form-group">
-          <label>Insumo:</label>
-          <select
-            v-model="formCompra.insumo_id"
-            required
-            class="form-input"
-            @change="actualizarUnidadMedida"
-            size="6"
-          >
-            <option value="">Seleccione un insumo</option>
-            <option
-              v-for="insumo in insumosFiltrados"
-              :key="insumo.id"
-              :value="insumo.id"
-            >
-              {{ insumo.nombre }} (Stock:
-              {{ formatDecimal(insumo.stock_actual) }}
-              {{ insumo.unidad_medida.abreviatura }})
-            </option>
-          </select>
-          <div class="search-info" v-if="busquedaInsumo">
-            <small>
-              Mostrando {{ insumosFiltrados.length }} de
-              {{ insumos.length }} insumos
-            </small>
+      <!-- MODO REPOSICIÓN RÁPIDA: Mostrar insumo fijo -->
+      <div v-if="esReposicionRapida && insumoReposicionRapida" class="insumo-fijo-container">
+        <div class="insumo-fijo">
+          <div class="insumo-fijo-nombre">
+            <div class="insumo-fijo-header">
+              <i class="fas fa-lock"></i>
+              <strong>{{ insumoReposicionRapida.nombre }}</strong>
+            </div>
+            <span class="insumo-fijo-stock">
+              (Stock actual: {{ formatDecimal(insumoReposicionRapida.cantidad) }} {{ insumoReposicionRapida.unidad
+              }})
+            </span>
+          </div>
+          <div class="insumo-fijo-categoria">
+            {{ insumoReposicionRapida.categoria }}
           </div>
         </div>
-
-        <div class="form-group">
-          <label>Cantidad:</label>
-          <input
-            v-model="formCompra.cantidad"
-            type="number"
-            step="0.001"
-            min="0.001"
-            required
-            class="form-input"
-            placeholder="0.000"
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Unidad de Medida:</label>
-          <input
-            :value="unidadCompra"
-            type="text"
-            disabled
-            class="form-input"
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Precio Total:</label>
-          <input
-            v-model="formCompra.precio_total"
-            type="number"
-            step="0.01"
-            min="0.01"
-            required
-            class="form-input"
-            placeholder="0.00"
-            @input="calcularPrecioUnitario"
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Precio Unitario:</label>
-          <input
-            :value="formCompra.precio_unitario"
-            type="number"
-            step="0.01"
-            disabled
-            class="form-input"
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Proveedor:</label>
-          <div class="select-with-button">
-            <select
-              v-model="formCompra.proveedor_id"
-              required
-              class="form-input"
-            >
-              <option value="">Seleccione un proveedor</option>
-              <option
-                v-for="prov in proveedores"
-                :key="prov.id"
-                :value="prov.id"
-              >
-                {{ prov.nombre }}
-              </option>
-            </select>
-            <button
-              type="button"
-              class="btn-agregar"
-              @click="showNuevoProveedorModal = true"
-              title="Agregar nuevo proveedor"
-            >
-              <i class="fas fa-plus"></i>
-            </button>
-          </div>
-        </div>
+        <input type="hidden" v-model="formCompra.insumo_id" />
       </div>
 
-      <template #footer>
-        <ModalButtons
-          confirm-text="Registrar Compra"
-          @cancel="showModalCompra = false"
-          @confirm="registrarCompra"
-        />
-      </template>
-    </BaseModal>
+      <!-- MODO NORMAL: Select de insumos (desplegable normal) -->
+      <select v-else v-model="formCompra.insumo_id" required class="form-input" @change="actualizarUnidadMedida">
+        <option value="">Seleccione un insumo</option>
+        <option v-for="insumo in insumos" :key="insumo.id" :value="insumo.id">
+          {{ insumo.nombre }} (Stock: {{ formatDecimal(insumo.stock_actual) }} {{ insumo.unidad_medida.abreviatura
+          }})
+        </option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Cantidad:</label>
+      <input v-model="formCompra.cantidad" type="number" step="0.001" min="0" required class="form-input"
+        placeholder="0.000" @input="validarCantidad" />
+    </div>
+
+    <div class="form-group">
+      <label>Unidad de Medida:</label>
+      <input :value="unidadCompra" type="text" disabled class="form-input" />
+    </div>
+
+    <div class="form-group">
+      <label>Precio Total:</label>
+      <input v-model="formCompra.precio_total" type="number" step="0.01" min="0" required class="form-input"
+        placeholder="0.00" @input="calcularPrecioUnitario" />
+    </div>
+
+    <div class="form-group">
+      <label>Precio Unitario:</label>
+      <input :value="formCompra.precio_unitario" type="number" step="0.01" disabled class="form-input" />
+    </div>
+
+    <div class="form-group">
+      <label>Proveedor:</label>
+      <div class="select-with-button">
+        <select v-model="formCompra.proveedor_id" required class="form-input">
+          <option value="">Seleccione un proveedor</option>
+          <option v-for="prov in proveedores" :key="prov.id" :value="prov.id">
+            {{ prov.nombre }}
+          </option>
+        </select>
+        <button type="button" class="btn-agregar" @click="showNuevoProveedorModal = true"
+          title="Agregar nuevo proveedor">
+          <i class="fas fa-plus"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <template #footer>
+    <ModalButtons :confirm-text="esReposicionRapida ? 'Confirmar Reposición' : 'Registrar Compra'"
+      @cancel="cerrarModalCompra" @confirm="registrarCompra" />
+  </template>
+</BaseModal>
 
     <!-- Modal para Nuevo Proveedor -->
-    <BaseModal
-      v-model:show="showNuevoProveedorModal"
-      title="Nuevo Proveedor"
-      size="medium"
-      @close="showNuevoProveedorModal = false"
-    >
+    <BaseModal v-model:show="showNuevoProveedorModal" title="Nuevo Proveedor" size="medium"
+      @close="showNuevoProveedorModal = false">
       <div class="form-grid">
         <div class="form-group">
           <label>Nombre:</label>
-          <input
-            v-model="formProveedor.nombre"
-            type="text"
-            required
-            class="form-input"
-            placeholder="Nombre del proveedor"
-          />
+          <input v-model="formProveedor.nombre" type="text" required class="form-input"
+            placeholder="Nombre del proveedor" />
         </div>
 
         <div class="form-group">
           <label>Contacto:</label>
-          <input
-            v-model="formProveedor.contacto"
-            type="text"
-            class="form-input"
-            placeholder="Persona de contacto"
-          />
+          <input v-model="formProveedor.contacto" type="text" class="form-input" placeholder="Persona de contacto" />
         </div>
 
         <div class="form-group">
           <label>Teléfono:</label>
-          <input
-            v-model="formProveedor.telefono"
-            type="text"
-            class="form-input"
-            placeholder="Teléfono"
-          />
+          <input v-model="formProveedor.telefono" type="text" class="form-input" placeholder="Teléfono" />
         </div>
 
         <div class="form-group">
           <label>Email:</label>
-          <input
-            v-model="formProveedor.email"
-            type="email"
-            class="form-input"
-            placeholder="Email"
-          />
+          <input v-model="formProveedor.email" type="email" class="form-input" placeholder="Email" />
         </div>
       </div>
 
       <template #footer>
-        <ModalButtons
-          confirm-text="Guardar"
-          @cancel="showNuevoProveedorModal = false"
-          @confirm="guardarProveedor"
-        />
+        <ModalButtons confirm-text="Guardar" @cancel="showNuevoProveedorModal = false" @confirm="guardarProveedor" />
       </template>
     </BaseModal>
 
     <!-- Modal para Nueva Categoría -->
-    <BaseModal
-      v-model:show="showNuevaCategoriaModal"
-      title="Nueva Categoría"
-      size="small"
-      @close="showNuevaCategoriaModal = false"
-    >
+    <BaseModal v-model:show="showNuevaCategoriaModal" title="Nueva Categoría" size="small"
+      @close="showNuevaCategoriaModal = false">
       <div class="form-grid">
         <div class="form-group">
           <label>Nombre:</label>
-          <input
-            v-model="formCategoria.nombre"
-            type="text"
-            required
-            class="form-input"
-            placeholder="Nombre de la categoría"
-          />
+          <input v-model="formCategoria.nombre" type="text" required class="form-input"
+            placeholder="Nombre de la categoría" />
         </div>
 
         <div class="form-group full-width">
           <label>Descripción:</label>
-          <textarea
-            v-model="formCategoria.descripcion"
-            class="form-input"
-            rows="3"
-            placeholder="Descripción de la categoría"
-          ></textarea>
+          <textarea v-model="formCategoria.descripcion" class="form-input" rows="3"
+            placeholder="Descripción de la categoría"></textarea>
         </div>
       </div>
 
       <template #footer>
-        <ModalButtons
-          confirm-text="Guardar"
-          @cancel="showNuevaCategoriaModal = false"
-          @confirm="guardarCategoria"
-        />
+        <ModalButtons confirm-text="Guardar" @cancel="showNuevaCategoriaModal = false" @confirm="guardarCategoria" />
       </template>
     </BaseModal>
 
     <!-- Modal para Nueva Unidad de Medida -->
-    <BaseModal
-      v-model:show="showNuevaUnidadDeMedidaModal"
-      title="Nueva Unidad de Medida"
-      size="small"
-      @close="showNuevaUnidadDeMedidaModal = false"
-    >
+    <BaseModal v-model:show="showNuevaUnidadDeMedidaModal" title="Nueva Unidad de Medida" size="small"
+      @close="showNuevaUnidadDeMedidaModal = false">
       <div class="form-grid">
         <div class="form-group">
           <label>Nombre:</label>
-          <input
-            v-model="formUnidad.nombre"
-            type="text"
-            required
-            class="form-input"
-            placeholder="Nombre completo"
-          />
+          <input v-model="formUnidad.nombre" type="text" required class="form-input" placeholder="Nombre completo" />
         </div>
 
         <div class="form-group">
           <label>Abreviatura:</label>
-          <input
-            v-model="formUnidad.abreviatura"
-            type="text"
-            required
-            class="form-input"
-            placeholder="Ej: kg, g, l, ml"
-            maxlength="10"
-          />
+          <input v-model="formUnidad.abreviatura" type="text" required class="form-input" placeholder="Ej: kg, g, l, ml"
+            maxlength="10" />
         </div>
 
         <div class="form-group full-width">
           <label>Descripción:</label>
-          <textarea
-            v-model="formUnidad.descripcion"
-            class="form-input"
-            rows="3"
-            placeholder="Descripción de la unidad"
-          ></textarea>
+          <textarea v-model="formUnidad.descripcion" class="form-input" rows="3"
+            placeholder="Descripción de la unidad"></textarea>
         </div>
       </div>
 
       <template #footer>
-        <ModalButtons
-          confirm-text="Guardar"
-          @cancel="showNuevaUnidadDeMedidaModal = false"
-          @confirm="guardarUnidadDeMedida"
-        />
+        <ModalButtons confirm-text="Guardar" @cancel="showNuevaUnidadDeMedidaModal = false"
+          @confirm="guardarUnidadDeMedida" />
       </template>
     </BaseModal>
 
     <!-- Modal de confirmación para eliminar insumo -->
-    <ConfirmModal
-      :show="showConfirmModal"
-      title="Confirmar Eliminación"
-      :message="`¿Está seguro de que desea eliminar el insumo '${insumoAEliminar?.nombre}'?`"
-      confirm-text="Eliminar"
-      @update:show="showConfirmModal = $event"
-      @cancel="showConfirmModal = false"
-      @confirm="eliminarInsumo"
-    />
+    <ConfirmModal :show="showConfirmModal" title="Confirmar Eliminación"
+      :message="`¿Está seguro de que desea eliminar el insumo '${insumoAEliminar?.nombre}'?`" confirm-text="Eliminar"
+      @update:show="showConfirmModal = $event" @cancel="showConfirmModal = false" @confirm="eliminarInsumo" />
   </div>
 </template>
 
@@ -718,10 +480,6 @@ const searchTerm = ref("");
 const loading = ref(true);
 const stockDesplegado = ref({});
 
-// 🔍 NUEVAS VARIABLES PARA BÚSQUEDA EN MODAL DE COMPRA
-const busquedaInsumo = ref("");
-const insumosFiltrados = ref([]);
-
 // Modales
 const showModalInsumo = ref(false);
 const showModalCompra = ref(false);
@@ -729,6 +487,10 @@ const showNuevoProveedorModal = ref(false);
 const showConfirmModal = ref(false);
 const showNuevaCategoriaModal = ref(false);
 const showNuevaUnidadDeMedidaModal = ref(false);
+
+// Agregar después de las otras variables
+const esReposicionRapida = ref(false);
+const insumoReposicionRapida = ref(null);
 
 // Formularios
 const formInsumo = ref({
@@ -813,19 +575,6 @@ const stockFiltrado = computed(() => {
   });
 });
 
-// 🔍 MÉTODO PARA FILTRAR INSUMOS EN MODAL DE COMPRA
-const filtrarInsumos = () => {
-  if (!busquedaInsumo.value) {
-    insumosFiltrados.value = insumos.value;
-    return;
-  }
-
-  const termino = busquedaInsumo.value.toLowerCase().trim();
-  insumosFiltrados.value = insumos.value.filter((insumo) =>
-    insumo.nombre.toLowerCase().includes(termino)
-  );
-};
-
 // Métodos
 const handleNavigation = (route) => {
   router.push(route);
@@ -857,9 +606,14 @@ const toggleStock = (stockId) => {
 
 // Método para reposición rápida
 const reponerStockRapido = (item) => {
-  // Seleccionar automáticamente el insumo en el modal de compra
+  // Configurar el formulario con el insumo seleccionado
   formCompra.value.insumo_id = item.id;
   actualizarUnidadMedida();
+
+  // Establecer que estamos en modo reposición rápida
+  esReposicionRapida.value = true;
+  insumoReposicionRapida.value = item;
+
   showModalCompra.value = true;
 };
 
@@ -1192,6 +946,17 @@ const guardarInsumo = async () => {
 
 const registrarCompra = async () => {
   try {
+    // Validar que la cantidad sea mayor a 0
+    if (parseFloat(formCompra.value.cantidad) <= 0) {
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "La cantidad debe ser mayor a 0",
+        timeout: 4000,
+      });
+      return;
+    }
+
     const insumo = insumos.value.find(
       (i) => i.id === parseInt(formCompra.value.insumo_id)
     );
@@ -1247,12 +1012,14 @@ const registrarCompra = async () => {
     console.log("Respuesta del servidor:", response.data);
 
     await fetchStock();
-    closeModal();
+    cerrarModalCompra();
 
     notificationSystem.show({
       type: "success",
-      title: "Compra registrada",
-      message: "Compra registrada correctamente",
+      title: esReposicionRapida.value ? "Reposición registrada" : "Compra registrada",
+      message: esReposicionRapida.value
+        ? "Reposición registrada correctamente"
+        : "Compra registrada correctamente",
       timeout: 4000,
     });
   } catch (error) {
@@ -1349,14 +1116,15 @@ const resetFormInsumo = () => {
 const resetFormCompra = () => {
   formCompra.value = {
     insumo_id: "",
-    cantidad: 0,
+    cantidad: 0, // Cambiar a 0 en lugar de 0.001
     precio_total: 0,
     precio_unitario: 0,
     proveedor_id: "",
   };
   unidadCompra.value = "";
-  busquedaInsumo.value = ""; // 🔍 Resetear la búsqueda
-  insumosFiltrados.value = insumos.value; // 🔍 Resetear la lista filtrada
+  // Remover las variables de búsqueda que ya no usamos
+  esReposicionRapida.value = false;
+  insumoReposicionRapida.value = null;
 };
 
 const resetFormProveedor = () => {
@@ -1454,17 +1222,19 @@ const fetchProveedores = async () => {
 watch(() => formCompra.value.insumo_id, actualizarUnidadMedida);
 watch(
   () => [formCompra.value.cantidad, formCompra.value.precio_total],
-  calcularPrecioUnitario
+  () => {
+    calcularPrecioUnitario();
+  }
 );
 
-// 🔍 WATCHER PARA INICIALIZAR LISTA FILTRADA CUANDO SE ACTUALIZAN LOS INSUMOS
-watch(
-  () => insumos.value,
-  () => {
-    insumosFiltrados.value = insumos.value;
-  },
-  { immediate: true }
-);
+// 🔒 WATCHER PARA RESETEAR MODO REPOSICIÓN RÁPIDA AL CERRAR EL MODAL
+watch(() => showModalCompra.value, (newVal) => {
+  if (!newVal) {
+    // Resetear modo reposición rápida cuando se cierra el modal
+    esReposicionRapida.value = false;
+    insumoReposicionRapida.value = null;
+  }
+});
 
 // Cargar datos al montar el componente
 onMounted(() => {
@@ -1488,6 +1258,21 @@ onMounted(() => {
     }
   });
 });
+
+const cerrarModalCompra = () => {
+  showModalCompra.value = false;
+  // Resetear modo reposición rápida
+  esReposicionRapida.value = false;
+  insumoReposicionRapida.value = null;
+  resetFormCompra();
+};
+
+const validarCantidad = () => {
+  // Solo validar que no sea negativo, pero permitir 0
+  if (parseFloat(formCompra.value.cantidad) < 0) {
+    formCompra.value.cantidad = 0;
+  }
+};
 </script>
 
 <style scoped>
@@ -1943,7 +1728,7 @@ onMounted(() => {
   position: fixed;
   bottom: 30px;
   right: 30px;
-  background: linear-gradient(135deg, #17a2b8, #138496);
+  background: linear-gradient(135deg, #218838);
   color: white;
   border: none;
   border-radius: 50px;
@@ -1962,7 +1747,7 @@ onMounted(() => {
 .btn-nueva-compra-flotante:hover {
   transform: translateY(-3px) scale(1.05);
   box-shadow: 0 8px 25px rgba(23, 162, 184, 0.4);
-  background: linear-gradient(135deg, #138496, #17a2b8);
+  background: linear-gradient(135deg, #218838);
 }
 
 /* ----------------------------- ESTADOS ----------------------------- */
@@ -2119,9 +1904,11 @@ onMounted(() => {
   0% {
     box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
   }
+
   70% {
     box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
   }
@@ -2136,9 +1923,11 @@ onMounted(() => {
   0% {
     box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4);
   }
+
   70% {
     box-shadow: 0 0 0 10px rgba(255, 193, 7, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
   }
@@ -2235,11 +2024,133 @@ onMounted(() => {
 
 .select-with-button .form-input {
   flex: 1;
-  min-width: 0; /* Permite que se reduzca correctamente */
+  min-width: 0;
+  /* Permite que se reduzca correctamente */
 }
 
 .select-with-button .btn-agregar {
   flex-shrink: 0;
-  align-self: stretch; /* Hace que el botón tenga la misma altura que el select */
+  align-self: stretch;
+  /* Hace que el botón tenga la misma altura que el select */
+}
+
+/* ----------------------------- BOTÓN REPOSICIÓN RÁPIDA CON NUEVO COLOR ----------------------------- */
+.btn-reposicion {
+  background: linear-gradient(135deg, #218838, #1e7e34);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 6px rgba(33, 136, 56, 0.3);
+}
+
+.btn-reposicion:hover {
+  background: linear-gradient(135deg, #1e7e34, #1c7430);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(33, 136, 56, 0.4);
+}
+
+/* ----------------------------- ESTILOS PARA INSUMO FIJO EN MODAL ----------------------------- */
+.insumo-fijo-container {
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-left: 4px solid #218838;
+}
+
+.insumo-fijo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.insumo-fijo-nombre {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.insumo-fijo-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.insumo-fijo-header i {
+  color: #218838;
+  font-size: 0.9rem;
+}
+
+.insumo-fijo-header strong {
+  color: #2c3e50;
+  font-size: 1rem;
+}
+
+.insumo-fijo-stock {
+  color: #6c757d;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: rgba(33, 136, 56, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.insumo-fijo-categoria {
+  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  align-self: flex-start;
+}
+
+/* ----------------------------- ESTILOS DE VALIDACIÓN ----------------------------- */
+.required-asterisk {
+  color: #dc3545;
+}
+
+.input-error {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1) !important;
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 0.8rem;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* ----------------------------- ESTILOS PARA BÚSQUEDA EN MODAL COMPRA ----------------------------- */
+.search-container {
+  margin-bottom: 12px;
+}
+
+.search-container .search-input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 12px center;
+  background-size: 16px;
+  padding-left: 40px;
+  width: 100%;
+  margin-bottom: 5px;
+}
+
+.search-info {
+  color: #6c757d;
+  font-size: 0.8rem;
+  text-align: left;
 }
 </style>
