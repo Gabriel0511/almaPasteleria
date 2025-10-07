@@ -708,6 +708,7 @@ const router = useRouter();
 const notificationSystem = inject("notifications");
 
 // Variables de estado
+const headerRef = ref(null);
 const stock = ref([]);
 const insumos = ref([]);
 const categorias = ref([]);
@@ -811,6 +812,23 @@ const stockFiltrado = computed(() => {
     if (!a.bajoStock && b.bajoStock) return 1;
     return 0;
   });
+});
+
+// AGREGAR: Computed properties para notificaciones de stock
+const notificacionesStockCritico = computed(() => {
+  return stock.value
+    .filter((item) => item.cantidad <= item.stock_minimo * 0.5)
+    .map((item) => ({
+      id: `stock-critico-${item.id}`,
+      type: "critical",
+      title: "Stock Crítico",
+      message: `${item.nombre} está en nivel crítico (${formatDecimal(
+        item.cantidad
+      )}/${formatDecimal(item.stock_minimo)} ${item.unidad})`,
+      timestamp: new Date(),
+      read: false,
+      item: item,
+    }));
 });
 
 // 🔍 MÉTODO PARA FILTRAR INSUMOS EN MODAL DE COMPRA

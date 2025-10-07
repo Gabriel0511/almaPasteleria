@@ -16,25 +16,79 @@
         </span>
       </button>
 
-      <!-- Menú de notificaciones -->
+      <!-- En el template de Header.vue, MODIFICAR la sección de notificaciones: -->
       <div v-if="showNotfMenu" class="dropdown-menu notification-menu">
-        <h3>Notificaciones</h3>
-        <div v-if="notifications.length === 0" class="empty-notifications">
-          No hay notificaciones
+        <div class="notification-header">
+          <h3>Notificaciones</h3>
+          <button
+            v-if="unreadNotifications > 0"
+            @click="marcarTodasComoLeidas"
+            class="btn-marcar-todas"
+          >
+            Marcar todas como leídas
+          </button>
         </div>
+
+        <div
+          v-if="todasLasNotificaciones.length === 0"
+          class="empty-notifications"
+        >
+          <i class="fas fa-bell-slash"></i>
+          <p>No hay notificaciones</p>
+        </div>
+
         <div v-else class="notification-list">
           <div
-            v-for="notification in notifications"
+            v-for="notification in todasLasNotificaciones"
             :key="notification.id"
             class="notification-item"
-            :class="{ unread: !notification.read }"
+            :class="[notification.type, { unread: !notification.read }]"
+            @click="handleNotificationClick(notification)"
           >
-            <div class="notification-content">
-              <p class="notification-text">{{ notification.message }}</p>
-              <span class="notification-time">
-                {{ formatTime(notification.timestamp) }}
-              </span>
+            <div class="notification-icon">
+              <i
+                class="fas"
+                :class="{
+                  'fa-exclamation-triangle': notification.type === 'critical',
+                  'fa-exclamation-circle': notification.type === 'warning',
+                  'fa-info-circle': notification.type === 'info',
+                  'fa-check-circle': notification.type === 'success',
+                }"
+              ></i>
             </div>
+
+            <div class="notification-content">
+              <div class="notification-title-row">
+                <strong class="notification-title">{{
+                  notification.title
+                }}</strong>
+                <span class="notification-time">
+                  {{ formatTime(notification.timestamp) }}
+                </span>
+              </div>
+              <p class="notification-text">{{ notification.message }}</p>
+
+              <!-- Acciones rápidas -->
+              <div
+                v-if="notification.item && !notification.read"
+                class="notification-actions"
+              >
+                <button
+                  @click.stop="router.push('/stock')"
+                  class="btn-action-small"
+                >
+                  <i class="fas fa-box"></i> Ver Stock
+                </button>
+              </div>
+            </div>
+
+            <button
+              @click.stop="notification.read = true"
+              class="btn-mark-read"
+              title="Marcar como leída"
+            >
+              <i class="fas fa-check"></i>
+            </button>
           </div>
         </div>
       </div>
@@ -92,12 +146,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, inject, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import axios from "axios";
 
 const route = useRoute();
 const router = useRouter();
+const notificationSystem = inject("notifications");
 
 const title = computed(() => route.meta.title || "Panel Principal");
 
@@ -110,6 +165,9 @@ const notifications = ref([]);
 const currentPassword = ref("");
 const newPassword = ref("");
 const confirmPassword = ref("");
+const notificacionesStock = ref([]);
+const notificacionesRecetas = ref([]);
+const notificacionesPedidos = ref([]);
 
 // Obtener email del usuario
 const fetchUserProfile = async () => {
@@ -123,7 +181,15 @@ const fetchUserProfile = async () => {
 
 // Notificaciones
 const unreadNotifications = computed(() => {
-  return notifications.value.filter((n) => !n.read).length;
+  return todasLasNotificaciones.value.filter((n) => !n.read).length;
+});
+
+const todasLasNotificaciones = computed(() => {
+  return [
+    ...notificacionesStock.value,
+    ...notificacionesRecetas.value,
+    ...notificacionesPedidos.value,
+  ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 });
 
 // Menús
@@ -181,6 +247,174 @@ const logout = async () => {
   }
 };
 
+const cargarNotificacionesStock = async () => {
+  try {
+    const response = await axios.get("/api/insumos/");
+    const insumos = response.data.insumos;
+
+    notificacionesStock.value = [];
+
+    // Stock crítico
+    insumos
+      .filter((item) => {
+        const cantidad = parseFloat(item.stock_actual);
+        const minimo = parseFloat(item.stock_minimo);
+        return cantidad <= minimo * 0.5;
+      })
+      .forEach((item) => {
+        notificacionesStock.value.push({
+          id: `stock-critico-${item.id}`,
+          type: "critical",
+          title: "Stock Crítico",
+          message: `${item.nombre} está en nivel crítico (${item.stock_actual} ${item.unidad_medida.abreviatura})`,
+          timestamp: new Date(),
+          read: false,
+          item: item,
+        });
+      });
+
+    // Stock bajo
+    insumos
+      .filter((item) => {
+        const cantidad = parseFloat(item.stock_actual);
+        const minimo = parseFloat(item.stock_minimo);
+        return cantidad <= minimo && cantidad > minimo * 0.5;
+      })
+      .forEach((item) => {
+        notificacionesStock.value.push({
+          id: `stock-bajo-${item.id}`,
+          type: "warning",
+          title: "Stock Bajo",
+          message: `${item.nombre} está por debajo del mínimo (${item.stock_actual}/${item.stock_minimo} ${item.unidad_medida.abreviatura})`,
+          timestamp: new Date(),
+          read: false,
+          item: item,
+        });
+      });
+  } catch (error) {
+    console.error("Error cargando notificaciones de stock:", error);
+  }
+};
+
+const cargarNotificacionesRecetas = async () => {
+  try {
+    const response = await axios.get("/api/recetas/");
+    const recetas = response.data;
+
+    notificacionesRecetas.value = recetas
+      .filter((receta) => receta.precio_venta <= receta.costo_total)
+      .map((receta) => ({
+        id: `receta-no-rentable-${receta.id}`,
+        type: "warning",
+        title: "Receta No Rentable",
+        message: `${receta.nombre} no es rentable (Costo: $${receta.costo_total} > Venta: $${receta.precio_venta})`,
+        timestamp: new Date(),
+        read: false,
+        receta: receta,
+      }));
+  } catch (error) {
+    console.error("Error cargando notificaciones de recetas:", error);
+  }
+};
+
+const cargarNotificacionesPedidos = async () => {
+  try {
+    const response = await axios.get("/api/pedidos/hoy/");
+    const hoy = new Date().toDateString();
+
+    notificacionesPedidos.value = [];
+
+    // Pedidos atrasados
+    response.data.hacer_hoy
+      .filter((pedido) => {
+        const fechaEntrega = new Date(pedido.fecha_entrega).toDateString();
+        return fechaEntrega < hoy && pedido.estado !== "entregado";
+      })
+      .forEach((pedido) => {
+        notificacionesPedidos.value.push({
+          id: `pedido-atrasado-${pedido.id}`,
+          type: "critical",
+          title: "Pedido Atrasado",
+          message: `Pedido de ${pedido.cliente.nombre} está atrasado`,
+          timestamp: new Date(),
+          read: false,
+          pedido: pedido,
+        });
+      });
+
+    // Pedidos para hoy
+    response.data.entregar_hoy
+      .filter((pedido) => {
+        const fechaEntrega = new Date(pedido.fecha_entrega).toDateString();
+        return fechaEntrega === hoy && pedido.estado !== "entregado";
+      })
+      .forEach((pedido) => {
+        notificacionesPedidos.value.push({
+          id: `pedido-hoy-${pedido.id}`,
+          type: "info",
+          title: "Entrega Hoy",
+          message: `Pedido de ${pedido.cliente.nombre} debe entregarse hoy`,
+          timestamp: new Date(),
+          read: false,
+          pedido: pedido,
+        });
+      });
+  } catch (error) {
+    console.error("Error cargando notificaciones de pedidos:", error);
+  }
+};
+
+// AGREGAR: Método para cargar todas las notificaciones
+const cargarTodasLasNotificaciones = async () => {
+  await Promise.all([
+    cargarNotificacionesStock(),
+    cargarNotificacionesRecetas(),
+    cargarNotificacionesPedidos(),
+  ]);
+};
+
+// AGREGAR: Método para manejar clic en notificación
+const handleNotificationClick = (notification) => {
+  // Marcar como leída
+  notification.read = true;
+
+  // Navegar según el tipo
+  if (notification.item) {
+    router.push("/stock");
+  } else if (notification.receta) {
+    router.push("/recetas");
+  } else if (notification.pedido) {
+    router.push("/pedidos");
+  }
+
+  showNotfMenu.value = false;
+};
+
+// AGREGAR: Método para marcar todas como leídas
+const marcarTodasComoLeidas = () => {
+  todasLasNotificaciones.value.forEach((notif) => {
+    notif.read = true;
+  });
+};
+
+// AGREGAR watcher para recargar notificaciones al cambiar de ruta
+watch(
+  () => route.path,
+  () => {
+    // Recargar notificaciones cuando el usuario navega
+    cargarTodasLasNotificaciones();
+  }
+);
+
+// AGREGAR método para forzar actualización (útil desde otros componentes)
+const actualizarNotificaciones = () => {
+  cargarTodasLasNotificaciones();
+};
+
+// Exponer el método para otros componentes
+defineExpose({
+  actualizarNotificaciones: cargarTodasLasNotificaciones,
+});
 // Utilidades
 const formatTime = (timestamp) => {
   return new Date(timestamp).toLocaleTimeString();
@@ -203,6 +437,11 @@ const handleClickOutside = (event) => {
 onMounted(() => {
   document.addEventListener("click", handleClickOutside);
   fetchUserProfile();
+  cargarTodasLasNotificaciones();
+
+  // Recargar notificaciones cada 5 minutos
+  const interval = setInterval(cargarTodasLasNotificaciones, 5 * 60 * 1000);
+  onUnmounted(() => clearInterval(interval));
 });
 
 onUnmounted(() => {
@@ -583,6 +822,161 @@ onUnmounted(() => {
 
 .confirm-button:hover {
   background-color: #5a3f36;
+}
+
+/* Encabezado de notificaciones */
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #ddd;
+  background-color: rgba(123, 90, 80, 0.1);
+}
+
+.notification-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--color-primary);
+}
+
+.btn-marcar-todas {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: 0.8rem;
+  text-decoration: underline;
+}
+
+.btn-marcar-todas:hover {
+  color: #8b6b61;
+}
+
+/* Ícono de notificación */
+.notification-icon {
+  margin-right: 12px;
+  color: #6c757d;
+  font-size: 1rem;
+}
+
+.notification-item.critical .notification-icon {
+  color: #e74c3c;
+}
+
+.notification-item.warning .notification-icon {
+  color: #f39c12;
+}
+
+.notification-item.info .notification-icon {
+  color: #3498db;
+}
+
+/* Contenido de notificación mejorado */
+.notification-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 5px;
+}
+
+.notification-title {
+  font-size: 0.9rem;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.notification-time {
+  font-size: 0.7rem;
+  color: #6c757d;
+}
+
+.notification-text {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: #495057;
+}
+
+/* Acciones de notificación */
+.notification-actions {
+  margin-top: 8px;
+}
+
+.btn-action-small {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-action-small:hover {
+  background: #8b6b61;
+}
+
+/* Botón marcar como leída */
+.btn-mark-read {
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  margin-left: 10px;
+}
+
+.notification-item:hover .btn-mark-read {
+  opacity: 1;
+}
+
+.btn-mark-read:hover {
+  color: var(--color-success);
+}
+
+/* Estados de notificación */
+.notification-item.unread {
+  background: rgba(52, 152, 219, 0.05);
+  border-left: 3px solid #3498db;
+}
+
+.notification-item.critical {
+  border-left: 3px solid #e74c3c;
+}
+
+.notification-item.warning {
+  border-left: 3px solid #f39c12;
+}
+
+.notification-item.info {
+  border-left: 3px solid #3498db;
+}
+
+/* Empty state mejorado */
+.empty-notifications {
+  padding: 40px 20px;
+  text-align: center;
+  color: #6c757d;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.empty-notifications i {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+.empty-notifications p {
+  margin: 0;
+  font-style: italic;
 }
 
 /* ----------------------------- RESPONSIVE ----------------------------- */

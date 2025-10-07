@@ -3,11 +3,53 @@
     <Sidebar @navigate="handleNavigation" />
 
     <div class="main-container">
-      <Header />
+      <Header ref="headerRef" />
 
       <main class="main-content">
+        <!-- AGREGAR: Panel de alertas de pedidos -->
+        <div
+          v-if="todasLasNotificacionesPedidos.length > 0"
+          class="alertas-pedidos"
+        ></div>
         <section class="pedidos-content">
           <h3 class="card-title1">Gestión de Pedidos</h3>
+
+          <!-- AGREGAR: Estadísticas rápidas -->
+          <div class="estadisticas-pedidos">
+            <div
+              class="estadistica-item"
+              v-if="estadisticasPedidos.atrasados > 0"
+            >
+              <span class="estadistica-badge critica">
+                <i class="fas fa-exclamation-triangle"></i>
+                {{ estadisticasPedidos.atrasados }} atrasado(s)
+              </span>
+            </div>
+            <div
+              class="estadistica-item"
+              v-if="estadisticasPedidos.paraHoy > 0"
+            >
+              <span class="estadistica-badge hoy">
+                <i class="fas fa-bolt"></i>
+                {{ estadisticasPedidos.paraHoy }} hoy
+              </span>
+            </div>
+            <div
+              class="estadistica-item"
+              v-if="estadisticasPedidos.paraManana > 0"
+            >
+              <span class="estadistica-badge manana">
+                <i class="fas fa-clock"></i>
+                {{ estadisticasPedidos.paraManana }} mañana
+              </span>
+            </div>
+            <div class="estadistica-item">
+              <span class="estadistica-badge total">
+                <i class="fas fa-clipboard-list"></i>
+                {{ estadisticasPedidos.totalActivos }} activo(s)
+              </span>
+            </div>
+          </div>
 
           <!-- Filtros de pedidos -->
           <div class="filtros-derecha">
@@ -59,9 +101,43 @@
               v-for="pedido in pedidosFiltrados"
               :key="pedido.id"
               class="pedido-item"
-              :class="{ 'pedido-entregado': pedido.estado === 'entregado' }"
+              :class="{
+                'pedido-entregado': pedido.estado === 'entregado',
+                'pedido-atrasado': notificacionesPedidosAtrasados.some(
+                  (n) => n.pedido.id === pedido.id
+                ),
+                'pedido-hoy': notificacionesPedidosParaHoy.some(
+                  (n) => n.pedido.id === pedido.id
+                ),
+              }"
             >
-              <!-- En la sección del pedido-item, modificar el pedido-header -->
+              <!-- AGREGAR: Indicador de urgencia -->
+              <div
+                v-if="
+                  notificacionesPedidosAtrasados.some(
+                    (n) => n.pedido.id === pedido.id
+                  )
+                "
+                class="indicador-urgencia critico"
+                title="Pedido atrasado"
+              >
+                <i class="fas fa-exclamation-circle"></i>
+                URGENTE
+              </div>
+
+              <div
+                v-else-if="
+                  notificacionesPedidosParaHoy.some(
+                    (n) => n.pedido.id === pedido.id
+                  )
+                "
+                class="indicador-urgencia hoy"
+                title="Entrega hoy"
+              >
+                <i class="fas fa-bolt"></i>
+                HOY
+              </div>
+
               <div
                 class="pedido-header"
                 @click="togglePedido(pedido.id)"
@@ -91,7 +167,17 @@
                     </div>
                     <div class="dato-grupo">
                       <i class="fas fa-truck"></i>
-                      <span class="pedido-fecha">
+                      <span
+                        class="pedido-fecha"
+                        :class="{
+                          'fecha-atrasada': notificacionesPedidosAtrasados.some(
+                            (n) => n.pedido.id === pedido.id
+                          ),
+                          'fecha-hoy': notificacionesPedidosParaHoy.some(
+                            (n) => n.pedido.id === pedido.id
+                          ),
+                        }"
+                      >
                         Entrega: {{ formatFecha(pedido.fecha_entrega) }}
                       </span>
                     </div>
@@ -104,7 +190,19 @@
                   </div>
                 </div>
                 <div class="pedido-acciones" @click.stop>
-                  <!-- Los botones de acción mantienen el @click.stop para evitar que el evento se propague -->
+                  <!-- AGREGAR: Botón rápido para marcar como entregado -->
+                  <button
+                    v-if="
+                      pedido.estado !== 'entregado' &&
+                      pedido.estado !== 'cancelado'
+                    "
+                    class="btn-accion btn-entregado"
+                    @click="marcarComoEntregado(pedido)"
+                    title="Marcar como entregado"
+                  >
+                    <i class="fas fa-check"></i>
+                  </button>
+
                   <button
                     class="btn-accion btn-editar"
                     @click="editarPedido(pedido)"
@@ -989,6 +1087,7 @@ const router = useRouter();
 const notificationSystem = inject("notifications");
 
 // Variables de estado
+const headerRef = ref(null);
 const userEmail = ref("Usuario");
 const showPasswordModal = ref(false);
 const pedidos = ref([]);
@@ -1145,6 +1244,90 @@ const pedidosFiltrados = computed(() => {
     // Orden descendente (más reciente primero)
     return fechaB - fechaA;
   });
+});
+
+const notificacionesPedidosAtrasados = computed(() => {
+  const hoy = new Date().toISOString().split("T")[0];
+
+  return pedidos.value
+    .filter((pedido) => {
+      // Excluir pedidos entregados o cancelados
+      if (pedido.estado === "entregado" || pedido.estado === "cancelado") {
+        return false;
+      }
+
+      // Verificar si la fecha de entrega es anterior a hoy
+      return pedido.fecha_entrega < hoy;
+    })
+    .map((pedido) => ({
+      id: `pedido-atrasado-${pedido.id}`,
+      type: "critical",
+      title: "Pedido Atrasado",
+      message: `El pedido de ${
+        pedido.cliente.nombre
+      } está atrasado (Entrega: ${formatFecha(pedido.fecha_entrega)})`,
+      timestamp: new Date(),
+      read: false,
+      pedido: pedido,
+    }));
+});
+
+const notificacionesPedidosParaHoy = computed(() => {
+  const hoy = new Date().toISOString().split("T")[0];
+
+  return pedidos.value
+    .filter((pedido) => {
+      // Excluir pedidos entregados o cancelados
+      if (pedido.estado === "entregado" || pedido.estado === "cancelado") {
+        return false;
+      }
+
+      // Verificar si la fecha de entrega es hoy
+      return pedido.fecha_entrega === hoy;
+    })
+    .map((pedido) => ({
+      id: `pedido-hoy-${pedido.id}`,
+      type: "warning",
+      title: "Entrega Hoy",
+      message: `El pedido de ${pedido.cliente.nombre} debe entregarse hoy`,
+      timestamp: new Date(),
+      read: false,
+      pedido: pedido,
+    }));
+});
+
+const notificacionesPedidosParaManana = computed(() => {
+  const manana = new Date();
+  manana.setDate(manana.getDate() + 1);
+  const mananaStr = manana.toISOString().split("T")[0];
+
+  return pedidos.value
+    .filter((pedido) => {
+      // Excluir pedidos entregados o cancelados
+      if (pedido.estado === "entregado" || pedido.estado === "cancelado") {
+        return false;
+      }
+
+      // Verificar si la fecha de entrega es mañana
+      return pedido.fecha_entrega === mananaStr;
+    })
+    .map((pedido) => ({
+      id: `pedido-manana-${pedido.id}`,
+      type: "info",
+      title: "Entrega Mañana",
+      message: `El pedido de ${pedido.cliente.nombre} se entrega mañana`,
+      timestamp: new Date(),
+      read: false,
+      pedido: pedido,
+    }));
+});
+
+const todasLasNotificacionesPedidos = computed(() => {
+  return [
+    ...notificacionesPedidosAtrasados.value,
+    ...notificacionesPedidosParaHoy.value,
+    ...notificacionesPedidosParaManana.value,
+  ];
 });
 
 // Métodos
@@ -1355,6 +1538,9 @@ const eliminarPedido = async () => {
 
     showConfirmModalPedido.value = false;
 
+    // AGREGAR: Actualizar notificaciones después de eliminar
+    actualizarNotificacionesPedidos();
+
     notificationSystem.show({
       type: "success",
       title: "Pedido eliminado",
@@ -1404,6 +1590,10 @@ const guardarPedido = async () => {
       await fetchPedidos();
       closeModal();
 
+      // AGREGAR: Verificar estado y notificar
+      const pedidoActualizado = response.data;
+      verificarEstadoPedidoYNotificar(pedidoActualizado, "actualizado");
+
       notificationSystem.show({
         type: "success",
         title: "Pedido actualizado",
@@ -1416,6 +1606,10 @@ const guardarPedido = async () => {
       await fetchPedidos();
       closeModal();
 
+      // AGREGAR: Verificar estado y notificar
+      const nuevoPedidoData = response.data; // Cambiado el nombre aquí
+      verificarEstadoPedidoYNotificar(nuevoPedidoData, "creado");
+
       notificationSystem.show({
         type: "success",
         title: "Pedido creado",
@@ -1425,24 +1619,45 @@ const guardarPedido = async () => {
 
       // 🆕 ABRIR MODAL DE AGREGAR RECETA AUTOMÁTICAMENTE
       // Buscar el pedido recién creado en la lista actualizada
-      const nuevoPedido = pedidos.value.find(
+      const nuevoPedidoCompleto = pedidos.value.find(
+        // Cambiado el nombre aquí
         (pedido) => pedido.id === response.data.id
       );
 
-      if (nuevoPedido) {
+      if (nuevoPedidoCompleto) {
         // Pequeño delay para que el usuario vea la notificación
         setTimeout(() => {
-          showAgregarRecetaModal(nuevoPedido);
+          showAgregarRecetaModal(nuevoPedidoCompleto);
         }, 500);
       }
     }
   } catch (error) {
     console.error("Error al guardar pedido:", error);
 
+    // MEJORAR: Manejo de errores más específico
+    let errorMessage = "Error al guardar el pedido";
+
+    if (error.response?.data) {
+      if (typeof error.response.data === "object") {
+        // Extraer mensajes de error del backend
+        const errors = [];
+        for (const key in error.response.data) {
+          if (Array.isArray(error.response.data[key])) {
+            errors.push(...error.response.data[key]);
+          } else {
+            errors.push(error.response.data[key]);
+          }
+        }
+        errorMessage = errors.join(", ");
+      } else if (typeof error.response.data === "string") {
+        errorMessage = error.response.data;
+      }
+    }
+
     notificationSystem.show({
       type: "error",
       title: "Error",
-      message: "Error al guardar el pedido",
+      message: errorMessage,
       timeout: 6000,
     });
   }
@@ -1950,6 +2165,116 @@ const guardarIngredienteExtra = async () => {
   }
 };
 
+// AGREGAR: Método para marcar pedido como entregado rápidamente
+const marcarComoEntregado = async (pedido) => {
+  try {
+    const datosActualizacion = {
+      ...pedido,
+      estado: "entregado",
+    };
+
+    await axios.put(`/api/pedidos/${pedido.id}/`, datosActualizacion);
+
+    // Actualizar localmente
+    const index = pedidos.value.findIndex((p) => p.id === pedido.id);
+    if (index !== -1) {
+      pedidos.value[index].estado = "entregado";
+    }
+
+    // Notificar
+    verificarEstadoPedidoYNotificar(
+      { ...pedido, estado: "entregado" },
+      "entregado"
+    );
+
+    notificationSystem.show({
+      type: "success",
+      title: "Pedido Entregado",
+      message: `Pedido de ${pedido.cliente.nombre} marcado como entregado`,
+      timeout: 4000,
+    });
+  } catch (error) {
+    console.error("Error al marcar pedido como entregado:", error);
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: "Error al marcar el pedido como entregado",
+      timeout: 6000,
+    });
+  }
+};
+
+// AGREGAR: Método para obtener estadísticas rápidas
+const estadisticasPedidos = computed(() => {
+  const hoy = new Date().toISOString().split("T")[0];
+  const atrasados = notificacionesPedidosAtrasados.value.length;
+  const paraHoy = notificacionesPedidosParaHoy.value.length;
+  const paraManana = notificacionesPedidosParaManana.value.length;
+  const totalActivos = pedidos.value.filter(
+    (p) => p.estado !== "entregado" && p.estado !== "cancelado"
+  ).length;
+
+  return {
+    atrasados,
+    paraHoy,
+    paraManana,
+    totalActivos,
+  };
+});
+
+// AGREGAR: Método para actualizar notificaciones en el Header
+const actualizarNotificacionesPedidos = () => {
+  if (headerRef.value && headerRef.value.actualizarNotificaciones) {
+    headerRef.value.actualizarNotificaciones();
+  }
+};
+
+// AGREGAR: Método para verificar y notificar cambios en pedidos
+const verificarEstadoPedidoYNotificar = (pedido, accion) => {
+  const hoy = new Date().toISOString().split("T")[0];
+  const manana = new Date();
+  manana.setDate(manana.getDate() + 1);
+  const mananaStr = manana.toISOString().split("T")[0];
+
+  // Notificar si el pedido está atrasado
+  if (
+    pedido.fecha_entrega < hoy &&
+    pedido.estado !== "entregado" &&
+    pedido.estado !== "cancelado"
+  ) {
+    notificationSystem.show({
+      type: "warning",
+      title: "Pedido Atrasado",
+      message: `El pedido de ${pedido.cliente.nombre} está atrasado`,
+      timeout: 6000,
+    });
+  }
+
+  // Notificar si el pedido es para hoy
+  if (pedido.fecha_entrega === hoy && pedido.estado !== "entregado") {
+    notificationSystem.show({
+      type: "info",
+      title: "Entrega Hoy",
+      message: `Recuerda entregar el pedido de ${pedido.cliente.nombre} hoy`,
+      timeout: 5000,
+    });
+  }
+
+  // Notificar cuando se marca como entregado
+  if (accion === "entregado" && pedido.estado === "entregado") {
+    notificationSystem.show({
+      type: "success",
+      title: "Pedido Entregado",
+      message: `Pedido de ${pedido.cliente.nombre} marcado como entregado`,
+      timeout: 4000,
+    });
+  }
+
+  // Actualizar notificaciones en el header
+  actualizarNotificacionesPedidos();
+};
+
 const closeModal = () => {
   showModalPedido.value = false;
   showNuevoClienteModal.value = false;
@@ -2289,14 +2614,28 @@ onMounted(() => {
     fetchUnidadesMedida(),
     fetchCategorias(),
     fetchProveedores(),
-  ]).catch((error) => {
-    console.error("Error cargando datos:", error);
-    loading.value = false;
-    if (error.response?.status === 401) {
-      logout();
-    }
-  });
+  ])
+    .then(() => {
+      // AGREGAR: Actualizar notificaciones después de cargar pedidos
+      actualizarNotificacionesPedidos();
+    })
+    .catch((error) => {
+      console.error("Error cargando datos:", error);
+      loading.value = false;
+      if (error.response?.status === 401) {
+        logout();
+      }
+    });
 });
+
+// AGREGAR: Watcher para actualizar notificaciones cuando cambien los pedidos
+watch(
+  pedidos,
+  () => {
+    actualizarNotificacionesPedidos();
+  },
+  { deep: true }
+);
 </script>
 
 <style scoped>
@@ -2848,6 +3187,210 @@ onMounted(() => {
 
 .pedido-header:hover::after {
   box-shadow: inset 0 0 0 2px rgba(123, 90, 80, 0.1);
+}
+
+/* AGREGAR: Estilos para las alertas de pedidos */
+.alertas-pedidos {
+  margin-bottom: 20px;
+  padding: 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.alerta-critica {
+  background: linear-gradient(135deg, #f8d7da, #f5b7b1);
+  color: #721c24;
+  border-left-color: #dc3545;
+}
+
+.alerta-hoy {
+  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+  color: #856404;
+  border-left-color: #ffc107;
+}
+
+.alerta-manana {
+  background: linear-gradient(135deg, #d1ecf1, #a6e3e9);
+  color: #0c5460;
+  border-left-color: #17a2b8;
+}
+
+.alerta-contenido {
+  flex: 1;
+}
+
+.alerta-contenido strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 1rem;
+}
+
+.alerta-contenido p {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.btn-alerta-cerrar {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.btn-alerta-cerrar:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* AGREGAR: Estilos para estadísticas de pedidos */
+.estadisticas-pedidos {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.estadistica-item {
+  display: flex;
+  align-items: center;
+}
+
+.estadistica-badge {
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.estadistica-badge.critica {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+}
+
+.estadistica-badge.hoy {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  color: #212529;
+}
+
+.estadistica-badge.manana {
+  background: linear-gradient(135deg, #17a2b8, #138496);
+  color: white;
+}
+
+.estadistica-badge.total {
+  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
+  color: white;
+}
+
+/* AGREGAR: Indicadores de urgencia en pedidos */
+.indicador-urgencia {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 2;
+}
+
+.indicador-urgencia.critico {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.indicador-urgencia.hoy {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  color: #212529;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(220, 53, 69, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+  }
+}
+
+/* AGREGAR: Estilos para estados especiales de pedidos */
+.pedido-atrasado {
+  border-left: 4px solid #dc3545 !important;
+  background: linear-gradient(135deg, #fff, #f8d7da) !important;
+}
+
+.pedido-hoy {
+  border-left: 4px solid #ffc107 !important;
+  background: linear-gradient(135deg, #fff, #fff3cd) !important;
+}
+
+.fecha-atrasada {
+  color: #dc3545 !important;
+  font-weight: 700;
+}
+
+.fecha-hoy {
+  color: #e0a800 !important;
+  font-weight: 700;
+}
+
+/* AGREGAR: Botón de entregado rápido */
+.btn-entregado {
+  background: linear-gradient(135deg, #28a745, #20c997) !important;
+  color: white;
+}
+
+.btn-entregado:hover:not(:disabled) {
+  background: linear-gradient(135deg, #218838, #1e7e34) !important;
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .alertas-pedidos {
+    margin-bottom: 15px;
+  }
+
+  .estadisticas-pedidos {
+    justify-content: center;
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .indicador-urgencia {
+    position: relative;
+    top: auto;
+    right: auto;
+    align-self: flex-start;
+    margin-bottom: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .estadisticas-pedidos {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .estadistica-badge {
+    justify-content: center;
+  }
 }
 
 /* ----------------------------- RESPONSIVE ----------------------------- */

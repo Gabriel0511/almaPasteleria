@@ -3,10 +3,29 @@
     <Sidebar @navigate="handleNavigation" />
 
     <div class="main-container">
-      <Header />
+      <Header ref="headerRef" />
       <main class="main-content">
         <section class="recetas-content">
           <h3 class="card-title1">Gestión de Recetas</h3>
+
+          <!-- AGREGAR: Contador de recetas no rentables -->
+          <div class="estadisticas-rapidas">
+            <div
+              class="estadistica-item"
+              v-if="notificacionesRecetasNoRentables.length > 0"
+            >
+              <span class="estadistica-badge warning">
+                <i class="fas fa-exclamation-circle"></i>
+                {{ notificacionesRecetasNoRentables.length }} no rentable(s)
+              </span>
+            </div>
+            <div class="estadistica-item">
+              <span class="estadistica-badge info">
+                <i class="fas fa-utensils"></i>
+                {{ recetasFiltradas.length }} receta(s)
+              </span>
+            </div>
+          </div>
 
           <!-- Filtros de recetas -->
           <div class="filtros-derecha">
@@ -659,6 +678,7 @@ const router = useRouter();
 const notificationSystem = inject("notifications");
 
 // Variables de estado
+const headerRef = ref(null);
 const recetas = ref([]);
 const insumosDisponibles = ref([]);
 const unidadesMedida = ref([]);
@@ -739,6 +759,21 @@ const formNuevoInsumo = ref({
   unidad_medida_id: "",
   stock_minimo: 0,
   precio_unitario: null,
+});
+
+const notificacionesRecetasNoRentables = computed(() => {
+  return recetas.value
+    .filter((receta) => receta.precio_venta <= receta.costo_total)
+    .map((receta) => ({
+      id: `receta-no-rentable-${receta.id}`,
+      type: "warning",
+      title: "Receta No Rentable",
+      message: `${receta.nombre} no es rentable (Costo: $${formatDecimal(
+        receta.costo_total
+      )} > Venta: $${formatDecimal(receta.precio_venta)})`,
+      timestamp: new Date(),
+      receta: receta,
+    }));
 });
 
 // Métodos
@@ -1032,6 +1067,7 @@ const agregarInsumoAReceta = async () => {
 
     // Recalcular costos
     await recalcularCostosReceta();
+    await onInsumosModificados(recetaSeleccionada.value);
 
     notificationSystem.show({
       type: "success",
@@ -1084,8 +1120,8 @@ const eliminarInsumoDeReceta = async (receta, insumo) => {
       receta.insumos.splice(insumoIndex, 1);
     }
 
-    // Recalcular costos
-    await recalcularCostosReceta();
+    // AGREGAR: Notificar cambios en insumos
+    await onInsumosModificados(receta);
 
     notificationSystem.show({
       type: "success",
@@ -1138,6 +1174,10 @@ const guardarRecetaBasica = async () => {
 
     await fetchRecetas();
     closeModal();
+
+    // AGREGAR: Verificar rentabilidad y mostrar notificación
+    const recetaGuardada = response.data;
+    verificarRentabilidadYNotificar(recetaGuardada);
 
     notificationSystem.show({
       type: "success",
@@ -1210,6 +1250,9 @@ const eliminarReceta = async () => {
     }
 
     showConfirmModal.value = false;
+
+    // AGREGAR: Actualizar notificaciones después de eliminar
+    actualizarNotificacionesRecetas();
 
     notificationSystem.show({
       type: "success",
@@ -1391,6 +1434,7 @@ const guardarEdicionInsumo = async (insumo) => {
 
     // Recalcular costos de la receta
     await recalcularCostosReceta();
+    await onInsumosModificados(recetaSeleccionada.value);
 
     notificationSystem.show({
       type: "success",
@@ -1585,6 +1629,39 @@ const fetchUnidadesMedida = async () => {
   }
 };
 
+// AGREGAR: Método para actualizar notificaciones en el Header
+const actualizarNotificacionesRecetas = () => {
+  if (headerRef.value && headerRef.value.actualizarNotificaciones) {
+    headerRef.value.actualizarNotificaciones();
+  }
+};
+
+// AGREGAR: Método para emitir notificación cuando se crea/edita una receta no rentable
+const verificarRentabilidadYNotificar = (receta) => {
+  if (receta.precio_venta <= receta.costo_total) {
+    notificationSystem.show({
+      type: "warning",
+      title: "Receta No Rentable",
+      message: `La receta "${receta.nombre}" no es rentable. El precio de venta no cubre los costos.`,
+      timeout: 6000,
+    });
+
+    // Actualizar notificaciones en el header
+    actualizarNotificacionesRecetas();
+  }
+};
+
+const onInsumosModificados = async (receta) => {
+  // Recalcular costos
+  await recalcularCostosReceta();
+
+  // Verificar si la rentabilidad cambió
+  const recetaActualizada = recetas.value.find((r) => r.id === receta.id);
+  if (recetaActualizada) {
+    verificarRentabilidadYNotificar(recetaActualizada);
+  }
+};
+
 // Cargar datos al montar el componente
 onMounted(() => {
   if (!localStorage.getItem("access_token")) {
@@ -1597,13 +1674,18 @@ onMounted(() => {
     fetchRecetas(),
     fetchInsumosDisponibles(),
     fetchUnidadesMedida(),
-  ]).catch((error) => {
-    console.error("Error cargando datos:", error);
-    loading.value = false;
-    if (error.response?.status === 401) {
-      logout();
-    }
-  });
+  ])
+    .then(() => {
+      // AGREGAR: Actualizar notificaciones después de cargar recetas
+      actualizarNotificacionesRecetas();
+    })
+    .catch((error) => {
+      console.error("Error cargando datos:", error);
+      loading.value = false;
+      if (error.response?.status === 401) {
+        logout();
+      }
+    });
 });
 </script>
 
@@ -2253,6 +2335,88 @@ onMounted(() => {
 
 .receta-item.expanded .receta-detalles-container {
   max-height: 1000px;
+}
+
+.alertas-rapidas {
+  margin-bottom: 20px;
+  padding: 0 10px;
+}
+
+.alerta-contenido {
+  flex: 1;
+}
+
+.alerta-contenido strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 1rem;
+}
+
+.alerta-contenido p {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.btn-alerta-cerrar {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.btn-alerta-cerrar:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* AGREGAR: Estilos para estadísticas rápidas */
+.estadisticas-rapidas {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.estadistica-item {
+  display: flex;
+  align-items: center;
+}
+
+.estadistica-badge {
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.estadistica-badge.warning {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  color: #212529;
+}
+
+.estadistica-badge.info {
+  background: linear-gradient(135deg, #17a2b8, #138496);
+  color: white;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .alertas-rapidas {
+    margin-bottom: 15px;
+  }
+
+  .estadisticas-rapidas {
+    justify-content: center;
+    width: 100%;
+    margin-top: 10px;
+  }
 }
 
 /* ----------------------------- RESPONSIVE ----------------------------- */
