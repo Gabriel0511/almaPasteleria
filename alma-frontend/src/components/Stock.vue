@@ -3,10 +3,38 @@
     <Sidebar @navigate="handleNavigation" />
 
     <div class="main-container">
-      <Header />
+      <Header ref="headerRef" />
       <main class="main-content">
         <section class="stock-content">
           <h3 class="card-title1">Gestión de Stock</h3>
+
+          <!-- AGREGAR: Estadísticas de stock con badges -->
+          <div class="estadisticas-stock">
+            <div class="estadistica-item" v-if="estadisticasStock.critico > 0">
+              <span class="estadistica-badge critico">
+                <i class="fas fa-exclamation-triangle"></i>
+                {{ estadisticasStock.critico }} crítico
+              </span>
+            </div>
+            <div class="estadistica-item" v-if="estadisticasStock.bajo > 0">
+              <span class="estadistica-badge bajo">
+                <i class="fas fa-exclamation-circle"></i>
+                {{ estadisticasStock.bajo }} bajo
+              </span>
+            </div>
+            <div class="estadistica-item">
+              <span class="estadistica-badge normal">
+                <i class="fas fa-check-circle"></i>
+                {{ estadisticasStock.normal }} normal
+              </span>
+            </div>
+            <div class="estadistica-item">
+              <span class="estadistica-badge total">
+                <i class="fas fa-boxes"></i>
+                {{ estadisticasStock.total }} total
+              </span>
+            </div>
+          </div>
 
           <!-- Filtros de stock -->
           <div class="filtros-derecha">
@@ -58,10 +86,28 @@
                 expanded: stockDesplegado[item.id],
               }"
             >
+              <!-- AGREGAR: Indicador de urgencia -->
+              <div
+                v-if="item.cantidad <= item.stock_minimo * 0.5"
+                class="indicador-urgencia critico"
+                title="Stock crítico - Reposición urgente"
+              >
+                <i class="fas fa-exclamation-circle"></i>
+                URGENTE
+              </div>
+
+              <div
+                v-else-if="item.bajoStock"
+                class="indicador-urgencia bajo"
+                title="Stock bajo - Considerar reposición"
+              >
+                <i class="fas fa-exclamation-circle"></i>
+                BAJO
+              </div>
+
               <!-- Contenedor principal del header -->
               <div class="stock-item-main">
                 <!-- Header que ocupa todo el ancho -->
-                <!-- En la sección del stock-item, modificar el stock-header-full -->
                 <div
                   class="stock-header-full cursor-pointer"
                   @click="toggleStock(item.id)"
@@ -95,36 +141,6 @@
                     </div>
 
                     <div class="stock-header-right" @click.stop>
-                      <span
-                        class="stock-estado-badge"
-                        :class="{
-                          critico: item.cantidad <= item.stock_minimo * 0.5,
-                          bajo:
-                            item.bajoStock &&
-                            item.cantidad > item.stock_minimo * 0.5,
-                          normal: !item.bajoStock,
-                        }"
-                      >
-                        <i
-                          class="fas"
-                          :class="{
-                            'fa-exclamation-triangle':
-                              item.cantidad <= item.stock_minimo * 0.5,
-                            'fa-exclamation-circle':
-                              item.bajoStock &&
-                              item.cantidad > item.stock_minimo * 0.5,
-                            'fa-check-circle': !item.bajoStock,
-                          }"
-                        ></i>
-                        {{
-                          item.cantidad <= item.stock_minimo * 0.5
-                            ? "Crítico"
-                            : item.bajoStock
-                            ? "Bajo"
-                            : "Normal"
-                        }}
-                      </span>
-
                       <div class="stock-acciones">
                         <button
                           class="btn-accion btn-editar"
@@ -730,6 +746,8 @@ const categoriaSeleccionada = ref("");
 const searchTerm = ref("");
 const loading = ref(true);
 const stockDesplegado = ref({});
+const busquedaInsumo = ref("");
+const insumosFiltrados = ref([]); // Asegurar que está declarada
 
 // Modales
 const showModalInsumo = ref(false);
@@ -843,6 +861,43 @@ const notificacionesStockCritico = computed(() => {
     }));
 });
 
+const notificacionesStockBajo = computed(() => {
+  return stock.value
+    .filter((item) => item.bajoStock && item.cantidad > item.stock_minimo * 0.5)
+    .map((item) => ({
+      id: `stock-bajo-${item.id}`,
+      type: "warning",
+      title: "Stock Bajo",
+      message: `${item.nombre} está por debajo del mínimo (${formatDecimal(
+        item.cantidad
+      )}/${formatDecimal(item.stock_minimo)} ${item.unidad})`,
+      timestamp: new Date(),
+      read: false,
+      item: item,
+    }));
+});
+
+const todasLasNotificacionesStock = computed(() => {
+  return [
+    ...notificacionesStockCritico.value,
+    ...notificacionesStockBajo.value,
+  ];
+});
+
+const estadisticasStock = computed(() => {
+  const critico = notificacionesStockCritico.value.length;
+  const bajo = notificacionesStockBajo.value.length;
+  const total = stock.value.length;
+  const normal = total - critico - bajo;
+
+  return {
+    critico,
+    bajo,
+    normal,
+    total,
+  };
+});
+
 // 🔍 MÉTODO PARA FILTRAR INSUMOS EN MODAL DE COMPRA
 const filtrarInsumos = () => {
   if (!busquedaInsumo.value) {
@@ -887,14 +942,15 @@ const toggleStock = (stockId) => {
 
 // Método para reposición rápida
 const reponerStockRapido = (item) => {
-  // Configurar el formulario con el insumo seleccionado
+  // Seleccionar automáticamente el insumo en el modal de compra
   formCompra.value.insumo_id = item.id;
+  // Establecer una cantidad sugerida basada en el stock mínimo
+  const cantidadSugerida = Math.max(
+    item.stock_minimo - item.cantidad,
+    item.stock_minimo * 0.5
+  );
+  formCompra.value.cantidad = cantidadSugerida;
   actualizarUnidadMedida();
-
-  // Establecer que estamos en modo reposición rápida
-  esReposicionRapida.value = true;
-  insumoReposicionRapida.value = item;
-
   showModalCompra.value = true;
 };
 
@@ -1108,6 +1164,8 @@ const eliminarInsumo = async () => {
 
     showConfirmModal.value = false;
 
+    actualizarNotificacionesStock();
+
     notificationSystem.show({
       type: "success",
       title: "Insumo eliminado",
@@ -1195,6 +1253,17 @@ const guardarInsumo = async () => {
     await fetchStock();
     await fetchInsumos();
     closeModal();
+
+    const insumoGuardado = response.data;
+    if (esEdicion.value) {
+      // Buscar el item actualizado en el stock
+      const itemActualizado = stock.value.find(
+        (item) => item.id === insumoGuardado.id
+      );
+      if (itemActualizado) {
+        verificarStockYNotificar(itemActualizado, "actualizado");
+      }
+    }
 
     notificationSystem.show({
       type: "success",
@@ -1290,10 +1359,14 @@ const registrarCompra = async () => {
     await fetchStock();
     await fetchInsumos();
 
-    console.log("Respuesta del servidor:", response.data);
+    const itemActualizado = stock.value.find(
+      (item) => item.id === parseInt(formCompra.value.insumo_id)
+    );
+    if (itemActualizado) {
+      verificarStockYNotificar(itemActualizado, "reposicion");
+    }
 
-    await fetchStock();
-    cerrarModalCompra();
+    closeModal();
 
     notificationSystem.show({
       type: "success",
@@ -1467,7 +1540,7 @@ const fetchInsumos = async () => {
   try {
     const response = await axios.get("/api/insumos/");
     insumos.value = response.data.insumos;
-    // 🔍 INICIALIZAR LA LISTA FILTRADA
+    // 🔍 CORREGIR: Usar insumosFiltrados.value en lugar de insumosFiltrados
     insumosFiltrados.value = response.data.insumos;
   } catch (err) {
     console.error("Error en fetchInsumos:", err);
@@ -1501,6 +1574,48 @@ const fetchProveedores = async () => {
   }
 };
 
+// AGREGAR: Método para actualizar notificaciones en el Header
+const actualizarNotificacionesStock = () => {
+  if (headerRef.value && headerRef.value.actualizarNotificaciones) {
+    headerRef.value.actualizarNotificaciones();
+  }
+};
+
+// AGREGAR: Método para verificar y notificar cambios en stock
+const verificarStockYNotificar = (item, accion) => {
+  // Notificar si el stock está crítico
+  if (item.cantidad <= item.stock_minimo * 0.5) {
+    notificationSystem.show({
+      type: "warning",
+      title: "Stock Crítico",
+      message: `${item.nombre} necesita reposición urgente`,
+      timeout: 6000,
+    });
+  }
+  // Notificar si el stock está bajo
+  else if (item.bajoStock) {
+    notificationSystem.show({
+      type: "info",
+      title: "Stock Bajo",
+      message: `${item.nombre} está por debajo del stock mínimo`,
+      timeout: 5000,
+    });
+  }
+
+  // Notificar cuando se repone stock
+  if (accion === "reposicion" && !item.bajoStock) {
+    notificationSystem.show({
+      type: "success",
+      title: "Stock Repuesto",
+      message: `${item.nombre} ha sido repuesto correctamente`,
+      timeout: 4000,
+    });
+  }
+
+  // Actualizar notificaciones en el header
+  actualizarNotificacionesStock();
+};
+
 // Watchers
 watch(() => formCompra.value.insumo_id, actualizarUnidadMedida);
 watch(
@@ -1522,6 +1637,14 @@ watch(
   }
 );
 
+watch(
+  stock,
+  () => {
+    actualizarNotificacionesStock();
+  },
+  { deep: true }
+);
+
 // Cargar datos al montar el componente
 onMounted(() => {
   if (!localStorage.getItem("access_token")) {
@@ -1536,13 +1659,18 @@ onMounted(() => {
     fetchCategorias(),
     fetchUnidadesMedida(),
     fetchProveedores(),
-  ]).catch((error) => {
-    console.error("Error cargando datos:", error);
-    loading.value = false;
-    if (error.response?.status === 401) {
-      logout();
-    }
-  });
+  ])
+    .then(() => {
+      // AGREGAR: Actualizar notificaciones después de cargar stock
+      actualizarNotificacionesStock();
+    })
+    .catch((error) => {
+      console.error("Error cargando datos:", error);
+      loading.value = false;
+      if (error.response?.status === 401) {
+        logout();
+      }
+    });
 });
 
 const cerrarModalCompra = () => {
@@ -1806,32 +1934,6 @@ const validarCantidad = () => {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-}
-
-.stock-estado-badge {
-  padding: 8px 12px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.3s ease;
-}
-
-.stock-estado-badge.critico {
-  background: linear-gradient(135deg, #dc3545, #c82333);
-  color: white;
-}
-
-.stock-estado-badge.bajo {
-  background: linear-gradient(135deg, #ffc107, #e0a800);
-  color: #212529;
-}
-
-.stock-estado-badge.normal {
-  background: linear-gradient(135deg, #28a745, #20c997);
-  color: white;
 }
 
 .btn-accion {
@@ -2219,6 +2321,100 @@ const validarCantidad = () => {
   }
 }
 
+/* AGREGAR: Estilos para estadísticas de stock */
+.estadisticas-stock {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.estadistica-item {
+  display: flex;
+  align-items: center;
+}
+
+.estadistica-badge {
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.estadistica-badge.critico {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.estadistica-badge.bajo {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  color: #212529;
+}
+
+.estadistica-badge.normal {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.estadistica-badge.total {
+  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
+  color: white;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(220, 53, 69, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+  }
+}
+
+/* AGREGAR: Indicadores de urgencia en items de stock */
+.indicador-urgencia {
+  position: absolute;
+  top: 5px;
+  right: 10px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 2;
+}
+
+.indicador-urgencia.critico {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.indicador-urgencia.bajo {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  color: #212529;
+}
+
+/* AGREGAR: Estilos para cantidades críticas y bajas */
+.cantidad-critica {
+  color: #dc3545 !important;
+  font-weight: 700;
+}
+
+.cantidad-baja {
+  color: #e0a800 !important;
+  font-weight: 600;
+}
+
 /* ----------------------------- RESPONSIVE ----------------------------- */
 @media (max-width: 768px) {
   .stock-header-content {
@@ -2246,6 +2442,20 @@ const validarCantidad = () => {
   .detalles-content {
     padding: 15px;
   }
+
+  .estadisticas-stock {
+    justify-content: center;
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .indicador-urgencia {
+    position: relative;
+    top: auto;
+    right: auto;
+    align-self: flex-start;
+    margin-bottom: 10px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -2265,6 +2475,15 @@ const validarCantidad = () => {
 
   .insumo-nombre {
     font-size: 1.1rem;
+  }
+
+  .estadisticas-stock {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .estadistica-badge {
+    justify-content: center;
   }
 }
 
