@@ -402,34 +402,49 @@
     <!-- Modal para Nueva Compra -->
     <BaseModal
       v-model:show="showModalCompra"
-      title="Nueva Compra"
+      :title="esReposicionRapida ? 'Reposición Rápida' : 'Nueva Compra'"
       size="large"
-      @close="showModalCompra = false"
+      @close="cerrarModalCompra"
     >
       <div class="form-grid">
-        <!-- 🔍 CAMPO DE BÚSQUEDA -->
-        <div class="form-group full-width">
-          <input
-            v-model="busquedaInsumo"
-            type="text"
-            placeholder="Escribe el nombre del insumo..."
-            class="form-input search-input"
-            @input="filtrarInsumos"
-          />
-        </div>
-
         <div class="form-group">
           <label>Insumo:</label>
+
+          <!-- MODO REPOSICIÓN RÁPIDA: Mostrar insumo fijo -->
+          <div
+            v-if="esReposicionRapida && insumoReposicionRapida"
+            class="insumo-fijo-container"
+          >
+            <div class="insumo-fijo">
+              <div class="insumo-fijo-nombre">
+                <div class="insumo-fijo-header">
+                  <i class="fas fa-lock"></i>
+                  <strong>{{ insumoReposicionRapida.nombre }}</strong>
+                </div>
+                <span class="insumo-fijo-stock">
+                  (Stock actual:
+                  {{ formatDecimal(insumoReposicionRapida.cantidad) }}
+                  {{ insumoReposicionRapida.unidad }})
+                </span>
+              </div>
+              <div class="insumo-fijo-categoria">
+                {{ insumoReposicionRapida.categoria }}
+              </div>
+            </div>
+            <input type="hidden" v-model="formCompra.insumo_id" />
+          </div>
+
+          <!-- MODO NORMAL: Select de insumos (desplegable normal) -->
           <select
+            v-else
             v-model="formCompra.insumo_id"
             required
             class="form-input"
             @change="actualizarUnidadMedida"
-            size="6"
           >
             <option value="">Seleccione un insumo</option>
             <option
-              v-for="insumo in insumosFiltrados"
+              v-for="insumo in insumos"
               :key="insumo.id"
               :value="insumo.id"
             >
@@ -438,12 +453,6 @@
               {{ insumo.unidad_medida.abreviatura }})
             </option>
           </select>
-          <div class="search-info" v-if="busquedaInsumo">
-            <small>
-              Mostrando {{ insumosFiltrados.length }} de
-              {{ insumos.length }} insumos
-            </small>
-          </div>
         </div>
 
         <div class="form-group">
@@ -452,10 +461,11 @@
             v-model="formCompra.cantidad"
             type="number"
             step="0.001"
-            min="0.001"
+            min="0"
             required
             class="form-input"
             placeholder="0.000"
+            @input="validarCantidad"
           />
         </div>
 
@@ -475,7 +485,7 @@
             v-model="formCompra.precio_total"
             type="number"
             step="0.01"
-            min="0.01"
+            min="0"
             required
             class="form-input"
             placeholder="0.00"
@@ -525,8 +535,10 @@
 
       <template #footer>
         <ModalButtons
-          confirm-text="Registrar Compra"
-          @cancel="showModalCompra = false"
+          :confirm-text="
+            esReposicionRapida ? 'Confirmar Reposición' : 'Registrar Compra'
+          "
+          @cancel="cerrarModalCompra"
           @confirm="registrarCompra"
         />
       </template>
@@ -719,10 +731,6 @@ const searchTerm = ref("");
 const loading = ref(true);
 const stockDesplegado = ref({});
 
-// 🔍 NUEVAS VARIABLES PARA BÚSQUEDA EN MODAL DE COMPRA
-const busquedaInsumo = ref("");
-const insumosFiltrados = ref([]);
-
 // Modales
 const showModalInsumo = ref(false);
 const showModalCompra = ref(false);
@@ -730,6 +738,10 @@ const showNuevoProveedorModal = ref(false);
 const showConfirmModal = ref(false);
 const showNuevaCategoriaModal = ref(false);
 const showNuevaUnidadDeMedidaModal = ref(false);
+
+// Agregar después de las otras variables
+const esReposicionRapida = ref(false);
+const insumoReposicionRapida = ref(null);
 
 // Formularios
 const formInsumo = ref({
@@ -875,9 +887,14 @@ const toggleStock = (stockId) => {
 
 // Método para reposición rápida
 const reponerStockRapido = (item) => {
-  // Seleccionar automáticamente el insumo en el modal de compra
+  // Configurar el formulario con el insumo seleccionado
   formCompra.value.insumo_id = item.id;
   actualizarUnidadMedida();
+
+  // Establecer que estamos en modo reposición rápida
+  esReposicionRapida.value = true;
+  insumoReposicionRapida.value = item;
+
   showModalCompra.value = true;
 };
 
@@ -1210,6 +1227,17 @@ const guardarInsumo = async () => {
 
 const registrarCompra = async () => {
   try {
+    // Validar que la cantidad sea mayor a 0
+    if (parseFloat(formCompra.value.cantidad) <= 0) {
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "La cantidad debe ser mayor a 0",
+        timeout: 4000,
+      });
+      return;
+    }
+
     const insumo = insumos.value.find(
       (i) => i.id === parseInt(formCompra.value.insumo_id)
     );
@@ -1265,12 +1293,16 @@ const registrarCompra = async () => {
     console.log("Respuesta del servidor:", response.data);
 
     await fetchStock();
-    closeModal();
+    cerrarModalCompra();
 
     notificationSystem.show({
       type: "success",
-      title: "Compra registrada",
-      message: "Compra registrada correctamente",
+      title: esReposicionRapida.value
+        ? "Reposición registrada"
+        : "Compra registrada",
+      message: esReposicionRapida.value
+        ? "Reposición registrada correctamente"
+        : "Compra registrada correctamente",
       timeout: 4000,
     });
   } catch (error) {
@@ -1367,14 +1399,15 @@ const resetFormInsumo = () => {
 const resetFormCompra = () => {
   formCompra.value = {
     insumo_id: "",
-    cantidad: 0,
+    cantidad: 0, // Cambiar a 0 en lugar de 0.001
     precio_total: 0,
     precio_unitario: 0,
     proveedor_id: "",
   };
   unidadCompra.value = "";
-  busquedaInsumo.value = ""; // 🔍 Resetear la búsqueda
-  insumosFiltrados.value = insumos.value; // 🔍 Resetear la lista filtrada
+  // Remover las variables de búsqueda que ya no usamos
+  esReposicionRapida.value = false;
+  insumoReposicionRapida.value = null;
 };
 
 const resetFormProveedor = () => {
@@ -1472,16 +1505,21 @@ const fetchProveedores = async () => {
 watch(() => formCompra.value.insumo_id, actualizarUnidadMedida);
 watch(
   () => [formCompra.value.cantidad, formCompra.value.precio_total],
-  calcularPrecioUnitario
+  () => {
+    calcularPrecioUnitario();
+  }
 );
 
-// 🔍 WATCHER PARA INICIALIZAR LISTA FILTRADA CUANDO SE ACTUALIZAN LOS INSUMOS
+// 🔒 WATCHER PARA RESETEAR MODO REPOSICIÓN RÁPIDA AL CERRAR EL MODAL
 watch(
-  () => insumos.value,
-  () => {
-    insumosFiltrados.value = insumos.value;
-  },
-  { immediate: true }
+  () => showModalCompra.value,
+  (newVal) => {
+    if (!newVal) {
+      // Resetear modo reposición rápida cuando se cierra el modal
+      esReposicionRapida.value = false;
+      insumoReposicionRapida.value = null;
+    }
+  }
 );
 
 // Cargar datos al montar el componente
@@ -1506,6 +1544,21 @@ onMounted(() => {
     }
   });
 });
+
+const cerrarModalCompra = () => {
+  showModalCompra.value = false;
+  // Resetear modo reposición rápida
+  esReposicionRapida.value = false;
+  insumoReposicionRapida.value = null;
+  resetFormCompra();
+};
+
+const validarCantidad = () => {
+  // Solo validar que no sea negativo, pero permitir 0
+  if (parseFloat(formCompra.value.cantidad) < 0) {
+    formCompra.value.cantidad = 0;
+  }
+};
 </script>
 
 <style scoped>
@@ -1961,7 +2014,7 @@ onMounted(() => {
   position: fixed;
   bottom: 30px;
   right: 30px;
-  background: linear-gradient(135deg, #17a2b8, #138496);
+  background: linear-gradient(135deg, #218838);
   color: white;
   border: none;
   border-radius: 50px;
@@ -1980,7 +2033,7 @@ onMounted(() => {
 .btn-nueva-compra-flotante:hover {
   transform: translateY(-3px) scale(1.05);
   box-shadow: 0 8px 25px rgba(23, 162, 184, 0.4);
-  background: linear-gradient(135deg, #138496, #17a2b8);
+  background: linear-gradient(135deg, #218838);
 }
 
 /* ----------------------------- ESTADOS ----------------------------- */
@@ -2137,9 +2190,11 @@ onMounted(() => {
   0% {
     box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
   }
+
   70% {
     box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
   }
@@ -2154,9 +2209,11 @@ onMounted(() => {
   0% {
     box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4);
   }
+
   70% {
     box-shadow: 0 0 0 10px rgba(255, 193, 7, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
   }
@@ -2253,11 +2310,133 @@ onMounted(() => {
 
 .select-with-button .form-input {
   flex: 1;
-  min-width: 0; /* Permite que se reduzca correctamente */
+  min-width: 0;
+  /* Permite que se reduzca correctamente */
 }
 
 .select-with-button .btn-agregar {
   flex-shrink: 0;
-  align-self: stretch; /* Hace que el botón tenga la misma altura que el select */
+  align-self: stretch;
+  /* Hace que el botón tenga la misma altura que el select */
+}
+
+/* ----------------------------- BOTÓN REPOSICIÓN RÁPIDA CON NUEVO COLOR ----------------------------- */
+.btn-reposicion {
+  background: linear-gradient(135deg, #218838, #1e7e34);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 6px rgba(33, 136, 56, 0.3);
+}
+
+.btn-reposicion:hover {
+  background: linear-gradient(135deg, #1e7e34, #1c7430);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(33, 136, 56, 0.4);
+}
+
+/* ----------------------------- ESTILOS PARA INSUMO FIJO EN MODAL ----------------------------- */
+.insumo-fijo-container {
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-left: 4px solid #218838;
+}
+
+.insumo-fijo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.insumo-fijo-nombre {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.insumo-fijo-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.insumo-fijo-header i {
+  color: #218838;
+  font-size: 0.9rem;
+}
+
+.insumo-fijo-header strong {
+  color: #2c3e50;
+  font-size: 1rem;
+}
+
+.insumo-fijo-stock {
+  color: #6c757d;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: rgba(33, 136, 56, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.insumo-fijo-categoria {
+  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  align-self: flex-start;
+}
+
+/* ----------------------------- ESTILOS DE VALIDACIÓN ----------------------------- */
+.required-asterisk {
+  color: #dc3545;
+}
+
+.input-error {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1) !important;
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 0.8rem;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* ----------------------------- ESTILOS PARA BÚSQUEDA EN MODAL COMPRA ----------------------------- */
+.search-container {
+  margin-bottom: 12px;
+}
+
+.search-container .search-input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 12px center;
+  background-size: 16px;
+  padding-left: 40px;
+  width: 100%;
+  margin-bottom: 5px;
+}
+
+.search-info {
+  color: #6c757d;
+  font-size: 0.8rem;
+  text-align: left;
 }
 </style>

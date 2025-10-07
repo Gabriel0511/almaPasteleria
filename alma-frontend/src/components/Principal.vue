@@ -95,7 +95,7 @@
                       type="checkbox"
                       :checked="task.estado === 'entregado'"
                       :disabled="task.estado === 'entregado'"
-                      @change="confirmarEntrega(task)"
+                      @click.prevent="confirmarEntrega(task)"
                     />
                     <span class="checkmark"></span>
                   </label>
@@ -162,10 +162,8 @@
                     <input
                       type="checkbox"
                       :checked="task.estado === 'listo'"
-                      :disabled="
-                        task.estado === 'listo' || task.estado === 'entregado'
-                      "
-                      @change="confirmarPreparacion(task)"
+                      :disabled="task.estado === 'listo' || task.estado === 'entregado'"
+                      @click.prevent="confirmarPreparacion(task)"
                     />
                     <span class="checkmark"></span>
                   </label>
@@ -362,47 +360,23 @@ const modalConfirmText = computed(() => {
   return modalType.value === "entrega" ? "Sí, Entregar" : "Sí, terminar pedido";
 });
 
-// Método para confirmar entrega
-const confirmarEntrega = (task) => {
-  if (task.estado === "entregado") return;
-
-  currentTask.value = task;
-  modalType.value = "entrega";
-  modalTitle.value = "Confirmar Entrega";
-  modalMessage.value = `¿Estás seguro que quieres marcar como ENTREGADO el pedido?`;
-  modalDetails.value = `Cliente: ${task.nombre}`;
-  modalAction.value = () => marcarComoEntregado(task);
-
-  showConfirmModal.value = true;
-};
-
-// Método para confirmar preparación
-const confirmarPreparacion = (task) => {
-  if (task.estado === "listo" || task.estado === "entregado") return;
-
-  currentTask.value = task;
-  modalType.value = "preparacion";
-  modalTitle.value = "Terminar pedido";
-  modalMessage.value = `¿Estás seguro que quieres terminar el pedido?`;
-  modalDetails.value = `Cliente: ${
-    task.nombre
-  }\nFecha de entrega: ${formatFecha(task.fecha_entrega)}`;
-  modalAction.value = () => empezarPreparacion(task);
-
-  showConfirmModal.value = true;
-};
-
 const confirmAction = () => {
   if (modalAction.value && currentTask.value) {
     modalAction.value();
   }
   showConfirmModal.value = false;
+  if (currentTask.value) {
+    currentTask.value.confirmando = false; // Resetear estado de confirmación
+  }
   currentTask.value = null;
   modalAction.value = null;
 };
 
 const cancelAction = () => {
   showConfirmModal.value = false;
+  if (currentTask.value) {
+    currentTask.value.confirmando = false; // Resetear estado de confirmación
+  }
   currentTask.value = null;
   modalAction.value = null;
 };
@@ -593,10 +567,10 @@ const marcarComoEntregado = async (task) => {
   try {
     await actualizarEstadoPedido(task.id, "entregado", "entregarHoy");
 
-    // ✅ Actualizar estado localmente SIN recargar
     const index = entregarHoy.value.findIndex((p) => p.id === task.id);
     if (index !== -1) {
       entregarHoy.value[index].estado = "entregado";
+      entregarHoy.value[index].confirmando = false; // Resetear estado
     }
 
     notificationSystem.show({
@@ -605,23 +579,24 @@ const marcarComoEntregado = async (task) => {
       message: `El pedido de ${task.nombre} ha sido marcado como entregado`,
       timeout: 3000,
     });
-
-    // ❌ ELIMINADO: No recargar los pedidos
-    // setTimeout(() => { fetchPedidos(); }, 1000);
   } catch (error) {
     console.error("Error al marcar como entregado:", error);
+    // En caso de error, también resetear el estado
+    const index = entregarHoy.value.findIndex((p) => p.id === task.id);
+    if (index !== -1) {
+      entregarHoy.value[index].confirmando = false;
+    }
   }
 };
 
-// Método específico para empezar preparación - CORREGIDO
 const empezarPreparacion = async (task) => {
   try {
     await actualizarEstadoPedido(task.id, "listo", "hacerHoy");
 
-    // ✅ Actualizar estado localmente SIN recargar
     const index = hacerHoy.value.findIndex((p) => p.id === task.id);
     if (index !== -1) {
       hacerHoy.value[index].estado = "listo";
+      hacerHoy.value[index].confirmando = false; // Resetear estado
     }
 
     notificationSystem.show({
@@ -630,11 +605,13 @@ const empezarPreparacion = async (task) => {
       message: `El pedido de ${task.nombre} ahora está listo`,
       timeout: 3000,
     });
-
-    // ❌ ELIMINADO: No recargar los pedidos
-    // setTimeout(() => { fetchPedidos(); }, 1000);
   } catch (error) {
     console.error("Error al terminar pedido:", error);
+    // En caso de error, también resetear el estado
+    const index = hacerHoy.value.findIndex((p) => p.id === task.id);
+    if (index !== -1) {
+      hacerHoy.value[index].confirmando = false;
+    }
   }
 };
 
@@ -845,6 +822,41 @@ onMounted(() => {
     }
   });
 });
+
+// Método para confirmar entrega - ACTUALIZADO
+const confirmarEntrega = (task) => {
+  if (task.estado === 'entregado' || task.confirmando) return;
+  
+  // Prevenir múltiples clics
+  task.confirmando = true;
+  
+  currentTask.value = task;
+  modalType.value = "entrega";
+  modalTitle.value = "Confirmar Entrega";
+  modalMessage.value = `¿Estás seguro que quieres marcar como ENTREGADO el pedido?`;
+  modalDetails.value = `Cliente: ${task.nombre}`;
+  modalAction.value = () => marcarComoEntregado(task);
+
+  showConfirmModal.value = true;
+};
+
+// Método para confirmar preparación - ACTUALIZADO
+const confirmarPreparacion = (task) => {
+  if (task.estado === 'listo' || task.estado === 'entregado' || task.confirmando) return;
+  
+  // Prevenir múltiples clics
+  task.confirmando = true;
+  
+  currentTask.value = task;
+  modalType.value = "preparacion";
+  modalTitle.value = "Terminar pedido";
+  modalMessage.value = `¿Estás seguro que quieres terminar el pedido?`;
+  modalDetails.value = `Cliente: ${task.nombre}\nFecha de entrega: ${formatFecha(task.fecha_entrega)}`;
+  modalAction.value = () => empezarPreparacion(task);
+
+  showConfirmModal.value = true;
+};
+
 </script>
 
 <style>
