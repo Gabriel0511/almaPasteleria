@@ -1,9 +1,9 @@
 <template>
   <div class="app-layout">
-    <Sidebar @navigate="handleNavigation" />
-
+    <Sidebar ref="sidebarRef" />
+    
     <div class="main-container">
-      <Header />
+      <Header @toggle-sidebar="toggleSidebar" />
       <main class="main-content">
         <section class="content">
           <!-- Stock -->
@@ -249,9 +249,7 @@
                   >
                     -
                   </button>
-                  <span class="contador-value">{{
-                    receta.veces_hecha || 0
-                  }}</span>
+                  <span class="contador-value">{{ receta.veces_hecha || 0 }}</span>
                   <button
                     @click="incrementarContador(receta)"
                     class="btn-contador"
@@ -320,8 +318,14 @@ import Header from "./Header.vue";
 const router = useRouter();
 const notificationSystem = inject("notifications");
 
-const handleNavigation = (route) => {
-  router.push(route);
+// Referencia al sidebar para controlarlo desde el header
+const sidebarRef = ref(null);
+
+// Método para alternar el sidebar desde el header
+const toggleSidebar = () => {
+  if (sidebarRef.value) {
+    sidebarRef.value.toggleSidebar();
+  }
 };
 
 const categoriaSeleccionada = ref("");
@@ -856,7 +860,6 @@ const confirmarPreparacion = (task) => {
 
   showConfirmModal.value = true;
 };
-
 </script>
 
 <style>
