@@ -3543,13 +3543,7 @@ watch(
   }
 
   .btn-nuevo-pedido-flotante span {
-    display: none;
-  }
-
-  .btn-nuevo-pedido-flotante::after {
-    display: none;
-    font-size: 1.2rem;
-    font-weight: bold;
+    display: inline;
   }
 }
 
@@ -3691,6 +3685,15 @@ watch(
 
   .btn-nuevo-pedido-flotante i {
     margin: 0;
+  }
+
+  .btn-nuevo-pedido-flotante span {
+    display: none;
+  }
+
+  .btn-nueva-pedido-flotante::after {
+    display: none;
+    margin-left: 5px;
   }
 }
 
