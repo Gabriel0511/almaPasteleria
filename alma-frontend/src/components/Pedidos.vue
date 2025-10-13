@@ -3361,59 +3361,26 @@ watch(
   box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
 }
 
-/* RESPONSIVE */
-@media (max-width: 768px) {
-  .alertas-pedidos {
-    margin-bottom: 15px;
-  }
+/* ==============================
+   RESPONSIVE DESIGN - PEDIDOS
+   ============================== */
 
-  .estadisticas-pedidos {
-    justify-content: center;
-    width: 100%;
-    margin-top: 10px;
-  }
-
-  .indicador-urgencia {
-    position: relative;
-    top: auto;
-    right: auto;
-    align-self: flex-start;
-    margin-bottom: 10px;
-  }
-}
-
-@media (max-width: 480px) {
-  .estadisticas-pedidos {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .estadistica-badge {
-    justify-content: center;
-  }
-}
-
-/* ----------------------------- RESPONSIVE ----------------------------- */
-@media (max-width: 768px) {
+/* Tablets y pantallas medianas (768px - 1024px) */
+@media (max-width: 1024px) {
   .pedidos-content {
     flex-direction: column;
     align-items: stretch;
-    gap: 15px;
+    gap: 20px;
   }
 
   .filtros-derecha {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
+    width: 100%;
+    justify-content: space-between;
   }
 
-  .filtro-input,
-  .filtro-select {
-    min-width: 100%;
-  }
-
-  .botones-acciones {
-    align-self: flex-start;
+  .filtro-group {
+    flex: 1;
+    min-width: 150px;
   }
 
   .pedido-header {
@@ -3424,6 +3391,79 @@ watch(
 
   .pedido-acciones {
     align-self: flex-end;
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .pedido-titulo {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .pedido-datos {
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  .receta-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .receta-header-acciones {
+    align-self: flex-end;
+  }
+}
+
+/* Tablets pequeñas (768px y menos) */
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+    padding: 10px 10px 10px 10px;
+  }
+
+  .pedidos-card {
+    padding: 15px;
+    margin: 0 5px;
+    border-radius: 12px;
+  }
+
+  .card-title1 {
+    font-size: 1.5rem;
+    text-align: center;
+  }
+
+  .estadisticas-pedidos {
+    justify-content: center;
+    gap: 8px;
+    margin: 15px 0;
+  }
+
+  .estadistica-badge {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+  }
+
+  .filtros-derecha {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .filtro-group {
+    width: 100%;
+  }
+
+  .filtro-input,
+  .filtro-select {
+    min-width: 100%;
+    width: 100%;
+  }
+
+  .pedido-item {
+    padding: 15px;
+    margin: 0 -5px;
   }
 
   .pedido-titulo {
@@ -3432,53 +3472,350 @@ watch(
     gap: 8px;
   }
 
+  .cliente-nombre {
+    font-size: 1.1rem;
+  }
+
   .pedido-datos {
     flex-direction: column;
     gap: 10px;
   }
 
-  .receta-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
+  .dato-grupo {
+    justify-content: flex-start;
   }
 
-  .receta-header-acciones {
-    align-self: flex-end;
+  .pedido-acciones {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
   }
 
-  .ingrediente-extra {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+  .btn-accion {
+    width: 35px;
+    height: 35px;
+    font-size: 12px;
   }
 
-  .ingrediente-acciones {
-    align-self: flex-end;
-  }
-}
-
-@media (max-width: 480px) {
-  .pedidos-card {
-    padding: 15px;
-  }
-
-  .pedido-item {
-    padding: 15px;
+  /* Indicadores de urgencia para móvil */
+  .indicador-urgencia {
+    position: relative;
+    top: auto;
+    right: auto;
+    align-self: flex-start;
+    margin-bottom: 10px;
+    font-size: 0.65rem;
+    padding: 3px 6px;
   }
 
-  .cliente-nombre {
-    font-size: 1.1rem;
-  }
-
+  /* Desplegables */
   .detalles-content {
     padding: 15px;
+  }
+
+  .receta-item {
+    margin-bottom: 15px;
   }
 
   .receta-titulo {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
+  }
+
+  .ingrediente-extra {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 0;
+  }
+
+  .ingrediente-acciones {
+    align-self: flex-end;
+  }
+
+  /* Botón flotante */
+  .btn-nuevo-pedido-flotante {
+    bottom: 20px;
+    right: 20px;
+    padding: 14px 20px;
+    font-size: 0.9rem;
+  }
+
+  .btn-nuevo-pedido-flotante span {
+    display: none;
+  }
+
+  .btn-nuevo-pedido-flotante::after {
+    display: none;
+    font-size: 1.2rem;
+    font-weight: bold;
+  }
+}
+
+/* Móviles grandes (480px - 767px) */
+@media (max-width: 667px) {
+  .pedidos-content {
+    gap: 0px;
+  }
+
+  .estadisticas-pedidos {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .estadistica-badge {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .pedido-header {
+    gap: 12px;
+  }
+
+  .pedido-info {
+    gap: 8px;
+  }
+
+  .pedido-estado-badge {
+    font-size: 0.7rem;
+    padding: 4px 8px;
+  }
+
+  .pedido-total {
+    font-size: 1rem;
+    padding: 4px 8px;
+  }
+
+  .btn-accion {
+    width: 32px;
+    height: 32px;
+    padding: 8px;
+  }
+
+  /* Modal adjustments for mobile */
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .full-width {
+    grid-column: 1;
+  }
+
+  .select-with-button {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .btn-agregar-nuevo {
+    align-self: flex-end;
+    width: auto;
+  }
+}
+
+/* Móviles pequeños (hasta 480px) */
+@media (max-width: 480px) {
+  .main-content {
+    padding: 5px 5px 5px 5px;
+  }
+
+  .pedidos-card {
+    padding: 10px;
+    margin: 0;
+    border-radius: 10px;
+  }
+
+  .card-title1 {
+    font-size: 1.3rem;
+    text-align: center;
+    padding: 0;
+  }
+
+  .pedido-item {
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  .cliente-nombre {
+    font-size: 1rem;
+  }
+
+  .pedido-datos {
+    font-size: 0.85rem;
+  }
+
+  .dato-grupo {
+    font-size: 0.8rem;
+  }
+
+  .pedido-acciones {
+    gap: 3px;
+  }
+
+  .btn-accion {
+    width: 30px;
+    height: 30px;
+    font-size: 11px;
+  }
+
+  /* Botones de acción más pequeños */
+  .btn-accion-small {
+    width: 26px;
+    height: 26px;
+    font-size: 10px;
+    padding: 4px;
+  }
+
+  /* Textos más pequeños */
+  .receta-nombre,
+  .receta-precio {
+    font-size: 0.9rem;
+  }
+
+  .observaciones {
+    font-size: 0.85rem;
+    padding: 8px;
+  }
+
+  /* Botón flotante más pequeño */
+  .btn-nuevo-pedido-flotante {
+    bottom: 15px;
+    right: 15px;
+    padding: 12px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+  }
+
+  .btn-nuevo-pedido-flotante i {
+    margin: 0;
+  }
+}
+
+/* Pantallas muy pequeñas (hasta 360px) */
+@media (max-width: 360px) {
+  .pedidos-card {
+    padding: 8px;
+  }
+
+  .pedido-item {
+    padding: 10px;
+  }
+
+  .cliente-nombre {
+    font-size: 0.95rem;
+  }
+
+  .pedido-estado-badge {
+    font-size: 0.65rem;
+    padding: 3px 6px;
+  }
+
+  .pedido-total {
+    font-size: 0.9rem;
+    padding: 3px 6px;
+  }
+
+  .btn-accion {
+    width: 28px;
+    height: 28px;
+  }
+
+  .estadistica-badge {
+    font-size: 0.7rem;
+    padding: 5px 8px;
+  }
+}
+
+/* ==============================
+   MEJORAS ESPECÍFICAS PARA TOUCH
+   ============================== */
+@media (hover: none) and (pointer: coarse) {
+  .btn-accion,
+  .btn-accion-small,
+  .btn-agregar-receta,
+  .btn-agregar-ingrediente {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .pedido-header {
+    padding: 12px 0;
+  }
+
+  .receta-header {
+    padding: 15px;
+  }
+
+  /* Mejorar área de toque para elementos interactivos */
+  .filtro-input,
+  .filtro-select {
+    min-height: 44px;
+  }
+
+  .btn-nuevo-pedido-flotante {
+    min-width: 60px;
+    min-height: 60px;
+  }
+}
+
+/* ==============================
+   ORIENTACIÓN LANDSCAPE
+   ============================== */
+@media (max-width: 768px) and (orientation: landscape) {
+  .main-content {
+    padding-top: 30px;
+  }
+
+  .pedidos-card {
+    max-height: calc(100vh - 120px);
+  }
+
+  .pedido-item {
+    padding: 10px;
+  }
+
+  .pedido-header {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .pedido-acciones {
+    width: auto;
+  }
+}
+
+/* ==============================
+   MEJORAS DE ACCESIBILIDAD
+   ============================== */
+@media (prefers-reduced-motion: reduce) {
+  .pedido-item,
+  .btn-accion,
+  .btn-nuevo-pedido-flotante,
+  .pedido-detalles-desplegable {
+    transition: none;
+    animation: none;
+  }
+
+  .indicador-urgencia.critico {
+    animation: none;
+  }
+}
+
+/* Alto contraste */
+@media (prefers-contrast: high) {
+  .pedido-item {
+    border: 2px solid;
+  }
+
+  .btn-accion {
+    border: 1px solid;
+  }
+
+  .estadistica-badge {
+    border: 1px solid;
   }
 }
 </style>

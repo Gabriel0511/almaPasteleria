@@ -1785,7 +1785,7 @@ onMounted(() => {
 .recetas-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 5px;
 }
 
 .receta-item {
