@@ -1080,7 +1080,6 @@ onUnmounted(() => {
   border: none;
   color: white;
   font-size: 1.5rem;
-  cursor: pointer;
   padding: 8px;
   margin-right: 10px;
   border-radius: 4px;
@@ -1092,9 +1091,6 @@ onUnmounted(() => {
   z-index: 1002;
 }
 
-.hamburger-btn-mobile:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
 
 /* Ajustar el header para móviles */
 @media (max-width: 768px) {
