@@ -6,7 +6,9 @@
       <Header ref="headerRef" />
       <main class="main-content">
         <section class="stock-content">
-          <h3 class="card-title1">Gestión de Stock</h3>
+          <h3 class="card-title1" :class="{ 'mobile-center': isMobile }">
+            Gestión de Stock
+          </h3>
 
           <!-- AGREGAR: Estadísticas de stock con badges -->
           <div class="estadisticas-stock">
@@ -107,16 +109,18 @@
 
               <!-- Contenedor principal del header -->
               <div class="stock-item-main">
-                <!-- Header que ocupa todo el ancho -->
+                <!-- Header compacto para móviles -->
                 <div
-                  class="stock-header-full cursor-pointer"
+                  class="stock-header-compact cursor-pointer"
                   @click="toggleStock(item.id)"
                 >
                   <div class="stock-header-content">
                     <div class="stock-info-main">
                       <div class="stock-titulo">
                         <span class="insumo-nombre">{{ item.nombre }}</span>
-                        <span class="insumo-badge">{{ item.categoria }}</span>
+                        <span class="insumo-badge" v-if="!isMobile">{{
+                          item.categoria
+                        }}</span>
                       </div>
                       <div class="stock-datos-compact">
                         <div class="dato-grupo">
@@ -124,18 +128,6 @@
                           <span class="stock-cantidad">
                             {{ formatDecimal(item.cantidad) }} {{ item.unidad }}
                           </span>
-                        </div>
-                        <div class="dato-grupo" v-if="item.precio_unitario">
-                          <i class="fas fa-dollar-sign"></i>
-                          <span class="stock-precio">
-                            ${{ formatDecimal(item.precio_unitario) }}
-                          </span>
-                        </div>
-                        <div class="dato-grupo">
-                          <i class="fas fa-truck"></i>
-                          <span class="stock-proveedor">{{
-                            item.proveedor
-                          }}</span>
                         </div>
                       </div>
                     </div>
@@ -227,6 +219,16 @@
                             }}
                             {{ item.unidad }}
                           </span>
+                        </div>
+                        <div class="minimo-item" v-if="item.precio_unitario">
+                          <span class="minimo-label">Precio Unitario:</span>
+                          <span class="minimo-valor">
+                            ${{ formatDecimal(item.precio_unitario) }}
+                          </span>
+                        </div>
+                        <div class="minimo-item">
+                          <span class="minimo-label">Proveedor:</span>
+                          <span class="minimo-valor">{{ item.proveedor }}</span>
                         </div>
                       </div>
                     </div>
@@ -724,7 +726,7 @@
 
 <script setup>
 import { useRouter } from "vue-router";
-import { ref, computed, onMounted, watch, inject } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch, inject } from "vue";
 import Sidebar from "./Sidebar.vue";
 import Header from "./Header.vue";
 import BaseModal from "./Modals/BaseModal.vue";
@@ -747,7 +749,7 @@ const searchTerm = ref("");
 const loading = ref(true);
 const stockDesplegado = ref({});
 const busquedaInsumo = ref("");
-const insumosFiltrados = ref([]); // Asegurar que está declarada
+const insumosFiltrados = ref([]);
 
 // Modales
 const showModalInsumo = ref(false);
@@ -938,20 +940,6 @@ const toggleStock = (stockId) => {
     ...stockDesplegado.value,
     [stockId]: !stockDesplegado.value[stockId],
   };
-};
-
-// Método para reposición rápida
-const reponerStockRapido = (item) => {
-  // Seleccionar automáticamente el insumo en el modal de compra
-  formCompra.value.insumo_id = item.id;
-  // Establecer una cantidad sugerida basada en el stock mínimo
-  const cantidadSugerida = Math.max(
-    item.stock_minimo - item.cantidad,
-    item.stock_minimo * 0.5
-  );
-  formCompra.value.cantidad = cantidadSugerida;
-  actualizarUnidadMedida();
-  showModalCompra.value = true;
 };
 
 const formatDecimal = (value) => {
@@ -1574,6 +1562,46 @@ const fetchProveedores = async () => {
   }
 };
 
+// Computed para unidades permitidas
+const unidadesPermitidas = computed(() => {
+  return unidadesMedida.value;
+});
+
+// Watch para calcular precio unitario cuando cambia cantidad o precio total
+watch(
+  () => [formCompra.value.cantidad, formCompra.value.precio_total],
+  () => {
+    calcularPrecioUnitario();
+  }
+);
+
+// AGREGAR: Watch para notificaciones de stock
+watch(
+  () => [...notificacionesStockCritico.value, ...notificacionesStockBajo.value],
+  (nuevasNotificaciones, anterioresNotificaciones) => {
+    // Aquí podrías integrar con el sistema de notificaciones del header
+    if (headerRef.value && headerRef.value.actualizarNotificacionesStock) {
+      headerRef.value.actualizarNotificacionesStock(nuevasNotificaciones);
+    }
+  },
+  { deep: true }
+);
+
+// AGREGAR: Método para reposición rápida
+const reponerStockRapido = (item) => {
+  esReposicionRapida.value = true;
+  insumoReposicionRapida.value = item;
+  formCompra.value.insumo_id = item.id;
+  // Calcular cantidad sugerida: suficiente para llegar al stock mínimo + 20%
+  const cantidadSugerida = Math.max(
+    item.stock_minimo * 1.2 - item.cantidad,
+    item.stock_minimo * 0.5
+  );
+  formCompra.value.cantidad = Math.ceil(cantidadSugerida * 100) / 100;
+  actualizarUnidadMedida();
+  showModalCompra.value = true;
+};
+
 // AGREGAR: Método para actualizar notificaciones en el Header
 const actualizarNotificacionesStock = () => {
   if (headerRef.value && headerRef.value.actualizarNotificaciones) {
@@ -1687,6 +1715,22 @@ const validarCantidad = () => {
     formCompra.value.cantidad = 0;
   }
 };
+
+// Agregar en el script
+const isMobile = ref(false);
+
+const checkViewport = () => {
+  isMobile.value = window.innerWidth <= 768;
+};
+
+onMounted(() => {
+  checkViewport();
+  window.addEventListener("resize", checkViewport);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", checkViewport);
+});
 </script>
 
 <style scoped>
@@ -2415,12 +2459,76 @@ const validarCantidad = () => {
   font-weight: 600;
 }
 
-/* ----------------------------- RESPONSIVE ----------------------------- */
+/* ----------------------------- RESPONSIVE IMPROVEMENTS ----------------------------- */
+
+/* Pantallas medianas (tablets) */
+@media (max-width: 1024px) {
+  .stock-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .filtros-derecha {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .stock-card {
+    padding: 15px;
+  }
+
+  .stock-minimo-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Pantallas pequeñas (tablets pequeñas y móviles grandes) */
 @media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+    padding: 10px 10px 10px 10px;
+  }
+
+  .stock-content {
+    padding: 0;
+  }
+
+  .filtros-derecha {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .filtro-group {
+    width: 100%;
+  }
+
+  .filtro-input,
+  .filtro-select {
+    min-width: 100%;
+    width: 100%;
+  }
+
+  .botones-acciones {
+    width: 100%;
+  }
+
+  .btn-nuevo-insumo {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .stock-card {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
   .stock-header-content {
     flex-direction: column;
     align-items: stretch;
-    gap: 15px;
+    gap: 12px;
   }
 
   .stock-header-right {
@@ -2437,6 +2545,15 @@ const validarCantidad = () => {
 
   .stock-datos-compact .dato-grupo {
     justify-content: flex-start;
+  }
+
+  .stock-minimo-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .minimo-item {
+    padding: 8px;
   }
 
   .detalles-content {
@@ -2456,34 +2573,251 @@ const validarCantidad = () => {
     align-self: flex-start;
     margin-bottom: 10px;
   }
+
+  /* Modal responsive */
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .select-with-button {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .select-with-button .btn-agregar {
+    align-self: flex-start;
+  }
+
+  .btn-nueva-compra-flotante {
+    bottom: 20px;
+    right: 20px;
+    padding: 14px 20px;
+    font-size: 0.9rem;
+  }
 }
 
+/* Móviles pequeños */
 @media (max-width: 480px) {
-  .stock-header-full {
-    padding: 12px 15px;
+  .main-content {
+    padding: 10px 8px 8px 8px;
   }
 
-  .stock-header-right {
+  .card-title1 {
+    font-size: 1.4rem;
+    text-align: center;
+    width: 100%;
+  }
+
+  .stock-list {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .stock-header-compact {
+    padding: 0.75rem;
+  }
+
+  .stock-titulo {
     flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .stock-acciones {
-    align-self: center;
+    align-items: flex-start;
+    gap: 0.25rem;
   }
 
   .insumo-nombre {
-    font-size: 1.1rem;
+    font-size: 0.875rem;
+  }
+
+  .stock-datos-compact {
+    gap: 0.25rem;
+  }
+
+  .dato-grupo {
+    font-size: 0.75rem;
+  }
+
+  .detalles-content {
+    padding: 0.75rem;
+  }
+
+  .stock-alerta {
+    padding: 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .btn-reposicion {
+    width: 100%;
+    justify-content: center;
+    padding: 0.625rem;
+    font-size: 0.75rem;
+  }
+
+  .indicador-urgencia {
+    position: static;
+    margin-bottom: 0.5rem;
+    justify-content: center;
+    font-size: 0.625rem;
+  }
+
+  .stock-acciones {
+    gap: 4px;
+  }
+
+  .btn-accion {
+    width: 36px;
+    height: 36px;
+    padding: 8px;
   }
 
   .estadisticas-stock {
     flex-direction: column;
     align-items: stretch;
+    gap: 8px;
   }
 
   .estadistica-badge {
     justify-content: center;
+    width: 100%;
+  }
+
+  .btn-nueva-compra-flotante {
+    bottom: 15px;
+    right: 15px;
+    padding: 12px 18px;
+    font-size: 0.8rem;
+  }
+
+  .btn-nueva-compra-flotante span {
+    display: none;
+  }
+
+  .btn-nueva-compra-flotante::after {
+    content: "Compra";
+    margin-left: 5px;
+  }
+}
+
+/* Pantallas muy pequeñas */
+@media (max-width: 360px) {
+  .stock-header-compact {
+    padding: 0.5rem;
+  }
+
+  .insumo-nombre {
+    font-size: 0.8rem;
+  }
+
+  .stock-acciones {
+    gap: 2px;
+  }
+
+  .btn-accion {
+    width: 32px;
+    height: 32px;
+    padding: 6px;
+  }
+
+  .btn-accion i {
+    font-size: 0.8rem;
+  }
+}
+
+/* Mejoras de usabilidad táctil */
+@media (hover: none) and (pointer: coarse) {
+  .stock-item:hover {
+    transform: none;
+  }
+
+  .btn-accion {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .btn-nuevo-insumo,
+  .btn-reposicion,
+  .btn-nueva-compra-flotante {
+    min-height: 44px;
+  }
+
+  .filtro-input,
+  .filtro-select {
+    font-size: 16px; /* Previene zoom en iOS */
+  }
+}
+
+/* Estados de carga y vacío responsive */
+@media (max-width: 768px) {
+  .loading-state,
+  .empty-state {
+    padding: 40px 20px;
+  }
+
+  .loading-state i,
+  .empty-state i {
+    font-size: 1.5rem;
+  }
+
+  .loading-state p,
+  .empty-state p {
+    font-size: 1rem;
+    text-align: center;
+  }
+}
+
+/* Mejoras de accesibilidad en móviles */
+@media (max-width: 768px) {
+  .stock-header-compact {
+    padding: 12px;
+  }
+
+  .stock-item {
+    margin-bottom: 8px;
+  }
+
+  /* Asegurar contraste suficiente */
+  .insumo-nombre {
+    color: #2c3e50;
+  }
+
+  .minimo-label {
+    font-size: 0.85rem;
+  }
+
+  .minimo-valor {
+    font-size: 0.9rem;
+  }
+}
+
+/* Estados de interacción */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Utilidades de texto */
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+/* Estados de hover mejorados */
+@media (hover: hover) {
+  .stock-item:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn-accion:hover {
+    transform: translateY(-1px);
   }
 }
 
