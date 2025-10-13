@@ -1,9 +1,9 @@
 <template>
   <div class="app-layout">
-    <Sidebar @navigate="handleNavigation" />
+    <Sidebar ref="sidebarRef" />
 
     <div class="main-container">
-      <Header ref="headerRef" />
+      <Header @toggle-sidebar="toggleSidebar" />
       <main class="main-content">
         <section class="recetas-content">
           <h3 class="card-title1">Gestión de Recetas</h3>
@@ -692,6 +692,17 @@ const showModalReceta = ref(false);
 const showModalInsumos = ref(false);
 const showConfirmModal = ref(false);
 const showNuevoInsumoModal = ref(false);
+
+// Referencia al sidebar para controlarlo desde el header
+const sidebarRef = ref(null);
+
+// Método para alternar el sidebar desde el header
+const toggleSidebar = () => {
+  if (sidebarRef.value) {
+    sidebarRef.value.toggleSidebar();
+  }
+};
+
 
 // Formularios
 const formReceta = ref({

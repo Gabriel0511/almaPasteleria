@@ -1,9 +1,9 @@
 <template>
   <div class="app-layout">
-    <Sidebar @navigate="handleNavigation" />
+    <Sidebar ref="sidebarRef" />
 
     <div class="main-container">
-      <Header/>
+      <Header @toggle-sidebar="toggleSidebar" />
     </div>
   </div>
 </template>
@@ -18,5 +18,16 @@ const router = useRouter();
 const handleNavigation = (route) => {
   router.push(route);
 };
+
+// Referencia al sidebar para controlarlo desde el header
+const sidebarRef = ref(null);
+
+// Método para alternar el sidebar desde el header
+const toggleSidebar = () => {
+  if (sidebarRef.value) {
+    sidebarRef.value.toggleSidebar();
+  }
+};
+
 
 </script>

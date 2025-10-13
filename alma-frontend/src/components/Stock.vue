@@ -1,9 +1,9 @@
 <template>
   <div class="app-layout">
-    <Sidebar @navigate="handleNavigation" />
+    <Sidebar ref="sidebarRef" />
 
     <div class="main-container">
-      <Header ref="headerRef" />
+      <Header @toggle-sidebar="toggleSidebar" />
       <main class="main-content">
         <section class="stock-content">
           <h3 class="card-title1" :class="{ 'mobile-center': isMobile }">
@@ -804,6 +804,16 @@ const formUnidad = ref({
 const esEdicion = ref(false);
 const insumoAEliminar = ref(null);
 const unidadCompra = ref("");
+
+// Referencia al sidebar para controlarlo desde el header
+const sidebarRef = ref(null);
+
+// Método para alternar el sidebar desde el header
+const toggleSidebar = () => {
+  if (sidebarRef.value) {
+    sidebarRef.value.toggleSidebar();
+  }
+};
 
 // Computed properties
 const insumosBajoStock = computed(() => {
