@@ -1,10 +1,5 @@
 <template>
   <div>
-    <!-- Botón hamburguesa para móviles -->
-    <button class="hamburger-btn" @click="toggleSidebar" v-if="isMobile">
-      <i class="fas fa-bars"></i>
-    </button>
-
     <!-- Overlay para cerrar el sidebar al hacer click fuera -->
     <div
       v-if="isMobile && sidebarOpen"
@@ -15,7 +10,11 @@
     <!-- Sidebar -->
     <aside
       class="sidebar"
-      :class="{ 'sidebar-open': sidebarOpen, 'sidebar-mobile': isMobile }"
+      :class="{ 
+        'sidebar-open': sidebarOpen, 
+        'sidebar-mobile': isMobile,
+        'sidebar-hidden': isMobile && !sidebarOpen
+      }"
     >
       <button
         v-for="item in menuItems"
@@ -43,6 +42,19 @@ const router = useRouter();
 const sidebarOpen = ref(false);
 const isMobile = ref(false);
 
+// Exponer métodos para que el padre pueda controlar el sidebar
+const toggleSidebar = () => {
+  sidebarOpen.value = !sidebarOpen.value;
+};
+
+const openSidebar = () => {
+  sidebarOpen.value = true;
+};
+
+const closeSidebar = () => {
+  sidebarOpen.value = false;
+};
+
 const menuItems = ref([
   { text: "Inicio", icon: "fas fa-house", route: "/inicio" },
   { text: "Stock", icon: "fas fa-box", route: "/stock" },
@@ -57,17 +69,12 @@ const isActive = (menuRoute) => {
 
 const checkScreenSize = () => {
   isMobile.value = window.innerWidth <= 768;
+  // En desktop, el sidebar siempre está abierto
   if (!isMobile.value) {
+    sidebarOpen.value = true;
+  } else {
     sidebarOpen.value = false;
   }
-};
-
-const toggleSidebar = () => {
-  sidebarOpen.value = !sidebarOpen.value;
-};
-
-const closeSidebar = () => {
-  sidebarOpen.value = false;
 };
 
 const navigate = (routePath) => {
@@ -86,23 +93,20 @@ onUnmounted(() => {
   window.removeEventListener("resize", checkScreenSize);
 });
 
+// Exponer métodos al componente padre
+defineExpose({
+  toggleSidebar,
+  openSidebar,
+  closeSidebar
+});
+
 defineEmits(["navigate"]);
 </script>
 
 <style scoped>
-/* Botón hamburguesa */
+/* Elimina el botón hamburguesa del sidebar ya que estará en el header */
 .hamburger-btn {
-  position: fixed;
-  top: 15px;
-  left: 15px;
-  z-index: 1002;
-  background-color: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: 5px;
-  padding: 10px;
-  cursor: pointer;
-  font-size: 18px;
+  display: none;
 }
 
 /* Overlay para móviles */
@@ -113,10 +117,10 @@ defineEmits(["navigate"]);
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  z-index: 999;
 }
 
-/* Sidebar base */
+/* Sidebar base - Siempre visible en desktop */
 .sidebar {
   position: fixed;
   top: 0;
@@ -128,7 +132,7 @@ defineEmits(["navigate"]);
   flex-direction: column;
   align-items: center;
   padding-top: 10px;
-  z-index: 1001;
+  z-index: 1000;
   transition: transform 0.3s ease;
 }
 
@@ -140,6 +144,11 @@ defineEmits(["navigate"]);
 
 .sidebar-mobile.sidebar-open {
   transform: translateX(0);
+}
+
+/* Clase para ocultar completamente en móviles cuando está cerrado */
+.sidebar-hidden {
+  display: none;
 }
 
 .sidebar button {
@@ -178,7 +187,7 @@ defineEmits(["navigate"]);
   font-size: 22px;
 }
 
-/* Responsive */
+/* ========== RESPONSIVE ========== */
 @media (max-width: 768px) {
   .sidebar:not(.sidebar-mobile) {
     display: none;
@@ -186,10 +195,6 @@ defineEmits(["navigate"]);
 }
 
 @media (min-width: 769px) {
-  .hamburger-btn {
-    display: none;
-  }
-
   .sidebar-overlay {
     display: none;
   }

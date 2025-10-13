@@ -1,5 +1,10 @@
 <template>
   <header class="header">
+    <!-- Botón hamburguesa para móviles -->
+        <button class="hamburger-btn-mobile" @click="$emit('toggle-sidebar')" v-if="isMobile">
+      <i class="fas fa-bars"></i>
+    </button>
+
     <div class="header-left">
       <br />
       <div class="logo">
@@ -168,6 +173,26 @@ const confirmPassword = ref("");
 const notificacionesStock = ref([]);
 const notificacionesRecetas = ref([]);
 const notificacionesPedidos = ref([]);
+
+const isMobile = ref(false);
+const emit = defineEmits(['toggle-sidebar']);
+
+const checkScreenSize = () => {
+  isMobile.value = window.innerWidth <= 768;
+};
+
+const toggleMobileSidebar = () => {
+  emit('toggle-sidebar');
+};
+
+onMounted(() => {
+  checkScreenSize();
+  window.addEventListener("resize", checkScreenSize);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", checkScreenSize);
+});
 
 // Obtener email del usuario
 const fetchUserProfile = async () => {
@@ -1045,6 +1070,68 @@ onUnmounted(() => {
 
   .menu-options li {
     padding: 10px 15px;
+  }
+}
+
+/* Botón hamburguesa para móviles en el header */
+.hamburger-btn-mobile {
+  display: none;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 8px;
+  margin-right: 10px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1002;
+}
+
+.hamburger-btn-mobile:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Ajustar el header para móviles */
+@media (max-width: 768px) {
+  .header {
+    padding: 10px 15px 10px 60px !important; /* Más padding izquierdo para el botón */
+    position: relative;
+  }
+
+  .hamburger-btn-mobile {
+    display: block;
+  }
+
+  .header-left {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .logo {
+    position: relative;
+    left: auto;
+    transform: none;
+  }
+
+  .logo img {
+    height: 60px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 8px 10px 8px 50px !important;
+  }
+
+  .hamburger-btn-mobile {
+    left: 10px;
+    font-size: 1.3rem;
+    padding: 6px;
   }
 }
 </style>
