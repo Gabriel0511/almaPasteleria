@@ -239,13 +239,6 @@
                             (receta.insumos || []).length
                           }})
                         </h4>
-                        <button
-                          class="btn-agregar-insumo"
-                          @click="agregarInsumosAReceta(receta)"
-                          title="Agregar/editar insumos"
-                        >
-                          <i class="fas fa-plus-circle"></i> Gestionar Insumos
-                        </button>
                       </div>
 
                       <div class="insumos-list">
@@ -575,6 +568,7 @@
 
       <template #footer>
         <ModalButtons
+          :show-cancel="false"
           confirm-text="Cerrar"
           @cancel="showModalInsumos = false"
           @confirm="showModalInsumos = false"
@@ -702,7 +696,6 @@ const toggleSidebar = () => {
     sidebarRef.value.toggleSidebar();
   }
 };
-
 
 // Formularios
 const formReceta = ref({
@@ -2439,6 +2432,11 @@ onMounted(() => {
 
 /* Para tablets pequeñas y móviles grandes */
 @media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+    padding: 10px 10px 10px 10px;
+  }
+
   .recetas-card {
     padding: 15px;
     max-height: calc(100vh - 150px);
@@ -2504,6 +2502,11 @@ onMounted(() => {
 
 /* Para móviles */
 @media (max-width: 480px) {
+  .main-content {
+    margin-left: 0;
+    padding: 10px 10px 10px 10px;
+  }
+
   .receta-header-full {
     padding: 12px 15px;
   }
@@ -2570,6 +2573,11 @@ onMounted(() => {
 
 /* Para móviles muy pequeños */
 @media (max-width: 360px) {
+  .main-content {
+    margin-left: 0;
+    padding: 10px 10px 10px 10px;
+  }
+
   .recetas-card {
     padding: 10px;
   }
