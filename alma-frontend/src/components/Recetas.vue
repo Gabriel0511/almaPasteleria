@@ -5,22 +5,22 @@
     <div class="main-container">
       <Header @toggle-sidebar="toggleSidebar" />
       <main class="main-content">
-        <section class="recetas-content">
+        <section class="principal-content">
           <h3 class="card-title1">Gestión de Recetas</h3>
 
           <!-- AGREGAR: Contador de recetas no rentables -->
-          <div class="estadisticas-rapidas">
+          <div class="estadisticas-stock">
             <div
               class="estadistica-item"
               v-if="notificacionesRecetasNoRentables.length > 0"
             >
-              <span class="estadistica-badge warning">
+              <span class="estadistica-badge bajo">
                 <i class="fas fa-exclamation-circle"></i>
                 {{ notificacionesRecetasNoRentables.length }} no rentable(s)
               </span>
             </div>
             <div class="estadistica-item">
-              <span class="estadistica-badge info">
+              <span class="estadistica-badge total">
                 <i class="fas fa-utensils"></i>
                 {{ recetasFiltradas.length }} receta(s)
               </span>
@@ -1696,56 +1696,6 @@ onMounted(() => {
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
 
-/* ----------------------------- CONTENIDO PRINCIPAL ----------------------------- */
-.recetas-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  flex-wrap: wrap;
-  gap: 20px;
-  padding: 0 10px;
-}
-
-.card-title1 {
-  color: var(--color-primary);
-  font-size: 1.8rem;
-  font-weight: 600;
-  margin: 0;
-  text-shadow: 0 2px 4px rgba(123, 90, 80, 0.1);
-}
-
-/* ----------------------------- FILTROS ----------------------------- */
-.filtros-derecha {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.filtro-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.filtro-input {
-  padding: 12px 16px;
-  border: 2px solid #e9ecef;
-  border-radius: 10px;
-  font-size: 14px;
-  height: 46px;
-  transition: all 0.3s ease;
-  background: white;
-  min-width: 200px;
-}
-
-.filtro-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(123, 90, 80, 0.1);
-  transform: translateY(-1px);
-}
 
 /* ----------------------------- BOTONES GENERALES ----------------------------- */
 .botones-acciones {
@@ -2689,16 +2639,6 @@ onMounted(() => {
 
 /* Para pantallas medianas (tablets) */
 @media (max-width: 1024px) {
-  .recetas-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-  }
-
-  .filtros-derecha {
-    width: 100%;
-    justify-content: space-between;
-  }
 
   .receta-rentabilidad-grid {
     grid-template-columns: 1fr 1fr;

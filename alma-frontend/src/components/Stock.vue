@@ -1710,39 +1710,6 @@ onUnmounted(() => {
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
 
-/* ----------------------------- FILTROS ----------------------------- */
-.filtros-derecha {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.filtro-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.filtro-input,
-.filtro-select {
-  padding: 12px 16px;
-  border: 2px solid #e9ecef;
-  border-radius: 10px;
-  font-size: 14px;
-  height: 46px;
-  transition: all 0.3s ease;
-  background: white;
-  min-width: 200px;
-}
-
-.filtro-input:focus,
-.filtro-select:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(123, 90, 80, 0.1);
-  transform: translateY(-1px);
-}
 
 /* ----------------------------- BOTONES GENERALES ----------------------------- */
 .botones-acciones {
@@ -2385,22 +2352,6 @@ onUnmounted(() => {
 
 /* Pantallas pequeñas (tablets pequeñas y móviles grandes) */
 @media (max-width: 768px) {
-  .filtros-derecha {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    width: 100%;
-  }
-
-  .filtro-group {
-    width: 100%;
-  }
-
-  .filtro-input,
-  .filtro-select {
-    min-width: 100%;
-    width: 100%;
-  }
 
   .botones-acciones {
     width: 100%;
@@ -2603,10 +2554,6 @@ onUnmounted(() => {
     min-height: 44px;
   }
 
-  .filtro-input,
-  .filtro-select {
-    font-size: 16px; /* Previene zoom en iOS */
-  }
 }
 
 /* Estados de carga y vacío responsive */

@@ -41,7 +41,11 @@
           <!-- Filtros de pedidos -->
           <div class="filtros-derecha">
             <div class="filtro-group">
-              <input type="text" v-model="searchTerm" placeholder="Buscar cliente..." class="filtro-input" />
+              <input 
+              type="text" 
+              v-model="searchTerm" 
+              placeholder="Buscar cliente..." 
+              class="filtro-input" />
             </div>
 
             <div class="filtro-group">
@@ -2264,41 +2268,6 @@ onUnmounted(() => {
   padding: 0 10px;
 }
 
-
-/* ----------------------------- FILTROS ----------------------------- */
-.filtros-derecha {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.filtro-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.filtro-input,
-.filtro-select {
-  padding: 12px 16px;
-  border: 2px solid #e9ecef;
-  border-radius: 10px;
-  font-size: 14px;
-  height: 46px;
-  transition: all 0.3s ease;
-  background: white;
-  min-width: 200px;
-}
-
-.filtro-input:focus,
-.filtro-select:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(123, 90, 80, 0.1);
-  transform: translateY(-1px);
-}
-
 /* ----------------------------- BOTONES GENERALES ----------------------------- */
 .btn-agregar-receta,
 .btn-agregar-ingrediente {
@@ -2932,13 +2901,6 @@ onUnmounted(() => {
 /* Tablets y pantallas medianas (768px - 1024px) */
 @media (max-width: 1024px) {
 
- 
-
-  .filtro-group {
-    flex: 1;
-    min-width: 150px;
-  }
-
   .pedido-header {
     flex-direction: column;
     align-items: stretch;
@@ -2980,23 +2942,6 @@ onUnmounted(() => {
     margin: 0 5px;
     border-radius: 12px;
     max-height: calc(100vh - 120px);
-  }
-
-  .filtros-derecha {
-    flex-direction: column;
-    gap: 10px;
-    width: 100%;
-  }
-
-  .filtro-group {
-    width: 100%;
-  }
-
-  .filtro-input,
-  .filtro-select {
-    min-width: 100%;
-    width: 100%;
-    font-size: 16px;
   }
 
   .pedido-item {
@@ -3273,12 +3218,6 @@ onUnmounted(() => {
 
   .receta-header {
     padding: 15px;
-  }
-
-  /* Mejorar área de toque para elementos interactivos */
-  .filtro-input,
-  .filtro-select {
-    min-height: 44px;
   }
 
   .btn-nuevo-pedido-flotante {
