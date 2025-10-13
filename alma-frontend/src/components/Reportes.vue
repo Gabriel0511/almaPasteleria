@@ -10,6 +10,7 @@
 
 <script setup>
 import { useRouter } from "vue-router";
+import { ref } from "vue";
 import Sidebar from "./Sidebar.vue";
 import Header from "./Header.vue";
 

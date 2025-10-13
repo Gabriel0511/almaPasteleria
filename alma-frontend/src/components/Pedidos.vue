@@ -1,9 +1,9 @@
 <template>
   <div class="app-layout">
-    <Sidebar @navigate="handleNavigation" />
+    <Sidebar ref="sidebarRef" />
 
     <div class="main-container">
-      <Header ref="headerRef" />
+      <Header @toggle-sidebar="toggleSidebar" />
 
       <main class="main-content">
         <!-- AGREGAR: Panel de alertas de pedidos -->
@@ -1186,6 +1186,17 @@ const formProveedor = ref({
   telefono: "",
   email: "",
 });
+
+// Referencia al sidebar para controlarlo desde el header
+const sidebarRef = ref(null);
+
+// Método para alternar el sidebar desde el header
+const toggleSidebar = () => {
+  if (sidebarRef.value) {
+    sidebarRef.value.toggleSidebar();
+  }
+};
+
 
 const esEdicionPedido = ref(false);
 const esEdicionReceta = ref(false);
