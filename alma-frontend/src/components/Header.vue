@@ -1,13 +1,17 @@
 <template>
   <header class="header">
     <!-- Botón hamburguesa para móviles -->
-        <button class="hamburger-btn-mobile" @click="$emit('toggle-sidebar')" v-if="isMobile">
+    <button
+      class="hamburger-btn-mobile"
+      @click="$emit('toggle-sidebar')"
+      v-if="isMobile"
+    >
       <i class="fas fa-bars"></i>
     </button>
 
     <div class="header-left">
       <br />
-      <div class="logo">
+      <div class="logo" @click="goToHome">
         <img src="/src/Logo2.png" alt="Logo Pastelería" />
       </div>
     </div>
@@ -175,14 +179,14 @@ const notificacionesRecetas = ref([]);
 const notificacionesPedidos = ref([]);
 
 const isMobile = ref(false);
-const emit = defineEmits(['toggle-sidebar']);
+const emit = defineEmits(["toggle-sidebar"]);
 
 const checkScreenSize = () => {
   isMobile.value = window.innerWidth <= 768;
 };
 
 const toggleMobileSidebar = () => {
-  emit('toggle-sidebar');
+  emit("toggle-sidebar");
 };
 
 onMounted(() => {
@@ -193,6 +197,11 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener("resize", checkScreenSize);
 });
+
+// AGREGAR: Método para ir a la página principal
+const goToHome = () => {
+  router.push("/inicio");
+};
 
 // Obtener email del usuario
 const fetchUserProfile = async () => {
@@ -491,6 +500,11 @@ onUnmounted(() => {
 .header-left {
   display: flex;
   align-items: center;
+}
+
+.logo {
+  cursor: pointer; /* Hace que aparezca la manito al pasar el mouse */
+  transition: transform 0.3s ease;
 }
 
 .logo img {
@@ -1090,7 +1104,6 @@ onUnmounted(() => {
   transform: translateY(-50%);
   z-index: 1002;
 }
-
 
 /* Ajustar el header para móviles */
 @media (max-width: 768px) {
