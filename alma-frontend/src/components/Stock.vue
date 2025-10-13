@@ -2692,7 +2692,7 @@ onUnmounted(() => {
   }
 
   .btn-nueva-compra-flotante::after {
-    content: "Compra";
+    display: none;
     margin-left: 5px;
   }
 }

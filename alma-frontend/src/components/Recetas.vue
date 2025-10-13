@@ -2406,21 +2406,33 @@ onMounted(() => {
   color: white;
 }
 
-/* RESPONSIVE */
-@media (max-width: 768px) {
-  .alertas-rapidas {
-    margin-bottom: 15px;
+/* ----------------------------- MEJORAS RESPONSIVE ----------------------------- */
+
+/* Para pantallas medianas (tablets) */
+@media (max-width: 1024px) {
+  .recetas-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
   }
 
-  .estadisticas-rapidas {
-    justify-content: center;
+  .filtros-derecha {
     width: 100%;
-    margin-top: 10px;
+    justify-content: space-between;
+  }
+
+  .receta-rentabilidad-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
-/* ----------------------------- RESPONSIVE ----------------------------- */
+/* Para tablets pequeñas y móviles grandes */
 @media (max-width: 768px) {
+  .recetas-card {
+    padding: 15px;
+    max-height: calc(100vh - 150px);
+  }
+
   .receta-header-content {
     flex-direction: column;
     align-items: stretch;
@@ -2456,8 +2468,30 @@ onMounted(() => {
   .btn-agregar-insumo {
     align-self: flex-start;
   }
+
+  .receta-rentabilidad-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .btn-nueva-receta-flotante {
+    bottom: 20px;
+    right: 20px;
+    padding: 14px 20px;
+    font-size: 0.9rem;
+  }
+
+  .alertas-rapidas {
+    margin-bottom: 15px;
+  }
+
+  .estadisticas-rapidas {
+    justify-content: center;
+    width: 100%;
+    margin-top: 10px;
+  }
 }
 
+/* Para móviles */
 @media (max-width: 480px) {
   .receta-header-full {
     padding: 12px 15px;
@@ -2485,6 +2519,81 @@ onMounted(() => {
 
   .insumo-costo-container {
     align-self: flex-end;
+  }
+
+  .card-title1 {
+    font-size: 1.5rem;
+  }
+
+  .filtro-input {
+    min-width: 100%;
+  }
+
+  .receta-titulo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .btn-accion {
+    width: 36px;
+    height: 36px;
+    padding: 8px;
+  }
+
+  .btn-nueva-receta-flotante {
+    bottom: 15px;
+    right: 15px;
+    padding: 12px 18px;
+    font-size: 0.85rem;
+  }
+
+  .btn-nueva-receta-flotante span {
+    display: none; /* Ocultar texto en móviles muy pequeños */
+  }
+
+  .btn-nueva-receta-flotante i {
+    margin-right: 0;
+  }
+}
+
+/* Para móviles muy pequeños */
+@media (max-width: 360px) {
+  .recetas-card {
+    padding: 10px;
+  }
+
+  .receta-header-full {
+    padding: 10px 12px;
+  }
+
+  .receta-nombre {
+    font-size: 1rem;
+  }
+
+  .receta-badge {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+  }
+
+  .receta-datos-compact .dato-grupo {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+  }
+
+  .btn-accion {
+    width: 32px;
+    height: 32px;
+    padding: 6px;
+  }
+
+  .receta-estado-badge {
+    font-size: 0.7rem;
+    padding: 6px 10px;
+  }
+
+  .detalles-content {
+    padding: 12px;
   }
 }
 </style>
