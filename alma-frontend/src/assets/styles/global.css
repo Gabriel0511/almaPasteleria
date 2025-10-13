@@ -143,12 +143,11 @@ html,
 }
 
 .card-title1 {
-  text-align: left;
-  margin: 0;
-  padding: 4px;
-  font-size: 1.3rem;
   color: var(--color-primary);
-  margin-bottom: 15px;
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(123, 90, 80, 0.1);
 }
 
 /* ----------------------------- SCROLL PERSONALIZADO ----------------------------- */
@@ -276,7 +275,6 @@ html,
   padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  margin-top: 5px;
   font-size: 14px;
 }
 
@@ -435,6 +433,66 @@ html,
   text-align: center;
   font-weight: bold;
 }
+/* ----------------------------- Advertencias Pages ----------------------------- */
+
+.estadistica-badge {
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.estadistica-badge.critico {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.estadistica-badge.bajo {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  color: #212529;
+}
+
+.estadistica-badge.normal {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.estadistica-badge.total {
+  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
+  color: white;
+}
+.estadistica-badge {
+    justify-content: center;
+    width: 100%;
+}
+
+/* AGREGAR: Estilos para estadísticas de stock */
+.estadisticas-stock {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.estadistica-item {
+  display: flex;
+  align-items: center;
+}
+
+.principal-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 0 10px;
+}
 
 /* ----------------------------- RESPONSIVE ----------------------------- */
 @media (max-width: 1158px) {
@@ -444,6 +502,17 @@ html,
       "stock stock"
       "middle recetas";
     gap: 15px;
+  }
+}
+@media (max-width: 1024px) {
+.principal-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  .filtros-derecha {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 
@@ -461,6 +530,16 @@ html,
   .main-content {
     margin-left: 0;
     padding: 70px 10px 10px 10px; /* Más padding top para el header móvil */
+  }
+  
+  .principal-content {
+    padding: 0;
+  }
+
+  .estadisticas-stock {
+    justify-content: center;
+    width: 100%;
+    margin-top: 10px;
   }
 
   .header {
@@ -523,6 +602,24 @@ html,
   }
 }
 
+@media (max-width: 480px){
+
+  .main-content {
+    padding: 10px 8px 8px 8px;
+  }
+
+  .estadisticas-stock {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .card-title1 {
+    font-size: 1.4rem;
+    text-align: center;
+    width: 100%;
+  }
+}
 /* ----------------------------- ESTILOS ESPECÍFICOS PARA COMPONENTES ----------------------------- */
 
 /* Estilos para Principal.vue */

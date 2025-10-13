@@ -5,7 +5,7 @@
     <div class="main-container">
       <Header @toggle-sidebar="toggleSidebar" />
       <main class="main-content">
-        <section class="stock-content">
+        <section class="principal-content">
           <h3 class="card-title1" :class="{ 'mobile-center': isMobile }">
             Gestión de Stock
           </h3>
@@ -1746,24 +1746,7 @@ onUnmounted(() => {
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
 
-/* ----------------------------- CONTENIDO PRINCIPAL ----------------------------- */
-.stock-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  flex-wrap: wrap;
-  gap: 20px;
-  padding: 0 10px;
-}
 
-.card-title1 {
-  color: var(--color-primary);
-  font-size: 1.8rem;
-  font-weight: 600;
-  margin: 0;
-  text-shadow: 0 2px 4px rgba(123, 90, 80, 0.1);
-}
 
 /* ----------------------------- FILTROS ----------------------------- */
 .filtros-derecha {
@@ -2376,51 +2359,6 @@ onUnmounted(() => {
   }
 }
 
-/* AGREGAR: Estilos para estadísticas de stock */
-.estadisticas-stock {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.estadistica-item {
-  display: flex;
-  align-items: center;
-}
-
-.estadistica-badge {
-  padding: 8px 12px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.estadistica-badge.critico {
-  background: linear-gradient(135deg, #dc3545, #c82333);
-  color: white;
-  animation: pulse 2s infinite;
-}
-
-.estadistica-badge.bajo {
-  background: linear-gradient(135deg, #ffc107, #e0a800);
-  color: #212529;
-}
-
-.estadistica-badge.normal {
-  background: linear-gradient(135deg, #28a745, #20c997);
-  color: white;
-}
-
-.estadistica-badge.total {
-  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
-  color: white;
-}
-
 @keyframes pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
@@ -2474,16 +2412,7 @@ onUnmounted(() => {
 
 /* Pantallas medianas (tablets) */
 @media (max-width: 1024px) {
-  .stock-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-  }
 
-  .filtros-derecha {
-    width: 100%;
-    justify-content: space-between;
-  }
 
   .stock-card {
     padding: 15px;
@@ -2496,14 +2425,6 @@ onUnmounted(() => {
 
 /* Pantallas pequeñas (tablets pequeñas y móviles grandes) */
 @media (max-width: 768px) {
-  .main-content {
-    margin-left: 0;
-    padding: 10px 10px 10px 10px;
-  }
-
-  .stock-content {
-    padding: 0;
-  }
 
   .filtros-derecha {
     flex-direction: column;
@@ -2571,12 +2492,6 @@ onUnmounted(() => {
     padding: 15px;
   }
 
-  .estadisticas-stock {
-    justify-content: center;
-    width: 100%;
-    margin-top: 10px;
-  }
-
   .indicador-urgencia {
     position: relative;
     top: auto;
@@ -2610,15 +2525,6 @@ onUnmounted(() => {
 
 /* Móviles pequeños */
 @media (max-width: 480px) {
-  .main-content {
-    padding: 10px 8px 8px 8px;
-  }
-
-  .card-title1 {
-    font-size: 1.4rem;
-    text-align: center;
-    width: 100%;
-  }
 
   .stock-list {
     padding: 0.5rem;
@@ -2678,17 +2584,6 @@ onUnmounted(() => {
     width: 36px;
     height: 36px;
     padding: 8px;
-  }
-
-  .estadisticas-stock {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-  }
-
-  .estadistica-badge {
-    justify-content: center;
-    width: 100%;
   }
 
   .btn-nueva-compra-flotante {

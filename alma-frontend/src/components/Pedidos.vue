@@ -4,41 +4,28 @@
 
     <div class="main-container">
       <Header @toggle-sidebar="toggleSidebar" />
-
       <main class="main-content">
-        <!-- AGREGAR: Panel de alertas de pedidos -->
-        <div
-          v-if="todasLasNotificacionesPedidos.length > 0"
-          class="alertas-pedidos"
-        ></div>
-        <section class="pedidos-content">
-          <h3 class="card-title1">Gestión de Pedidos</h3>
+        <section class="principal-content">
+          <h3 class="card-title1" :class="{ 'mobile-center': isMobile }">
+            Gestión de Pedidos
+          </h3>
 
           <!-- AGREGAR: Estadísticas rápidas -->
-          <div class="estadisticas-pedidos">
-            <div
-              class="estadistica-item"
-              v-if="estadisticasPedidos.atrasados > 0"
-            >
-              <span class="estadistica-badge critica">
+          <div class="estadisticas-stock">
+            <div class="estadistica-item" v-if="estadisticasPedidos.atrasados > 0">
+              <span class="estadistica-badge critico">
                 <i class="fas fa-exclamation-triangle"></i>
                 {{ estadisticasPedidos.atrasados }} atrasado(s)
               </span>
             </div>
-            <div
-              class="estadistica-item"
-              v-if="estadisticasPedidos.paraHoy > 0"
-            >
-              <span class="estadistica-badge hoy">
+            <div class="estadistica-item" v-if="estadisticasPedidos.paraHoy > 0">
+              <span class="estadistica-badge bajo">
                 <i class="fas fa-bolt"></i>
                 {{ estadisticasPedidos.paraHoy }} hoy
               </span>
             </div>
-            <div
-              class="estadistica-item"
-              v-if="estadisticasPedidos.paraManana > 0"
-            >
-              <span class="estadistica-badge manana">
+            <div class="estadistica-item" v-if="estadisticasPedidos.paraManana > 0">
+              <span class="estadistica-badge total">
                 <i class="fas fa-clock"></i>
                 {{ estadisticasPedidos.paraManana }} mañana
               </span>
@@ -54,33 +41,20 @@
           <!-- Filtros de pedidos -->
           <div class="filtros-derecha">
             <div class="filtro-group">
-              <input
-                type="text"
-                v-model="searchTerm"
-                placeholder="Buscar cliente..."
-                class="filtro-input"
-              />
+              <input type="text" v-model="searchTerm" placeholder="Buscar cliente..." class="filtro-input" />
             </div>
 
             <div class="filtro-group">
               <select v-model="estadoSeleccionado" class="filtro-select">
                 <option value="">Todos los estados</option>
-                <option
-                  v-for="estado in estadosPedido"
-                  :key="estado"
-                  :value="estado"
-                >
+                <option v-for="estado in estadosPedido" :key="estado" :value="estado">
                   {{ estado }}
                 </option>
               </select>
             </div>
 
             <div class="filtro-group">
-              <input
-                type="date"
-                v-model="fechaSeleccionada"
-                class="filtro-input"
-              />
+              <input type="date" v-model="fechaSeleccionada" class="filtro-input" />
             </div>
           </div>
         </section>
@@ -97,61 +71,41 @@
           </div>
 
           <div v-else class="pedidos-list">
-            <div
-              v-for="pedido in pedidosFiltrados"
-              :key="pedido.id"
-              class="pedido-item"
-              :class="{
-                'pedido-entregado': pedido.estado === 'entregado',
-                'pedido-atrasado': notificacionesPedidosAtrasados.some(
-                  (n) => n.pedido.id === pedido.id
-                ),
-                'pedido-hoy': notificacionesPedidosParaHoy.some(
-                  (n) => n.pedido.id === pedido.id
-                ),
-              }"
-            >
+            <div v-for="pedido in pedidosFiltrados" :key="pedido.id" class="pedido-item" :class="{
+              'pedido-entregado': pedido.estado === 'entregado',
+              'pedido-atrasado': notificacionesPedidosAtrasados.some(
+                (n) => n.pedido.id === pedido.id
+              ),
+              'pedido-hoy': notificacionesPedidosParaHoy.some(
+                (n) => n.pedido.id === pedido.id
+              ),
+            }">
               <!-- AGREGAR: Indicador de urgencia -->
-              <div
-                v-if="
-                  notificacionesPedidosAtrasados.some(
-                    (n) => n.pedido.id === pedido.id
-                  )
-                "
-                class="indicador-urgencia critico"
-                title="Pedido atrasado"
-              >
+              <div v-if="
+                notificacionesPedidosAtrasados.some(
+                  (n) => n.pedido.id === pedido.id
+                )
+              " class="indicador-urgencia critico" title="Pedido atrasado">
                 <i class="fas fa-exclamation-circle"></i>
                 URGENTE
               </div>
 
-              <div
-                v-else-if="
-                  notificacionesPedidosParaHoy.some(
-                    (n) => n.pedido.id === pedido.id
-                  )
-                "
-                class="indicador-urgencia hoy"
-                title="Entrega hoy"
-              >
+              <div v-else-if="
+                notificacionesPedidosParaHoy.some(
+                  (n) => n.pedido.id === pedido.id
+                )
+              " class="indicador-urgencia hoy" title="Entrega hoy">
                 <i class="fas fa-bolt"></i>
                 HOY
               </div>
 
-              <div
-                class="pedido-header"
-                @click="togglePedido(pedido.id)"
-                :class="{ 'cursor-pointer': true }"
-              >
+              <div class="pedido-header" @click="togglePedido(pedido.id)" :class="{ 'cursor-pointer': true }">
                 <div class="pedido-info">
                   <div class="pedido-titulo">
                     <span class="cliente-nombre">
                       {{ pedido.cliente.nombre }}
                     </span>
-                    <span
-                      class="pedido-estado-badge"
-                      :class="pedido.estado.toLowerCase()"
-                    >
+                    <span class="pedido-estado-badge" :class="pedido.estado.toLowerCase()">
                       {{ pedido.estado }}
                     </span>
                     <span class="pedido-total">
@@ -167,17 +121,14 @@
                     </div>
                     <div class="dato-grupo">
                       <i class="fas fa-truck"></i>
-                      <span
-                        class="pedido-fecha"
-                        :class="{
-                          'fecha-atrasada': notificacionesPedidosAtrasados.some(
-                            (n) => n.pedido.id === pedido.id
-                          ),
-                          'fecha-hoy': notificacionesPedidosParaHoy.some(
-                            (n) => n.pedido.id === pedido.id
-                          ),
-                        }"
-                      >
+                      <span class="pedido-fecha" :class="{
+                        'fecha-atrasada': notificacionesPedidosAtrasados.some(
+                          (n) => n.pedido.id === pedido.id
+                        ),
+                        'fecha-hoy': notificacionesPedidosParaHoy.some(
+                          (n) => n.pedido.id === pedido.id
+                        ),
+                      }">
                         Entrega: {{ formatFecha(pedido.fecha_entrega) }}
                       </span>
                     </div>
@@ -191,94 +142,54 @@
                 </div>
                 <div class="pedido-acciones" @click.stop>
                   <!-- AGREGAR: Botón rápido para marcar como entregado -->
-                  <button
-                    v-if="
-                      pedido.estado !== 'entregado' &&
-                      pedido.estado !== 'cancelado'
-                    "
-                    class="btn-accion btn-entregado"
-                    @click="marcarComoEntregado(pedido)"
-                    title="Marcar como entregado"
-                  >
+                  <button v-if="
+                    pedido.estado !== 'entregado' &&
+                    pedido.estado !== 'cancelado'
+                  " class="btn-accion btn-entregado" @click="marcarComoEntregado(pedido)"
+                    title="Marcar como entregado">
                     <i class="fas fa-check"></i>
                   </button>
 
-                  <button
-                    class="btn-accion btn-editar"
-                    @click="editarPedido(pedido)"
-                    title="Editar pedido"
-                    :disabled="pedido.estado === 'entregado'"
-                  >
+                  <button class="btn-accion btn-editar" @click="editarPedido(pedido)" title="Editar pedido"
+                    :disabled="pedido.estado === 'entregado'">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button
-                    class="btn-accion btn-eliminar"
-                    @click="confirmarEliminarPedido(pedido)"
-                    title="Eliminar pedido"
-                    :disabled="pedido.estado === 'entregado'"
-                  >
+                  <button class="btn-accion btn-eliminar" @click="confirmarEliminarPedido(pedido)"
+                    title="Eliminar pedido" :disabled="pedido.estado === 'entregado'">
                     <i class="fas fa-trash"></i>
                   </button>
-                  <button
-                    class="btn-accion btn-desplegable"
-                    @click="togglePedido(pedido.id)"
-                    :title="
-                      pedidoDesplegado[pedido.id]
-                        ? 'Ocultar detalles'
-                        : 'Mostrar detalles'
-                    "
-                  >
-                    <i
-                      class="fas"
-                      :class="
-                        pedidoDesplegado[pedido.id]
-                          ? 'fa-chevron-up'
-                          : 'fa-chevron-down'
-                      "
-                    ></i>
+                  <button class="btn-accion btn-desplegable" @click="togglePedido(pedido.id)" :title="pedidoDesplegado[pedido.id]
+                      ? 'Ocultar detalles'
+                      : 'Mostrar detalles'
+                    ">
+                    <i class="fas" :class="pedidoDesplegado[pedido.id]
+                        ? 'fa-chevron-up'
+                        : 'fa-chevron-down'
+                      "></i>
                   </button>
                 </div>
               </div>
               <!-- Desplegable de detalles del pedido -->
-              <div
-                v-if="pedidoDesplegado[pedido.id]"
-                class="pedido-detalles-desplegable"
-                :class="{ active: pedidoDesplegado[pedido.id] }"
-              >
+              <div v-if="pedidoDesplegado[pedido.id]" class="pedido-detalles-desplegable"
+                :class="{ active: pedidoDesplegado[pedido.id] }">
                 <div class="detalles-content">
                   <!-- Botón para agregar receta -->
-                  <div
-                    class="agregar-receta-container"
-                    v-if="pedido.estado !== 'entregado'"
-                  >
-                    <button
-                      class="btn-agregar-receta"
-                      @click="showAgregarRecetaModal(pedido)"
-                    >
+                  <div class="agregar-receta-container" v-if="pedido.estado !== 'entregado'">
+                    <button class="btn-agregar-receta" @click="showAgregarRecetaModal(pedido)">
                       <i class="fas fa-plus-circle"></i> Agregar Receta
                     </button>
                   </div>
 
                   <!-- Mensaje para pedidos entregados -->
-                  <div
-                    class="pedido-entregado-mensaje"
-                    v-if="pedido.estado === 'entregado'"
-                  >
+                  <div class="pedido-entregado-mensaje" v-if="pedido.estado === 'entregado'">
                     <i class="fas fa-check-circle"></i> Pedido entregado - No se
                     pueden realizar modificaciones
                   </div>
 
                   <!-- Detalles del pedido - Recetas -->
                   <div class="recetas-container">
-                    <div
-                      v-for="detalle in pedido.detalles"
-                      :key="detalle.id"
-                      class="receta-item"
-                    >
-                      <div
-                        class="receta-header"
-                        @click="toggleReceta(detalle.id)"
-                      >
+                    <div v-for="detalle in pedido.detalles" :key="detalle.id" class="receta-item">
+                      <div class="receta-header" @click="toggleReceta(detalle.id)">
                         <div class="receta-info">
                           <div class="receta-titulo">
                             <span class="receta-nombre">
@@ -293,95 +204,59 @@
                         </div>
                         <div class="receta-header-acciones">
                           <template v-if="pedido.estado !== 'entregado'">
-                            <button
-                              class="btn-accion-small"
-                              @click.stop="editarReceta(detalle, pedido)"
-                              title="Editar receta"
-                            >
+                            <button class="btn-accion-small" @click.stop="editarReceta(detalle, pedido)"
+                              title="Editar receta">
                               <i class="fas fa-edit"></i>
                             </button>
-                            <button
-                              class="btn-accion-small btn-eliminar"
-                              @click.stop="confirmarEliminarReceta(detalle)"
-                              title="Eliminar receta"
-                            >
+                            <button class="btn-accion-small btn-eliminar" @click.stop="confirmarEliminarReceta(detalle)"
+                              title="Eliminar receta">
                               <i class="fas fa-trash"></i>
                             </button>
                           </template>
-                          <i
-                            class="fas"
-                            :class="
-                              detalleExpandido[detalle.id]
-                                ? 'fa-chevron-up'
-                                : 'fa-chevron-down'
-                            "
-                          ></i>
+                          <i class="fas" :class="detalleExpandido[detalle.id]
+                              ? 'fa-chevron-up'
+                              : 'fa-chevron-down'
+                            "></i>
                         </div>
                       </div>
 
-                      <div
-                        v-if="detalleExpandido[detalle.id]"
-                        class="receta-detalles"
-                      >
+                      <div v-if="detalleExpandido[detalle.id]" class="receta-detalles">
                         <p class="observaciones" v-if="detalle.observaciones">
                           <strong>Observaciones:</strong>
                           {{ detalle.observaciones }}
                         </p>
 
                         <!-- Ingredientes extras -->
-                        <div
-                          class="ingredientes-extras"
-                          v-if="
-                            detalle.ingredientes_extra &&
-                            detalle.ingredientes_extra.length > 0
-                          "
-                        >
+                        <div class="ingredientes-extras" v-if="
+                          detalle.ingredientes_extra &&
+                          detalle.ingredientes_extra.length > 0
+                        ">
                           <h4>Ingredientes Extra:</h4>
-                          <div
-                            v-for="ingrediente in detalle.ingredientes_extra"
-                            :key="ingrediente.id"
-                            class="ingrediente-extra"
-                          >
+                          <div v-for="ingrediente in detalle.ingredientes_extra" :key="ingrediente.id"
+                            class="ingrediente-extra">
                             <span>
                               {{ ingrediente.insumo.nombre }}:
                               {{ ingrediente.cantidad }}
                               {{ ingrediente.unidad_medida.abreviatura }}
                             </span>
 
-                            <div
-                              class="ingrediente-acciones"
-                              v-if="pedido.estado !== 'entregado'"
-                            >
-                              <button
-                                class="btn-accion-small"
-                                @click="
-                                  editarIngredienteExtra(ingrediente, detalle)
-                                "
-                                title="Editar ingrediente"
-                              >
+                            <div class="ingrediente-acciones" v-if="pedido.estado !== 'entregado'">
+                              <button class="btn-accion-small" @click="
+                                editarIngredienteExtra(ingrediente, detalle)
+                                " title="Editar ingrediente">
                                 <i class="fas fa-edit"></i>
                               </button>
-                              <button
-                                class="btn-accion-small btn-eliminar"
-                                @click="
-                                  confirmarEliminarIngredienteExtra(ingrediente)
-                                "
-                                title="Eliminar ingrediente"
-                              >
+                              <button class="btn-accion-small btn-eliminar" @click="
+                                confirmarEliminarIngredienteExtra(ingrediente)
+                                " title="Eliminar ingrediente">
                                 <i class="fas fa-trash"></i>
                               </button>
                             </div>
                           </div>
                         </div>
 
-                        <div
-                          class="receta-acciones"
-                          v-if="pedido.estado !== 'entregado'"
-                        >
-                          <button
-                            class="btn-agregar-ingrediente"
-                            @click="showNuevoIngredienteModal(detalle)"
-                          >
+                        <div class="receta-acciones" v-if="pedido.estado !== 'entregado'">
+                          <button class="btn-agregar-ingrediente" @click="showNuevoIngredienteModal(detalle)">
                             <i class="fas fa-plus"></i> Agregar Ingrediente
                             Extra
                           </button>
@@ -405,32 +280,20 @@
     <!-- MODALES -->
 
     <!-- Modal para Nuevo/Editar Pedido -->
-    <BaseModal
-      v-model:show="showModalPedido"
-      :title="esEdicionPedido ? 'Editar Pedido' : 'Nuevo Pedido'"
-      size="medium"
-      @close="closeModal"
-    >
+    <BaseModal v-model:show="showModalPedido" :title="esEdicionPedido ? 'Editar Pedido' : 'Nuevo Pedido'" size="medium"
+      @close="closeModal">
       <div class="form-grid">
         <div class="form-group">
           <label>Cliente:</label>
           <div class="select-with-button">
             <select v-model="formPedido.cliente_id" required class="form-input">
               <option value="">Seleccione un cliente</option>
-              <option
-                v-for="cliente in clientes"
-                :key="cliente.id"
-                :value="cliente.id"
-              >
+              <option v-for="cliente in clientes" :key="cliente.id" :value="cliente.id">
                 {{ cliente.nombre }}
               </option>
             </select>
-            <button
-              type="button"
-              class="btn-agregar-nuevo"
-              @click="showNuevoClienteModal = true"
-              title="Agregar nuevo cliente"
-            >
+            <button type="button" class="btn-agregar-nuevo" @click="showNuevoClienteModal = true"
+              title="Agregar nuevo cliente">
               <i class="fas fa-plus"></i>
             </button>
           </div>
@@ -438,22 +301,13 @@
 
         <div class="form-group">
           <label>Fecha de Entrega:</label>
-          <input
-            v-model="formPedido.fecha_entrega"
-            type="date"
-            required
-            class="form-input"
-          />
+          <input v-model="formPedido.fecha_entrega" type="date" required class="form-input" />
         </div>
 
         <div class="form-group">
           <label>Estado:</label>
           <select v-model="formPedido.estado" required class="form-input">
-            <option
-              v-for="estado in estadosPedido"
-              :key="estado"
-              :value="estado"
-            >
+            <option v-for="estado in estadosPedido" :key="estado" :value="estado">
               {{ estado }}
             </option>
           </select>
@@ -461,95 +315,52 @@
       </div>
 
       <template #footer>
-        <ModalButtons
-          :confirm-text="esEdicionPedido ? 'Actualizar' : 'Crear'"
-          @cancel="closeModal"
-          @confirm="guardarPedido"
-        />
+        <ModalButtons :confirm-text="esEdicionPedido ? 'Actualizar' : 'Crear'" @cancel="closeModal"
+          @confirm="guardarPedido" />
       </template>
     </BaseModal>
 
     <!-- Modal para Nuevo Cliente -->
-    <BaseModal
-      v-model:show="showNuevoClienteModal"
-      title="Nuevo Cliente"
-      size="medium"
-      @close="showNuevoClienteModal = false"
-    >
+    <BaseModal v-model:show="showNuevoClienteModal" title="Nuevo Cliente" size="medium"
+      @close="showNuevoClienteModal = false">
       <div class="form-grid">
         <div class="form-group">
           <label>Nombre:</label>
-          <input
-            v-model="formCliente.nombre"
-            type="text"
-            required
-            class="form-input"
-            placeholder="Nombre del cliente"
-          />
+          <input v-model="formCliente.nombre" type="text" required class="form-input"
+            placeholder="Nombre del cliente" />
         </div>
 
         <div class="form-group">
           <label>Teléfono:</label>
-          <input
-            v-model="formCliente.telefono"
-            type="text"
-            class="form-input"
-            placeholder="Teléfono"
-          />
+          <input v-model="formCliente.telefono" type="text" class="form-input" placeholder="Teléfono" />
         </div>
 
         <div class="form-group full-width">
           <label>Dirección:</label>
-          <textarea
-            v-model="formCliente.direccion"
-            class="form-input"
-            rows="3"
-            placeholder="Dirección"
-          ></textarea>
+          <textarea v-model="formCliente.direccion" class="form-input" rows="3" placeholder="Dirección"></textarea>
         </div>
       </div>
 
       <template #footer>
-        <ModalButtons
-          confirm-text="Guardar"
-          @cancel="showNuevoClienteModal = false"
-          @confirm="guardarCliente"
-        />
+        <ModalButtons confirm-text="Guardar" @cancel="showNuevoClienteModal = false" @confirm="guardarCliente" />
       </template>
     </BaseModal>
 
     <!-- Modal Agregar/Editar Receta al Pedido -->
-    <BaseModal
-      v-model:show="showModalReceta"
-      :title="esEdicionReceta ? 'Editar Receta' : 'Agregar Receta al Pedido'"
-      size="medium"
-      @close="closeModal"
-    >
+    <BaseModal v-model:show="showModalReceta" :title="esEdicionReceta ? 'Editar Receta' : 'Agregar Receta al Pedido'"
+      size="medium" @close="closeModal">
       <div class="form-grid">
         <div class="form-group">
           <label>Receta:</label>
           <div class="select-with-button">
-            <select
-              v-model="formDetalle.receta_id"
-              required
-              class="form-input"
-              :disabled="esEdicionReceta"
-            >
+            <select v-model="formDetalle.receta_id" required class="form-input" :disabled="esEdicionReceta">
               <option value="">Seleccione una receta</option>
-              <option
-                v-for="receta in recetas"
-                :key="receta.id"
-                :value="receta.id"
-              >
+              <option v-for="receta in recetas" :key="receta.id" :value="receta.id">
                 {{ receta.nombre }}
               </option>
             </select>
-            <button
-              type="button"
-              class="btn-agregar-nuevo"
-              @click="showNuevaRecetaModal = true"
-              title="Crear nueva receta"
-            >
+            <button type="button" class="btn-agregar-nuevo" @click="showNuevaRecetaModal = true"
+              title="Crear nueva receta">
               <i class="fas fa-plus"></i>
             </button>
           </div>
@@ -557,63 +368,35 @@
 
         <div class="form-group">
           <label>Cantidad:</label>
-          <input
-            v-model="formDetalle.cantidad"
-            type="number"
-            min="1"
-            required
-            class="form-input"
-          />
+          <input v-model="formDetalle.cantidad" type="number" min="1" required class="form-input" />
         </div>
 
         <div class="form-group full-width">
           <label>Observaciones:</label>
-          <textarea
-            v-model="formDetalle.observaciones"
-            class="form-input"
-            rows="3"
-          ></textarea>
+          <textarea v-model="formDetalle.observaciones" class="form-input" rows="3"></textarea>
         </div>
       </div>
 
       <template #footer>
-        <ModalButtons
-          :confirm-text="esEdicionReceta ? 'Actualizar' : 'Agregar'"
-          @cancel="closeModal"
-          @confirm="guardarDetalle"
-        />
+        <ModalButtons :confirm-text="esEdicionReceta ? 'Actualizar' : 'Agregar'" @cancel="closeModal"
+          @confirm="guardarDetalle" />
       </template>
     </BaseModal>
 
     <!-- Modal para Nueva Receta -->
-    <BaseModal
-      v-model:show="showNuevaRecetaModal"
-      title="Nueva Receta"
-      size="large"
-      @close="showNuevaRecetaModal = false"
-    >
+    <BaseModal v-model:show="showNuevaRecetaModal" title="Nueva Receta" size="large"
+      @close="showNuevaRecetaModal = false">
       <div class="form-grid">
         <div class="form-group">
           <label>Nombre:</label>
-          <input
-            v-model="formReceta.nombre"
-            type="text"
-            required
-            class="form-input"
-            placeholder="Nombre de la receta"
-          />
+          <input v-model="formReceta.nombre" type="text" required class="form-input"
+            placeholder="Nombre de la receta" />
         </div>
 
         <div class="form-group">
           <label>Rinde:</label>
-          <input
-            v-model="formReceta.rinde"
-            type="number"
-            min="1"
-            required
-            class="form-input"
-            placeholder="Cantidad que rinde"
-          />
+          <input v-model="formReceta.rinde" type="number" min="1" required class="form-input"
+            placeholder="Cantidad que rinde" />
         </div>
 
         <div class="form-group">
@@ -626,90 +409,47 @@
 
         <div class="form-group">
           <label>Costo unitario:</label>
-          <input
-            v-model="formReceta.costo_unitario"
-            type="number"
-            step="0.01"
-            min="0.01"
-            required
-            class="form-input"
-            placeholder="Costo unitario (por porción o unidad)"
-          />
+          <input v-model="formReceta.costo_unitario" type="number" step="0.01" min="0.01" required class="form-input"
+            placeholder="Costo unitario (por porción o unidad)" />
         </div>
 
         <div class="form-group">
           <label>Costo total:</label>
-          <input
-            v-model="formReceta.costo_total"
-            type="number"
-            step="0.01"
-            min="0.01"
-            required
-            class="form-input"
-            placeholder="Costo total"
-          />
+          <input v-model="formReceta.costo_total" type="number" step="0.01" min="0.01" required class="form-input"
+            placeholder="Costo total" />
         </div>
 
         <div class="form-group">
           <label>Precio de venta:</label>
-          <input
-            v-model="formReceta.precio_venta"
-            type="number"
-            step="0.01"
-            min="0.01"
-            required
-            class="form-input"
-            placeholder="Precio de venta"
-          />
+          <input v-model="formReceta.precio_venta" type="number" step="0.01" min="0.01" required class="form-input"
+            placeholder="Precio de venta" />
         </div>
       </div>
 
       <template #footer>
-        <ModalButtons
-          confirm-text="Guardar"
-          @cancel="showNuevaRecetaModal = false"
-          @confirm="guardarNuevaReceta"
-        />
+        <ModalButtons confirm-text="Guardar" @cancel="showNuevaRecetaModal = false" @confirm="guardarNuevaReceta" />
       </template>
     </BaseModal>
 
     <!-- Modal para Agregar/Editar Ingrediente Extra -->
-    <BaseModal
-      v-model:show="showModalIngrediente"
-      :title="
-        esEdicionIngrediente
-          ? 'Editar Ingrediente Extra'
-          : 'Agregar Ingrediente Extra'
-      "
-      size="medium"
-      @close="closeModal"
-    >
+    <BaseModal v-model:show="showModalIngrediente" :title="esEdicionIngrediente
+        ? 'Editar Ingrediente Extra'
+        : 'Agregar Ingrediente Extra'
+      " size="medium" @close="closeModal">
       <div class="form-grid">
         <div class="form-group">
           <label>Insumo:</label>
           <div class="select-with-button">
-            <select
-              v-model="formIngrediente.insumo_id"
-              required
-              class="form-input"
-            >
+            <select v-model="formIngrediente.insumo_id" required class="form-input">
               <option value="">Seleccione un insumo</option>
-              <option
-                v-for="insumo in insumos"
-                :key="insumo.id"
-                :value="insumo.id"
-              >
+              <option v-for="insumo in insumos" :key="insumo.id" :value="insumo.id">
                 {{ insumo.nombre }} - ${{ insumo.precio_unitario }}/{{
                   insumo.unidad_medida.abreviatura
                 }}
               </option>
             </select>
-            <button
-              type="button"
-              class="btn-agregar-nuevo"
-              @click="showNuevoInsumoModal = true"
-              title="Crear nuevo insumo"
-            >
+            <button type="button" class="btn-agregar-nuevo" @click="showNuevoInsumoModal = true"
+              title="Crear nuevo insumo">
               <i class="fas fa-plus"></i>
             </button>
           </div>
@@ -717,39 +457,21 @@
 
         <div class="form-group">
           <label>Cantidad:</label>
-          <input
-            v-model="formIngrediente.cantidad"
-            type="number"
-            step="0.001"
-            min="0.001"
-            required
-            class="form-input"
-          />
+          <input v-model="formIngrediente.cantidad" type="number" step="0.001" min="0.001" required
+            class="form-input" />
         </div>
 
         <div class="form-group">
           <label>Unidad de Medida:</label>
           <div class="select-with-button">
-            <select
-              v-model="formIngrediente.unidad_medida_id"
-              required
-              class="form-input"
-            >
+            <select v-model="formIngrediente.unidad_medida_id" required class="form-input">
               <option value="">Seleccione una unidad</option>
-              <option
-                v-for="unidad in unidadesMedida"
-                :key="unidad.id"
-                :value="unidad.id"
-              >
+              <option v-for="unidad in unidadesMedida" :key="unidad.id" :value="unidad.id">
                 {{ unidad.nombre }} ({{ unidad.abreviatura }})
               </option>
             </select>
-            <button
-              type="button"
-              class="btn-agregar-nuevo"
-              @click="showNuevaUnidadModal = true"
-              title="Crear nueva unidad de medida"
-            >
+            <button type="button" class="btn-agregar-nuevo" @click="showNuevaUnidadModal = true"
+              title="Crear nueva unidad de medida">
               <i class="fas fa-plus"></i>
             </button>
           </div>
@@ -757,52 +479,31 @@
       </div>
 
       <template #footer>
-        <ModalButtons
-          :confirm-text="esEdicionIngrediente ? 'Actualizar' : 'Agregar'"
-          @cancel="closeModal"
-          @confirm="guardarIngredienteExtra"
-        />
+        <ModalButtons :confirm-text="esEdicionIngrediente ? 'Actualizar' : 'Agregar'" @cancel="closeModal"
+          @confirm="guardarIngredienteExtra" />
       </template>
     </BaseModal>
 
     <!-- Modal para Nuevo Insumo -->
-    <BaseModal
-      v-model:show="showNuevoInsumoModal"
-      title="Nuevo Insumo"
-      size="large"
-      @close="showNuevoInsumoModal = false"
-    >
+    <BaseModal v-model:show="showNuevoInsumoModal" title="Nuevo Insumo" size="large"
+      @close="showNuevoInsumoModal = false">
       <div class="form-grid">
         <div class="form-group">
           <label>Nombre:</label>
-          <input
-            v-model="formInsumo.nombre"
-            type="text"
-            required
-            class="form-input"
-            placeholder="Nombre del insumo"
-          />
+          <input v-model="formInsumo.nombre" type="text" required class="form-input" placeholder="Nombre del insumo" />
         </div>
 
         <div class="form-group">
           <label>Categoría:</label>
           <div class="select-with-button">
-            <select
-              v-model="formInsumo.categoria_id"
-              required
-              class="form-input"
-            >
+            <select v-model="formInsumo.categoria_id" required class="form-input">
               <option value="">Seleccione una categoría</option>
               <option v-for="cat in categorias" :key="cat.id" :value="cat.id">
                 {{ cat.nombre }}
               </option>
             </select>
-            <button
-              type="button"
-              class="btn-agregar-nuevo"
-              @click="showNuevaCategoriaModal = true"
-              title="Agregar nueva categoría"
-            >
+            <button type="button" class="btn-agregar-nuevo" @click="showNuevaCategoriaModal = true"
+              title="Agregar nueva categoría">
               <i class="fas fa-plus"></i>
             </button>
           </div>
@@ -811,26 +512,14 @@
         <div class="form-group">
           <label>Unidad de Medida:</label>
           <div class="select-with-button">
-            <select
-              v-model="formInsumo.unidad_medida_id"
-              required
-              class="form-input"
-            >
+            <select v-model="formInsumo.unidad_medida_id" required class="form-input">
               <option value="">Seleccione una unidad</option>
-              <option
-                v-for="unidad in unidadesMedida"
-                :key="unidad.id"
-                :value="unidad.id"
-              >
+              <option v-for="unidad in unidadesMedida" :key="unidad.id" :value="unidad.id">
                 {{ unidad.nombre }} ({{ unidad.abreviatura }})
               </option>
             </select>
-            <button
-              type="button"
-              class="btn-agregar-nuevo"
-              @click="showNuevaUnidadDeMedidaModal = true"
-              title="Agregar nueva unidad de medida"
-            >
+            <button type="button" class="btn-agregar-nuevo" @click="showNuevaUnidadDeMedidaModal = true"
+              title="Agregar nueva unidad de medida">
               <i class="fas fa-plus"></i>
             </button>
           </div>
@@ -838,23 +527,12 @@
 
         <div class="form-group">
           <label>Stock Mínimo:</label>
-          <input
-            v-model="formInsumo.stock_minimo"
-            type="number"
-            step="0.001"
-            required
-            class="form-input"
-          />
+          <input v-model="formInsumo.stock_minimo" type="number" step="0.001" required class="form-input" />
         </div>
 
         <div class="form-group">
           <label>Precio Unitario:</label>
-          <input
-            v-model="formInsumo.precio_unitario"
-            type="number"
-            step="0.01"
-            class="form-input"
-          />
+          <input v-model="formInsumo.precio_unitario" type="number" step="0.01" class="form-input" />
         </div>
 
         <div class="form-group">
@@ -862,20 +540,12 @@
           <div class="select-with-button">
             <select v-model="formInsumo.proveedor_id" class="form-input">
               <option value="">Seleccione un proveedor</option>
-              <option
-                v-for="prov in proveedores"
-                :key="prov.id"
-                :value="prov.id"
-              >
+              <option v-for="prov in proveedores" :key="prov.id" :value="prov.id">
                 {{ prov.nombre }}
               </option>
             </select>
-            <button
-              type="button"
-              class="btn-agregar-nuevo"
-              @click="showNuevoProveedorModal = true"
-              title="Agregar nuevo proveedor"
-            >
+            <button type="button" class="btn-agregar-nuevo" @click="showNuevoProveedorModal = true"
+              title="Agregar nuevo proveedor">
               <i class="fas fa-plus"></i>
             </button>
           </div>
@@ -883,199 +553,115 @@
       </div>
 
       <template #footer>
-        <ModalButtons
-          confirm-text="Guardar"
-          @cancel="showNuevoInsumoModal = false"
-          @confirm="guardarNuevoInsumo"
-        />
+        <ModalButtons confirm-text="Guardar" @cancel="showNuevoInsumoModal = false" @confirm="guardarNuevoInsumo" />
       </template>
     </BaseModal>
 
     <!-- Modal para Nueva Unidad de Medida -->
-    <BaseModal
-      v-model:show="showNuevaUnidadModal"
-      title="Nueva Unidad de Medida"
-      size="small"
-      @close="showNuevaUnidadModal = false"
-    >
+    <BaseModal v-model:show="showNuevaUnidadModal" title="Nueva Unidad de Medida" size="small"
+      @close="showNuevaUnidadModal = false">
       <div class="form-grid">
         <div class="form-group">
           <label>Nombre:</label>
-          <input
-            v-model="formUnidadMedida.nombre"
-            type="text"
-            required
-            class="form-input"
-            placeholder="Nombre completo"
-          />
+          <input v-model="formUnidadMedida.nombre" type="text" required class="form-input"
+            placeholder="Nombre completo" />
         </div>
 
         <div class="form-group">
           <label>Abreviatura:</label>
-          <input
-            v-model="formUnidadMedida.abreviatura"
-            type="text"
-            required
-            class="form-input"
-            placeholder="Ej: kg, g, l, ml"
-            maxlength="10"
-          />
+          <input v-model="formUnidadMedida.abreviatura" type="text" required class="form-input"
+            placeholder="Ej: kg, g, l, ml" maxlength="10" />
         </div>
 
         <div class="form-group">
           <label>Descripción:</label>
-          <input
-            v-model="formUnidadMedida.descripcion"
-            type="text"
-            class="form-input"
-          />
+          <input v-model="formUnidadMedida.descripcion" type="text" class="form-input" />
         </div>
       </div>
 
       <template #footer>
-        <ModalButtons
-          confirm-text="Guardar"
-          @cancel="showNuevaUnidadModal = false"
-          @confirm="guardarNuevaUnidadMedida"
-        />
+        <ModalButtons confirm-text="Guardar" @cancel="showNuevaUnidadModal = false"
+          @confirm="guardarNuevaUnidadMedida" />
       </template>
     </BaseModal>
 
     <!-- Modal para Nueva Categoría -->
-    <BaseModal
-      v-model:show="showNuevaCategoriaModal"
-      title="Nueva Categoría"
-      size="small"
-      @close="showNuevaCategoriaModal = false"
-    >
+    <BaseModal v-model:show="showNuevaCategoriaModal" title="Nueva Categoría" size="small"
+      @close="showNuevaCategoriaModal = false">
       <div class="form-grid">
         <div class="form-group">
           <label>Nombre:</label>
-          <input
-            v-model="formCategoria.nombre"
-            type="text"
-            required
-            class="form-input"
-            placeholder="Nombre de la categoría"
-          />
+          <input v-model="formCategoria.nombre" type="text" required class="form-input"
+            placeholder="Nombre de la categoría" />
         </div>
 
         <div class="form-group full-width">
           <label>Descripción:</label>
-          <textarea
-            v-model="formCategoria.descripcion"
-            class="form-input"
-            rows="3"
-          ></textarea>
+          <textarea v-model="formCategoria.descripcion" class="form-input" rows="3"></textarea>
         </div>
       </div>
 
       <template #footer>
-        <ModalButtons
-          confirm-text="Guardar"
-          @cancel="showNuevaCategoriaModal = false"
-          @confirm="guardarNuevaCategoria"
-        />
+        <ModalButtons confirm-text="Guardar" @cancel="showNuevaCategoriaModal = false"
+          @confirm="guardarNuevaCategoria" />
       </template>
     </BaseModal>
 
     <!-- Modal para Nuevo Proveedor -->
-    <BaseModal
-      v-model:show="showNuevoProveedorModal"
-      title="Nuevo Proveedor"
-      size="medium"
-      @close="showNuevoProveedorModal = false"
-    >
+    <BaseModal v-model:show="showNuevoProveedorModal" title="Nuevo Proveedor" size="medium"
+      @close="showNuevoProveedorModal = false">
       <div class="form-grid">
         <div class="form-group">
           <label>Nombre:</label>
-          <input
-            v-model="formProveedor.nombre"
-            type="text"
-            required
-            class="form-input"
-            placeholder="Nombre del proveedor"
-          />
+          <input v-model="formProveedor.nombre" type="text" required class="form-input"
+            placeholder="Nombre del proveedor" />
         </div>
 
         <div class="form-group">
           <label>Contacto:</label>
-          <input
-            v-model="formProveedor.contacto"
-            type="text"
-            class="form-input"
-            placeholder="Persona de contacto"
-          />
+          <input v-model="formProveedor.contacto" type="text" class="form-input" placeholder="Persona de contacto" />
         </div>
 
         <div class="form-group">
           <label>Teléfono:</label>
-          <input
-            v-model="formProveedor.telefono"
-            type="text"
-            class="form-input"
-            placeholder="Teléfono"
-          />
+          <input v-model="formProveedor.telefono" type="text" class="form-input" placeholder="Teléfono" />
         </div>
 
         <div class="form-group">
           <label>Email:</label>
-          <input
-            v-model="formProveedor.email"
-            type="email"
-            class="form-input"
-            placeholder="Email"
-          />
+          <input v-model="formProveedor.email" type="email" class="form-input" placeholder="Email" />
         </div>
       </div>
 
       <template #footer>
-        <ModalButtons
-          confirm-text="Guardar"
-          @cancel="showNuevoProveedorModal = false"
-          @confirm="guardarNuevoProveedor"
-        />
+        <ModalButtons confirm-text="Guardar" @cancel="showNuevoProveedorModal = false"
+          @confirm="guardarNuevoProveedor" />
       </template>
     </BaseModal>
 
     <!-- Modal de confirmación para eliminar pedido -->
-    <ConfirmModal
-      :show="showConfirmModalPedido"
-      title="Confirmar Eliminación"
+    <ConfirmModal :show="showConfirmModalPedido" title="Confirmar Eliminación"
       :message="`¿Está seguro de que desea eliminar el pedido de '${pedidoAEliminar?.cliente?.nombre}'?`"
-      confirm-text="Eliminar"
-      @update:show="showConfirmModalPedido = $event"
-      @cancel="showConfirmModalPedido = false"
-      @confirm="eliminarPedido"
-    />
+      confirm-text="Eliminar" @update:show="showConfirmModalPedido = $event" @cancel="showConfirmModalPedido = false"
+      @confirm="eliminarPedido" />
 
     <!-- Modal de confirmación para eliminar ingrediente extra -->
-    <ConfirmModal
-      :show="showConfirmModalIngrediente"
-      title="Confirmar Eliminación"
-      message="¿Está seguro de que desea eliminar este ingrediente extra?"
-      confirm-text="Eliminar"
-      @update:show="showConfirmModalIngrediente = $event"
-      @cancel="showConfirmModalIngrediente = false"
-      @confirm="eliminarIngredienteExtra"
-    />
+    <ConfirmModal :show="showConfirmModalIngrediente" title="Confirmar Eliminación"
+      message="¿Está seguro de que desea eliminar este ingrediente extra?" confirm-text="Eliminar"
+      @update:show="showConfirmModalIngrediente = $event" @cancel="showConfirmModalIngrediente = false"
+      @confirm="eliminarIngredienteExtra" />
 
     <!-- Modal de confirmación para eliminar receta -->
-    <ConfirmModal
-      :show="showConfirmModalReceta"
-      title="Confirmar Eliminación"
-      message="¿Está seguro de que desea eliminar esta receta del pedido?"
-      confirm-text="Eliminar"
-      @update:show="showConfirmModalReceta = $event"
-      @cancel="showConfirmModalReceta = false"
-      @confirm="eliminarReceta"
-    />
+    <ConfirmModal :show="showConfirmModalReceta" title="Confirmar Eliminación"
+      message="¿Está seguro de que desea eliminar esta receta del pedido?" confirm-text="Eliminar"
+      @update:show="showConfirmModalReceta = $event" @cancel="showConfirmModalReceta = false"
+      @confirm="eliminarReceta" />
   </div>
 </template>
 
 <script setup>
 import { useRouter } from "vue-router";
-import { ref, computed, onMounted, watch, inject } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch, inject } from "vue";
 import Sidebar from "./Sidebar.vue";
 import Header from "./Header.vue";
 import BaseModal from "./Modals/BaseModal.vue";
@@ -1274,9 +860,8 @@ const notificacionesPedidosAtrasados = computed(() => {
       id: `pedido-atrasado-${pedido.id}`,
       type: "critical",
       title: "Pedido Atrasado",
-      message: `El pedido de ${
-        pedido.cliente.nombre
-      } está atrasado (Entrega: ${formatFecha(pedido.fecha_entrega)})`,
+      message: `El pedido de ${pedido.cliente.nombre
+        } está atrasado (Entrega: ${formatFecha(pedido.fecha_entrega)})`,
       timestamp: new Date(),
       read: false,
       pedido: pedido,
@@ -2647,6 +2232,22 @@ watch(
   },
   { deep: true }
 );
+
+// Agregar después de las otras variables
+const isMobile = ref(false);
+
+const checkViewport = () => {
+  isMobile.value = window.innerWidth <= 768;
+};
+
+onMounted(() => {
+  checkViewport();
+  window.addEventListener("resize", checkViewport);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", checkViewport);
+});
 </script>
 
 <style scoped>
@@ -2663,13 +2264,6 @@ watch(
   padding: 0 10px;
 }
 
-.card-title1 {
-  color: var(--color-primary);
-  font-size: 1.8rem;
-  font-weight: 600;
-  margin: 0;
-  text-shadow: 0 2px 4px rgba(123, 90, 80, 0.1);
-}
 
 /* ----------------------------- FILTROS ----------------------------- */
 .filtros-derecha {
@@ -3257,49 +2851,6 @@ watch(
   background-color: rgba(0, 0, 0, 0.1);
 }
 
-/* AGREGAR: Estilos para estadísticas de pedidos */
-.estadisticas-pedidos {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.estadistica-item {
-  display: flex;
-  align-items: center;
-}
-
-.estadistica-badge {
-  padding: 8px 12px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.estadistica-badge.critica {
-  background: linear-gradient(135deg, #dc3545, #c82333);
-  color: white;
-}
-
-.estadistica-badge.hoy {
-  background: linear-gradient(135deg, #ffc107, #e0a800);
-  color: #212529;
-}
-
-.estadistica-badge.manana {
-  background: linear-gradient(135deg, #17a2b8, #138496);
-  color: white;
-}
-
-.estadistica-badge.total {
-  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
-  color: white;
-}
 
 /* AGREGAR: Indicadores de urgencia en pedidos */
 .indicador-urgencia {
@@ -3331,9 +2882,11 @@ watch(
   0% {
     box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
   }
+
   70% {
     box-shadow: 0 0 0 6px rgba(220, 53, 69, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
   }
@@ -3373,21 +2926,13 @@ watch(
 }
 
 /* ==============================
-   RESPONSIVE DESIGN - PEDIDOS
+   RESPONSIVE DESIGN - PEDIDOS (MEJORADO COMO STOCK)
    ============================== */
 
 /* Tablets y pantallas medianas (768px - 1024px) */
 @media (max-width: 1024px) {
-  .pedidos-content {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 20px;
-  }
 
-  .filtros-derecha {
-    width: 100%;
-    justify-content: space-between;
-  }
+ 
 
   .filtro-group {
     flex: 1;
@@ -3429,31 +2974,12 @@ watch(
 
 /* Tablets pequeñas (768px y menos) */
 @media (max-width: 768px) {
-  .main-content {
-    margin-left: 0;
-    padding: 10px 10px 10px 10px;
-  }
 
   .pedidos-card {
     padding: 15px;
     margin: 0 5px;
     border-radius: 12px;
-  }
-
-  .card-title1 {
-    font-size: 1.5rem;
-    text-align: center;
-  }
-
-  .estadisticas-pedidos {
-    justify-content: center;
-    gap: 8px;
-    margin: 15px 0;
-  }
-
-  .estadistica-badge {
-    font-size: 0.75rem;
-    padding: 6px 10px;
+    max-height: calc(100vh - 120px);
   }
 
   .filtros-derecha {
@@ -3470,11 +2996,18 @@ watch(
   .filtro-select {
     min-width: 100%;
     width: 100%;
+    font-size: 16px;
   }
 
   .pedido-item {
     padding: 15px;
     margin: 0 -5px;
+  }
+
+  .pedido-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
   }
 
   .pedido-titulo {
@@ -3528,6 +3061,12 @@ watch(
     margin-bottom: 15px;
   }
 
+  .receta-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
   .receta-titulo {
     flex-direction: column;
     align-items: flex-start;
@@ -3561,18 +3100,7 @@ watch(
 /* Móviles grandes (480px - 767px) */
 @media (max-width: 667px) {
   .pedidos-content {
-    gap: 0px;
-  }
-
-  .estadisticas-pedidos {
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .estadistica-badge {
-    justify-content: center;
-    text-align: center;
+    gap: 15px;
   }
 
   .pedido-header {
@@ -3622,9 +3150,6 @@ watch(
 
 /* Móviles pequeños (hasta 480px) */
 @media (max-width: 480px) {
-  .main-content {
-    padding: 5px 5px 5px 5px;
-  }
 
   .pedidos-card {
     padding: 10px;
@@ -3632,15 +3157,10 @@ watch(
     border-radius: 10px;
   }
 
-  .card-title1 {
-    font-size: 1.3rem;
-    text-align: center;
-    padding: 0;
-  }
-
   .pedido-item {
     padding: 12px;
     border-radius: 8px;
+    margin-bottom: 10px;
   }
 
   .cliente-nombre {
@@ -3701,11 +3221,6 @@ watch(
   .btn-nuevo-pedido-flotante span {
     display: none;
   }
-
-  .btn-nueva-pedido-flotante::after {
-    display: none;
-    margin-left: 5px;
-  }
 }
 
 /* Pantallas muy pequeñas (hasta 360px) */
@@ -3737,16 +3252,13 @@ watch(
     height: 28px;
   }
 
-  .estadistica-badge {
-    font-size: 0.7rem;
-    padding: 5px 8px;
-  }
 }
 
 /* ==============================
-   MEJORAS ESPECÍFICAS PARA TOUCH
+   MEJORAS ESPECÍFICAS PARA TOUCH (COMO EN STOCK)
    ============================== */
 @media (hover: none) and (pointer: coarse) {
+
   .btn-accion,
   .btn-accion-small,
   .btn-agregar-receta,
@@ -3776,7 +3288,7 @@ watch(
 }
 
 /* ==============================
-   ORIENTACIÓN LANDSCAPE
+   ORIENTACIÓN LANDSCAPE (COMO EN STOCK)
    ============================== */
 @media (max-width: 768px) and (orientation: landscape) {
   .main-content {
@@ -3802,9 +3314,10 @@ watch(
 }
 
 /* ==============================
-   MEJORAS DE ACCESIBILIDAD
+   MEJORAS DE ACCESIBILIDAD (COMO EN STOCK)
    ============================== */
 @media (prefers-reduced-motion: reduce) {
+
   .pedido-item,
   .btn-accion,
   .btn-nuevo-pedido-flotante,
@@ -3828,8 +3341,73 @@ watch(
     border: 1px solid;
   }
 
-  .estadistica-badge {
-    border: 1px solid;
+}
+
+/* Estados de carga y vacío responsive */
+@media (max-width: 768px) {
+
+  .loading-state,
+  .empty-state {
+    padding: 40px 20px;
+  }
+
+  .loading-state i,
+  .empty-state i {
+    font-size: 1.5rem;
+  }
+
+  .loading-state p,
+  .empty-state p {
+    font-size: 1rem;
+    text-align: center;
+  }
+}
+
+/* Mejoras de usabilidad táctil adicionales */
+@media (max-width: 768px) {
+  .pedido-header {
+    padding: 12px;
+  }
+
+  .pedido-item {
+    margin-bottom: 8px;
+  }
+
+  /* Asegurar contraste suficiente */
+  .cliente-nombre {
+    color: #2c3e50;
+  }
+
+  .pedido-estado-badge {
+    font-size: 0.75rem;
+  }
+}
+
+/* Utilidades de texto para consistencia con Stock */
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+/* Estados de hover mejorados para desktop */
+@media (hover: hover) {
+  .pedido-item:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn-accion:hover {
+    transform: translateY(-1px);
   }
 }
 </style>
