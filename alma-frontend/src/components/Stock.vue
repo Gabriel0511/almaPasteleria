@@ -2421,10 +2421,6 @@ onUnmounted(() => {
     gap: 8px;
   }
 
-  .select-with-button .btn-agregar {
-    align-self: flex-start;
-  }
-
   .btn-nueva-compra-flotante {
     bottom: 20px;
     right: 20px;
@@ -2630,58 +2626,6 @@ onUnmounted(() => {
   .btn-accion:hover {
     transform: translateY(-1px);
   }
-}
-
-/* BOTONES agregar algo */
-.btn-agregar {
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 12px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-width: 36px;
-  height: 36px;
-}
-
-.btn-agregar:hover {
-  background-color: #218838;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.btn-agregar:active {
-  transform: translateY(0);
-}
-
-.btn-agregar i {
-  font-size: 0.8rem;
-}
-
-/* Contenedor para select + botón */
-.select-with-button {
-  display: flex;
-  gap: 8px;
-  align-items: stretch;
-}
-
-.select-with-button .form-input {
-  flex: 1;
-  min-width: 0;
-  /* Permite que se reduzca correctamente */
-}
-
-.select-with-button .btn-agregar {
-  flex-shrink: 0;
-  align-self: stretch;
-  /* Hace que el botón tenga la misma altura que el select */
 }
 
 /* ----------------------------- BOTÓN REPOSICIÓN RÁPIDA CON NUEVO COLOR ----------------------------- */

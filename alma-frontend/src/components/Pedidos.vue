@@ -296,7 +296,7 @@
                 {{ cliente.nombre }}
               </option>
             </select>
-            <button type="button" class="btn-agregar-nuevo" @click="showNuevoClienteModal = true"
+            <button type="button" class="btn-agregar" @click="showNuevoClienteModal = true"
               title="Agregar nuevo cliente">
               <i class="fas fa-plus"></i>
             </button>
@@ -363,7 +363,7 @@
                 {{ receta.nombre }}
               </option>
             </select>
-            <button type="button" class="btn-agregar-nuevo" @click="showNuevaRecetaModal = true"
+            <button type="button" class="btn-agregar" @click="showNuevaRecetaModal = true"
               title="Crear nueva receta">
               <i class="fas fa-plus"></i>
             </button>
@@ -452,7 +452,7 @@
                 }}
               </option>
             </select>
-            <button type="button" class="btn-agregar-nuevo" @click="showNuevoInsumoModal = true"
+            <button type="button" class="btn-agregar" @click="showNuevoInsumoModal = true"
               title="Crear nuevo insumo">
               <i class="fas fa-plus"></i>
             </button>
@@ -474,7 +474,7 @@
                 {{ unidad.nombre }} ({{ unidad.abreviatura }})
               </option>
             </select>
-            <button type="button" class="btn-agregar-nuevo" @click="showNuevaUnidadModal = true"
+            <button type="button" class="btn-agregar" @click="showNuevaUnidadModal = true"
               title="Crear nueva unidad de medida">
               <i class="fas fa-plus"></i>
             </button>
@@ -506,7 +506,7 @@
                 {{ cat.nombre }}
               </option>
             </select>
-            <button type="button" class="btn-agregar-nuevo" @click="showNuevaCategoriaModal = true"
+            <button type="button" class="btn-agregar" @click="showNuevaCategoriaModal = true"
               title="Agregar nueva categoría">
               <i class="fas fa-plus"></i>
             </button>
@@ -522,7 +522,7 @@
                 {{ unidad.nombre }} ({{ unidad.abreviatura }})
               </option>
             </select>
-            <button type="button" class="btn-agregar-nuevo" @click="showNuevaUnidadDeMedidaModal = true"
+            <button type="button" class="btn-agregar" @click="showNuevaUnidadDeMedidaModal = true"
               title="Agregar nueva unidad de medida">
               <i class="fas fa-plus"></i>
             </button>
@@ -548,7 +548,7 @@
                 {{ prov.nombre }}
               </option>
             </select>
-            <button type="button" class="btn-agregar-nuevo" @click="showNuevoProveedorModal = true"
+            <button type="button" class="btn-agregar" @click="showNuevoProveedorModal = true"
               title="Agregar nuevo proveedor">
               <i class="fas fa-plus"></i>
             </button>
@@ -3087,10 +3087,6 @@ onUnmounted(() => {
     gap: 8px;
   }
 
-  .btn-agregar-nuevo {
-    align-self: flex-end;
-    width: auto;
-  }
 }
 
 /* Móviles pequeños (hasta 480px) */
