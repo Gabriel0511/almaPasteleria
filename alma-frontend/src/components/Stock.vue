@@ -370,42 +370,6 @@
             placeholder="0.000"
           />
         </div>
-
-        <div class="form-group">
-          <label>Precio Unitario:</label>
-          <input
-            v-model="formInsumo.precio_unitario"
-            type="number"
-            step="0.01"
-            min="0"
-            class="form-input"
-            placeholder="0.00"
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Proveedor:</label>
-          <div class="select-with-button">
-            <select v-model="formInsumo.proveedor_id" class="form-input">
-              <option value="">Seleccione un proveedor</option>
-              <option
-                v-for="prov in proveedores"
-                :key="prov.id"
-                :value="prov.id"
-              >
-                {{ prov.nombre }}
-              </option>
-            </select>
-            <button
-              type="button"
-              class="btn-agregar"
-              @click="showNuevoProveedorModal = true"
-              title="Agregar nuevo proveedor"
-            >
-              <i class="fas fa-plus"></i>
-            </button>
-          </div>
-        </div>
       </div>
 
       <template #footer>
@@ -1746,8 +1710,6 @@ onUnmounted(() => {
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
 
-
-
 /* ----------------------------- FILTROS ----------------------------- */
 .filtros-derecha {
   display: flex;
@@ -2412,8 +2374,6 @@ onUnmounted(() => {
 
 /* Pantallas medianas (tablets) */
 @media (max-width: 1024px) {
-
-
   .stock-card {
     padding: 15px;
   }
@@ -2425,7 +2385,6 @@ onUnmounted(() => {
 
 /* Pantallas pequeñas (tablets pequeñas y móviles grandes) */
 @media (max-width: 768px) {
-
   .filtros-derecha {
     flex-direction: column;
     align-items: stretch;
@@ -2525,7 +2484,6 @@ onUnmounted(() => {
 
 /* Móviles pequeños */
 @media (max-width: 480px) {
-
   .stock-list {
     padding: 0.5rem;
     gap: 0.5rem;
