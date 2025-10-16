@@ -1710,7 +1710,6 @@ onUnmounted(() => {
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
 
-
 /* ----------------------------- BOTONES GENERALES ----------------------------- */
 .botones-acciones {
   display: flex;
@@ -2352,7 +2351,6 @@ onUnmounted(() => {
 
 /* Pantallas pequeñas (tablets pequeñas y móviles grandes) */
 @media (max-width: 768px) {
-
   .botones-acciones {
     width: 100%;
   }
@@ -2549,7 +2547,6 @@ onUnmounted(() => {
   .btn-nueva-compra-flotante {
     min-height: 44px;
   }
-
 }
 
 /* Estados de carga y vacío responsive */

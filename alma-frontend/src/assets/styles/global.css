@@ -467,8 +467,8 @@ html,
   color: white;
 }
 .estadistica-badge {
-    justify-content: center;
-    width: 100%;
+  justify-content: center;
+  width: 100%;
 }
 
 /* AGREGAR: Estilos para estadísticas de stock */
@@ -493,8 +493,6 @@ html,
   gap: 20px;
   padding: 0 10px;
 }
-
-
 
 /* ----------------------------- FILTROS ----------------------------- */
 .filtros-derecha {
@@ -530,7 +528,6 @@ html,
   transform: translateY(-1px);
 }
 
-
 /* ----------------------------- RESPONSIVE ----------------------------- */
 @media (max-width: 1158px) {
   .content {
@@ -542,7 +539,7 @@ html,
   }
 }
 @media (max-width: 1024px) {
-.principal-content {
+  .principal-content {
     flex-direction: column;
     align-items: flex-start;
     gap: 15px;
@@ -550,6 +547,11 @@ html,
   .filtros-derecha {
     width: 100%;
     justify-content: space-between;
+  }
+  .estadisticas-stock {
+    justify-content: center;
+    width: 100%;
+    margin-top: 10px;
   }
 }
 
@@ -590,7 +592,7 @@ html,
     width: 100%;
     font-size: 16px;
   }
-  
+
   .principal-content {
     padding: 0;
   }
@@ -661,8 +663,7 @@ html,
   }
 }
 
-@media (max-width: 480px){
-
+@media (max-width: 480px) {
   .main-content {
     padding: 10px 8px 8px 8px;
   }
@@ -684,7 +685,6 @@ html,
    MEJORAS ESPECÍFICAS PARA TOUCH (COMO EN STOCK)
    ============================== */
 @media (hover: none) and (pointer: coarse) {
-  
   /* Mejorar área de toque para elementos interactivos */
   .filtro-input,
   .filtro-select {
@@ -809,7 +809,5 @@ html,
   min-width: 0;
   /* Permite que se reduzca correctamente */
 }
- 
-
 
 /* Eliminar estilos duplicados y conflictivos que estaban al final del archivo */

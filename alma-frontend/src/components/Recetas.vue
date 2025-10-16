@@ -1696,7 +1696,6 @@ onMounted(() => {
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
 
-
 /* ----------------------------- BOTONES GENERALES ----------------------------- */
 .botones-acciones {
   display: flex;
@@ -2377,13 +2376,6 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.form-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr auto;
-  gap: 15px;
-  align-items: end;
-}
-
 .form-group {
   display: flex;
   flex-direction: column;
@@ -2584,30 +2576,6 @@ onMounted(() => {
   color: var(--color-primary);
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .insumo-existente-item {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .insumo-acciones {
-    margin-left: 0;
-    justify-content: flex-end;
-  }
-
-  .edit-form-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-}
-
 /* Estados de validación */
 .form-input:invalid,
 .form-input-small:invalid {
@@ -2639,13 +2607,13 @@ onMounted(() => {
 
 /* Para pantallas medianas (tablets) */
 @media (max-width: 1024px) {
-
   .receta-rentabilidad-grid {
     grid-template-columns: 1fr 1fr;
   }
 }
 
 /* Para tablets pequeñas y móviles grandes */
+
 @media (max-width: 768px) {
   .main-content {
     margin-left: 0;
