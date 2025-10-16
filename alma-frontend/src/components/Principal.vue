@@ -4,7 +4,7 @@
     
     <div class="main-container">
       <Header @toggle-sidebar="toggleSidebar" />
-      <main class="main-content">
+      <main class="main-content principal-content">
         <section class="content">
           <!-- Stock -->
           <div class="card stock">
@@ -1477,5 +1477,104 @@ const confirmarPreparacion = (task) => {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+/* -------------------- RESPONSIVE MEJORADO ESPECÍFICO PARA PRINCIPAL.VUE -------------------- */
+@media (max-width: 968px) {
+  .principal-content .card.stock,
+  .principal-content .card.recetas {
+    max-height: 60vh !important;
+    min-height: 250px;
+    overflow-y: auto;
+  }
+  
+  .principal-content .stock-list,
+  .principal-content .recetas-list {
+    max-height: calc(60vh - 100px);
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .principal-content .card.stock,
+  .principal-content .card.recetas {
+    max-height: 55vh !important;
+  }
+  
+  .principal-content .stock-list,
+  .principal-content .recetas-list {
+    max-height: calc(55vh - 100px);
+  }
+}
+
+@media (max-width: 480px) {
+  .principal-content .card.stock,
+  .principal-content .card.recetas {
+    max-height: 50vh !important;
+  }
+  
+  .principal-content .stock-list,
+  .principal-content .recetas-list {
+    max-height: calc(50vh - 100px);
+  }
+}
+
+/* -------------------- LAYOUT MEJORADO PARA RECETAS EN MÓVIL (ESPECÍFICO) -------------------- */
+@media (max-width: 640px) {
+  .principal-content .receta-item {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 15px;
+    padding: 12px 8px;
+  }
+
+  .principal-content .receta-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .principal-content .receta-rinde {
+    font-size: 0.8rem;
+    margin-top: 2px;
+  }
+
+  .principal-content .contador {
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .principal-content .receta-item {
+    gap: 10px;
+    padding: 10px 6px;
+  }
+
+  .principal-content .btn-contador {
+    width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+  }
+
+  .principal-content .contador-value {
+    min-width: 25px;
+    font-size: 0.9rem;
+  }
+
+  .principal-content .receta-info {
+    font-size: 0.9rem;
+  }
+
+  .principal-content .receta-rinde {
+    font-size: 0.75rem;
+  }
+}
+
+/* Aseguramos que el contador se mantenga en una línea */
+.principal-content .contador {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
 }
 </style>
