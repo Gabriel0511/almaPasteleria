@@ -101,10 +101,6 @@
             <div class="table-header">
               <h3 class="card-title">Reporte de Insumos</h3>
             </div>
-            <div v-if="loading" class="loading-state">
-              <i class="fas fa-spinner fa-spin"></i>
-              <p>Cargando reporte...</p>
-            </div>
             <div class="table-container">
               <table class="reporte-table-content">
                 <thead>
@@ -152,8 +148,11 @@
                   </tr>
                 </tbody>
               </table>
-
-              <div v-if="reporteFiltrado.length === 0" class="empty-state">
+              <div v-if="loading" class="loading-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Cargando reporte...</p>
+              </div>
+              <div v-else-if="reporteFiltrado.length === 0" class="empty-state">
                 <i class="fas fa-inbox"></i>
                 <p>No hay datos para mostrar con los filtros actuales</p>
               </div>
