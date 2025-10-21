@@ -1,7 +1,7 @@
 # urls.py - Versión actualizada
 from django.urls import path
 from . import views
-from .views import UnidadMedidaListAPIView, UnidadMedidaDetailAPIView, UnidadMedidaCreateAPIView , CategoriaInsumoListAPIView, ProveedorListAPIView, ProveedorCreateAPIView, CategoriaInsumoCreateAPIView
+from .views import UnidadMedidaListAPIView, UnidadMedidaDetailAPIView, UnidadMedidaCreateAPIView , CategoriaInsumoListAPIView, ProveedorListAPIView, ProveedorCreateAPIView, CategoriaInsumoCreateAPIView, ReporteInsumosAPIView, GenerarPDFReporteAPIView
 
 urlpatterns = [
     # GET - Listar todos los insumos
@@ -38,4 +38,8 @@ urlpatterns = [
     # Rutas para proveedores - CORREGIDAS
     path('proveedores/', ProveedorListAPIView.as_view(), name='proveedores-list'),
     path('proveedores/crear/', ProveedorCreateAPIView.as_view(), name='proveedores-create'),
+
+    # NUEVAS RUTAS PARA REPORTES
+    path('reportes/insumos/', ReporteInsumosAPIView.as_view(), name='reportes-insumos'),
+    path('reportes/generar-pdf/', GenerarPDFReporteAPIView.as_view(), name='reportes-generar-pdf'),
 ]

@@ -72,3 +72,28 @@ class Insumo(models.Model):
         verbose_name = "Insumo"
         verbose_name_plural = "Insumos"
         ordering = ['nombre']
+
+class HistorialStock(models.Model):
+    TIPOS_MOVIMIENTO = [
+        ('RECETA', 'Preparación de Receta'),
+        ('INGREDIENTE_EXTRA', 'Ingrediente Extra en Pedido'),
+        ('AJUSTE', 'Ajuste Manual'),
+        ('COMPRA', 'Compra/Reposición'),
+    ]
+    
+    insumo = models.ForeignKey(Insumo, on_delete=models.CASCADE, related_name='historial')
+    tipo_movimiento = models.CharField(max_length=20, choices=TIPOS_MOVIMIENTO)
+    cantidad = models.DecimalField(max_digits=10, decimal_places=3)
+    unidad_medida = models.ForeignKey(UnidadMedida, on_delete=models.PROTECT)
+    fecha = models.DateTimeField(auto_now_add=True)
+    descripcion = models.TextField(blank=True, null=True)
+    
+    # Referencias opcionales
+    receta = models.ForeignKey('recetas.Receta', on_delete=models.SET_NULL, null=True, blank=True)
+    pedido = models.ForeignKey('pedidos.Pedido', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-fecha']
+    
+    def __str__(self):
+        return f"{self.insumo.nombre} - {self.tipo_movimiento} - {self.cantidad}"
