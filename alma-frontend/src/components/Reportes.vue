@@ -10,7 +10,22 @@
           <div class="principal-content">
             <h1 class="card-title1">📊 Reportes de Insumos</h1>
 
-            <div class="filtros-derecha">
+            <div
+              class="filtros-mobile-toggle"
+              v-if="isMobile"
+              @click="mostrarFiltros = !mostrarFiltros"
+            >
+              <i
+                class="fas"
+                :class="mostrarFiltros ? 'fa-chevron-up' : 'fa-filter'"
+              ></i>
+              {{ mostrarFiltros ? "Ocultar Filtros" : "Mostrar Filtros" }}
+            </div>
+
+            <div
+              class="filtros-derecha"
+              :class="{ 'filtros-visible': mostrarFiltros }"
+            >
               <div class="filtro-group">
                 <label for="fecha-inicio">Fecha Inicio</label>
                 <input
@@ -86,7 +101,10 @@
             <div class="table-header">
               <h3 class="card-title">Reporte de Insumos</h3>
             </div>
-
+            <div v-if="loading" class="loading-state">
+              <i class="fas fa-spinner fa-spin"></i>
+              <p>Cargando reporte...</p>
+            </div>
             <div class="table-container">
               <table class="reporte-table-content">
                 <thead>
@@ -186,6 +204,8 @@ const reportes = ref([]);
 const proveedores = ref([]);
 const loading = ref(true);
 const generandoPDF = ref(false);
+const mostrarFiltros = ref(false);
+const isMobile = ref(false);
 
 // Filtros
 const filtros = ref({
@@ -193,6 +213,18 @@ const filtros = ref({
   fechaFin: "",
   proveedorId: "",
 });
+
+// Detectar cambios de tamaño de pantalla
+onMounted(() => {
+  checkMobile();
+  window.addEventListener("resize", checkMobile);
+  // Mostrar filtros por defecto en desktop, ocultar en móvil
+  mostrarFiltros.value = !isMobile.value;
+});
+
+const checkMobile = () => {
+  isMobile.value = window.innerWidth <= 768;
+};
 
 // ----------------------
 // 🔹 Computed Properties
@@ -206,10 +238,6 @@ const reporteFiltrado = computed(() => {
       (item) => item.proveedorId === parseInt(filtros.value.proveedorId)
     );
   }
-
-  // Filtrar por fecha (aquí se implementaría la lógica según el backend)
-  // Por ahora, solo mostramos todos los datos ya que no tenemos historial de stock
-  // En una implementación real, se consultaría al backend con las fechas
 
   return filtered;
 });
@@ -287,7 +315,6 @@ const fetchReportes = async () => {
   try {
     loading.value = true;
 
-    // Construir parámetros de consulta
     const params = {};
     if (filtros.value.fechaInicio)
       params.fecha_inicio = filtros.value.fechaInicio;
@@ -297,11 +324,16 @@ const fetchReportes = async () => {
 
     const response = await axios.get("/api/reportes/insumos/", { params });
 
+    // ✅ VERIFICAR que la respuesta tenga datos
+    if (!response.data) {
+      throw new Error("No se recibieron datos del servidor");
+    }
+
     reportes.value = response.data.map((item) => ({
       id: item.id,
       nombre: item.nombre,
       categoria: item.categoria,
-      stockUsado: item.stock_usado || 0,
+      stockUsado: item.stock_usado || 0, // ✅ CORREGIDO: stock_usado
       stockActual: item.stock_actual,
       stockMinimo: item.stock_minimo,
       unidad: item.unidad_medida?.abreviatura || "u",
@@ -312,21 +344,25 @@ const fetchReportes = async () => {
   } catch (error) {
     console.error("Error al cargar reportes:", error);
 
-    // Fallback: cargar datos básicos de insumos
+    // ✅ MEJORAR el fallback
     try {
       const insumosResponse = await axios.get("/api/insumos/");
-      reportes.value = insumosResponse.data.insumos.map((item) => ({
-        id: item.id,
-        nombre: item.nombre,
-        categoria: item.categoria?.nombre || "Sin categoría",
-        stockUsado: 0, // No disponible sin el endpoint de reportes
-        stockActual: item.stock_actual,
-        stockMinimo: item.stock_minimo,
-        unidad: item.unidad_medida?.abreviatura || "u",
-        necesitaReposicion: item.necesita_reposicion,
-        proveedor: item.proveedor?.nombre || "Sin proveedor",
-        proveedorId: item.proveedor?.id || null,
-      }));
+      if (insumosResponse.data && insumosResponse.data.insumos) {
+        reportes.value = insumosResponse.data.insumos.map((item) => ({
+          id: item.id,
+          nombre: item.nombre,
+          categoria: item.categoria?.nombre || "Sin categoría",
+          stockUsado: 0, // No disponible sin el endpoint de reportes
+          stockActual: item.stock_actual,
+          stockMinimo: item.stock_minimo,
+          unidad: item.unidad_medida?.abreviatura || "u",
+          necesitaReposicion: item.necesita_reposicion,
+          proveedor: item.proveedor?.nombre || "Sin proveedor",
+          proveedorId: item.proveedor?.id || null,
+        }));
+      } else {
+        reportes.value = [];
+      }
     } catch (fallbackError) {
       console.error("Error en fallback:", fallbackError);
       reportes.value = [];
@@ -384,6 +420,39 @@ onMounted(() => {
   justify-content: center;
   padding: 12px 16px;
   font-size: 0.9rem;
+}
+
+/* TOGGLE FILTROS CELULAR */
+.filtros-mobile-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: var(--color-primary);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  justify-content: center;
+  margin-bottom: 15px;
+}
+
+.filtros-derecha {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Ocultar filtros en móvil cuando no están activos */
+@media (max-width: 768px) {
+  .filtros-derecha:not(.filtros-visible) {
+    display: none;
+  }
+
+  .filtros-derecha.filtros-visible {
+    display: flex;
+  }
 }
 
 /* -------------------- TABLA DE REPORTES -------------------- */
@@ -515,6 +584,18 @@ onMounted(() => {
   font-weight: 500;
 }
 
+/* -------------------- LOADING -------------------- */
+.loading-state {
+  text-align: center;
+  padding: 3rem;
+  color: var(--color-primary);
+}
+
+.loading-state i {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
 /* -------------------- ESTADO VACÍO -------------------- */
 .empty-state {
   text-align: center;
@@ -537,69 +618,218 @@ onMounted(() => {
   font-size: 1.1rem;
 }
 
-/* -------------------- RESPONSIVE -------------------- */
-@media (max-width: 1024px) {
-  .estadisticas-reporte {
-    flex-direction: column;
-  }
-
-  .estadisticas-reporte .estadistica-badge {
-    min-width: 100%;
-  }
-}
-
+/* -------------------- MEJORAS PARA TABLA EN MÓVILES -------------------- */
 @media (max-width: 768px) {
-  .reporte-table-content {
-    font-size: 0.8rem;
+  .reportes-container {
+    padding: 0 5px;
   }
 
-  .reporte-table-content th,
-  .reporte-table-content td {
-    padding: 8px 4px;
-  }
-
-  .pdf-section {
+  .principal-content {
     flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+
+  .card-title1 {
+    font-size: 1.5rem;
     text-align: center;
-  }
-}
-
-@media (max-width: 640px) {
-  .table-container {
-    overflow-x: auto;
-  }
-
-  .reporte-table-content {
-    min-width: 600px;
+    width: 100%;
   }
 
   .filtros-derecha {
     flex-direction: column;
-    align-items: stretch;
+    width: 100%;
+    gap: 12px;
   }
 
   .filtro-group {
     width: 100%;
   }
+
+  .filtro-input,
+  .filtro-select {
+    min-width: 100%;
+    width: 100%;
+    font-size: 16px; /* Previene zoom en iOS */
+  }
+
+  .btn-agregar {
+    width: 100%;
+    justify-content: center;
+    padding: 12px;
+    font-size: 1rem;
+    min-height: 44px; /* Tamaño táctil mínimo */
+  }
+
+  /* Estadísticas en columna */
+  .estadisticas-reporte {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .estadisticas-reporte .estadistica-badge {
+    min-width: 100%;
+    justify-content: flex-start;
+  }
+
+  /* Tabla scroll horizontal mejorado */
+  .table-container {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    overflow-x: auto;
+  }
+
+  .reporte-table-content {
+    min-width: 700px; /* Ancho mínimo para mantener legibilidad */
+  }
+
+  .reporte-table-content th,
+  .reporte-table-content td {
+    padding: 12px 8px;
+    font-size: 0.85rem;
+  }
+
+  /* Mejorar visibilidad de filas en móvil */
+  .low-stock-row {
+    border-left: 4px solid var(--color-danger);
+  }
+
+  /* Sección PDF en columna */
+  .pdf-section {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+
+  .btn-pdf {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
-/* Scroll personalizado para la tabla */
-.table-container::-webkit-scrollbar {
-  height: 8px;
-  width: 8px;
+/* -------------------- MEJORAS PARA TABLETS -------------------- */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .filtros-derecha {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .filtro-group {
+    min-width: 180px;
+  }
+
+  .estadisticas-reporte {
+    gap: 12px;
+  }
+
+  .estadisticas-reporte .estadistica-badge {
+    min-width: 180px;
+    flex: 0 1 calc(50% - 12px);
+  }
 }
 
-.table-container::-webkit-scrollbar-track {
-  background: #f0f0f0;
-  border-radius: 4px;
+/* -------------------- MEJORAS PARA PANTALLAS MUY PEQUEÑAS -------------------- */
+@media (max-width: 480px) {
+  .reportes-container {
+    padding: 0;
+  }
+
+  .card.reporte-table {
+    margin-left: 5px;
+    margin-right: 5px;
+  }
+
+  .card-title1 {
+    font-size: 1.3rem;
+  }
+
+  .estadistica-badge {
+    font-size: 0.75rem;
+    padding: 10px 12px;
+  }
+
+  .empty-state {
+    padding: 2rem 1rem;
+  }
+
+  .empty-state i {
+    font-size: 2.5rem;
+  }
+
+  .reporte-table-content {
+    min-width: 650px;
+  }
+
+  .insumo-categoria {
+    display: block;
+    margin-top: 2px;
+  }
 }
 
-.table-container::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
+/* -------------------- MEJORAS ESPECÍFICAS PARA TOUCH -------------------- */
+@media (hover: none) and (pointer: coarse) {
+  .btn-agregar,
+  .btn-pdf {
+    min-height: 44px;
+    padding: 12px 16px;
+  }
+
+  .filtro-input,
+  .filtro-select {
+    min-height: 44px;
+    font-size: 16px; /* Previene zoom automático en iOS */
+  }
+
+  .reporte-table-content tr {
+    min-height: 44px;
+  }
+
+  /* Aumentar área táctil para filas de tabla */
+  .reporte-table-content td {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
 }
 
-.table-container::-webkit-scrollbar-thumb:hover {
-  background: #555;
+/* -------------------- MEJORAS DE ACCESIBILIDAD -------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .btn-agregar,
+  .btn-pdf {
+    transition: none;
+  }
+
+  .estadistica-badge.critico {
+    animation: none;
+  }
+}
+
+/* -------------------- ORIENTACIÓN HORIZONTAL EN MÓVILES -------------------- */
+@media (max-height: 500px) and (orientation: landscape) {
+  .card.reporte-table {
+    max-height: 50vh;
+  }
+
+  .estadisticas-reporte {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .estadisticas-reporte .estadistica-badge {
+    min-width: auto;
+    flex: 1;
+  }
+}
+
+/* -------------------- MEJORAS PARA MODO OSCURO (si se implementa) -------------------- */
+@media (prefers-color-scheme: dark) {
+  /* Estas reglas se activarían si implementas modo oscuro */
+  .reporte-table-content th {
+    background-color: rgba(123, 90, 80, 0.2);
+  }
+
+  .low-stock-row {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+  }
 }
 </style>
