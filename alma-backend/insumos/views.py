@@ -509,9 +509,9 @@ class GenerarPDFReporteAPIView(APIView):
             for item in reporte_data:
                 table_data.append([
                     f"{item['nombre']}\n({item['categoria']})",
-                    f"{item['stock_usado']:.2f}.replace('.', ',') {item['unidad_medida']['abreviatura']}",
-                    f"{item['stock_actual']:.2f}.replace('.', ',') {item['unidad_medida']['abreviatura']}",
-                    f"{item['stock_minimo']:.2f}.replace('.', ',') {item['unidad_medida']['abreviatura']}",
+                    f"{item['stock_usado']:.2f}".replace('.', ',') + f" {item['unidad_medida']['abreviatura']}",
+                    f"{item['stock_actual']:.2f}".replace('.', ',') + f" {item['unidad_medida']['abreviatura']}",
+                    f"{item['stock_minimo']:.2f}".replace('.', ',') + f"{item['unidad_medida']['abreviatura']}",
                     "SÍ" if item['necesita_reposicion'] else "NO",
                     item['proveedor']['nombre'] if item['proveedor'] else "Sin proveedor"
                 ])
