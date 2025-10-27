@@ -1,7 +1,7 @@
 <template>
   <div class="app-layout">
     <Sidebar ref="sidebarRef" />
-    
+
     <div class="main-container">
       <Header @toggle-sidebar="toggleSidebar" />
       <main class="main-content principal-content">
@@ -162,7 +162,9 @@
                     <input
                       type="checkbox"
                       :checked="task.estado === 'listo'"
-                      :disabled="task.estado === 'listo' || task.estado === 'entregado'"
+                      :disabled="
+                        task.estado === 'listo' || task.estado === 'entregado'
+                      "
                       @click.prevent="confirmarPreparacion(task)"
                     />
                     <span class="checkmark"></span>
@@ -249,7 +251,9 @@
                   >
                     -
                   </button>
-                  <span class="contador-value">{{ receta.veces_hecha || 0 }}</span>
+                  <span class="contador-value">{{
+                    receta.veces_hecha || 0
+                  }}</span>
                   <button
                     @click="incrementarContador(receta)"
                     class="btn-contador"
@@ -829,11 +833,11 @@ onMounted(() => {
 
 // Método para confirmar entrega - ACTUALIZADO
 const confirmarEntrega = (task) => {
-  if (task.estado === 'entregado' || task.confirmando) return;
-  
+  if (task.estado === "entregado" || task.confirmando) return;
+
   // Prevenir múltiples clics
   task.confirmando = true;
-  
+
   currentTask.value = task;
   modalType.value = "entrega";
   modalTitle.value = "Confirmar Entrega";
@@ -846,23 +850,30 @@ const confirmarEntrega = (task) => {
 
 // Método para confirmar preparación - ACTUALIZADO
 const confirmarPreparacion = (task) => {
-  if (task.estado === 'listo' || task.estado === 'entregado' || task.confirmando) return;
-  
+  if (
+    task.estado === "listo" ||
+    task.estado === "entregado" ||
+    task.confirmando
+  )
+    return;
+
   // Prevenir múltiples clics
   task.confirmando = true;
-  
+
   currentTask.value = task;
   modalType.value = "preparacion";
   modalTitle.value = "Terminar pedido";
   modalMessage.value = `¿Estás seguro que quieres terminar el pedido?`;
-  modalDetails.value = `Cliente: ${task.nombre}\nFecha de entrega: ${formatFecha(task.fecha_entrega)}`;
+  modalDetails.value = `Cliente: ${
+    task.nombre
+  }\nFecha de entrega: ${formatFecha(task.fecha_entrega)}`;
   modalAction.value = () => empezarPreparacion(task);
 
   showConfirmModal.value = true;
 };
 </script>
 
-<style>
+<style scoped>
 /* ==================== ESTILOS ESPECÍFICOS PARA PRINCIPAL.VUE ==================== */
 
 /* -------------------- HEADER DE CARDS MEJORADO -------------------- */
@@ -1204,51 +1215,6 @@ const confirmarPreparacion = (task) => {
   padding: 0 8px 8px 8px;
 }
 
-/* -------------------- RESPONSIVE ESPECÍFICO -------------------- */
-@media (max-width: 768px) {
-  .recetas-header {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .search-input {
-    width: 100%;
-  }
-
-  .task-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-
-  .task-item {
-    padding: 0.75rem;
-  }
-
-  .cliente-nombre {
-    font-size: 1rem;
-  }
-
-  .sticky-header {
-    padding: 10px 8px;
-  }
-}
-
-@media (max-width: 480px) {
-  .estado-badge {
-    font-size: 0.7rem;
-    padding: 0.2rem 0.6rem;
-  }
-
-  .task-details {
-    font-size: 0.8rem;
-  }
-
-  .dias-restantes {
-    font-size: 0.7rem;
-  }
-}
-
 /* -------------------- CHECKBOX PERSONALIZADO CORREGIDO -------------------- */
 .task-checkbox input[type="checkbox"] {
   position: absolute;
@@ -1457,7 +1423,6 @@ const confirmarPreparacion = (task) => {
   from {
     opacity: 0;
   }
-
   to {
     opacity: 1;
   }
@@ -1472,109 +1437,225 @@ const confirmarPreparacion = (task) => {
     opacity: 0;
     transform: translateY(-30px) scale(0.9);
   }
-
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
 }
 
-/* -------------------- RESPONSIVE MEJORADO ESPECÍFICO PARA PRINCIPAL.VUE -------------------- */
-@media (max-width: 968px) {
-  .principal-content .card.stock,
-  .principal-content .card.recetas {
-    max-height: 60vh !important;
-    min-height: 250px;
-    overflow-y: auto;
-  }
-  
-  .principal-content .stock-list,
-  .principal-content .recetas-list {
-    max-height: calc(60vh - 100px);
-    overflow-y: auto;
-  }
-}
+/* ==================== MEDIA QUERIES PARA RESPONSIVE (764px - 1024px) ==================== */
 
-@media (max-width: 768px) {
-  .principal-content .card.stock,
-  .principal-content .card.recetas {
-    max-height: 55vh !important;
-  }
-  
-  .principal-content .stock-list,
-  .principal-content .recetas-list {
-    max-height: calc(55vh - 100px);
-  }
-}
-
-@media (max-width: 480px) {
-  .principal-content .card.stock,
-  .principal-content .card.recetas {
-    max-height: 50vh !important;
-  }
-  
-  .principal-content .stock-list,
-  .principal-content .recetas-list {
-    max-height: calc(50vh - 100px);
-  }
-}
-
-/* -------------------- LAYOUT MEJORADO PARA RECETAS EN MÓVIL (ESPECÍFICO) -------------------- */
-@media (max-width: 640px) {
-  .principal-content .receta-item {
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 15px;
-    padding: 12px 8px;
+@media (min-width: 764px) and (max-width: 1024px) {
+  /* -------------------- LAYOUT GENERAL -------------------- */
+  .container {
+    padding: 0.5rem;
   }
 
-  .principal-content .receta-info {
-    flex: 1;
-    min-width: 0;
+  /* -------------------- HEADERS DE CARDS -------------------- */
+  .card-header {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+    text-align: center;
   }
 
-  .principal-content .receta-rinde {
-    font-size: 0.8rem;
-    margin-top: 2px;
+  .sticky-header {
+    padding: 12px 6px;
+    margin: -6px -6px 12px -6px;
   }
 
-  .principal-content .contador {
-    flex-shrink: 0;
-    margin-left: auto;
-  }
-}
-
-@media (max-width: 480px) {
-  .principal-content .receta-item {
-    gap: 10px;
-    padding: 10px 6px;
+  /* -------------------- TAREAS/ITEMS DE PEDIDOS -------------------- */
+  .task-item {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
   }
 
-  .principal-content .btn-contador {
-    width: 28px;
-    height: 28px;
+  .task-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .cliente-nombre {
+    font-size: 1rem;
+  }
+
+  .estado-badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.6rem;
+    align-self: flex-start;
+  }
+
+  .task-details {
+    font-size: 0.85rem;
+  }
+
+  /* -------------------- HEADER DE RECETAS -------------------- */
+  .recetas-header {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+
+  .search-input {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* -------------------- ITEMS DE RECETAS -------------------- */
+  .receta-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .receta-info {
+    width: 100%;
+  }
+
+  .contador {
+    align-self: flex-end;
+  }
+
+  /* -------------------- STOCK ITEMS -------------------- */
+  .stock-item {
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.75rem 0.5rem;
+  }
+
+  .item-name {
     font-size: 0.9rem;
   }
 
-  .principal-content .contador-value {
-    min-width: 25px;
-    font-size: 0.9rem;
-  }
-
-  .principal-content .receta-info {
-    font-size: 0.9rem;
-  }
-
-  .principal-content .receta-rinde {
+  .item-category {
     font-size: 0.75rem;
   }
+
+  /* -------------------- CARDS CON SCROLL -------------------- */
+  .card.entregar-hoy,
+  .card.hacer-hoy {
+    max-height: 75vh;
+  }
+
+  .entregar-hoy-list,
+  .hacer-hoy-list {
+    padding: 8px 6px;
+  }
+
+  /* -------------------- CHECKBOX -------------------- */
+  .task-checkbox {
+    padding-left: 28px;
+    margin-right: 0.75rem;
+  }
+
+  .checkmark {
+    height: 18px;
+    width: 18px;
+  }
+
+  .checkmark:after {
+    left: 5px;
+    top: 1px;
+    width: 4px;
+    height: 8px;
+  }
+
+  /* -------------------- MODAL DE CONFIRMACIÓN -------------------- */
+  .confirm-modal {
+    max-width: 90%;
+    margin: 1rem;
+  }
+
+  .modal-buttons {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .modal-buttons button {
+    min-width: auto;
+    width: 100%;
+  }
+
+  .confirm-icon {
+    font-size: 2.5rem;
+  }
+
+  .modal-title {
+    font-size: 1.2rem;
+  }
+
+  .confirm-message {
+    font-size: 1rem;
+  }
+
+  /* -------------------- BADGES Y ETIQUETAS -------------------- */
+  .badge {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+  }
+
+  .atrasado-badge {
+    font-size: 0.65rem;
+    padding: 1px 4px;
+  }
+
+  .dias-restantes {
+    font-size: 0.75rem;
+  }
+
+  .alert-preparacion,
+  .entregado-info,
+  .preparacion-info {
+    font-size: 0.75rem;
+    padding: 0.4rem;
+  }
+
+  /* -------------------- CONTADOR MEJORADO -------------------- */
+  .btn-contador {
+    width: 26px;
+    height: 26px;
+  }
+
+  .contador-value {
+    min-width: 26px;
+    font-size: 0.9rem;
+  }
 }
 
-/* Aseguramos que el contador se mantenga en una línea */
-.principal-content .contador {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
+/* ==================== MEDIA QUERIES ADICIONALES PARA MÓVILES ==================== */
+
+@media (max-width: 763px) {
+  /* Estilos específicos para móviles si es necesario */
+  .card-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .task-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .recetas-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+}
+
+/* ==================== MEDIA QUERIES PARA ESCRITORIO GRANDE ==================== */
+
+@media (min-width: 1025px) {
+  /* Estilos específicos para escritorio grande si es necesario */
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
 }
 </style>
