@@ -1835,7 +1835,8 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 15px;
+  margin: 10px;
 }
 
 .stock-titulo {
@@ -1897,7 +1898,7 @@ onUnmounted(() => {
 .stock-acciones {
   display: flex;
   align-items: center;
-  margin-top: 12px;
+  margin: 20px;
   gap: 8px;
   flex-shrink: 0;
 }
