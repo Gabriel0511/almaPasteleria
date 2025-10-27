@@ -335,8 +335,22 @@ const cargarNotificacionesRecetas = async () => {
     const response = await axios.get("/api/recetas/");
     const recetas = response.data;
 
+    // Cargar notificaciones leídas
+    const leidasGuardadas = JSON.parse(
+      localStorage.getItem("notificacionesLeidas") || "[]"
+    );
+
     notificacionesRecetas.value = recetas
-      .filter((receta) => receta.precio_venta <= receta.costo_total)
+      .filter((receta) => {
+        const costo = parseFloat(receta.costo_total) || 0;
+        const venta = parseFloat(receta.precio_venta) || 0;
+        return venta <= costo;
+      })
+      .filter((receta) => {
+        // Filtrar solo las no marcadas como leídas
+        const notificacionId = `receta-no-rentable-${receta.id}`;
+        return !leidasGuardadas.includes(notificacionId);
+      })
       .map((receta) => ({
         id: `receta-no-rentable-${receta.id}`,
         type: "warning",

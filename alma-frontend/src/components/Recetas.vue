@@ -14,9 +14,14 @@
               class="estadistica-item"
               v-if="notificacionesRecetasNoRentables.length > 0"
             >
-              <span class="estadistica-badge bajo">
+              <span
+                class="estadistica-badge bajo cursor-pointer"
+                @click="marcarTodasComoLeidas"
+                title="Marcar todas como leídas"
+              >
                 <i class="fas fa-exclamation-circle"></i>
                 {{ notificacionesRecetasNoRentables.length }} no rentable(s)
+                <i class="fas fa-check ml-2" style="font-size: 0.7rem"></i>
               </span>
             </div>
             <div class="estadistica-item">
@@ -765,19 +770,37 @@ const formNuevoInsumo = ref({
   precio_unitario: null,
 });
 
+const notificacionesLeidas = ref(new Set());
+
 const notificacionesRecetasNoRentables = computed(() => {
   return recetas.value
-    .filter((receta) => receta.precio_venta <= receta.costo_total)
+    .filter((receta) => {
+      // Validación más robusta de rentabilidad
+      const costoTotal = parseFloat(receta.costo_total) || 0;
+      const precioVenta = parseFloat(receta.precio_venta) || 0;
+      const esNoRentable = precioVenta <= costoTotal;
+
+      console.log(`📊 Validación rentabilidad "${receta.nombre}":`, {
+        costo_total: costoTotal,
+        precio_venta: precioVenta,
+        diferencia: precioVenta - costoTotal,
+        esNoRentable: esNoRentable,
+      });
+
+      return esNoRentable;
+    })
     .map((receta) => ({
       id: `receta-no-rentable-${receta.id}`,
       type: "warning",
       title: "Receta No Rentable",
-      message: `${receta.nombre} no es rentable (Costo: $${formatDecimal(
+      message: `"${receta.nombre}" - Costo: $${formatDecimal(
         receta.costo_total
-      )} > Venta: $${formatDecimal(receta.precio_venta)})`,
+      )} vs Venta: $${formatDecimal(receta.precio_venta)}`,
       timestamp: new Date(),
       receta: receta,
-    }));
+      leida: notificacionesLeidas.value.has(`receta-no-rentable-${receta.id}`),
+    }))
+    .filter((notif) => !notif.leida); // Solo mostrar no leídas
 });
 
 // Métodos
@@ -867,6 +890,47 @@ const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => {
     `No se encontró conversión de ${unidadOrigen} a ${unidadDestino}`
   );
   return cantidad;
+};
+
+const marcarTodasComoLeidas = () => {
+  notificacionesRecetasNoRentables.value.forEach((notif) => {
+    marcarNotificacionLeida(notif.id);
+  });
+
+  // Mostrar confirmación
+  notificationSystem.show({
+    type: "success",
+    title: "Notificaciones marcadas",
+    message:
+      "Todas las notificaciones de recetas no rentables fueron marcadas como leídas",
+    timeout: 3000,
+  });
+};
+
+// AGREGAR: Método para marcar notificación como leída
+const marcarNotificacionLeida = (notificacionId) => {
+  notificacionesLeidas.value.add(notificacionId);
+
+  // Persistir en localStorage
+  const leidasGuardadas = JSON.parse(
+    localStorage.getItem("notificacionesLeidas") || "[]"
+  );
+  leidasGuardadas.push(notificacionId);
+  localStorage.setItem(
+    "notificacionesLeidas",
+    JSON.stringify([...new Set(leidasGuardadas)])
+  );
+
+  // Actualizar contador en header
+  actualizarNotificacionesRecetas();
+};
+
+// AGREGAR: Cargar notificaciones leídas al inicializar
+const cargarNotificacionesLeidas = () => {
+  const leidasGuardadas = JSON.parse(
+    localStorage.getItem("notificacionesLeidas") || "[]"
+  );
+  notificacionesLeidas.value = new Set(leidasGuardadas);
 };
 
 const calcularCostoInsumo = (insumoReceta) => {
@@ -1638,21 +1702,75 @@ const actualizarNotificacionesRecetas = () => {
   if (headerRef.value && headerRef.value.actualizarNotificaciones) {
     headerRef.value.actualizarNotificaciones();
   }
+
+  // Forzar recálculo de notificaciones locales
+  setTimeout(() => {
+    // Esto activará el computed property nuevamente
+  }, 100);
 };
 
 // AGREGAR: Método para emitir notificación cuando se crea/edita una receta no rentable
 const verificarRentabilidadYNotificar = (receta) => {
-  if (receta.precio_venta <= receta.costo_total) {
-    notificationSystem.show({
-      type: "warning",
-      title: "Receta No Rentable",
-      message: `La receta "${receta.nombre}" no es rentable. El precio de venta no cubre los costos.`,
-      timeout: 6000,
-    });
+  // Validación más precisa
+  const costoTotal = parseFloat(receta.costo_total) || 0;
+  const precioVenta = parseFloat(receta.precio_venta) || 0;
+  const margen = precioVenta - costoTotal;
+
+  console.log(`🔍 Verificación rentabilidad "${receta.nombre}":`, {
+    costoTotal,
+    precioVenta,
+    margen,
+    esRentable: margen > 0,
+  });
+
+  if (margen <= 0) {
+    const notificacionId = `receta-no-rentable-${receta.id}`;
+
+    // Solo mostrar si no está marcada como leída
+    if (!notificacionesLeidas.value.has(notificacionId)) {
+      notificationSystem.show({
+        type: "warning",
+        title: "Receta No Rentable",
+        message: `"${receta.nombre}" no es rentable. Costo: $${formatDecimal(
+          costoTotal
+        )} vs Venta: $${formatDecimal(precioVenta)} (Pérdida: $${formatDecimal(
+          Math.abs(margen)
+        )})`,
+        timeout: 8000,
+      });
+    }
 
     // Actualizar notificaciones en el header
     actualizarNotificacionesRecetas();
+  } else if (margen > 0 && margen < costoTotal * 0.1) {
+    // Notificación para márgenes bajos (menos del 10%)
+    notificationSystem.show({
+      type: "info",
+      title: "Margen Bajo",
+      message: `"${receta.nombre}" tiene margen bajo: $${formatDecimal(
+        margen
+      )} (${formatDecimal((margen / costoTotal) * 100)}%)`,
+      timeout: 6000,
+    });
   }
+};
+
+// AGREGAR: Método para limpiar notificaciones de recetas eliminadas
+const limpiarNotificacionesObsoletas = () => {
+  const leidasGuardadas = JSON.parse(
+    localStorage.getItem("notificacionesLeidas") || "[]"
+  );
+  const idsRecetasActuales = recetas.value.map(
+    (r) => `receta-no-rentable-${r.id}`
+  );
+
+  // Mantener solo las notificaciones de recetas que aún existen
+  const leidasFiltradas = leidasGuardadas.filter((id) =>
+    idsRecetasActuales.some((recetaId) => id === recetaId)
+  );
+
+  localStorage.setItem("notificacionesLeidas", JSON.stringify(leidasFiltradas));
+  notificacionesLeidas.value = new Set(leidasFiltradas);
 };
 
 const onInsumosModificados = async (receta) => {
@@ -1673,6 +1791,9 @@ onMounted(() => {
     return;
   }
 
+  // Cargar notificaciones leídas primero
+  cargarNotificacionesLeidas();
+
   // Cargar datos
   Promise.all([
     fetchRecetas(),
@@ -1680,8 +1801,16 @@ onMounted(() => {
     fetchUnidadesMedida(),
   ])
     .then(() => {
-      // AGREGAR: Actualizar notificaciones después de cargar recetas
+      // Limpiar notificaciones obsoletas
+      limpiarNotificacionesObsoletas();
+
+      // Actualizar notificaciones
       actualizarNotificacionesRecetas();
+
+      // Verificar rentabilidad de todas las recetas
+      recetas.value.forEach((receta) => {
+        verificarRentabilidadYNotificar(receta);
+      });
     })
     .catch((error) => {
       console.error("Error cargando datos:", error);
@@ -2601,6 +2730,36 @@ onMounted(() => {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+/* AGREGAR: Estilos para el botón de marcar como leída */
+.btn-marcar-leida {
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  margin-left: 10px;
+  transition: all 0.2s ease;
+}
+
+.btn-marcar-leida:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.ml-2 {
+  margin-left: 8px;
+}
+
+/* Estilo para el badge clickeable */
+.estadistica-badge.bajo.cursor-pointer:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 /* ----------------------------- MEJORAS RESPONSIVE ----------------------------- */
