@@ -90,7 +90,7 @@
             <div class="table-header-reportes">
               <h3 class="card-title">Reporte de Insumos</h3>
             </div>
-            <div class="table-container">
+            <div class="table-scroll-container">
               <table class="reporte-table-content">
                 <thead>
                   <tr>
@@ -98,7 +98,7 @@
                     <th>Stock Usado</th>
                     <th>Stock Actual</th>
                     <th>Stock Mínimo</th>
-                    <th>Reponer?</th>
+                    <th>¿Reponer?</th>
                     <th>Proveedor</th>
                   </tr>
                 </thead>
@@ -469,6 +469,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   width: 100%;
+  height: 70vh; /* Altura fija para que funcione el scroll */
 }
 
 /* -------------------- ESTILOS PARA ESTADÍSTICAS -------------------- */
@@ -552,7 +553,7 @@ onMounted(() => {
   }
 }
 
-/* -------------------- TABLA DE REPORTES -------------------- */
+/* -------------------- TABLA DE REPORTES - STICKY FUNCIONAL -------------------- */
 .card.reporte-table {
   display: flex;
   flex-direction: column;
@@ -563,61 +564,78 @@ onMounted(() => {
   flex-shrink: 0;
   padding: 15px;
   border-bottom: 1px solid #eee;
+  background: var(--color-background);
 }
 
-.table-container-reportes {
+/* CONTENEDOR DE SCROLL PRINCIPAL - CLAVE PARA STICKY */
+.table-scroll-container {
   flex: 1;
-  overflow-y: auto;
-  width: 100%;
+  overflow: auto;
+  position: relative;
+  max-height: calc(70vh - 60px); /* Altura del contenedor menos el header */
 }
 
-.tabla-reportes {
+/* TABLA PRINCIPAL */
+.reporte-table-content {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
+  background: white;
+  margin: 0;
+  position: relative;
 }
 
-.tabla-reportes th {
-  background-color: rgba(123, 90, 80, 0.1);
+/* THEAD STICKY - FUNCIONA PORQUE EL CONTENEDOR TIENE SCROLL */
+.reporte-table-content thead {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.reporte-table-content th {
+  background: linear-gradient(135deg, var(--color-primary), #6d4c41);
   padding: 12px 8px;
   text-align: left;
   font-weight: 600;
-  color: var(--color-primary);
-  border-bottom: 2px solid var(--color-primary);
+  color: white;
+  border-bottom: 2px solid #5a3f36;
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 101;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.tabla-reportes td {
+.reporte-table-content td {
   padding: 10px 8px;
   border-bottom: 1px solid #eee;
+  text-align: left;
+  background: white;
 }
 
-.tabla-reportes tr:hover {
+.reporte-table-content tr:hover td {
   background-color: rgba(123, 90, 80, 0.05);
 }
 
 /* Centrar las columnas específicas */
-.tabla-reportes th:nth-child(2),
-.tabla-reportes th:nth-child(3),
-.tabla-reportes th:nth-child(4),
-.tabla-reportes th:nth-child(5),
-.tabla-reportes td:nth-child(2),
-.tabla-reportes td:nth-child(3),
-.tabla-reportes td:nth-child(4),
-.tabla-reportes td:nth-child(5) {
+.reporte-table-content th:nth-child(2),
+.reporte-table-content th:nth-child(3),
+.reporte-table-content th:nth-child(4),
+.reporte-table-content th:nth-child(5),
+.reporte-table-content td:nth-child(2),
+.reporte-table-content td:nth-child(3),
+.reporte-table-content td:nth-child(4),
+.reporte-table-content td:nth-child(5) {
   text-align: center;
 }
 
 /* Filas con stock bajo */
-.fila-stock-bajo {
-  background-color: rgba(220, 53, 69, 0.05) !important;
+.fila-stock-bajo td {
+  background-color: rgba(220, 53, 69, 0.05);
   border-left: 3px solid var(--color-danger);
 }
 
-.fila-stock-bajo:hover {
-  background-color: rgba(220, 53, 69, 0.1) !important;
+.fila-stock-bajo:hover td {
+  background-color: rgba(220, 53, 69, 0.1);
 }
 
 /* Columnas específicas */
@@ -645,6 +663,25 @@ onMounted(() => {
 
 .columna-proveedor {
   color: #555;
+}
+
+/* Badges específicos para reportes */
+.badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.badge.alert {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+}
+
+.badge.success {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
 }
 
 /* -------------------- BOTÓN PDF -------------------- */
@@ -694,19 +731,20 @@ onMounted(() => {
 }
 
 /* -------------------- LOADING -------------------- */
-.estado-cargando {
+.loading-state {
   text-align: center;
   padding: 3rem;
   color: var(--color-primary);
+  width: 100%;
 }
 
-.estado-cargando i {
+.loading-state i {
   font-size: 2rem;
   margin-bottom: 1rem;
 }
 
 /* -------------------- ESTADO VACÍO -------------------- */
-.estado-vacio {
+.empty-state {
   text-align: center;
   padding: 3rem;
   color: #7f8c8d;
@@ -714,15 +752,16 @@ onMounted(() => {
   background: #f8f9fa;
   border-radius: 8px;
   margin: 1rem;
+  width: 100%;
 }
 
-.estado-vacio i {
+.empty-state i {
   font-size: 3rem;
   margin-bottom: 1rem;
   opacity: 0.5;
 }
 
-.estado-vacio p {
+.empty-state p {
   margin: 0;
   font-size: 1.1rem;
 }
@@ -768,14 +807,28 @@ onMounted(() => {
     font-size: 16px;
   }
 
-  .tabla-reportes {
+  /* Responsive para tabla sticky */
+  .card.reporte-table.tabla-reportes-colapsable.visible {
+    height: 60vh;
+  }
+  
+  .table-scroll-container {
+    max-height: calc(60vh - 60px);
+  }
+  
+  .reporte-table-content {
     min-width: 700px;
   }
 
-  .tabla-reportes th,
-  .tabla-reportes td {
+  .reporte-table-content th,
+  .reporte-table-content td {
     padding: 12px 8px;
     font-size: 0.85rem;
+  }
+
+  .categoria-insumo {
+    display: block;
+    margin-top: 2px;
   }
 
   .seccion-pdf {
@@ -819,16 +872,30 @@ onMounted(() => {
     padding: 10px 12px;
   }
 
-  .estado-vacio {
+  .empty-state {
     padding: 2rem 1rem;
   }
 
-  .estado-vacio i {
+  .empty-state i {
     font-size: 2.5rem;
   }
 
-  .tabla-reportes {
+  /* Ajustes móviles para sticky */
+  .card.reporte-table.tabla-reportes-colapsable.visible {
+    height: 50vh;
+  }
+  
+  .table-scroll-container {
+    max-height: calc(50vh - 60px);
+  }
+  
+  .reporte-table-content {
     min-width: 650px;
+  }
+
+  .reporte-table-content th {
+    padding: 8px 4px;
+    font-size: 0.75rem;
   }
 
   .categoria-insumo {
@@ -846,7 +913,6 @@ onMounted(() => {
 
 /* -------------------- MEJORAS ESPECÍFICAS PARA TOUCH -------------------- */
 @media (hover: none) and (pointer: coarse) {
-
   .btn-desplegar-tabla,
   .btn-generar-pdf {
     min-height: 44px;
@@ -859,11 +925,11 @@ onMounted(() => {
     font-size: 16px;
   }
 
-  .tabla-reportes tr {
+  .reporte-table-content tr {
     min-height: 44px;
   }
 
-  .tabla-reportes td {
+  .reporte-table-content td {
     padding-top: 14px;
     padding-bottom: 14px;
   }
@@ -871,7 +937,6 @@ onMounted(() => {
 
 /* -------------------- MEJORAS DE ACCESIBILIDAD -------------------- */
 @media (prefers-reduced-motion: reduce) {
-
   .btn-desplegar-tabla,
   .btn-generar-pdf {
     transition: none;
@@ -889,7 +954,11 @@ onMounted(() => {
 /* -------------------- ORIENTACIÓN HORIZONTAL EN MÓVILES -------------------- */
 @media (max-height: 500px) and (orientation: landscape) {
   .card.reporte-table.tabla-reportes-colapsable.visible {
-    max-height: 50vh;
+    height: 50vh;
+  }
+
+  .table-scroll-container {
+    max-height: calc(50vh - 60px);
   }
 
   .estadisticas-reporte {
@@ -908,13 +977,36 @@ onMounted(() => {
   0% {
     box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
   }
-
   70% {
     box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
   }
-
   100% {
     box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
   }
+}
+
+/* Prevenir que los estilos de Stock.vue afecten esta tabla */
+.reportes-container .stock-list,
+.reportes-container .stock-item,
+.reportes-container .stock-header-compact,
+.reportes-container .insumo-nombre,
+.reportes-container .insumo-badge {
+  all: unset;
+}
+
+/* Asegurar que la tabla sea independiente */
+.card.reporte-table {
+  isolation: isolate;
+}
+
+/* Reset específico para elementos de tabla en reportes */
+.reportes-container table,
+.reportes-container tbody,
+.reportes-container thead,
+.reportes-container tr,
+.reportes-container th,
+.reportes-container td {
+  box-sizing: border-box;
+  border-spacing: 0;
 }
 </style>
