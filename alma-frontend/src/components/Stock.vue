@@ -57,12 +57,6 @@
                 </option>
               </select>
             </div>
-
-            <div class="botones-acciones">
-              <button class="btn-nuevo-insumo" @click="showNuevoInsumoModal">
-                <i class="fas fa-plus"></i> Nuevo Insumo
-              </button>
-            </div>
           </div>
         </section>
 
@@ -88,189 +82,69 @@
                 expanded: stockDesplegado[item.id],
               }"
             >
-              <!-- AGREGAR: Indicador de urgencia -->
-              <div
-                v-if="item.cantidad <= item.stock_minimo * 0.5"
-                class="indicador-urgencia critico"
-                title="Stock crítico - Reposición urgente"
-              >
-                <i class="fas fa-exclamation-circle"></i>
-                URGENTE
-              </div>
-
-              <div
-                v-else-if="item.bajoStock"
-                class="indicador-urgencia bajo"
-                title="Stock bajo - Considerar reposición"
-              >
-                <i class="fas fa-exclamation-circle"></i>
-                BAJO
-              </div>
-
-              <!-- Contenedor principal del header -->
-              <div class="stock-item-main">
-                <!-- Header compacto para móviles -->
+              <!-- Contenedor principal compacto -->
+              <div class="stock-item-compact">
+                <!-- Indicador de estado -->
                 <div
-                  class="stock-header-compact cursor-pointer"
-                  @click="toggleStock(item.id)"
-                >
-                  <div class="stock-header-content">
-                    <div class="stock-info-main">
-                      <div class="stock-titulo">
-                        <span class="insumo-nombre">{{ item.nombre }}</span>
-                        <span class="insumo-badge" v-if="!isMobile">{{
-                          item.categoria
-                        }}</span>
-                      </div>
-                      <div class="stock-datos-compact">
-                        <div class="dato-grupo">
-                          <i class="fas fa-box"></i>
-                          <span class="stock-cantidad">
-                            {{ formatDecimal(item.cantidad) }} {{ item.unidad }}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                  class="estado-indicador"
+                  :class="{
+                    critico: item.cantidad <= item.stock_minimo * 0.5,
+                    bajo:
+                      item.bajoStock && item.cantidad > item.stock_minimo * 0.5,
+                    normal: !item.bajoStock,
+                  }"
+                ></div>
 
-                    <div class="stock-header-right" @click.stop>
-                      <div class="stock-acciones">
-                        <button
-                          class="btn-accion btn-editar"
-                          @click="editarInsumo(item)"
-                          title="Editar insumo"
-                        >
-                          <i class="fas fa-edit"></i>
-                        </button>
-                        <button
-                          class="btn-accion btn-eliminar"
-                          @click="confirmarEliminarInsumo(item)"
-                          title="Eliminar insumo"
-                        >
-                          <i class="fas fa-trash"></i>
-                        </button>
-                        <button
-                          class="btn-accion btn-desplegable"
-                          @click="toggleStock(item.id)"
-                          :title="
-                            stockDesplegado[item.id]
-                              ? 'Ocultar detalles'
-                              : 'Mostrar detalles'
-                          "
-                        >
-                          <i
-                            class="fas"
-                            :class="
-                              stockDesplegado[item.id]
-                                ? 'fa-chevron-up'
-                                : 'fa-chevron-down'
-                            "
-                          ></i>
-                        </button>
-                      </div>
+                <!-- Información principal -->
+                <div class="info-principal" @click="toggleStock(item.id)">
+                  <div class="info-header">
+                    <h4 class="nombre-insumo">{{ item.nombre }}</h4>
+                    <div class="badges-container">
+                      <span class="badge-categoria">{{ item.categoria }}</span>
+                      <span class="badge-proveedor">{{ item.proveedor }}</span>
+                    </div>
+                  </div>
+
+                  <div class="info-stock">
+                    <div class="stock-actual">
+                      <span class="cantidad">{{
+                        formatDecimal(item.cantidad)
+                      }}</span>
+                      <span class="unidad">{{ item.unidad }}</span>
+                    </div>
+                    <div class="stock-minimo">
+                      <span class="label">Mín:</span>
+                      <span class="valor"
+                        >{{ formatDecimal(item.stock_minimo) }}
+                        {{ item.unidad }}</span
+                      >
                     </div>
                   </div>
                 </div>
 
-                <!-- Desplegable que aparece en la parte inferior del stock-item -->
-                <div
-                  v-if="stockDesplegado[item.id]"
-                  class="stock-detalles-container"
-                >
-                  <div class="detalles-content">
-                    <!-- Información de stock mínimo -->
-                    <div class="stock-minimo-info">
-                      <h4>
-                        <i class="fas fa-info-circle"></i> Información de Stock
-                      </h4>
-                      <div class="stock-minimo-grid">
-                        <div class="minimo-item">
-                          <span class="minimo-label">Stock Mínimo:</span>
-                          <span class="minimo-valor">
-                            {{ formatDecimal(item.stock_minimo) }}
-                            {{ item.unidad }}
-                          </span>
-                        </div>
-                        <div class="minimo-item">
-                          <span class="minimo-label">Stock Actual:</span>
-                          <span
-                            class="minimo-valor"
-                            :class="{
-                              critico: item.cantidad <= item.stock_minimo * 0.5,
-                              bajo:
-                                item.bajoStock &&
-                                item.cantidad > item.stock_minimo * 0.5,
-                              normal: !item.bajoStock,
-                            }"
-                          >
-                            {{ formatDecimal(item.cantidad) }} {{ item.unidad }}
-                          </span>
-                        </div>
-                        <div class="minimo-item">
-                          <span class="minimo-label">Diferencia:</span>
-                          <span
-                            class="minimo-valor"
-                            :class="{
-                              negativo: item.cantidad < item.stock_minimo,
-                              positivo: item.cantidad >= item.stock_minimo,
-                            }"
-                          >
-                            {{
-                              formatDecimal(item.cantidad - item.stock_minimo)
-                            }}
-                            {{ item.unidad }}
-                          </span>
-                        </div>
-                        <div class="minimo-item" v-if="item.precio_unitario">
-                          <span class="minimo-label">Precio Unitario:</span>
-                          <span class="minimo-valor">
-                            ${{ formatDecimal(item.precio_unitario) }}
-                          </span>
-                        </div>
-                        <div class="minimo-item">
-                          <span class="minimo-label">Proveedor:</span>
-                          <span class="minimo-valor">{{ item.proveedor }}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Alertas de stock -->
-                    <div
-                      v-if="item.bajoStock"
-                      class="stock-alerta"
-                      :class="{
-                        'alerta-critica':
-                          item.cantidad <= item.stock_minimo * 0.5,
-                        'alerta-baja':
-                          item.bajoStock &&
-                          item.cantidad > item.stock_minimo * 0.5,
-                      }"
-                    >
-                      <i
-                        class="fas"
-                        :class="{
-                          'fa-exclamation-triangle':
-                            item.cantidad <= item.stock_minimo * 0.5,
-                          'fa-exclamation-circle':
-                            item.bajoStock &&
-                            item.cantidad > item.stock_minimo * 0.5,
-                        }"
-                      ></i>
-                      <span v-if="item.cantidad <= item.stock_minimo * 0.5">
-                        ¡Stock crítico! Necesita reposición urgente.
-                      </span>
-                      <span v-else> Stock bajo. Considerar reposición. </span>
-                    </div>
-
-                    <!-- Acciones rápidas -->
-                    <div class="stock-acciones-rapidas" v-if="item.bajoStock">
-                      <button
-                        class="btn-reposicion"
-                        @click="reponerStockRapido(item)"
-                      >
-                        <i class="fas fa-bolt"></i> Reposición Rápida
-                      </button>
-                    </div>
-                  </div>
+                <!-- Acciones -->
+                <div class="acciones-container">
+                  <button
+                    class="btn-accion btn-reposicion-rapida"
+                    @click="reponerStockRapido(item)"
+                    title="Nueva compra"
+                  >
+                    <i class="fas fa-shopping-cart"></i>
+                  </button>
+                  <button
+                    class="btn-accion btn-editar"
+                    @click="editarInsumo(item)"
+                    title="Editar insumo"
+                  >
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button
+                    class="btn-accion btn-eliminar"
+                    @click="confirmarEliminarInsumo(item)"
+                    title="Eliminar insumo"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
                 </div>
               </div>
             </div>
@@ -278,9 +152,9 @@
         </div>
 
         <!-- Botón Nueva Compra flotante -->
-        <button class="btn-nueva-compra-flotante" @click="showNuevaCompraModal">
-          <i class="fas fa-shopping-cart"></i>
-          <span>Nueva Compra</span>
+        <button class="btn-nueva-compra-flotante" @click="showNuevoInsumoModal">
+          <i class="fas fa-plus"></i>
+          <span>Nuevo Insumo</span>
         </button>
       </main>
     </div>
@@ -384,7 +258,7 @@
     <!-- Modal para Nueva Compra -->
     <BaseModal
       v-model:show="showModalCompra"
-      :title="esReposicionRapida ? 'Reposición Rápida' : 'Nueva Compra'"
+      :title="esReposicionRapida ? 'Nueva Compra' : 'Nueva Compra'"
       size="large"
       @close="cerrarModalCompra"
     >
@@ -393,48 +267,23 @@
           <label>Insumo:</label>
 
           <!-- MODO REPOSICIÓN RÁPIDA: Mostrar insumo fijo -->
-          <div
-            v-if="esReposicionRapida && insumoReposicionRapida"
-            class="insumo-fijo-container"
-          >
-            <div class="insumo-fijo">
-              <div class="insumo-fijo-nombre">
-                <div class="insumo-fijo-header">
-                  <i class="fas fa-lock"></i>
-                  <strong>{{ insumoReposicionRapida.nombre }}</strong>
-                </div>
-                <span class="insumo-fijo-stock">
-                  (Stock actual:
-                  {{ formatDecimal(insumoReposicionRapida.cantidad) }}
-                  {{ insumoReposicionRapida.unidad }})
-                </span>
+          <div class="insumo-fijo">
+            <div class="insumo-fijo-nombre">
+              <div class="insumo-fijo-header">
+                <i class="fas fa-lock"></i>
+                <strong>{{ insumoReposicionRapida.nombre }}</strong>
               </div>
-              <div class="insumo-fijo-categoria">
-                {{ insumoReposicionRapida.categoria }}
-              </div>
+              <span class="insumo-fijo-stock">
+                (Stock actual:
+                {{ formatDecimal(insumoReposicionRapida.cantidad) }}
+                {{ insumoReposicionRapida.unidad }})
+              </span>
             </div>
-            <input type="hidden" v-model="formCompra.insumo_id" />
+            <div class="insumo-fijo-categoria">
+              {{ insumoReposicionRapida.categoria }}
+            </div>
           </div>
-
-          <!-- MODO NORMAL: Select de insumos (desplegable normal) -->
-          <select
-            v-else
-            v-model="formCompra.insumo_id"
-            required
-            class="form-input"
-            @change="actualizarUnidadMedida"
-          >
-            <option value="">Seleccione un insumo</option>
-            <option
-              v-for="insumo in insumos"
-              :key="insumo.id"
-              :value="insumo.id"
-            >
-              {{ insumo.nombre }} (Stock:
-              {{ formatDecimal(insumo.stock_actual) }}
-              {{ insumo.unidad_medida.abreviatura }})
-            </option>
-          </select>
+          <input type="hidden" v-model="formCompra.insumo_id" />
         </div>
 
         <div class="form-group">
@@ -906,14 +755,6 @@ const logout = async () => {
     delete axios.defaults.headers.common["Authorization"];
     router.push("/login");
   }
-};
-
-// Nuevo método para toggle del desplegable
-const toggleStock = (stockId) => {
-  stockDesplegado.value = {
-    ...stockDesplegado.value,
-    [stockId]: !stockDesplegado.value[stockId],
-  };
 };
 
 const formatDecimal = (value) => {
@@ -1747,176 +1588,206 @@ onUnmounted(() => {
   box-shadow: 0 6px 20px rgba(23, 162, 184, 0.3);
 }
 
-/* ----------------------------- CARD DE STOCK ----------------------------- */
+/* ----------------------------- CARD DE STOCK MEJORADA ----------------------------- */
 .stock-card {
   max-height: calc(100vh - 200px);
   overflow-y: auto;
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(123, 90, 80, 0.1);
-  padding: 25px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  padding: 16px;
   margin: 0 auto;
-  border: 1px solid rgba(123, 90, 80, 0.1);
+  border: 1px solid #eaeaea;
 }
 
 .stock-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
 }
 
 .stock-item {
-  position: relative;
   background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 12px;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #f0f0f0;
   overflow: hidden;
-}
-
-.stock-item::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: linear-gradient(to bottom, var(--color-primary), #f1d0cb);
-  opacity: 0.8;
-}
-
-.stock-item.bajo-stock::before {
-  background: linear-gradient(to bottom, #ffc107, #ffcd39);
-}
-
-.stock-item.stock-critico::before {
-  background: linear-gradient(to bottom, #dc3545, #e74c3c);
+  transition: all 0.3s ease;
 }
 
 .stock-item:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(123, 90, 80, 0.15);
-  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
 }
 
-.stock-item.expanded {
-  padding-bottom: 0;
+.stock-item.stock-critico {
+  border-left: 4px solid #dc3545;
 }
 
-.stock-item-main {
+.stock-item.bajo-stock {
+  border-left: 4px solid #ffc107;
+}
+
+.stock-item:not(.bajo-stock):not(.stock-critico) {
+  border-left: 4px solid #28a745;
+}
+
+/* Contenedor compacto */
+.stock-item-compact {
   display: flex;
-  flex-direction: column;
-  width: 100%;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 12px;
 }
 
-.stock-header-full {
-  width: 100%;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  border-radius: 8px;
-  padding: 15px 20px;
+/* Indicador de estado */
+.estado-indicador {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
-.stock-header-full:hover {
-  background-color: rgba(123, 90, 80, 0.05);
+.estado-indicador.critico {
+  background-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
 }
 
-.stock-header-content {
+.estado-indicador.bajo {
+  background-color: #ffc107;
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2);
+}
+
+.estado-indicador.normal {
+  background-color: #28a745;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+}
+
+/* Información principal */
+.info-principal {
+  flex: 1;
+  min-width: 0;
+}
+
+.info-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  width: 100%;
-  gap: 20px;
-}
-
-.stock-info-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  margin: 10px;
-}
-
-.stock-titulo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.insumo-nombre {
-  font-weight: 700;
-  font-size: 1.3rem;
-  color: #2c3e50;
-  margin: 0;
-}
-
-.insumo-badge {
-  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
-  color: white;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.stock-datos-compact {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.stock-datos-compact .dato-grupo {
-  display: flex;
-  align-items: center;
+  margin-bottom: 6px;
   gap: 8px;
-  color: #6c757d;
-  font-size: 0.9rem;
-  background: rgba(123, 90, 80, 0.05);
-  padding: 6px 12px;
-  border-radius: 6px;
 }
 
-.stock-datos-compact .dato-grupo i {
-  color: var(--color-primary);
-  width: 14px;
-  text-align: center;
-  font-size: 0.8rem;
+.nombre-insumo {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.stock-header-right {
+.badges-container {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 12px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
-/* ----------------------------- BOTONES DE ACCIÓN ----------------------------- */
-.stock-acciones {
+.badge-categoria,
+.badge-proveedor {
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-categoria {
+  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
+  color: white;
+}
+
+.badge-proveedor {
+  background: #e9ecef;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+}
+
+.info-stock {
   display: flex;
   align-items: center;
-  margin: 20px;
-  gap: 8px;
+  gap: 12px;
+}
+
+.stock-actual {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.cantidad {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.unidad {
+  font-size: 0.8rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.stock-minimo {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+
+.stock-minimo .label {
+  color: #6c757d;
+}
+
+.stock-minimo .valor {
+  color: #495057;
+  font-weight: 500;
+}
+
+/* Acciones */
+.acciones-container {
+  display: flex;
+  gap: 6px;
   flex-shrink: 0;
 }
 
 .btn-accion {
   border: none;
   cursor: pointer;
-  font-size: 14px;
-  padding: 10px;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  width: 40px;
-  height: 40px;
+  font-size: 12px;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
+}
+
+.btn-reposicion-rapida {
+  background: linear-gradient(135deg, #218838, #1e7e34);
+  color: white;
+}
+
+.btn-reposicion-rapida:hover {
+  background: linear-gradient(135deg, #1e7e34, #1c7430);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(33, 136, 56, 0.3);
 }
 
 .btn-editar {
@@ -1926,8 +1797,8 @@ onUnmounted(() => {
 
 .btn-editar:hover {
   background: linear-gradient(135deg, #2980b9, #21618c);
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
 }
 
 .btn-eliminar {
@@ -1937,145 +1808,90 @@ onUnmounted(() => {
 
 .btn-eliminar:hover {
   background: linear-gradient(135deg, #c0392b, #a93226);
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
 }
 
-.btn-desplegable {
-  background: linear-gradient(135deg, #95a5a6, #7f8c8d);
-  color: white;
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 200px;
+  }
 }
 
-.btn-desplegable:hover {
-  background: linear-gradient(135deg, #7f8c8d, #6c7a7d);
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
-}
-
-/* ----------------------------- DESPLEGABLE DE DETALLES ----------------------------- */
-.stock-detalles-container {
-  width: 100%;
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  border-top: 1px solid #dee2e6;
-  margin-top: 0;
-  flex-shrink: 0;
-}
-
-.detalles-content {
-  padding: 20px;
-  border-radius: 0 0 12px 12px;
-}
-
-.stock-acciones {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.stock-minimo-info h4 {
-  margin: 0 0 15px 0;
-  font-size: 1.1rem;
-  color: var(--color-primary);
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.stock-minimo-grid {
+.detalles-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
-.minimo-item {
+.detalle-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px;
+  padding: 8px 12px;
   background: white;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid #e9ecef;
 }
 
-.minimo-label {
-  font-weight: 500;
+.detalle-label {
+  font-size: 0.85rem;
   color: #6c757d;
+  font-weight: 500;
 }
 
-.minimo-valor {
+.detalle-valor {
+  font-size: 0.85rem;
   font-weight: 600;
 }
 
-.minimo-valor.critico {
+.detalle-valor.critico {
   color: #dc3545;
 }
 
-.minimo-valor.bajo {
-  color: #ffc107;
+.detalle-valor.bajo {
+  color: #e0a800;
 }
 
-.minimo-valor.normal {
+.detalle-valor.normal {
   color: #28a745;
 }
 
-.minimo-valor.negativo {
+.detalle-valor.negativo {
   color: #dc3545;
 }
 
-.minimo-valor.positivo {
+.detalle-valor.positivo {
   color: #28a745;
 }
 
-/* ----------------------------- ALERTAS DE STOCK ----------------------------- */
-.stock-alerta {
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 15px;
+/* Alerta de stock */
+.alerta-stock {
+  padding: 10px 12px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-weight: 600;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
-.alerta-critica {
-  background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+.alerta-stock.critica {
+  background: #f8d7da;
   color: #721c24;
   border: 1px solid #f5c6cb;
 }
 
-.alerta-baja {
-  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+.alerta-stock.advertencia {
+  background: #fff3cd;
   color: #856404;
   border: 1px solid #ffeaa7;
-}
-
-/* ----------------------------- ACCIONES RÁPIDAS ----------------------------- */
-.stock-acciones-rapidas {
-  text-align: right;
-}
-
-.btn-reposicion {
-  background: linear-gradient(135deg, #17a2b8, #138496);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 16px;
-  cursor: pointer;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.3s ease;
-  font-size: 0.85rem;
-  box-shadow: 0 2px 6px rgba(23, 162, 184, 0.2);
-}
-
-.btn-reposicion:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
 }
 
 /* ----------------------------- BOTÓN FLOTANTE NUEVA COMPRA ----------------------------- */
@@ -2083,7 +1899,7 @@ onUnmounted(() => {
   position: fixed;
   bottom: 30px;
   right: 30px;
-  background: linear-gradient(135deg, #218838);
+  background: linear-gradient(135deg, #218838, #1e7e34);
   color: white;
   border: none;
   border-radius: 50px;
@@ -2094,15 +1910,14 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   transition: all 0.3s ease;
-  box-shadow: 0 6px 20px rgba(23, 162, 184, 0.3);
+  box-shadow: 0 6px 20px rgba(33, 136, 56, 0.3);
   z-index: 100;
   font-size: 1rem;
 }
 
 .btn-nueva-compra-flotante:hover {
   transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 8px 25px rgba(23, 162, 184, 0.4);
-  background: linear-gradient(135deg, #218838);
+  box-shadow: 0 8px 25px rgba(33, 136, 56, 0.4);
 }
 
 /* ----------------------------- ESTADOS ----------------------------- */
@@ -2141,216 +1956,21 @@ onUnmounted(() => {
   font-size: 1.1rem;
 }
 
-/* ----------------------------- MODALES Y FORMULARIOS ----------------------------- */
-/* Campo de búsqueda que ocupa todo el ancho */
-.full-width {
-  grid-column: 1 / -1;
-  width: 100%;
-}
-
-.full-width .form-input {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Estilo específico para el campo de búsqueda con lupa */
-.form-input.search-input {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: 12px center;
-  background-size: 16px;
-  padding-left: 40px;
-  width: 100%;
-}
-
-.search-info {
-  margin-top: 5px;
-  color: #6c757d;
-  font-size: 0.8rem;
-  text-align: right;
-}
-
-/* Mejorar la apariencia del select más grande */
-.form-input[size] {
-  min-height: 120px;
-  width: 100%;
-}
-
-/* Asegurar que los formularios en modales usen una sola columna */
-.modal-content .form-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  width: 100%;
-}
-
-.modal-content .form-group {
-  width: 100%;
-}
-
-.modal-content .form-input {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Añadir al final de la sección de estilos */
+/* ----------------------------- UTILIDADES ----------------------------- */
 .cursor-pointer {
   cursor: pointer;
 }
 
-.stock-header-full:hover {
-  background-color: rgba(123, 90, 80, 0.05);
-  border-radius: 8px;
-  transition: background-color 0.2s ease;
-}
+/* ----------------------------- RESPONSIVE ----------------------------- */
 
-/* Indicador visual de que es clickeable */
-.stock-header-full::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: 12px;
-  pointer-events: none;
-  transition: box-shadow 0.2s ease;
-}
-
-.stock-header-full:hover::after {
-  box-shadow: inset 0 0 0 2px rgba(123, 90, 80, 0.1);
-}
-
-/* Mejorar la transición del desplegable */
-.stock-detalles-container {
-  transition: all 0.3s ease;
-  max-height: 0;
-  overflow: hidden;
-}
-
-.stock-item.expanded .stock-detalles-container {
-  max-height: 1000px;
-}
-
-/* Indicador de clickeabilidad en el título */
-.insumo-nombre {
-  position: relative;
-  transition: color 0.2s ease;
-}
-
-.stock-header-full:hover .insumo-nombre {
-  color: var(--color-primary);
-}
-
-.stock-header-full:hover .insumo-nombre::after {
-  content: " (click para detalles)";
-  font-size: 0.7em;
-  opacity: 0.7;
-  font-weight: normal;
-  margin-left: 5px;
-}
-
-/* Efecto de pulso para stock crítico */
-.stock-item.stock-critico .stock-header-full:hover {
-  animation: pulse-alert 2s infinite;
-}
-
-@keyframes pulse-alert {
-  0% {
-    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
-  }
-
-  70% {
-    box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
-  }
-}
-
-/* Efecto de pulso para stock bajo */
-.stock-item.bajo-stock .stock-header-full:hover {
-  animation: pulse-warning 2s infinite;
-}
-
-@keyframes pulse-warning {
-  0% {
-    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4);
-  }
-
-  70% {
-    box-shadow: 0 0 0 10px rgba(255, 193, 7, 0);
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
-  }
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 6px rgba(220, 53, 69, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
-  }
-}
-
-/* AGREGAR: Indicadores de urgencia en items de stock */
-.indicador-urgencia {
-  position: absolute;
-  top: 5px;
-  right: 10px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  z-index: 2;
-}
-
-.indicador-urgencia.critico {
-  background: linear-gradient(135deg, #dc3545, #c82333);
-  color: white;
-  animation: pulse 2s infinite;
-}
-
-.indicador-urgencia.bajo {
-  background: linear-gradient(135deg, #ffc107, #e0a800);
-  color: #212529;
-}
-
-/* AGREGAR: Estilos para cantidades críticas y bajas */
-.cantidad-critica {
-  color: #dc3545 !important;
-  font-weight: 700;
-}
-
-.cantidad-baja {
-  color: #e0a800 !important;
-  font-weight: 600;
-}
-
-/* ----------------------------- RESPONSIVE IMPROVEMENTS ----------------------------- */
-
-/* Pantallas medianas (tablets) */
+/* Tablets */
 @media (max-width: 1024px) {
   .stock-card {
     padding: 15px;
   }
-
-  .stock-minimo-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
-/* Pantallas pequeñas (tablets pequeñas y móviles grandes) */
+/* Tablets pequeñas y móviles grandes */
 @media (max-width: 768px) {
   .botones-acciones {
     width: 100%;
@@ -2363,61 +1983,37 @@ onUnmounted(() => {
 
   .stock-card {
     padding: 12px;
-    border-radius: 12px;
   }
 
-  .stock-header-content {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-
-  .stock-header-right {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-  }
-
-  .stock-datos-compact {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .stock-datos-compact .dato-grupo {
-    justify-content: flex-start;
-  }
-
-  .stock-minimo-grid {
-    grid-template-columns: 1fr;
+  .stock-item-compact {
+    padding: 10px 12px;
     gap: 10px;
   }
 
-  .minimo-item {
-    padding: 8px;
-  }
-
-  .detalles-content {
-    padding: 15px;
-  }
-
-  .indicador-urgencia {
-    position: relative;
-    top: auto;
-    right: auto;
-    align-self: flex-start;
-    margin-bottom: 10px;
-  }
-
-  /* Modal responsive */
-  .form-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .select-with-button {
+  .info-header {
     flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .badges-container {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .info-stock {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .detalles-grid {
+    grid-template-columns: 1fr;
     gap: 8px;
+  }
+
+  .detalle-item {
+    padding: 6px 10px;
   }
 
   .btn-nueva-compra-flotante {
@@ -2426,68 +2022,65 @@ onUnmounted(() => {
     padding: 14px 20px;
     font-size: 0.9rem;
   }
+
+  .loading-state,
+  .empty-state {
+    padding: 40px 20px;
+  }
+
+  .loading-state i,
+  .empty-state i {
+    font-size: 1.5rem;
+  }
+
+  .loading-state p,
+  .empty-state p {
+    font-size: 1rem;
+  }
 }
 
 /* Móviles pequeños */
 @media (max-width: 480px) {
-  .stock-list {
-    padding: 0.5rem;
-    gap: 0.5rem;
+  .stock-card {
+    padding: 8px;
   }
 
-  .stock-header-compact {
-    padding: 0.75rem;
+  .stock-item-compact {
+    padding: 8px 10px;
+    gap: 8px;
   }
 
-  .stock-titulo {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
+  .nombre-insumo {
+    font-size: 0.9rem;
   }
 
-  .insumo-nombre {
-    font-size: 0.875rem;
+  .badge-categoria,
+  .badge-proveedor {
+    font-size: 0.65rem;
+    padding: 2px 6px;
   }
 
-  .stock-datos-compact {
-    gap: 0.25rem;
+  .cantidad {
+    font-size: 1rem;
   }
 
-  .dato-grupo {
-    font-size: 0.75rem;
+  .stock-detalles {
+    padding: 12px;
   }
 
-  .detalles-content {
-    padding: 0.75rem;
+  .alerta-stock {
+    padding: 8px 10px;
+    font-size: 0.8rem;
   }
 
-  .stock-alerta {
-    padding: 0.75rem;
-    font-size: 0.75rem;
-  }
-
-  .btn-reposicion {
-    width: 100%;
-    justify-content: center;
-    padding: 0.625rem;
-    font-size: 0.75rem;
-  }
-
-  .indicador-urgencia {
-    position: static;
-    margin-bottom: 0.5rem;
-    justify-content: center;
-    font-size: 0.625rem;
-  }
-
-  .stock-acciones {
+  .acciones-container {
     gap: 4px;
   }
 
   .btn-accion {
-    width: 36px;
-    height: 36px;
-    padding: 8px;
+    width: 28px;
+    height: 28px;
+    padding: 6px;
   }
 
   .btn-nueva-compra-flotante {
@@ -2500,31 +2093,27 @@ onUnmounted(() => {
   .btn-nueva-compra-flotante span {
     display: none;
   }
-
-  .btn-nueva-compra-flotante::after {
-    display: none;
-    margin-left: 5px;
-  }
 }
 
 /* Pantallas muy pequeñas */
 @media (max-width: 360px) {
-  .stock-header-compact {
-    padding: 0.5rem;
+  .stock-item-compact {
+    padding: 6px 8px;
+    gap: 6px;
   }
 
-  .insumo-nombre {
+  .nombre-insumo {
     font-size: 0.8rem;
   }
 
-  .stock-acciones {
+  .acciones-container {
     gap: 2px;
   }
 
   .btn-accion {
-    width: 32px;
-    height: 32px;
-    padding: 6px;
+    width: 26px;
+    height: 26px;
+    padding: 5px;
   }
 
   .btn-accion i {
@@ -2544,205 +2133,8 @@ onUnmounted(() => {
   }
 
   .btn-nuevo-insumo,
-  .btn-reposicion,
   .btn-nueva-compra-flotante {
     min-height: 44px;
   }
-}
-
-/* Estados de carga y vacío responsive */
-@media (max-width: 768px) {
-  .loading-state,
-  .empty-state {
-    padding: 40px 20px;
-  }
-
-  .loading-state i,
-  .empty-state i {
-    font-size: 1.5rem;
-  }
-
-  .loading-state p,
-  .empty-state p {
-    font-size: 1rem;
-    text-align: center;
-  }
-}
-
-/* Mejoras de accesibilidad en móviles */
-@media (max-width: 768px) {
-  .stock-header-compact {
-    padding: 12px;
-  }
-
-  .stock-item {
-    margin-bottom: 8px;
-  }
-
-  /* Asegurar contraste suficiente */
-  .insumo-nombre {
-    color: #2c3e50;
-  }
-
-  .minimo-label {
-    font-size: 0.85rem;
-  }
-
-  .minimo-valor {
-    font-size: 0.9rem;
-  }
-}
-
-/* Estados de interacción */
-.cursor-pointer {
-  cursor: pointer;
-}
-
-/* Utilidades de texto */
-.text-sm {
-  font-size: 0.875rem;
-}
-
-.text-xs {
-  font-size: 0.75rem;
-}
-
-.font-medium {
-  font-weight: 500;
-}
-
-.font-semibold {
-  font-weight: 600;
-}
-
-/* Estados de hover mejorados */
-@media (hover: hover) {
-  .stock-item:hover {
-    transform: translateY(-1px);
-  }
-
-  .btn-accion:hover {
-    transform: translateY(-1px);
-  }
-}
-
-/* ----------------------------- BOTÓN REPOSICIÓN RÁPIDA CON NUEVO COLOR ----------------------------- */
-.btn-reposicion {
-  background: linear-gradient(135deg, #218838, #1e7e34);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 16px;
-  cursor: pointer;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.3s ease;
-  font-size: 0.85rem;
-  box-shadow: 0 2px 6px rgba(33, 136, 56, 0.3);
-}
-
-.btn-reposicion:hover {
-  background: linear-gradient(135deg, #1e7e34, #1c7430);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(33, 136, 56, 0.4);
-}
-
-/* ----------------------------- ESTILOS PARA INSUMO FIJO EN MODAL ----------------------------- */
-.insumo-fijo-container {
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  padding: 12px;
-  background: #f8f9fa;
-  border-left: 4px solid #218838;
-}
-
-.insumo-fijo {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.insumo-fijo-nombre {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.insumo-fijo-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-}
-
-.insumo-fijo-header i {
-  color: #218838;
-  font-size: 0.9rem;
-}
-
-.insumo-fijo-header strong {
-  color: #2c3e50;
-  font-size: 1rem;
-}
-
-.insumo-fijo-stock {
-  color: #6c757d;
-  font-size: 0.85rem;
-  font-weight: 500;
-  background: rgba(33, 136, 56, 0.1);
-  padding: 4px 8px;
-  border-radius: 6px;
-}
-
-.insumo-fijo-categoria {
-  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  align-self: flex-start;
-}
-
-/* ----------------------------- ESTILOS DE VALIDACIÓN ----------------------------- */
-.required-asterisk {
-  color: #dc3545;
-}
-
-.input-error {
-  border-color: #dc3545 !important;
-  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1) !important;
-}
-
-.error-message {
-  color: #dc3545;
-  font-size: 0.8rem;
-  margin-top: 4px;
-  font-weight: 500;
-}
-
-/* ----------------------------- ESTILOS PARA BÚSQUEDA EN MODAL COMPRA ----------------------------- */
-.search-container {
-  margin-bottom: 12px;
-}
-
-.search-container .search-input {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: 12px center;
-  background-size: 16px;
-  padding-left: 40px;
-  width: 100%;
-  margin-bottom: 5px;
-}
-
-.search-info {
-  color: #6c757d;
-  font-size: 0.8rem;
-  text-align: left;
 }
 </style>
