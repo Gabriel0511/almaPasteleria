@@ -10,7 +10,7 @@
             Gestión de Pedidos
           </h3>
 
-          <!-- AGREGAR: Estadísticas rápidas -->
+          <!-- Estadísticas de pedidos -->
           <div class="estadisticas-stock">
             <div
               class="estadistica-item"
@@ -81,7 +81,7 @@
           </div>
         </section>
 
-        <!-- Card principal de pedidos -->
+        <!-- Card principal de pedidos - ESTILO COMO STOCK -->
         <div class="card pedidos-card">
           <div v-if="loading" class="loading-state">
             <i class="fas fa-spinner fa-spin"></i> Cargando pedidos...
@@ -105,66 +105,58 @@
                 'pedido-hoy': notificacionesPedidosParaHoy.some(
                   (n) => n.pedido.id === pedido.id
                 ),
+                expanded: pedidoDesplegado[pedido.id],
               }"
             >
-              <!-- AGREGAR: Indicador de urgencia -->
-              <div
-                v-if="
-                  notificacionesPedidosAtrasados.some(
-                    (n) => n.pedido.id === pedido.id
-                  )
-                "
-                class="indicador-urgencia critico"
-                title="Pedido atrasado"
-              >
-                <i class="fas fa-exclamation-circle"></i>
-                URGENTE
-              </div>
+              <!-- Contenedor principal compacto - ESTILO COMO STOCK -->
+              <div class="pedido-item-compact">
+                <!-- Indicador de estado -->
+                <div
+                  class="estado-indicador"
+                  :class="{
+                    critico: notificacionesPedidosAtrasados.some(
+                      (n) => n.pedido.id === pedido.id
+                    ),
+                    bajo: notificacionesPedidosParaHoy.some(
+                      (n) => n.pedido.id === pedido.id
+                    ),
+                    normal:
+                      !notificacionesPedidosAtrasados.some(
+                        (n) => n.pedido.id === pedido.id
+                      ) &&
+                      !notificacionesPedidosParaHoy.some(
+                        (n) => n.pedido.id === pedido.id
+                      ) &&
+                      pedido.estado !== 'entregado',
+                    entregado: pedido.estado === 'entregado',
+                  }"
+                ></div>
 
-              <div
-                v-else-if="
-                  notificacionesPedidosParaHoy.some(
-                    (n) => n.pedido.id === pedido.id
-                  )
-                "
-                class="indicador-urgencia hoy"
-                title="Entrega hoy"
-              >
-                <i class="fas fa-bolt"></i>
-                HOY
-              </div>
-
-              <div
-                class="pedido-header"
-                @click="togglePedido(pedido.id)"
-                :class="{ 'cursor-pointer': true }"
-              >
-                <div class="pedido-info">
-                  <div class="pedido-titulo">
-                    <span class="cliente-nombre">
-                      {{ pedido.cliente.nombre }}
-                    </span>
-                    <span
-                      class="pedido-estado-badge"
-                      :class="pedido.estado.toLowerCase()"
-                    >
-                      {{ pedido.estado }}
-                    </span>
-                    <span class="pedido-total">
-                      ${{ calcularTotalPedido(pedido) }}
-                    </span>
-                  </div>
-                  <div class="pedido-datos">
-                    <div class="dato-grupo">
-                      <i class="fas fa-calendar-alt"></i>
-                      <span class="pedido-fecha">
-                        Pedido: {{ formatFecha(pedido.fecha_pedido) }}
+                <!-- Información principal -->
+                <div class="info-principal" @click="togglePedido(pedido.id)">
+                  <div class="info-header">
+                    <h4 class="cliente-nombre">{{ pedido.cliente.nombre }}</h4>
+                    <div class="badges-container">
+                      <span
+                        class="badge-estado"
+                        :class="pedido.estado.toLowerCase()"
+                      >
+                        {{ pedido.estado }}
+                      </span>
+                      <span class="badge-total">
+                        ${{ calcularTotalPedido(pedido) }}
                       </span>
                     </div>
-                    <div class="dato-grupo">
-                      <i class="fas fa-truck"></i>
+                  </div>
+
+                  <div class="info-detalles">
+                    <div class="detalle-grupo">
+                      <span class="detalle-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        {{ formatFecha(pedido.fecha_pedido) }}
+                      </span>
                       <span
-                        class="pedido-fecha"
+                        class="detalle-item"
                         :class="{
                           'fecha-atrasada': notificacionesPedidosAtrasados.some(
                             (n) => n.pedido.id === pedido.id
@@ -174,19 +166,21 @@
                           ),
                         }"
                       >
-                        Entrega: {{ formatFecha(pedido.fecha_entrega) }}
+                        <i class="fas fa-truck"></i>
+                        {{ formatFecha(pedido.fecha_entrega) }}
                       </span>
                     </div>
-                    <div class="dato-grupo">
-                      <i class="fas fa-list"></i>
-                      <span class="pedido-recetas-count">
+                    <div class="detalle-grupo">
+                      <span class="detalle-item">
+                        <i class="fas fa-list"></i>
                         {{ pedido.detalles.length }} recetas
                       </span>
                     </div>
                   </div>
                 </div>
-                <div class="pedido-acciones" @click.stop>
-                  <!-- AGREGAR: Botón rápido para marcar como entregado -->
+
+                <!-- Acciones -->
+                <div class="acciones-container">
                   <button
                     v-if="
                       pedido.estado !== 'entregado' &&
@@ -215,31 +209,13 @@
                   >
                     <i class="fas fa-trash"></i>
                   </button>
-                  <button
-                    class="btn-accion btn-desplegable"
-                    @click="togglePedido(pedido.id)"
-                    :title="
-                      pedidoDesplegado[pedido.id]
-                        ? 'Ocultar detalles'
-                        : 'Mostrar detalles'
-                    "
-                  >
-                    <i
-                      class="fas"
-                      :class="
-                        pedidoDesplegado[pedido.id]
-                          ? 'fa-chevron-up'
-                          : 'fa-chevron-down'
-                      "
-                    ></i>
-                  </button>
                 </div>
               </div>
-              <!-- Desplegable de detalles del pedido -->
+
+              <!-- Desplegable de detalles del pedido - MEJORADO -->
               <div
                 v-if="pedidoDesplegado[pedido.id]"
                 class="pedido-detalles-desplegable"
-                :class="{ active: pedidoDesplegado[pedido.id] }"
               >
                 <div class="detalles-content">
                   <!-- Botón para agregar receta -->
@@ -286,18 +262,24 @@
                               ${{ calcularPrecioReceta(detalle) }}
                             </span>
                           </div>
+                          <div
+                            class="receta-observaciones"
+                            v-if="detalle.observaciones"
+                          >
+                            <small>{{ detalle.observaciones }}</small>
+                          </div>
                         </div>
                         <div class="receta-header-acciones">
                           <template v-if="pedido.estado !== 'entregado'">
                             <button
-                              class="btn-accion-small"
+                              class="btn-accion btn-accion-small"
                               @click.stop="editarReceta(detalle, pedido)"
                               title="Editar receta"
                             >
                               <i class="fas fa-edit"></i>
                             </button>
                             <button
-                              class="btn-accion-small btn-eliminar"
+                              class="btn-accion btn-accion-small btn-eliminar"
                               @click.stop="confirmarEliminarReceta(detalle)"
                               title="Eliminar receta"
                             >
@@ -305,7 +287,7 @@
                             </button>
                           </template>
                           <i
-                            class="fas"
+                            class="fas chevron-icon"
                             :class="
                               detalleExpandido[detalle.id]
                                 ? 'fa-chevron-up'
@@ -319,11 +301,6 @@
                         v-if="detalleExpandido[detalle.id]"
                         class="receta-detalles"
                       >
-                        <p class="observaciones" v-if="detalle.observaciones">
-                          <strong>Observaciones:</strong>
-                          {{ detalle.observaciones }}
-                        </p>
-
                         <!-- Ingredientes extras -->
                         <div
                           class="ingredientes-extras"
@@ -338,7 +315,7 @@
                             :key="ingrediente.id"
                             class="ingrediente-extra"
                           >
-                            <span>
+                            <span class="ingrediente-info">
                               {{ ingrediente.insumo.nombre }}:
                               {{ ingrediente.cantidad }}
                               {{ ingrediente.unidad_medida.abreviatura }}
@@ -349,7 +326,7 @@
                               v-if="pedido.estado !== 'entregado'"
                             >
                               <button
-                                class="btn-accion-small"
+                                class="btn-accion btn-accion-small"
                                 @click="
                                   editarIngredienteExtra(ingrediente, detalle)
                                 "
@@ -358,7 +335,7 @@
                                 <i class="fas fa-edit"></i>
                               </button>
                               <button
-                                class="btn-accion-small btn-eliminar"
+                                class="btn-accion btn-accion-small btn-eliminar"
                                 @click="
                                   confirmarEliminarIngredienteExtra(ingrediente)
                                 "
@@ -390,7 +367,8 @@
             </div>
           </div>
         </div>
-        <!-- Botón Nuevo Pedido flotante -->
+
+        <!-- Botón Nuevo Pedido flotante - ESTILO COMO STOCK -->
         <button class="btn-nuevo-pedido-flotante" @click="showNuevoPedidoModal">
           <i class="fas fa-plus"></i>
           <span>Nuevo Pedido</span>
@@ -2663,180 +2641,472 @@ onUnmounted(() => {
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
 
-/* ----------------------------- CONTENIDO PRINCIPAL ----------------------------- */
-.pedidos-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  flex-wrap: wrap;
-  gap: 20px;
-  padding: 0 10px;
-}
-
-/* ----------------------------- BOTONES GENERALES ----------------------------- */
-.btn-agregar-receta,
-.btn-agregar-ingrediente {
-  background: linear-gradient(135deg, var(--color-success), #218838);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  padding: 12px 20px;
-  cursor: pointer;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
-  font-size: 0.9rem;
-}
-
-.btn-nuevo-pedido:hover,
-.btn-agregar-receta:hover,
-.btn-agregar-ingrediente:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
-}
-
-.btn-agregar-ingrediente {
-  padding: 8px 16px;
-  font-size: 0.8rem;
-}
-
-/* ----------------------------- CARD DE PEDIDOS ----------------------------- */
+/* ----------------------------- CARD DE PEDIDOS - MISMO ESTILO QUE STOCK ----------------------------- */
 .pedidos-card {
   max-height: calc(100vh - 200px);
   overflow-y: auto;
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(123, 90, 80, 0.1);
-  padding: 25px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  padding: 16px;
   margin: 0 auto;
-  border: 1px solid rgba(123, 90, 80, 0.1);
+  border: 1px solid #eaeaea;
 }
 
 .pedidos-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
 }
 
 .pedido-item {
   background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 12px;
-  padding: 20px;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  position: relative;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #f0f0f0;
   overflow: hidden;
-}
-
-.pedido-item::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: linear-gradient(to bottom, var(--color-primary), #f1d0cb);
-  opacity: 0.8;
+  transition: all 0.3s ease;
 }
 
 .pedido-item:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(123, 90, 80, 0.15);
-  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
 }
 
-.pedido-header {
+.pedido-item.pedido-atrasado {
+  border-left: 4px solid #dc3545;
+}
+
+.pedido-item.pedido-hoy {
+  border-left: 4px solid #ffc107;
+}
+
+.pedido-item.pedido-entregado {
+  border-left: 4px solid #28a745;
+}
+
+.pedido-item:not(.pedido-atrasado):not(.pedido-hoy):not(.pedido-entregado) {
+  border-left: 4px solid #3498db;
+}
+
+/* Contenedor compacto - MISMO ESTILO QUE STOCK */
+.pedido-item-compact {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 12px;
+}
+
+/* Indicador de estado - MISMO ESTILO QUE STOCK */
+.estado-indicador {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.estado-indicador.critico {
+  background-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
+}
+
+.estado-indicador.bajo {
+  background-color: #ffc107;
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2);
+}
+
+.estado-indicador.normal {
+  background-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.estado-indicador.entregado {
+  background-color: #28a745;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+}
+
+/* Información principal - MISMO ESTILO QUE STOCK */
+.info-principal {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.info-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 0;
-  gap: 20px;
-}
-
-.pedido-info {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex: 1;
-}
-
-.pedido-titulo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  margin-bottom: 6px;
+  gap: 8px;
 }
 
 .cliente-nombre {
-  font-weight: 700;
-  font-size: 1.3rem;
-  color: #2c3e50;
   margin: 0;
-}
-
-.pedido-estado-badge {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.8rem;
+  font-size: 1rem;
   font-weight: 600;
-  text-transform: capitalize;
+  color: #2c3e50;
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.pedido-estado-badge.pendiente {
+.badges-container {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.badge-estado,
+.badge-total {
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-estado.pendiente {
   background: linear-gradient(135deg, #fff3cd, #ffeaa7);
   color: #856404;
 }
 
-.pedido-estado-badge.en-preparacion {
+.badge-estado.en-preparacion {
   background: linear-gradient(135deg, #d1ecf1, #a6e3e9);
   color: #0c5460;
 }
 
-.pedido-estado-badge.entregado {
+.badge-estado.entregado {
   background: linear-gradient(135deg, #d4edda, #a8e6a3);
   color: #155724;
 }
 
-.pedido-estado-badge.cancelado {
+.badge-estado.cancelado {
   background: linear-gradient(135deg, #f8d7da, #f5b7b1);
   color: #721c24;
 }
 
-.pedido-total {
-  font-weight: 700;
-  color: var(--color-success);
-  font-size: 1.1rem;
-  background: rgba(40, 167, 69, 0.1);
-  padding: 6px 12px;
-  border-radius: 8px;
+.badge-total {
+  background: #e9ecef;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
 }
 
-.pedido-datos {
+.info-detalles {
   display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.dato-grupo {
+.detalle-grupo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+}
+
+.detalle-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
   color: #6c757d;
+}
+
+.detalle-item i {
+  width: 12px;
+  text-align: center;
+  color: var(--color-primary);
+}
+
+.fecha-atrasada {
+  color: #dc3545 !important;
+  font-weight: 600;
+}
+
+.fecha-hoy {
+  color: #e0a800 !important;
+  font-weight: 600;
+}
+
+/* Acciones - MISMO ESTILO QUE STOCK */
+.acciones-container {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-accion {
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.btn-accion:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn-accion:disabled:hover {
+  transform: none !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+}
+
+.btn-entregado {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.btn-entregado:hover:not(:disabled) {
+  background: linear-gradient(135deg, #218838, #1c7430);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
+}
+
+.btn-editar {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+}
+
+.btn-editar:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2980b9, #21618c);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
+}
+
+.btn-eliminar {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+}
+
+.btn-eliminar:hover:not(:disabled) {
+  background: linear-gradient(135deg, #c0392b, #a93226);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
+}
+
+/* Botones pequeños para acciones internas */
+.btn-accion-small {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+
+/* ----------------------------- DESPLEGABLE DE DETALLES - MEJORADO ----------------------------- */
+.pedido-detalles-desplegable {
+  background: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+  }
+}
+
+.detalles-content {
+  padding: 16px;
+}
+
+.agregar-receta-container {
+  margin-bottom: 16px;
+  text-align: right;
+}
+
+.btn-agregar-receta {
+  background: linear-gradient(135deg, var(--color-success), #218838);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.2);
+  font-size: 0.85rem;
+}
+
+.btn-agregar-receta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.pedido-entregado-mensaje {
+  background: linear-gradient(135deg, #d4edda, #c3e6cb);
+  color: #155724;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  text-align: center;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   font-size: 0.9rem;
 }
 
-.dato-grupo i {
-  color: var(--color-primary);
-  width: 16px;
-  text-align: center;
+/* ----------------------------- RECETAS E INGREDIENTES - MEJORADO ----------------------------- */
+.recetas-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* ----------------------------- BOTÓN FLOTANTE NUEVA RECETA ----------------------------- */
+.receta-item {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.receta-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.receta-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.receta-header:hover {
+  background: #e9ecef;
+}
+
+.receta-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.receta-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.receta-nombre {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 0.9rem;
+}
+
+.receta-precio {
+  font-weight: 700;
+  color: var(--color-success);
+  background: rgba(40, 167, 69, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.receta-observaciones {
+  font-size: 0.75rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.receta-header-acciones {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chevron-icon {
+  color: #6c757d;
+  font-size: 0.8rem;
+}
+
+.receta-detalles {
+  padding: 12px 16px;
+  background: white;
+  border-top: 1px solid #e9ecef;
+  animation: slideDown 0.2s ease-out;
+}
+
+.ingredientes-extras h4 {
+  margin-bottom: 8px;
+  color: var(--color-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.ingrediente-extra {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px dashed #dee2e6;
+}
+
+.ingrediente-extra:last-child {
+  border-bottom: none;
+}
+
+.ingrediente-info {
+  font-size: 0.85rem;
+  color: #495057;
+}
+
+.ingrediente-acciones {
+  display: flex;
+  gap: 4px;
+}
+
+.receta-acciones {
+  margin-top: 12px;
+  text-align: right;
+}
+
+.btn-agregar-ingrediente {
+  background: linear-gradient(135deg, #17a2b8, #138496);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(23, 162, 184, 0.2);
+  font-size: 0.8rem;
+}
+
+.btn-agregar-ingrediente:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(23, 162, 184, 0.3);
+}
+
+/* ----------------------------- BOTÓN FLOTANTE NUEVO PEDIDO - MISMO ESTILO QUE STOCK ----------------------------- */
 .btn-nuevo-pedido-flotante {
   position: fixed;
   bottom: 30px;
@@ -2860,252 +3130,9 @@ onUnmounted(() => {
 .btn-nuevo-pedido-flotante:hover {
   transform: translateY(-3px) scale(1.05);
   box-shadow: 0 8px 25px rgba(123, 90, 80, 0.4);
-  background: linear-gradient(135deg, #9c7a6d, var(--color-primary));
 }
 
-/* ----------------------------- BOTONES DE ACCIÓN ----------------------------- */
-.pedido-acciones {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.btn-accion {
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 10px;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.btn-accion:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none !important;
-}
-
-.btn-accion:disabled:hover {
-  transform: none !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
-}
-
-.btn-editar {
-  background: linear-gradient(135deg, #3498db, #2980b9);
-  color: white;
-}
-
-.btn-editar:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2980b9, #21618c);
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
-}
-
-.btn-eliminar {
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
-  color: white;
-}
-
-.btn-eliminar:hover:not(:disabled) {
-  background: linear-gradient(135deg, #c0392b, #a93226);
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
-}
-
-.btn-desplegable {
-  background: linear-gradient(135deg, #95a5a6, #7f8c8d);
-  color: white;
-}
-
-.btn-desplegable:hover {
-  background: linear-gradient(135deg, #7f8c8d, #6c7a7d);
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
-}
-
-/* ----------------------------- DESPLEGABLE DE DETALLES ----------------------------- */
-.pedido-detalles-desplegable {
-  max-height: 0;
-  overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-top: 0;
-}
-
-.pedido-detalles-desplegable.active {
-  max-height: 1000px;
-  margin-top: 20px;
-}
-
-.detalles-content {
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  border-radius: 10px;
-  padding: 20px;
-  border: 1px solid #dee2e6;
-}
-
-.agregar-receta-container {
-  margin-bottom: 20px;
-  text-align: right;
-}
-
-/* ----------------------------- RECETAS E INGREDIENTES ----------------------------- */
-.recetas-container {
-  margin-top: 15px;
-}
-
-.receta-item {
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.receta-item:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.receta-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px;
-  background: #f8f9fa;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.receta-header:hover {
-  background: #e9ecef;
-}
-
-.receta-info {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  flex: 1;
-}
-
-.receta-titulo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.receta-nombre {
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.receta-precio {
-  font-weight: 700;
-  color: var(--color-success);
-  background: rgba(40, 167, 69, 0.1);
-  padding: 4px 8px;
-  border-radius: 6px;
-}
-
-.receta-header-acciones {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.btn-accion-small {
-  border: none;
-  cursor: pointer;
-  font-size: 12px;
-  padding: 6px;
-  border-radius: 6px;
-  transition: all 0.3s ease;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-accion-small:hover {
-  transform: translateY(-1px);
-}
-
-.receta-detalles {
-  padding: 15px;
-  background: white;
-  border-top: 1px solid #e9ecef;
-}
-
-.observaciones {
-  margin-bottom: 15px;
-  font-style: italic;
-  color: #6c757d;
-  padding: 10px;
-  background: #f8f9fa;
-  border-radius: 6px;
-}
-
-.ingredientes-extras {
-  margin-bottom: 15px;
-}
-
-.ingredientes-extras h4 {
-  margin-bottom: 10px;
-  color: var(--color-primary);
-  font-size: 1rem;
-}
-
-.ingrediente-extra {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px dashed #dee2e6;
-}
-
-.ingrediente-acciones {
-  display: flex;
-  gap: 5px;
-}
-
-.receta-acciones {
-  text-align: right;
-  margin-top: 15px;
-}
-
-/* ----------------------------- ESTADOS ESPECIALES ----------------------------- */
-.pedido-entregado {
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  opacity: 0.8;
-}
-
-.pedido-entregado::before {
-  background: linear-gradient(to bottom, #28a745, #20c997);
-}
-
-.pedido-entregado-mensaje {
-  background: linear-gradient(135deg, #d4edda, #c3e6cb);
-  color: #155724;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  text-align: center;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-/* ----------------------------- ESTADOS DE CARGA Y VACÍO ----------------------------- */
+/* ----------------------------- ESTADOS DE CARGA Y VACÍO - MISMO ESTILO QUE STOCK ----------------------------- */
 .loading-state {
   text-align: center;
   padding: 60px;
@@ -3141,423 +3168,122 @@ onUnmounted(() => {
   font-size: 1.1rem;
 }
 
-/* Añadir al final de la sección de estilos */
-.cursor-pointer {
-  cursor: pointer;
-}
-
-.pedido-header:hover {
-  background-color: rgba(123, 90, 80, 0.03);
-  border-radius: 8px;
-  transition: background-color 0.2s ease;
-}
-
-/* Indicador visual de que es clickeable */
-.pedido-header::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: 12px;
-  pointer-events: none;
-  transition: box-shadow 0.2s ease;
-}
-
-.pedido-header:hover::after {
-  box-shadow: inset 0 0 0 2px rgba(123, 90, 80, 0.1);
-}
-
-/* AGREGAR: Estilos para las alertas de pedidos */
-.alertas-pedidos {
-  margin-bottom: 20px;
-  padding: 0 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.alerta-critica {
-  background: linear-gradient(135deg, #f8d7da, #f5b7b1);
-  color: #721c24;
-  border-left-color: #dc3545;
-}
-
-.alerta-hoy {
-  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-  color: #856404;
-  border-left-color: #ffc107;
-}
-
-.alerta-manana {
-  background: linear-gradient(135deg, #d1ecf1, #a6e3e9);
-  color: #0c5460;
-  border-left-color: #17a2b8;
-}
-
-.alerta-contenido {
-  flex: 1;
-}
-
-.alerta-contenido strong {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 1rem;
-}
-
-.alerta-contenido p {
-  margin: 0;
-  font-size: 0.9rem;
-  opacity: 0.9;
-}
-
-.btn-alerta-cerrar {
-  background: none;
-  border: none;
-  color: inherit;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 50%;
-  transition: background-color 0.2s;
-}
-
-.btn-alerta-cerrar:hover {
-  background-color: rgba(0, 0, 0, 0.1);
-}
-
-/* AGREGAR: Indicadores de urgencia en pedidos */
-.indicador-urgencia {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  z-index: 2;
-}
-
-.indicador-urgencia.critico {
-  background: linear-gradient(135deg, #dc3545, #c82333);
-  color: white;
-  animation: pulse 2s infinite;
-}
-
-.indicador-urgencia.hoy {
-  background: linear-gradient(135deg, #ffc107, #e0a800);
-  color: #212529;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
-  }
-
-  70% {
-    box-shadow: 0 0 0 6px rgba(220, 53, 69, 0);
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
-  }
-}
-
-/* AGREGAR: Estilos para estados especiales de pedidos */
-.pedido-atrasado {
-  border-left: 4px solid #dc3545 !important;
-  background: linear-gradient(135deg, #fff, #f8d7da) !important;
-}
-
-.pedido-hoy {
-  border-left: 4px solid #ffc107 !important;
-  background: linear-gradient(135deg, #fff, #fff3cd) !important;
-}
-
-.fecha-atrasada {
-  color: #dc3545 !important;
-  font-weight: 700;
-}
-
-.fecha-hoy {
-  color: #e0a800 !important;
-  font-weight: 700;
-}
-
-/* AGREGAR: Botón de entregado rápido */
-.btn-entregado {
-  background: linear-gradient(135deg, #28a745, #20c997) !important;
-  color: white;
-}
-
-.btn-entregado:hover:not(:disabled) {
-  background: linear-gradient(135deg, #218838, #1e7e34) !important;
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-}
-
 /* ==============================
-   RESPONSIVE DESIGN - PEDIDOS (MEJORADO COMO STOCK)
+   RESPONSIVE DESIGN - CONSISTENTE CON STOCK
    ============================== */
 
-/* Tablets y pantallas medianas (768px - 1024px) */
+/* Tablets */
 @media (max-width: 1024px) {
-  .pedido-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 15px;
+  .pedidos-card {
+    padding: 15px;
+  }
+}
+
+/* Tablets pequeñas y móviles grandes */
+@media (max-width: 768px) {
+  .pedidos-card {
+    padding: 12px;
   }
 
-  .pedido-acciones {
-    align-self: flex-end;
-    width: 100%;
-    justify-content: flex-end;
-  }
-
-  .pedido-titulo {
-    flex-wrap: wrap;
+  .pedido-item-compact {
+    padding: 10px 12px;
     gap: 10px;
   }
 
-  .pedido-datos {
-    flex-wrap: wrap;
-    gap: 15px;
+  .info-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .badges-container {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .info-detalles {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .detalle-grupo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .detalles-content {
+    padding: 12px;
   }
 
   .receta-header {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: 8px;
   }
 
   .receta-header-acciones {
     align-self: flex-end;
   }
-}
-
-/* Tablets pequeñas (768px y menos) */
-@media (max-width: 768px) {
-  .pedidos-card {
-    padding: 15px;
-    margin: 0 5px;
-    border-radius: 12px;
-    max-height: calc(100vh - 120px);
-  }
-
-  .pedido-item {
-    padding: 15px;
-    margin: 0 -5px;
-  }
-
-  .pedido-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-
-  .pedido-titulo {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .cliente-nombre {
-    font-size: 1.1rem;
-  }
-
-  .pedido-datos {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .dato-grupo {
-    justify-content: flex-start;
-  }
-
-  .pedido-acciones {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 5px;
-  }
-
-  .btn-accion {
-    width: 35px;
-    height: 35px;
-    font-size: 12px;
-  }
-
-  /* Indicadores de urgencia para móvil */
-  .indicador-urgencia {
-    position: relative;
-    top: auto;
-    right: auto;
-    align-self: flex-start;
-    margin-bottom: 10px;
-    font-size: 0.65rem;
-    padding: 3px 6px;
-  }
-
-  /* Desplegables */
-  .detalles-content {
-    padding: 15px;
-  }
-
-  .receta-item {
-    margin-bottom: 15px;
-  }
-
-  .receta-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .receta-titulo {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
 
   .ingrediente-extra {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
-    padding: 10px 0;
+    gap: 6px;
   }
 
   .ingrediente-acciones {
     align-self: flex-end;
   }
 
-  /* Botón flotante */
   .btn-nuevo-pedido-flotante {
     bottom: 20px;
     right: 20px;
     padding: 14px 20px;
     font-size: 0.9rem;
   }
-
-  .btn-nuevo-pedido-flotante span {
-    display: inline;
-  }
 }
 
-/* Móviles grandes (480px - 767px) */
-@media (max-width: 667px) {
-  .pedidos-content {
-    gap: 15px;
-  }
-
-  .pedido-header {
-    gap: 12px;
-  }
-
-  .pedido-info {
-    gap: 8px;
-  }
-
-  .pedido-estado-badge {
-    font-size: 0.7rem;
-    padding: 4px 8px;
-  }
-
-  .pedido-total {
-    font-size: 1rem;
-    padding: 4px 8px;
-  }
-
-  .btn-accion {
-    width: 32px;
-    height: 32px;
+/* Móviles pequeños */
+@media (max-width: 480px) {
+  .pedidos-card {
     padding: 8px;
   }
 
-  /* Modal adjustments for mobile */
-  .form-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .full-width {
-    grid-column: 1;
-  }
-
-  .select-with-button {
-    flex-direction: column;
+  .pedido-item-compact {
+    padding: 8px 10px;
     gap: 8px;
-  }
-}
-
-/* Móviles pequeños (hasta 480px) */
-@media (max-width: 480px) {
-  .pedidos-card {
-    padding: 10px;
-    margin: 0;
-    border-radius: 10px;
-  }
-
-  .pedido-item {
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 10px;
   }
 
   .cliente-nombre {
-    font-size: 1rem;
-  }
-
-  .pedido-datos {
-    font-size: 0.85rem;
-  }
-
-  .dato-grupo {
-    font-size: 0.8rem;
-  }
-
-  .pedido-acciones {
-    gap: 3px;
-  }
-
-  .btn-accion {
-    width: 30px;
-    height: 30px;
-    font-size: 11px;
-  }
-
-  /* Botones de acción más pequeños */
-  .btn-accion-small {
-    width: 26px;
-    height: 26px;
-    font-size: 10px;
-    padding: 4px;
-  }
-
-  /* Textos más pequeños */
-  .receta-nombre,
-  .receta-precio {
     font-size: 0.9rem;
   }
 
-  .observaciones {
-    font-size: 0.85rem;
-    padding: 8px;
+  .badge-estado,
+  .badge-total {
+    font-size: 0.65rem;
+    padding: 2px 6px;
   }
 
-  /* Botón flotante más pequeño */
+  .detalle-item {
+    font-size: 0.75rem;
+  }
+
+  .acciones-container {
+    gap: 4px;
+  }
+
+  .btn-accion {
+    width: 28px;
+    height: 28px;
+    padding: 6px;
+  }
+
   .btn-nuevo-pedido-flotante {
     bottom: 15px;
     right: 15px;
-    padding: 12px;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-  }
-
-  .btn-nuevo-pedido-flotante i {
-    margin: 0;
+    padding: 12px 18px;
+    font-size: 0.8rem;
   }
 
   .btn-nuevo-pedido-flotante span {
@@ -3565,180 +3291,45 @@ onUnmounted(() => {
   }
 }
 
-/* Pantallas muy pequeñas (hasta 360px) */
+/* Pantallas muy pequeñas */
 @media (max-width: 360px) {
-  .pedidos-card {
-    padding: 8px;
-  }
-
-  .pedido-item {
-    padding: 10px;
+  .pedido-item-compact {
+    padding: 6px 8px;
+    gap: 6px;
   }
 
   .cliente-nombre {
-    font-size: 0.95rem;
+    font-size: 0.8rem;
   }
 
-  .pedido-estado-badge {
-    font-size: 0.65rem;
-    padding: 3px 6px;
-  }
-
-  .pedido-total {
-    font-size: 0.9rem;
-    padding: 3px 6px;
+  .acciones-container {
+    gap: 2px;
   }
 
   .btn-accion {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
+    padding: 5px;
+  }
+
+  .btn-accion i {
+    font-size: 0.8rem;
   }
 }
 
-/* ==============================
-   MEJORAS ESPECÍFICAS PARA TOUCH (COMO EN STOCK)
-   ============================== */
+/* Mejoras de usabilidad táctil */
 @media (hover: none) and (pointer: coarse) {
-  .btn-accion,
-  .btn-accion-small,
-  .btn-agregar-receta,
-  .btn-agregar-ingrediente {
+  .pedido-item:hover {
+    transform: none;
+  }
+
+  .btn-accion {
     min-height: 44px;
     min-width: 44px;
   }
 
-  .pedido-header {
-    padding: 12px 0;
-  }
-
-  .receta-header {
-    padding: 15px;
-  }
-
   .btn-nuevo-pedido-flotante {
-    min-width: 60px;
-    min-height: 60px;
-  }
-}
-
-/* ==============================
-   ORIENTACIÓN LANDSCAPE (COMO EN STOCK)
-   ============================== */
-@media (max-width: 768px) and (orientation: landscape) {
-  .main-content {
-    padding-top: 30px;
-  }
-
-  .pedidos-card {
-    max-height: calc(100vh - 120px);
-  }
-
-  .pedido-item {
-    padding: 10px;
-  }
-
-  .pedido-header {
-    flex-direction: row;
-    align-items: center;
-  }
-
-  .pedido-acciones {
-    width: auto;
-  }
-}
-
-/* ==============================
-   MEJORAS DE ACCESIBILIDAD (COMO EN STOCK)
-   ============================== */
-@media (prefers-reduced-motion: reduce) {
-  .pedido-item,
-  .btn-accion,
-  .btn-nuevo-pedido-flotante,
-  .pedido-detalles-desplegable {
-    transition: none;
-    animation: none;
-  }
-
-  .indicador-urgencia.critico {
-    animation: none;
-  }
-}
-
-/* Alto contraste */
-@media (prefers-contrast: high) {
-  .pedido-item {
-    border: 2px solid;
-  }
-
-  .btn-accion {
-    border: 1px solid;
-  }
-}
-
-/* Estados de carga y vacío responsive */
-@media (max-width: 768px) {
-  .loading-state,
-  .empty-state {
-    padding: 40px 20px;
-  }
-
-  .loading-state i,
-  .empty-state i {
-    font-size: 1.5rem;
-  }
-
-  .loading-state p,
-  .empty-state p {
-    font-size: 1rem;
-    text-align: center;
-  }
-}
-
-/* Mejoras de usabilidad táctil adicionales */
-@media (max-width: 768px) {
-  .pedido-header {
-    padding: 12px;
-  }
-
-  .pedido-item {
-    margin-bottom: 8px;
-  }
-
-  /* Asegurar contraste suficiente */
-  .cliente-nombre {
-    color: #2c3e50;
-  }
-
-  .pedido-estado-badge {
-    font-size: 0.75rem;
-  }
-}
-
-/* Utilidades de texto para consistencia con Stock */
-.text-sm {
-  font-size: 0.875rem;
-}
-
-.text-xs {
-  font-size: 0.75rem;
-}
-
-.font-medium {
-  font-weight: 500;
-}
-
-.font-semibold {
-  font-weight: 600;
-}
-
-/* Estados de hover mejorados para desktop */
-@media (hover: hover) {
-  .pedido-item:hover {
-    transform: translateY(-1px);
-  }
-
-  .btn-accion:hover {
-    transform: translateY(-1px);
+    min-height: 44px;
   }
 }
 </style>
