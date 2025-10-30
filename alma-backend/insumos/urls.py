@@ -42,4 +42,9 @@ urlpatterns = [
     # NUEVAS RUTAS PARA REPORTES
     path('reportes/insumos/', ReporteInsumosAPIView.as_view(), name='reportes-insumos'),
     path('reportes/generar-pdf/', GenerarPDFReporteAPIView.as_view(), name='reportes-generar-pdf'),
+
+    # Reportes
+    path('api/reportes/insumos/', views.ReporteInsumosAPIView.as_view(), name='reporte_insumos'),
+    path('api/reportes/lista-compras/', views.ListaComprasAPIView.as_view(), name='lista_compras'),
+    path('api/reportes/lista-compras-simple/', views.lista_compras_simple, name='lista_compras_simple'),
 ]

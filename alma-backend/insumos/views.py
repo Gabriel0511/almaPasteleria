@@ -2,22 +2,17 @@ from django.db.models import F
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.views import APIView  # ✅ Agregar esta importación
+from rest_framework.views import APIView
+from rest_framework.decorators import api_view, permission_classes
+from django.http import HttpResponse, JsonResponse
 from .models import Insumo, UnidadMedida, CategoriaInsumo, Proveedor
 from .serializers import InsumoSerializer, UnidadMedidaSerializer, CategoriaInsumoSerializer, ProveedorSerializer
-from django.http import HttpResponse
-import json
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField, Q
 from django.db import models
-from datetime import datetime, timedelta, date  # ✅ Agregar date
+from datetime import datetime, timedelta, date
 from decimal import Decimal
 import io
+from django.utils import timezone
 
 class UnidadMedidaListAPIView(generics.ListAPIView):
     queryset = UnidadMedida.objects.all()
@@ -47,13 +42,10 @@ class InsumoCreateAPIView(generics.CreateAPIView):
     serializer_class = InsumoSerializer
 
     def create(self, request, *args, **kwargs):
-        # Validar si ya existe una categoría con el mismo nombre
         nombre = request.data.get('nombre', '').strip()
         if Insumo.objects.filter(nombre__iexact=nombre).exists():
             return Response(
-                {
-                    'error': 'Ya existe un insumo con este nombre'
-                },
+                {'error': 'Ya existe un insumo con este nombre'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         serializer = self.get_serializer(data=request.data)
@@ -107,24 +99,6 @@ class InsumoPartialUpdateAPIView(generics.UpdateAPIView):
     def patch(self, request, *args, **kwargs):
         return self.partial_update(request, *args, **kwargs)
 
-    def partial_update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        
-        # Permite actualización parcial sin requerir todos los campos
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-
-        if getattr(instance, '_prefetched_objects_cache', None):
-            instance._prefetched_objects_cache = {}
-
-        return Response(
-            {
-                'message': 'Insumo actualizado parcialmente',
-                'insumo': serializer.data
-            }
-        )
-
 class InsumoDestroyAPIView(generics.DestroyAPIView):
     permission_classes = [IsAuthenticated]
     queryset = Insumo.objects.all()
@@ -133,11 +107,8 @@ class InsumoDestroyAPIView(generics.DestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        
-        # Soft delete: marcar como inactivo en lugar de eliminar
         instance.activo = False
         instance.save()
-        
         return Response(
             {
                 'message': 'Insumo eliminado exitosamente',
@@ -152,16 +123,12 @@ class CategoriaInsumoCreateAPIView(generics.CreateAPIView):
     serializer_class = CategoriaInsumoSerializer
 
     def create(self, request, *args, **kwargs):
-        # Validar si ya existe una categoría con el mismo nombre
         nombre = request.data.get('nombre', '').strip()
         if CategoriaInsumo.objects.filter(nombre__iexact=nombre).exists():
             return Response(
-                {
-                    'error': 'Ya existe una categoría con este nombre'
-                },
+                {'error': 'Ya existe una categoría con este nombre'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -181,16 +148,12 @@ class UnidadMedidaCreateAPIView(generics.CreateAPIView):
     serializer_class = UnidadMedidaSerializer
 
     def create(self, request, *args, **kwargs):
-        # Validar si ya existe una unidadMedida con el mismo nombre
         nombre = request.data.get('nombre', '').strip()
         if UnidadMedida.objects.filter(nombre__iexact=nombre).exists():
             return Response(
-                {
-                    'error': 'Ya existe una unidad con este nombre'
-                },
+                {'error': 'Ya existe una unidad con este nombre'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -214,7 +177,6 @@ class InsumoHardDeleteAPIView(generics.DestroyAPIView):
         instance = self.get_object()
         instance_id = instance.id
         self.perform_destroy(instance)
-        
         return Response(
             {
                 'message': 'Insumo eliminado permanentemente',
@@ -241,16 +203,12 @@ class ProveedorCreateAPIView(generics.CreateAPIView):
     serializer_class = ProveedorSerializer
 
     def create(self, request, *args, **kwargs):
-        # Validar si ya existe un proveedor con el mismo nombre
         nombre = request.data.get('nombre', '').strip()
         if Proveedor.objects.filter(nombre__iexact=nombre).exists():
             return Response(
-                {
-                    'error': 'Ya existe un proveedor con este nombre'
-                },
+                {'error': 'Ya existe un proveedor con este nombre'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -263,7 +221,7 @@ class ProveedorCreateAPIView(generics.CreateAPIView):
             status=status.HTTP_201_CREATED,
             headers=headers
         )
-    
+
 class ReporteInsumosAPIView(APIView):
     """
     Vista para generar reportes de insumos con cálculo de stock usado
@@ -339,10 +297,8 @@ class ReporteInsumosAPIView(APIView):
                     fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
                     fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
                     
-                    # En una implementación real, necesitarías un modelo de historial
-                    # que registre cuándo se preparó cada receta
-                    # Por ahora, usamos un cálculo proporcional basado en veces_hecha
-                    veces_en_periodo = self.estimar_veces_en_periodo(receta, fecha_inicio_dt, fecha_fin_dt)
+                    # Calcular veces hechas en el período basado en pedidos
+                    veces_en_periodo = self.calcular_veces_receta_en_periodo(receta, fecha_inicio_dt, fecha_fin_dt)
                 else:
                     # Sin filtro de fecha, usar todas las veces hechas
                     veces_en_periodo = receta.veces_hecha
@@ -357,6 +313,28 @@ class ReporteInsumosAPIView(APIView):
         except Exception as e:
             print(f"Error calculando stock usado en recetas: {e}")
             return Decimal('0.0')
+    
+    def calcular_veces_receta_en_periodo(self, receta, fecha_inicio, fecha_fin):
+        """
+        Calcula cuántas veces se usó una receta en un período específico
+        """
+        try:
+            from pedidos.models import DetallePedido, Pedido
+            
+            # Contar la cantidad total de esta receta en pedidos del período
+            veces = DetallePedido.objects.filter(
+                receta=receta,
+                pedido__fecha_entrega__range=[fecha_inicio, fecha_fin],
+                pedido__estado__in=['pendiente', 'listo', 'entregado']  # Pedidos activos
+            ).aggregate(
+                total=Sum('cantidad')
+            )['total'] or 0
+            
+            return veces
+            
+        except Exception as e:
+            print(f"Error calculando veces receta en período: {e}")
+            return receta.veces_hecha  # Fallback
     
     def calcular_stock_usado_ingredientes_extra(self, insumo, fecha_inicio, fecha_fin):
         """
@@ -375,7 +353,8 @@ class ReporteInsumosAPIView(APIView):
                 
                 # Filtrar por pedidos en el rango de fechas
                 ingredientes_query = ingredientes_query.filter(
-                    detalle__pedido__fecha_entrega__range=[fecha_inicio_dt, fecha_fin_dt]
+                    detalle__pedido__fecha_entrega__range=[fecha_inicio_dt, fecha_fin_dt],
+                    detalle__pedido__estado__in=['pendiente', 'listo', 'entregado']
                 )
             
             # Sumar todas las cantidades de ingredientes extra
@@ -431,127 +410,237 @@ class ReporteInsumosAPIView(APIView):
             
             # Si no hay conversión disponible, devolver la cantidad original
             return cantidad_decimal
-    
-    def estimar_veces_en_periodo(self, receta, fecha_inicio, fecha_fin):
-        """
-        Estima cuántas veces se preparó una receta en un período específico
-        En una implementación real, esto vendría de un modelo de historial
-        """
-        # Por ahora, usamos una estimación simple basada en la fecha de creación
-        # y las veces hechas totales
-        if receta.creado_en.date() >= fecha_inicio and receta.creado_en.date() <= fecha_fin:
-            return receta.veces_hecha
-        else:
-            # Estimación: asumimos que se distribuye uniformemente en el tiempo
-            dias_total = (date.today() - receta.creado_en.date()).days
-            if dias_total <= 0:
-                return receta.veces_hecha
-            
-            dias_periodo = (fecha_fin - fecha_inicio).days
-            proporcion = dias_periodo / dias_total
-            return int(receta.veces_hecha * proporcion)
 
-
-class GenerarPDFReporteAPIView(APIView):
+class ListaComprasAPIView(APIView):
     """
-    Vista para generar PDF del reporte de insumos
+    Vista para generar la lista de compras para la próxima semana
     """
     def get(self, request):
         try:
             # Obtener parámetros de filtro
-            fecha_inicio = request.GET.get('fecha_inicio', '')
-            fecha_fin = request.GET.get('fecha_fin', '')
-            proveedor_id = request.GET.get('proveedor_id', '')
+            fecha_inicio = request.GET.get('fecha_inicio')
+            fecha_fin = request.GET.get('fecha_fin')
+            proveedor_id = request.GET.get('proveedor_id')
             
-            # Obtener datos del reporte usando la misma lógica que ReporteInsumosAPIView
-            reporte_view = ReporteInsumosAPIView()
-            response = reporte_view.get(request)
+            # Calcular rango de fechas para la próxima semana
+            hoy = timezone.now().date()
             
-            if response.status_code != 200:
-                return response
+            # Encontrar el próximo lunes
+            dias_hasta_lunes = (0 - hoy.weekday()) % 7
+            if dias_hasta_lunes == 0:
+                dias_hasta_lunes = 7
             
-            reporte_data = response.data
+            inicio_proxima_semana = hoy + timedelta(days=dias_hasta_lunes)
+            fin_proxima_semana = inicio_proxima_semana + timedelta(days=6)
             
-            # Crear el PDF
-            buffer = io.BytesIO()
-            doc = SimpleDocTemplate(buffer, pagesize=A4)
-            elements = []
+            # Filtrar insumos activos
+            insumos = Insumo.objects.filter(activo=True)
             
-            # Estilos
-            styles = getSampleStyleSheet()
-            title_style = ParagraphStyle(
-                'CustomTitle',
-                parent=styles['Heading1'],
-                fontSize=16,
-                spaceAfter=30,
-                textColor=colors.HexColor('#7b5a50')
-            )
-            
-            # Título
-            title_text = "Reporte de Insumos - Alma Pastelería"
-            elements.append(Paragraph(title_text, title_style))
-            
-            # Información de filtros
-            filtros_text = f"Fecha: {fecha_inicio} a {fecha_fin}" if fecha_inicio else "Todos los insumos"
+            # Aplicar filtro por proveedor
             if proveedor_id:
-                try:
-                    proveedor = Proveedor.objects.get(id=proveedor_id)
-                    filtros_text += f" | Proveedor: {proveedor.nombre}"
-                except Proveedor.DoesNotExist:
-                    pass
+                insumos = insumos.filter(proveedor_id=proveedor_id)
             
-            elements.append(Paragraph(filtros_text, styles['Normal']))
-            elements.append(Spacer(1, 20))
+            lista_compras_data = []
             
-            # Preparar datos de la tabla
-            table_data = [['Insumo', 'Stock Usado', 'Stock Actual', 'Stock Mínimo', 'Reponer?', 'Proveedor']]
+            for insumo in insumos:
+                # Calcular pedidos de la próxima semana
+                pedidos_proxima_semana = self.calcular_pedidos_proxima_semana(insumo, inicio_proxima_semana, fin_proxima_semana)
+                
+                # Calcular cantidad total a comprar
+                # (Stock mínimo - Stock actual) + Pedidos próxima semana
+                stock_minimo = insumo.stock_minimo
+                stock_actual = insumo.stock_actual
+                total_comprar = max(Decimal('0.0'), (stock_minimo - stock_actual) + pedidos_proxima_semana)
+                
+                # Determinar día de compra según el proveedor
+                dia_compra = self.determinar_dia_compra(insumo.proveedor)
+                
+                lista_compras_data.append({
+                    'id': insumo.id,
+                    'nombre': insumo.nombre,
+                    'categoria': insumo.categoria.nombre if insumo.categoria else 'Sin categoría',
+                    'stock_actual': float(stock_actual),
+                    'stock_minimo': float(stock_minimo),
+                    'pedidos': float(pedidos_proxima_semana),
+                    'total_comprar': float(total_comprar),
+                    'unidad_medida': {
+                        'abreviatura': insumo.unidad_medida.abreviatura
+                    },
+                    'proveedor': {
+                        'id': insumo.proveedor.id if insumo.proveedor else None,
+                        'nombre': insumo.proveedor.nombre if insumo.proveedor else 'Sin proveedor'
+                    } if insumo.proveedor else None,
+                    'dia_compra': dia_compra,
+                    'necesita_compra': total_comprar > 0
+                })
             
-            for item in reporte_data:
-                table_data.append([
-                    f"{item['nombre']}\n({item['categoria']})",
-                    f"{item['stock_usado']:.2f}".replace('.', ',') + f" {item['unidad_medida']['abreviatura']}",
-                    f"{item['stock_actual']:.2f}".replace('.', ',') + f" {item['unidad_medida']['abreviatura']}",
-                    f"{item['stock_minimo']:.2f}".replace('.', ',') + f"{item['unidad_medida']['abreviatura']}",
-                    "SÍ" if item['necesita_reposicion'] else "NO",
-                    item['proveedor']['nombre'] if item['proveedor'] else "Sin proveedor"
-                ])
-            
-            # Crear tabla
-            table = Table(table_data, colWidths=[2*inch, 1*inch, 1*inch, 1*inch, 0.8*inch, 1.5*inch])
-            table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#7b5a50')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -1), 8),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black)
-            ]))
-            
-            elements.append(table)
-            
-            # Agregar resumen
-            elementos_reponer = sum(1 for item in reporte_data if item['necesita_reposicion'])
-            elements.append(Spacer(1, 20))
-            elements.append(Paragraph(f"Total de insumos: {len(reporte_data)}", styles['Normal']))
-            elements.append(Paragraph(f"Necesitan reposición: {elementos_reponer}", styles['Normal']))
-            
-            # Generar PDF
-            doc.build(elements)
-            buffer.seek(0)
-            
-            # Crear respuesta
-            response = HttpResponse(buffer, content_type='application/pdf')
-            filename = f"reporte_insumos_almaPasteleria_{date.today().strftime('%Y-%m-%d')}.pdf"
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
-            
-            return response
+            return Response(lista_compras_data, status=status.HTTP_200_OK)
             
         except Exception as e:
             return Response(
-                {'error': f'Error al generar PDF: {str(e)}'},
+                {'error': f'Error al generar lista de compras: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    def calcular_pedidos_proxima_semana(self, insumo, inicio_proxima_semana, fin_proxima_semana):
+        """
+        Calcula los pedidos de la próxima semana para un insumo específico
+        """
+        try:
+            from pedidos.models import DetallePedido, Pedido
+            from recetas.models import RecetaInsumo
+            
+            # Calcular pedidos de recetas para la próxima semana
+            pedidos_recetas = DetallePedido.objects.filter(
+                pedido__fecha_entrega__range=[inicio_proxima_semana, fin_proxima_semana],
+                pedido__estado__in=['pendiente', 'listo']  # Solo pedidos activos
+            ).aggregate(
+                total=Sum(ExpressionWrapper(
+                    F('cantidad') * F('receta__insumos__cantidad'),
+                    output_field=DecimalField(max_digits=10, decimal_places=3)
+                ))
+            )['total'] or Decimal('0.0')
+            
+            # Calcular ingredientes extra para la próxima semana
+            from pedidos.models import IngredientesExtra
+            pedidos_extra = IngredientesExtra.objects.filter(
+                insumo=insumo,
+                detalle__pedido__fecha_entrega__range=[inicio_proxima_semana, fin_proxima_semana],
+                detalle__pedido__estado__in=['pendiente', 'listo']
+            ).aggregate(
+                total=Sum('cantidad')
+            )['total'] or Decimal('0.0')
+            
+            return pedidos_recetas + pedidos_extra
+            
+        except Exception as e:
+            print(f"Error calculando pedidos próxima semana: {e}")
+            # En caso de error, usar una estimación basada en el historial
+            return self.estimar_pedidos_por_historial(insumo)
+    
+    def estimar_pedidos_por_historial(self, insumo):
+        """
+        Estima los pedidos basándose en el historial (fallback)
+        """
+        try:
+            # Calcular promedio de pedidos de las últimas 4 semanas
+            from pedidos.models import DetallePedido
+            from recetas.models import RecetaInsumo
+            
+            cuatro_semanas_atras = timezone.now().date() - timedelta(weeks=4)
+            
+            promedio_pedidos = DetallePedido.objects.filter(
+                receta__insumos__insumo=insumo,
+                pedido__fecha_entrega__gte=cuatro_semanas_atras
+            ).aggregate(
+                promedio=Sum(ExpressionWrapper(
+                    F('cantidad') * F('receta__insumos__cantidad'),
+                    output_field=DecimalField(max_digits=10, decimal_places=3)
+                ))
+            )['promedio'] or Decimal('0.0')
+            
+            # Dividir por 4 para obtener promedio semanal
+            return promedio_pedidos / Decimal('4.0')
+            
+        except Exception as e:
+            print(f"Error en estimación por historial: {e}")
+            # Estimación de respaldo: 30% del stock mínimo
+            return insumo.stock_minimo * Decimal('0.3')
+    
+    def determinar_dia_compra(self, proveedor):
+        """
+        Determina el día de compra según el proveedor
+        """
+        if not proveedor:
+            return "Sin asignar"
+        
+        proveedor_nombre = proveedor.nombre.lower()
+        
+        # Lunes - Verdulería: frutas y verduras
+        if any(palabra in proveedor_nombre for palabra in ['verduleria', 'fruta', 'verdura', 'fruteria']):
+            return "Lunes"
+        
+        # Martes - Tregar: crema, manteca, yogures
+        elif 'tregar' in proveedor_nombre:
+            return "Martes"
+        
+        # Jueves - La Serenísima: leche entera, leche de almendras, ricota, crema, queso Finlandia
+        elif any(palabra in proveedor_nombre for palabra in ['serenisima', 'lacteo', 'leche', 'lácteo', 'queso', 'ricota', 'crema']):
+            return "Jueves"
+        
+        # Viernes - Alcom: chocolate, harina, azúcar, garbanzos, granola
+        elif any(palabra in proveedor_nombre for palabra in ['alcom', 'almacen', 'harina', 'azucar', 'azúcar', 'chocolate', 'garbanzo', 'granola']):
+            return "Viernes"
+        
+        else:
+            return "Sin asignar"
+
+# Vista simple alternativa para lista de compras
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def lista_compras_simple(request):
+    """
+    Vista alternativa para lista de compras
+    """
+    try:
+        # Calcular rango de fechas para la próxima semana
+        hoy = timezone.now().date()
+        
+        # Encontrar el próximo lunes
+        dias_hasta_lunes = (0 - hoy.weekday()) % 7
+        if dias_hasta_lunes == 0:
+            dias_hasta_lunes = 7
+        
+        # Obtener todos los insumos activos
+        insumos = Insumo.objects.filter(activo=True).select_related('proveedor', 'unidad_medida', 'categoria')
+        
+        lista_compras_data = []
+        
+        for insumo in insumos:
+            # Estimación simple de pedidos
+            pedidos_proxima_semana = insumo.stock_minimo * Decimal('0.3')  # 30% del stock mínimo
+            
+            # Calcular cantidad total a comprar
+            stock_minimo = insumo.stock_minimo
+            stock_actual = insumo.stock_actual
+            total_comprar = max(Decimal('0.0'), (stock_minimo - stock_actual) + pedidos_proxima_semana)
+            
+            # Determinar día de compra
+            dia_compra = "Sin asignar"
+            if insumo.proveedor:
+                proveedor_nombre = insumo.proveedor.nombre.lower()
+                if any(palabra in proveedor_nombre for palabra in ['verduleria', 'fruta', 'verdura']):
+                    dia_compra = "Lunes"
+                elif 'tregar' in proveedor_nombre:
+                    dia_compra = "Martes"
+                elif any(palabra in proveedor_nombre for palabra in ['serenisima', 'lacteo', 'leche']):
+                    dia_compra = "Jueves"
+                elif any(palabra in proveedor_nombre for palabra in ['alcom', 'almacen', 'harina', 'azucar']):
+                    dia_compra = "Viernes"
+            
+            lista_compras_data.append({
+                'id': insumo.id,
+                'nombre': insumo.nombre,
+                'categoria': insumo.categoria.nombre if insumo.categoria else 'Sin categoría',
+                'stock_actual': float(stock_actual),
+                'stock_minimo': float(stock_minimo),
+                'pedidos': float(pedidos_proxima_semana),
+                'total_comprar': float(total_comprar),
+                'unidad_medida': {
+                    'abreviatura': insumo.unidad_medida.abreviatura
+                },
+                'proveedor': {
+                    'id': insumo.proveedor.id if insumo.proveedor else None,
+                    'nombre': insumo.proveedor.nombre if insumo.proveedor else 'Sin proveedor'
+                },
+                'dia_compra': dia_compra,
+                'necesita_compra': total_comprar > 0
+            })
+        
+        return JsonResponse(lista_compras_data, safe=False)
+        
+    except Exception as e:
+        return JsonResponse(
+            {'error': f'Error al generar lista de compras: {str(e)}'},
+            status=500
+        )

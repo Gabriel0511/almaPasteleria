@@ -74,7 +74,7 @@
             </div>
           </div>
 
-          <!-- Botón para desplegar/ocultar la tabla -->
+          <!-- Botón para desplegar/ocultar la tabla de reportes -->
           <div class="tabla-toggle-section">
             <button @click="toggleTabla" class="btn-desplegar-tabla" :class="{ 'activo': tablaVisible }">
               <i class="fas" :class="tablaVisible ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
@@ -140,7 +140,7 @@
             </div>
           </div>
 
-          <!-- Botón Generar PDF -->
+          <!-- Botón Generar PDF para reportes -->
           <div class="seccion-pdf" v-if="tablaVisible && reporteFiltrado.length > 0">
             <button @click="generarPDF" class="btn-generar-pdf">
               <i class="fas fa-file-pdf"></i>
@@ -148,6 +148,91 @@
             </button>
 
             <div v-if="generandoPDF" class="estado-generando-pdf">
+              <i class="fas fa-spinner fa-spin"></i>
+              Generando PDF...
+            </div>
+          </div>
+
+          <!-- NUEVA SECCIÓN: LISTA DE COMPRAS -->
+          
+          <!-- Botón para desplegar/ocultar la tabla de lista de compras -->
+          <div class="tabla-toggle-section">
+            <button @click="toggleListaCompras" class="btn-desplegar-tabla" :class="{ 'activo': listaComprasVisible }" style="background: linear-gradient(135deg, #28a745, #20c997);">
+              <i class="fas" :class="listaComprasVisible ? 'fa-chevron-up' : 'fa-shopping-cart'"></i>
+              {{ listaComprasVisible ? 'Ocultar Lista de Compras' : 'Mostrar Lista de Compras' }}
+              <span class="badge-contador">
+                {{ listaComprasFiltrada.length }}
+              </span>
+            </button>
+          </div>
+
+          <!-- Tabla de Lista de Compras (colapsable) -->
+          <div class="card reporte-table tabla-lista-compras-colapsable" :class="{ 'visible': listaComprasVisible }">
+            <div class="table-header-reportes">
+              <h3 class="card-title">📋 Lista de Compras - Próxima Semana</h3>
+            </div>
+            <div class="table-scroll-container">
+              <table class="reporte-table-content">
+                <thead>
+                  <tr>
+                    <th>Insumo</th>
+                    <th>Stock Actual</th>
+                    <th>Stock Mínimo</th>
+                    <th>Pedidos</th>
+                    <th>Total a Comprar</th>
+                    <th>Proveedor</th>
+                    <th>Día Compra</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="item in listaComprasFiltrada" :key="'compra-' + item.id"
+                    :class="{ 'fila-urgente': item.totalComprar > 0 }">
+                    <td class="columna-insumo-nombre">
+                      {{ item.nombre }}
+                      <span class="categoria-insumo">({{ item.categoria }})</span>
+                    </td>
+                    <td class="columna-stock-actual">
+                      {{ formatDecimal(item.stockActual) }} {{ item.unidad }}
+                    </td>
+                    <td class="columna-stock-minimo">
+                      {{ formatDecimal(item.stockMinimo) }} {{ item.unidad }}
+                    </td>
+                    <td class="columna-pedidos">
+                      {{ formatDecimal(item.pedidos) }} {{ item.unidad }}
+                    </td>
+                    <td class="columna-total-comprar">
+                      <strong>{{ formatDecimal(item.totalComprar) }} {{ item.unidad }}</strong>
+                    </td>
+                    <td class="columna-proveedor">
+                      {{ item.proveedor || "Sin proveedor" }}
+                    </td>
+                    <td class="columna-dia-compra">
+                      <span class="badge-dia" :class="getClaseDiaCompra(item.diaCompra)">
+                        {{ item.diaCompra }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div v-if="loadingListaCompras" class="loading-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Cargando lista de compras...</p>
+              </div>
+              <div v-else-if="listaComprasFiltrada.length === 0" class="empty-state">
+                <i class="fas fa-check-circle"></i>
+                <p>No hay insumos para comprar con los filtros actuales</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Botón Generar PDF para lista de compras -->
+          <div class="seccion-pdf" v-if="listaComprasVisible && listaComprasFiltrada.length > 0">
+            <button @click="generarPDFListaCompras" class="btn-generar-pdf" style="background: linear-gradient(135deg, #28a745, #20c997);">
+              <i class="fas fa-file-pdf"></i>
+              Generar Lista de Compras PDF
+            </button>
+
+            <div v-if="generandoPDFListaCompras" class="estado-generando-pdf">
               <i class="fas fa-spinner fa-spin"></i>
               Generando PDF...
             </div>
@@ -170,8 +255,9 @@ const router = useRouter();
 // Referencia al sidebar para controlarlo desde el header
 const sidebarRef = ref(null);
 
-// Estado para controlar visibilidad de la tabla
+// Estado para controlar visibilidad de las tablas
 const tablaVisible = ref(false);
+const listaComprasVisible = ref(false);
 
 // Método para alternar el sidebar desde el header
 const toggleSidebar = () => {
@@ -180,18 +266,26 @@ const toggleSidebar = () => {
   }
 };
 
-// Método para alternar visibilidad de la tabla
+// Método para alternar visibilidad de la tabla de reportes
 const toggleTabla = () => {
   tablaVisible.value = !tablaVisible.value;
+};
+
+// Método para alternar visibilidad de la tabla de lista de compras
+const toggleListaCompras = () => {
+  listaComprasVisible.value = !listaComprasVisible.value;
 };
 
 // ----------------------
 // 🔹 Estado y Datos
 // ----------------------
 const reportes = ref([]);
+const listaCompras = ref([]);
 const proveedores = ref([]);
 const loading = ref(true);
+const loadingListaCompras = ref(false);
 const generandoPDF = ref(false);
+const generandoPDFListaCompras = ref(false);
 const mostrarFiltros = ref(false);
 const isMobile = ref(false);
 
@@ -230,6 +324,20 @@ const reporteFiltrado = computed(() => {
   return filtered;
 });
 
+const listaComprasFiltrada = computed(() => {
+  let filtered = [...listaCompras.value];
+
+  // Filtrar por proveedor
+  if (filtros.value.proveedorId) {
+    filtered = filtered.filter(
+      (item) => item.proveedorId === parseInt(filtros.value.proveedorId)
+    );
+  }
+
+  // Mostrar solo los insumos que necesitan compra
+  return filtered.filter(item => item.totalComprar > 0);
+});
+
 const insumosReponer = computed(() => {
   return reporteFiltrado.value.filter((item) => item.necesitaReposicion).length;
 });
@@ -240,6 +348,7 @@ const insumosReponer = computed(() => {
 const aplicarFiltros = () => {
   // Recargar datos con los filtros aplicados
   fetchReportes();
+  fetchListaCompras();
 };
 
 const limpiarFiltros = () => {
@@ -249,6 +358,7 @@ const limpiarFiltros = () => {
     proveedorId: "",
   };
   fetchReportes();
+  fetchListaCompras();
 };
 
 const formatDecimal = (value) => {
@@ -256,6 +366,16 @@ const formatDecimal = (value) => {
   // Eliminar ceros decimales innecesarios
   const num = parseFloat(value);
   return num % 1 === 0 ? num.toString() : num.toFixed(3).replace(/\.?0+$/, "");
+};
+
+const getClaseDiaCompra = (dia) => {
+  const clasesDias = {
+    'Lunes': 'dia-lunes',
+    'Martes': 'dia-martes', 
+    'Jueves': 'dia-jueves',
+    'Viernes': 'dia-viernes'
+  };
+  return clasesDias[dia] || 'dia-default';
 };
 
 const generarPDF = async () => {
@@ -296,6 +416,44 @@ const generarPDF = async () => {
   }
 };
 
+const generarPDFListaCompras = async () => {
+  try {
+    generandoPDFListaCompras.value = true;
+
+    // Construir parámetros de filtro para el PDF
+    const params = {};
+    if (filtros.value.fechaInicio)
+      params.fecha_inicio = filtros.value.fechaInicio;
+    if (filtros.value.fechaFin) params.fecha_fin = filtros.value.fechaFin;
+    if (filtros.value.proveedorId)
+      params.proveedor_id = filtros.value.proveedorId;
+
+    // Hacer la petición para generar el PDF de lista de compras
+    const response = await axios.get("/api/reportes/generar-pdf-lista-compras/", {
+      params: params,
+      responseType: "blob",
+    });
+
+    // Crear un enlace temporal para descargar el PDF
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute(
+      "download",
+      `lista_compras_${new Date().toISOString().split("T")[0]}.pdf`
+    );
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al generar PDF de lista de compras:", error);
+    alert("Error al generar el PDF. Por favor, intente nuevamente.");
+  } finally {
+    generandoPDFListaCompras.value = false;
+  }
+};
+
 // ----------------------
 // 🔹 Fetch Datos
 // ----------------------
@@ -331,32 +489,47 @@ const fetchReportes = async () => {
     }));
   } catch (error) {
     console.error("Error al cargar reportes:", error);
-
-    // ✅ MEJORAR el fallback
-    try {
-      const insumosResponse = await axios.get("/api/insumos/");
-      if (insumosResponse.data && insumosResponse.data.insumos) {
-        reportes.value = insumosResponse.data.insumos.map((item) => ({
-          id: item.id,
-          nombre: item.nombre,
-          categoria: item.categoria?.nombre || "Sin categoría",
-          stockUsado: 0, // No disponible sin el endpoint de reportes
-          stockActual: item.stock_actual,
-          stockMinimo: item.stock_minimo,
-          unidad: item.unidad_medida?.abreviatura || "u",
-          necesitaReposicion: item.necesita_reposicion,
-          proveedor: item.proveedor?.nombre || "Sin proveedor",
-          proveedorId: item.proveedor?.id || null,
-        }));
-      } else {
-        reportes.value = [];
-      }
-    } catch (fallbackError) {
-      console.error("Error en fallback:", fallbackError);
-      reportes.value = [];
-    }
+    reportes.value = [];
   } finally {
     loading.value = false;
+  }
+};
+
+const fetchListaCompras = async () => {
+  try {
+    loadingListaCompras.value = true;
+
+    const params = {};
+    if (filtros.value.fechaInicio)
+      params.fecha_inicio = filtros.value.fechaInicio;
+    if (filtros.value.fechaFin) params.fecha_fin = filtros.value.fechaFin;
+    if (filtros.value.proveedorId)
+      params.proveedor_id = filtros.value.proveedorId;
+
+    const response = await axios.get("/api/reportes/lista-compras/", { params });
+
+    if (!response.data) {
+      throw new Error("No se recibieron datos del servidor para lista de compras");
+    }
+
+    listaCompras.value = response.data.map((item) => ({
+      id: item.id,
+      nombre: item.nombre,
+      categoria: item.categoria,
+      stockActual: item.stock_actual,
+      stockMinimo: item.stock_minimo,
+      pedidos: item.pedidos || 0,
+      totalComprar: item.total_comprar || 0,
+      unidad: item.unidad_medida?.abreviatura || "u",
+      proveedor: item.proveedor?.nombre || "Sin proveedor",
+      proveedorId: item.proveedor?.id || null,
+      diaCompra: item.dia_compra || "Sin asignar"
+    }));
+  } catch (error) {
+    console.error("Error al cargar lista de compras:", error);
+    listaCompras.value = [];
+  } finally {
+    loadingListaCompras.value = false;
   }
 };
 
@@ -378,7 +551,7 @@ onMounted(() => {
     return;
   }
 
-  Promise.all([fetchReportes(), fetchProveedores()]).catch((error) => {
+  Promise.all([fetchReportes(), fetchListaCompras(), fetchProveedores()]).catch((error) => {
     console.error("Error cargando datos:", error);
     if (error.response?.status === 401) {
       router.push("/login");
@@ -449,7 +622,8 @@ onMounted(() => {
 }
 
 /* -------------------- TABLA COLAPSABLE -------------------- */
-.tabla-reportes-colapsable {
+.tabla-reportes-colapsable,
+.tabla-lista-compras-colapsable {
   max-height: 0;
   overflow: hidden;
   transition: all 0.4s ease;
@@ -458,14 +632,16 @@ onMounted(() => {
   width: 100%;
 }
 
-.tabla-reportes-colapsable.visible {
+.tabla-reportes-colapsable.visible,
+.tabla-lista-compras-colapsable.visible {
   max-height: 80vh;
   opacity: 1;
   margin-bottom: 20px;
 }
 
 /* Asegurar que la tabla ocupe espacio cuando está visible */
-.card.reporte-table.tabla-reportes-colapsable.visible {
+.card.reporte-table.tabla-reportes-colapsable.visible,
+.card.reporte-table.tabla-lista-compras-colapsable.visible {
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -638,6 +814,16 @@ onMounted(() => {
   background-color: rgba(220, 53, 69, 0.1);
 }
 
+/* Filas urgentes en lista de compras */
+.fila-urgente td {
+  background-color: rgba(40, 167, 69, 0.05);
+  border-left: 3px solid var(--color-success);
+}
+
+.fila-urgente:hover td {
+  background-color: rgba(40, 167, 69, 0.1);
+}
+
 /* Columnas específicas */
 .columna-insumo-nombre {
   font-weight: 500;
@@ -652,9 +838,17 @@ onMounted(() => {
 
 .columna-stock-usado,
 .columna-stock-actual,
-.columna-stock-minimo {
+.columna-stock-minimo,
+.columna-pedidos {
   font-family: monospace;
   font-weight: 500;
+}
+
+.columna-total-comprar {
+  font-family: monospace;
+  font-weight: 600;
+  color: var(--color-success);
+  text-align: center;
 }
 
 .columna-reposicion {
@@ -663,6 +857,10 @@ onMounted(() => {
 
 .columna-proveedor {
   color: #555;
+}
+
+.columna-dia-compra {
+  text-align: center;
 }
 
 /* Badges específicos para reportes */
@@ -682,6 +880,36 @@ onMounted(() => {
 .badge.success {
   background: linear-gradient(135deg, #28a745, #20c997);
   color: white;
+}
+
+/* Badges para días de compra */
+.badge-dia {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-block;
+  color: white;
+}
+
+.dia-lunes {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+}
+
+.dia-martes {
+  background: linear-gradient(135deg, #6f42c1, #563d7c);
+}
+
+.dia-jueves {
+  background: linear-gradient(135deg, #e83e8c, #d91a72);
+}
+
+.dia-viernes {
+  background: linear-gradient(135deg, #fd7e14, #e55a00);
+}
+
+.dia-default {
+  background: linear-gradient(135deg, #6c757d, #495057);
 }
 
 /* -------------------- BOTÓN PDF -------------------- */
@@ -778,22 +1006,18 @@ onMounted(() => {
     padding: 0 5px;
   }
 
-  .badge-contador {
-    right: 15px;
-  }
-
   .estadisticas-reporte {
     flex-direction: column;
     gap: 10px;
   }
 
   .estadisticas-reporte .estadistica-badge {
-    min-width: 100%;
+    min-width: unset;
   }
 
   .filtros-derecha {
     flex-direction: column;
-    width: 100%;
+    align-items: stretch;
   }
 
   .filtro-group {
@@ -802,177 +1026,60 @@ onMounted(() => {
 
   .filtro-input,
   .filtro-select {
-    min-width: 100%;
     width: 100%;
-    font-size: 16px;
-  }
-
-  /* Responsive para tabla sticky */
-  .card.reporte-table.tabla-reportes-colapsable.visible {
-    height: 60vh;
-  }
-  
-  .table-scroll-container {
-    max-height: calc(60vh - 60px);
-  }
-  
-  .reporte-table-content {
-    min-width: 700px;
-  }
-
-  .reporte-table-content th,
-  .reporte-table-content td {
-    padding: 12px 8px;
-    font-size: 0.85rem;
-  }
-
-  .categoria-insumo {
-    display: block;
-    margin-top: 2px;
   }
 
   .seccion-pdf {
     flex-direction: column;
-    gap: 15px;
-    text-align: center;
+    gap: 10px;
   }
 
   .btn-generar-pdf {
     width: 100%;
     justify-content: center;
   }
-}
 
-@media (max-width: 480px) {
-  .btn-desplegar-tabla {
-    padding: 14px 16px;
-    font-size: 0.95rem;
-  }
-
-  .badge-contador {
-    right: 12px;
-    font-size: 11px;
-  }
-
-  .reportes-container {
-    padding: 0;
-  }
-
-  .card.reporte-table {
-    margin-left: 5px;
-    margin-right: 5px;
-  }
-
-  .card-title1 {
-    font-size: 1.3rem;
-  }
-
-  .estadistica-badge {
-    font-size: 0.75rem;
-    padding: 10px 12px;
-  }
-
-  .empty-state {
-    padding: 2rem 1rem;
-  }
-
-  .empty-state i {
-    font-size: 2.5rem;
-  }
-
-  /* Ajustes móviles para sticky */
-  .card.reporte-table.tabla-reportes-colapsable.visible {
-    height: 50vh;
-  }
-  
+  /* Ajustes para tabla en móvil */
   .table-scroll-container {
-    max-height: calc(50vh - 60px);
-  }
-  
-  .reporte-table-content {
-    min-width: 650px;
+    max-height: 60vh;
   }
 
-  .reporte-table-content th {
+  .reporte-table-content {
+    font-size: 0.8rem;
+  }
+
+  .reporte-table-content th,
+  .reporte-table-content td {
     padding: 8px 4px;
-    font-size: 0.75rem;
   }
 
   .categoria-insumo {
     display: block;
-    margin-top: 2px;
+    font-size: 0.7rem;
   }
 }
 
-/* Para pantallas muy grandes, limitar el ancho máximo si es necesario */
-@media (min-width: 1200px) {
-  .btn-desplegar-tabla {
-    max-width: 1200px;
-  }
+/* Scrollbar personalizado */
+.table-scroll-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-/* -------------------- MEJORAS ESPECÍFICAS PARA TOUCH -------------------- */
-@media (hover: none) and (pointer: coarse) {
-  .btn-desplegar-tabla,
-  .btn-generar-pdf {
-    min-height: 44px;
-    padding: 12px 16px;
-  }
-
-  .filtro-input,
-  .filtro-select {
-    min-height: 44px;
-    font-size: 16px;
-  }
-
-  .reporte-table-content tr {
-    min-height: 44px;
-  }
-
-  .reporte-table-content td {
-    padding-top: 14px;
-    padding-bottom: 14px;
-  }
+.table-scroll-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
 }
 
-/* -------------------- MEJORAS DE ACCESIBILIDAD -------------------- */
-@media (prefers-reduced-motion: reduce) {
-  .btn-desplegar-tabla,
-  .btn-generar-pdf {
-    transition: none;
-  }
-
-  .estadistica-badge.critico {
-    animation: none;
-  }
-
-  .estadistica-badge.loading i {
-    animation: none;
-  }
+.table-scroll-container::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 4px;
 }
 
-/* -------------------- ORIENTACIÓN HORIZONTAL EN MÓVILES -------------------- */
-@media (max-height: 500px) and (orientation: landscape) {
-  .card.reporte-table.tabla-reportes-colapsable.visible {
-    height: 50vh;
-  }
-
-  .table-scroll-container {
-    max-height: calc(50vh - 60px);
-  }
-
-  .estadisticas-reporte {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .estadisticas-reporte .estadistica-badge {
-    min-width: auto;
-    flex: 1;
-  }
+.table-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #6d4c41;
 }
 
-/* Animación de pulso para el badge crítico */
+/* Animación de pulso para alertas */
 @keyframes pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
@@ -983,30 +1090,5 @@ onMounted(() => {
   100% {
     box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
   }
-}
-
-/* Prevenir que los estilos de Stock.vue afecten esta tabla */
-.reportes-container .stock-list,
-.reportes-container .stock-item,
-.reportes-container .stock-header-compact,
-.reportes-container .insumo-nombre,
-.reportes-container .insumo-badge {
-  all: unset;
-}
-
-/* Asegurar que la tabla sea independiente */
-.card.reporte-table {
-  isolation: isolate;
-}
-
-/* Reset específico para elementos de tabla en reportes */
-.reportes-container table,
-.reportes-container tbody,
-.reportes-container thead,
-.reportes-container tr,
-.reportes-container th,
-.reportes-container td {
-  box-sizing: border-box;
-  border-spacing: 0;
 }
 </style>
