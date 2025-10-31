@@ -750,13 +750,6 @@ const notificacionesRecetasNoRentables = computed(() => {
       const precioVenta = parseFloat(receta.precio_venta) || 0;
       const esNoRentable = precioVenta <= costoTotal;
 
-      console.log(`📊 Validación rentabilidad "${receta.nombre}":`, {
-        costo_total: costoTotal,
-        precio_venta: precioVenta,
-        diferencia: precioVenta - costoTotal,
-        esNoRentable: esNoRentable,
-      });
-
       return esNoRentable;
     })
     .filter((notif) => !notif.leida); // Solo mostrar no leídas
@@ -1131,7 +1124,7 @@ const agregarInsumoAReceta = async () => {
       type: "error",
       title: "Error",
       message: errorMessage,
-      timeout: 8000,
+      timeout: 4000,
     });
   }
 };
@@ -1251,14 +1244,14 @@ const guardarRecetaBasica = async () => {
         type: "error",
         title: "Error al guardar receta",
         message: errorMessage,
-        timeout: 8000,
+        timeout: 4000,
       });
     } else {
       notificationSystem.show({
         type: "error",
         title: "Error",
         message: "Error al guardar la receta",
-        timeout: 6000,
+        timeout: 4000,
       });
     }
   }
@@ -1695,7 +1688,7 @@ const verificarRentabilidadYNotificar = (receta) => {
         )} vs Venta: $${formatDecimal(precioVenta)} (Pérdida: $${formatDecimal(
           Math.abs(margen)
         )})`,
-        timeout: 8000,
+        timeout: 4000,
       });
     }
 
@@ -1709,7 +1702,7 @@ const verificarRentabilidadYNotificar = (receta) => {
       message: `"${receta.nombre}" tiene margen bajo: $${formatDecimal(
         margen
       )} (${formatDecimal((margen / costoTotal) * 100)}%)`,
-      timeout: 6000,
+      timeout: 4000,
     });
   }
 };
@@ -2168,6 +2161,223 @@ onMounted(() => {
   background: rgba(40, 167, 69, 0.1);
   padding: 3px 6px;
   border-radius: 4px;
+}
+
+/* Nuevos estilos específicos para el modal de insumos */
+.insumos-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.insumos-section h4 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: var(--color-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: #495057;
+}
+
+.form-input,
+.form-input-small {
+  padding: 10px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.form-input:focus,
+.form-input-small:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(156, 122, 109, 0.1);
+}
+
+.form-input-small {
+  padding: 8px 10px;
+  font-size: 0.9rem;
+}
+
+.select-with-button {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-agregar-nuevo {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-agregar-nuevo:hover {
+  background: #9c7a6d;
+  transform: translateY(-1px);
+}
+
+.btn-agregar-insumo-modal {
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.btn-agregar-insumo-modal:hover:not(:disabled) {
+  background: #218838;
+  transform: translateY(-1px);
+}
+
+.btn-agregar-insumo-modal:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.insumos-existente-section {
+  margin-top: 25px;
+}
+
+.insumos-existente-section h4 {
+  margin-bottom: 15px;
+  color: var(--color-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.insumo-existente-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  margin-bottom: 8px;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.insumo-existente-item:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.insumo-info {
+  flex: 1;
+  font-size: 0.95rem;
+}
+
+.insumo-costo {
+  color: #28a745;
+  font-weight: 500;
+  font-size: 0.85rem;
+  margin-left: 8px;
+}
+
+.insumo-edit-form {
+  flex: 1;
+}
+
+.edit-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.insumo-acciones {
+  display: flex;
+  gap: 5px;
+  margin-left: 15px;
+}
+
+.btn-accion-small {
+  background: none;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+}
+
+.btn-accion-small:hover {
+  background: #f8f9fa;
+  transform: translateY(-1px);
+}
+
+.btn-confirmar {
+  color: #28a745;
+}
+
+.btn-confirmar:hover {
+  background: #d4edda;
+}
+
+.btn-eliminar-modal {
+  color: #dc3545;
+}
+
+.btn-eliminar-modal:hover {
+  background: #f8d7da;
+}
+
+.btn-cancelar {
+  color: #6c757d;
+}
+
+.btn-cancelar:hover {
+  background: #f8f9fa;
+}
+
+.sin-insumos {
+  text-align: center;
+  padding: 30px;
+  color: #6c757d;
+  font-style: italic;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px dashed #dee2e6;
+}
+
+.sin-insumos i {
+  margin-right: 8px;
+  color: var(--color-primary);
 }
 
 /* ----------------------------- ALERTAS DE RECETA ----------------------------- */

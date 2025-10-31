@@ -1405,14 +1405,10 @@ watch(
 // AGREGAR: Método para reposición rápida
 const reponerStockRapido = (item) => {
   esReposicionRapida.value = true;
-  insumoReposicionRapida.value = item;
+  insumoReposicionRapida.value = 0;
   formCompra.value.insumo_id = item.id;
-  // Calcular cantidad sugerida: suficiente para llegar al stock mínimo + 20%
-  const cantidadSugerida = Math.max(
-    item.stock_minimo * 1.2 - item.cantidad,
-    item.stock_minimo * 0.5
-  );
-  formCompra.value.cantidad = Math.ceil(cantidadSugerida * 100) / 100;
+  // Siempre poner 0 en lugar de calcular
+  formCompra.value.cantidad = 0;
   actualizarUnidadMedida();
   showModalCompra.value = true;
 };
