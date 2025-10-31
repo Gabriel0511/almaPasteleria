@@ -15,11 +15,30 @@ class UnidadMedida(models.Model):
         return f"{self.nombre} ({self.abreviatura})"
     
     def convertir_a(self, cantidad, unidad_destino):
-        # Convertir a unidad base primero
-        cantidad_base = cantidad * self.factor_conversion_base
-        
-        # Convertir de base a destino
-        return cantidad_base / unidad_destino.factor_conversion_base
+        """
+        Convierte una cantidad de esta unidad a otra unidad
+        """
+        try:
+            # Si es la misma unidad, no hay conversión
+            if self == unidad_destino:
+                return cantidad
+            
+            # Convertir a unidad base primero
+            if self.es_unidad_base:
+                cantidad_base = cantidad
+            else:
+                cantidad_base = cantidad * self.factor_conversion_base
+            
+            # Convertir de base a destino
+            if unidad_destino.es_unidad_base:
+                return cantidad_base
+            else:
+                return cantidad_base / unidad_destino.factor_conversion_base
+                
+        except Exception as e:
+            print(f"Error en conversión de unidades: {e}")
+            # Fallback: devolver la cantidad original
+            return cantidad
 
 # --- PROVEEDORES ---
 class Proveedor(models.Model):

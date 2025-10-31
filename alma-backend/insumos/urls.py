@@ -1,7 +1,17 @@
-# urls.py - Versión actualizada
+# urls.py - Versión corregida
 from django.urls import path
 from . import views
-from .views import UnidadMedidaListAPIView, UnidadMedidaDetailAPIView, UnidadMedidaCreateAPIView , CategoriaInsumoListAPIView, ProveedorListAPIView, ProveedorCreateAPIView, CategoriaInsumoCreateAPIView, ReporteInsumosAPIView, GenerarPDFReporteAPIView
+from .views import (
+    UnidadMedidaListAPIView, 
+    UnidadMedidaDetailAPIView, 
+    UnidadMedidaCreateAPIView, 
+    CategoriaInsumoListAPIView, 
+    ProveedorListAPIView, 
+    ProveedorCreateAPIView, 
+    CategoriaInsumoCreateAPIView, 
+    ReporteInsumosAPIView,
+    ListaComprasAPIView
+)
 
 urlpatterns = [
     # GET - Listar todos los insumos
@@ -23,6 +33,7 @@ urlpatterns = [
     # DELETE - Eliminación permanente (cuidado)
     path('insumos/<int:id>/eliminar-permanentemente/', views.InsumoHardDeleteAPIView.as_view(), name='insumos-hard-delete'),
 
+    # Unidades de medida
     path('unidades-medida/', UnidadMedidaListAPIView.as_view(), name='unidades-medida-list'),
     path('unidades-medida/<int:pk>/', UnidadMedidaDetailAPIView.as_view(), name='unidades-medida-detail'),
     path('unidades-medida/crear/', UnidadMedidaCreateAPIView.as_view(), name='unidades-medidas-create'),
@@ -30,21 +41,15 @@ urlpatterns = [
     # Rutas para categorías
     path('categorias/', CategoriaInsumoListAPIView.as_view(), name='categorias-list'),
     path('categorias/crear/', CategoriaInsumoCreateAPIView.as_view(), name='categorias-create'),
-    
- # Rutas para Unidad Mediad
-    path('Unidades/', CategoriaInsumoListAPIView.as_view(), name='categorias-list'),
-    path('categorias/crear/', CategoriaInsumoCreateAPIView.as_view(), name='categorias-create'),
 
-    # Rutas para proveedores - CORREGIDAS
+    # Rutas para proveedores
     path('proveedores/', ProveedorListAPIView.as_view(), name='proveedores-list'),
     path('proveedores/crear/', ProveedorCreateAPIView.as_view(), name='proveedores-create'),
 
-    # NUEVAS RUTAS PARA REPORTES
+    # Reportes - Rutas corregidas (sin duplicados)
     path('reportes/insumos/', ReporteInsumosAPIView.as_view(), name='reportes-insumos'),
-    path('reportes/generar-pdf/', GenerarPDFReporteAPIView.as_view(), name='reportes-generar-pdf'),
-
-    # Reportes
-    path('api/reportes/insumos/', views.ReporteInsumosAPIView.as_view(), name='reporte_insumos'),
-    path('api/reportes/lista-compras/', views.ListaComprasAPIView.as_view(), name='lista_compras'),
-    path('api/reportes/lista-compras-simple/', views.lista_compras_simple, name='lista_compras_simple'),
+    path('reportes/lista-compras/', ListaComprasAPIView.as_view(), name='lista-compras'),
+    
+    # Lista de compras simple (función basada en vista)
+    path('reportes/lista-compras-simple/', views.lista_compras_simple, name='lista-compras-simple'),
 ]
