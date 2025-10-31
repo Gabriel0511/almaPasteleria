@@ -2668,9 +2668,20 @@ onUnmounted(() => {
   transition: all 0.3s ease;
 }
 
+.pedido-item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  opacity: 0.8;
+}
+
 .pedido-item:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-1px);
+  border-color: var(--color-primary);
 }
 
 .pedido-item.pedido-atrasado {

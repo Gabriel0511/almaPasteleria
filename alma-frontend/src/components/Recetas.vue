@@ -6,13 +6,21 @@
       <Header @toggle-sidebar="toggleSidebar" />
       <main class="main-content">
         <section class="principal-content">
-          <h3 class="card-title1">Gestión de Recetas</h3>
+          <h3 class="card-title1" :class="{ 'mobile-center': isMobile }">
+            Gestión de Recetas
+          </h3>
 
-          <!-- AGREGAR: Contador de recetas no rentables -->
+          <!-- Estadísticas de recetas -->
           <div class="estadisticas-stock">
-            <div class="estadistica-item" v-if="notificacionesRecetasNoRentables.length > 0">
-              <span class="estadistica-badge bajo animacion-pulsante" @click="marcarTodasComoLeidas"
-                title="Marcar todas como leídas">
+            <div
+              class="estadistica-item"
+              v-if="notificacionesRecetasNoRentables.length > 0"
+            >
+              <span
+                class="estadistica-badge bajo animacion-pulsante"
+                @click="marcarTodasComoLeidas"
+                title="Marcar todas como leídas"
+              >
                 <i class="fas fa-exclamation-circle"></i>
                 {{ notificacionesRecetasNoRentables.length }} no rentable(s)
                 <i class="fas fa-check ml-2" style="font-size: 0.7rem"></i>
@@ -29,12 +37,17 @@
           <!-- Filtros de recetas -->
           <div class="filtros-derecha">
             <div class="filtro-group">
-              <input type="text" v-model="searchTerm" placeholder="Buscar receta..." class="filtro-input" />
+              <input
+                type="text"
+                v-model="searchTerm"
+                placeholder="Buscar receta..."
+                class="filtro-input"
+              />
             </div>
           </div>
         </section>
 
-        <!-- Card principal de recetas -->
+        <!-- Card principal de recetas - ESTILO COMO STOCK -->
         <div class="card recetas-card">
           <div v-if="loading" class="loading-state">
             <i class="fas fa-spinner fa-spin"></i> Cargando recetas...
@@ -46,208 +59,242 @@
           </div>
 
           <div v-else class="recetas-list">
-            <div v-for="receta in recetasFiltradas" :key="receta.id" class="receta-item" :class="{
-              expanded: recetaDesplegada[receta.id],
-            }">
-              <!-- Contenedor principal del header -->
-              <div class="receta-item-main">
-                <!-- Header que ocupa todo el ancho -->
-                <!-- En la sección del receta-item, modificar el receta-header-full -->
-                <div class="receta-header-full cursor-pointer" @click="toggleReceta(receta.id)">
-                  <div class="receta-header-content">
-                    <div class="receta-info-main">
-                      <div class="receta-titulo">
-                        <span class="receta-nombre">{{ receta.nombre }}</span>
-                        <span class="receta-badge">{{ (receta.insumos || []).length }} insumos</span>
-                      </div>
-                      <div class="receta-datos-compact">
-                        <div class="dato-grupo">
-                          <i class="fas fa-utensils"></i>
-                          <span class="receta-rinde">
-                            Rinde {{ receta.rinde }} {{ receta.unidad_rinde }}
-                          </span>
-                        </div>
-                        <div class="dato-grupo">
-                          <i class="fas fa-dollar-sign"></i>
-                          <span class="receta-costo">
-                            ${{ formatDecimal(receta.costo_total) }}
-                          </span>
-                        </div>
-                        <div class="dato-grupo">
-                          <i class="fas fa-tag"></i>
-                          <span class="receta-precio">
-                            ${{ formatDecimal(receta.precio_venta) }}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+            <div
+              v-for="receta in recetasFiltradas"
+              :key="receta.id"
+              class="receta-item"
+              :class="{
+                'no-rentable': receta.precio_venta <= receta.costo_total,
+                expanded: recetaDesplegada[receta.id],
+              }"
+            >
+              <!-- Contenedor principal compacto - ESTILO COMO STOCK -->
+              <div class="receta-item-compact">
+                <!-- Indicador de estado -->
+                <div
+                  class="estado-indicador"
+                  :class="{
+                    critico: receta.precio_venta <= receta.costo_total,
+                    normal: receta.precio_venta > receta.costo_total,
+                  }"
+                ></div>
 
-                    <div class="receta-header-right" @click.stop>
-                      <span class="receta-estado-badge" :class="{
-                        rentable: receta.precio_venta > receta.costo_total,
-                        noRentable: receta.precio_venta <= receta.costo_total,
-                      }">
-                        <i class="fas" :class="{
-                          'fa-check-circle':
-                            receta.precio_venta > receta.costo_total,
-                          'fa-exclamation-circle':
-                            receta.precio_venta <= receta.costo_total,
-                        }"></i>
+                <!-- Información principal -->
+                <div class="info-principal" @click="toggleReceta(receta.id)">
+                  <div class="info-header">
+                    <h4 class="receta-nombre">{{ receta.nombre }}</h4>
+                    <div class="badges-container">
+                      <span class="badge-cantidad">
+                        {{ (receta.insumos || []).length }} insumos
+                      </span>
+                      <span
+                        class="badge-rentabilidad"
+                        :class="
+                          receta.precio_venta > receta.costo_total
+                            ? 'rentable'
+                            : 'no-rentable'
+                        "
+                      >
                         {{
                           receta.precio_venta > receta.costo_total
                             ? "Rentable"
                             : "No Rentable"
                         }}
                       </span>
+                    </div>
+                  </div>
 
-                      <div class="receta-acciones">
-                        <button class="btn-accion btn-editar" @click="editarReceta(receta)" title="Editar receta">
-                          <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-accion btn-eliminar" @click="confirmarEliminarReceta(receta)"
-                          title="Eliminar receta">
-                          <i class="fas fa-trash"></i>
-                        </button>
-                        <button class="btn-accion btn-desplegable" @click="toggleReceta(receta.id)" :title="recetaDesplegada[receta.id]
-                            ? 'Ocultar detalles'
-                            : 'Mostrar detalles'
-                          ">
-                          <i class="fas" :class="recetaDesplegada[receta.id]
-                              ? 'fa-chevron-up'
-                              : 'fa-chevron-down'
-                            "></i>
-                        </button>
+                  <div class="info-detalles">
+                    <div class="detalle-grupo">
+                      <div class="detalle-item">
+                        <span class="detalle-label">Rinde:</span>
+                        <span class="detalle-valor">
+                          {{ receta.rinde }} {{ receta.unidad_rinde }}
+                        </span>
+                      </div>
+                      <div class="detalle-item">
+                        <span class="detalle-label">Costo:</span>
+                        <span class="detalle-valor">
+                          ${{ formatDecimal(receta.costo_total) }}
+                        </span>
+                      </div>
+                      <div class="detalle-item">
+                        <span class="detalle-label">Venta:</span>
+                        <span class="detalle-valor">
+                          ${{ formatDecimal(receta.precio_venta) }}
+                        </span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <!-- Desplegable que aparece en la parte inferior del receta-item -->
-                <div v-if="recetaDesplegada[receta.id]" class="receta-detalles-container">
-                  <div class="detalles-content">
-                    <!-- Información de rentabilidad -->
-                    <div class="receta-rentabilidad-info">
-                      <h4>
-                        <i class="fas fa-chart-line"></i> Información de
-                        Rentabilidad
-                      </h4>
-                      <div class="receta-rentabilidad-grid">
-                        <div class="rentabilidad-item">
-                          <span class="rentabilidad-label">Costo Total:</span>
-                          <span class="rentabilidad-valor">
-                            ${{ formatDecimal(receta.costo_total) }}
-                          </span>
-                        </div>
-                        <div class="rentabilidad-item">
-                          <span class="rentabilidad-label">Precio de Venta:</span>
-                          <span class="rentabilidad-valor">
-                            ${{ formatDecimal(receta.precio_venta) }}
-                          </span>
-                        </div>
-                        <div class="rentabilidad-item">
-                          <span class="rentabilidad-label">Ganancia:</span>
-                          <span class="rentabilidad-valor" :class="{
-                            positiva:
-                              receta.precio_venta > receta.costo_total,
-                            negativa:
-                              receta.precio_venta <= receta.costo_total,
-                          }">
-                            ${{
-                              formatDecimal(
-                                receta.precio_venta - receta.costo_total
-                              )
-                            }}
-                          </span>
-                        </div>
-                        <div class="rentabilidad-item">
-                          <span class="rentabilidad-label">Margen:</span>
-                          <span class="rentabilidad-valor" :class="{
-                            positiva:
-                              receta.precio_venta > receta.costo_total,
-                            negativa:
-                              receta.precio_venta <= receta.costo_total,
-                          }">
-                            {{
-                              receta.costo_total > 0
-                                ? formatDecimal(
-                                  ((receta.precio_venta -
-                                    receta.costo_total) /
+                <!-- Acciones -->
+                <div class="acciones-container">
+                  <button
+                    class="btn-accion btn-gestionar"
+                    @click="agregarInsumosAReceta(receta)"
+                    title="Gestionar insumos"
+                  >
+                    <i class="fas fa-list"></i>
+                  </button>
+                  <button
+                    class="btn-accion btn-editar"
+                    @click="editarReceta(receta)"
+                    title="Editar receta"
+                  >
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button
+                    class="btn-accion btn-eliminar"
+                    @click="confirmarEliminarReceta(receta)"
+                    title="Eliminar receta"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Desplegable de detalles de la receta - MEJORADO -->
+              <div
+                v-if="recetaDesplegada[receta.id]"
+                class="receta-detalles-desplegable"
+              >
+                <div class="detalles-content">
+                  <!-- Información de rentabilidad -->
+                  <div class="receta-rentabilidad-info">
+                    <h4>
+                      <i class="fas fa-chart-line"></i> Información de
+                      Rentabilidad
+                    </h4>
+                    <div class="receta-rentabilidad-grid">
+                      <div class="rentabilidad-item">
+                        <span class="rentabilidad-label">Costo Total:</span>
+                        <span class="rentabilidad-valor">
+                          ${{ formatDecimal(receta.costo_total) }}
+                        </span>
+                      </div>
+                      <div class="rentabilidad-item">
+                        <span class="rentabilidad-label">Precio de Venta:</span>
+                        <span class="rentabilidad-valor">
+                          ${{ formatDecimal(receta.precio_venta) }}
+                        </span>
+                      </div>
+                      <div class="rentabilidad-item">
+                        <span class="rentabilidad-label">Ganancia:</span>
+                        <span
+                          class="rentabilidad-valor"
+                          :class="{
+                            positiva: receta.precio_venta > receta.costo_total,
+                            negativa: receta.precio_venta <= receta.costo_total,
+                          }"
+                        >
+                          ${{
+                            formatDecimal(
+                              receta.precio_venta - receta.costo_total
+                            )
+                          }}
+                        </span>
+                      </div>
+                      <div class="rentabilidad-item">
+                        <span class="rentabilidad-label">Margen:</span>
+                        <span
+                          class="rentabilidad-valor"
+                          :class="{
+                            positiva: receta.precio_venta > receta.costo_total,
+                            negativa: receta.precio_venta <= receta.costo_total,
+                          }"
+                        >
+                          {{
+                            receta.costo_total > 0
+                              ? formatDecimal(
+                                  ((receta.precio_venta - receta.costo_total) /
                                     receta.costo_total) *
-                                  100
+                                    100
                                 )
-                                : "0.00"
-                            }}%
-                          </span>
-                        </div>
+                              : "0.00"
+                          }}%
+                        </span>
                       </div>
                     </div>
+                  </div>
 
-                    <!-- Lista de insumos -->
-                    <div class="receta-insumos-section">
-                      <div class="insumos-header">
-                        <h4>
-                          <i class="fas fa-list"></i> Lista de Insumos ({{
-                            (receta.insumos || []).length
-                          }})
-                        </h4>
-                      </div>
-
-                      <div class="insumos-list">
-                        <div v-for="insumo in receta.insumos || []" :key="insumo.id" class="insumo-item">
-                          <div class="insumo-info">
-                            <span class="insumo-nombre">
-                              <i class="fas fa-circle" style="font-size: 6px; color: #7b5a50"></i>
-                              {{ insumo.insumo.nombre }}
-                            </span>
-                            <span class="insumo-cantidad">
-                              {{ formatDecimal(insumo.cantidad) }}
-                              {{ insumo.unidad_medida.abreviatura }}
-                            </span>
-                          </div>
-                          <div class="insumo-costo-container">
-                            <span class="insumo-costo" v-if="insumo.insumo.precio_unitario != null">
-                              ${{ formatDecimal(calcularCostoInsumo(insumo)) }}
-                              <small style="font-size: 0.7rem; opacity: 0.7">
-                                (${{
-                                  formatDecimal(insumo.insumo.precio_unitario)
-                                }}/{{
-                                  insumo.insumo.unidad_medida.abreviatura
-                                }})
-                              </small>
-                            </span>
-                            <span class="insumo-costo" v-else>
-                              Sin precio
-                              <small style="font-size: 0.7rem; opacity: 0.7">
-                                (Precio unitario no definido)
-                              </small>
-                            </span>
-                          </div>
-                        </div>
-                        <div v-if="(receta.insumos || []).length === 0" class="sin-insumos">
-                          <i class="fas fa-info-circle"></i>
-                          <p>Esta receta no tiene insumos asignados</p>
-                          <button class="btn-agregar-insumo-small" @click="agregarInsumosAReceta(receta)">
-                            <i class="fas fa-plus"></i> Agregar Insumos
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Alertas de rentabilidad -->
-                    <div v-if="receta.precio_venta <= receta.costo_total" class="receta-alerta alerta-no-rentable">
-                      <i class="fas fa-exclamation-circle"></i>
-                      <span>
-                        ¡Receta no rentable! El precio de venta no cubre los
-                        costos.
-                      </span>
-                    </div>
-
-                    <!-- Acciones rápidas -->
-                    <div class="receta-acciones-rapidas">
-                      <button class="btn-editar-insumos" @click="agregarInsumosAReceta(receta)">
-                        <i class="fas fa-edit"></i> Gestionar Insumos
+                  <!-- Lista de insumos -->
+                  <div class="receta-insumos-section">
+                    <div class="insumos-header">
+                      <h4>
+                        <i class="fas fa-list"></i> Lista de Insumos ({{
+                          (receta.insumos || []).length
+                        }})
+                      </h4>
+                      <button
+                        class="btn-agregar-insumo"
+                        @click="agregarInsumosAReceta(receta)"
+                      >
+                        <i class="fas fa-plus"></i> Gestionar Insumos
                       </button>
                     </div>
+
+                    <div class="insumos-list">
+                      <div
+                        v-for="insumo in receta.insumos || []"
+                        :key="insumo.id"
+                        class="insumo-item"
+                      >
+                        <div class="insumo-info">
+                          <span class="insumo-nombre">
+                            {{ insumo.insumo.nombre }}
+                          </span>
+                          <span class="insumo-cantidad">
+                            {{ formatDecimal(insumo.cantidad) }}
+                            {{ insumo.unidad_medida.abreviatura }}
+                          </span>
+                        </div>
+                        <div class="insumo-costo-container">
+                          <span
+                            class="insumo-costo"
+                            v-if="insumo.insumo.precio_unitario != null"
+                          >
+                            ${{ formatDecimal(calcularCostoInsumo(insumo)) }}
+                            <small style="font-size: 0.7rem; opacity: 0.7">
+                              (${{
+                                formatDecimal(insumo.insumo.precio_unitario)
+                              }}/{{ insumo.insumo.unidad_medida.abreviatura }})
+                            </small>
+                          </span>
+                          <span class="insumo-costo" v-else>
+                            Sin precio
+                            <small style="font-size: 0.7rem; opacity: 0.7">
+                              (Precio unitario no definido)
+                            </small>
+                          </span>
+                        </div>
+                      </div>
+                      <div
+                        v-if="(receta.insumos || []).length === 0"
+                        class="sin-insumos"
+                      >
+                        <i class="fas fa-info-circle"></i>
+                        <p>Esta receta no tiene insumos asignados</p>
+                        <button
+                          class="btn-agregar-insumo-small"
+                          @click="agregarInsumosAReceta(receta)"
+                        >
+                          <i class="fas fa-plus"></i> Agregar Insumos
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Alertas de rentabilidad -->
+                  <div
+                    v-if="receta.precio_venta <= receta.costo_total"
+                    class="receta-alerta alerta-no-rentable"
+                  >
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>
+                      ¡Receta no rentable! El precio de venta no cubre los
+                      costos.
+                    </span>
                   </div>
                 </div>
               </div>
@@ -255,29 +302,43 @@
           </div>
         </div>
 
-        <!-- Botón Nueva Receta flotante -->
+        <!-- Botón Nueva Receta flotante - ESTILO COMO STOCK -->
         <button class="btn-nueva-receta-flotante" @click="showNuevaRecetaModal">
           <i class="fas fa-plus"></i>
           <span>Nueva Receta</span>
         </button>
       </main>
     </div>
-
     <!-- MODALES REFACTORIZADOS -->
 
     <!-- Modal para Nueva/Editar Receta -->
-    <BaseModal v-model:show="showModalReceta" :title="esEdicion ? 'Editar Receta' : 'Nueva Receta'" size="medium"
-      @close="closeModal">
+    <BaseModal
+      v-model:show="showModalReceta"
+      :title="esEdicion ? 'Editar Receta' : 'Nueva Receta'"
+      size="medium"
+      @close="closeModal"
+    >
       <div class="form-grid">
         <div class="form-group">
           <label>Nombre:</label>
-          <input v-model="formReceta.nombre" type="text" required class="form-input"
-            placeholder="Nombre de la receta" />
+          <input
+            v-model="formReceta.nombre"
+            type="text"
+            required
+            class="form-input"
+            placeholder="Nombre de la receta"
+          />
         </div>
         <div class="form-group">
           <label>Rinde:</label>
-          <input v-model="formReceta.rinde" type="number" min="1" required class="form-input"
-            placeholder="Cantidad que rinde" />
+          <input
+            v-model="formReceta.rinde"
+            type="number"
+            min="1"
+            required
+            class="form-input"
+            placeholder="Cantidad que rinde"
+          />
         </div>
         <div class="form-group">
           <label>Unidad de Rinde:</label>
@@ -288,56 +349,102 @@
         </div>
         <div class="form-group">
           <label>Precio de Venta:</label>
-          <input v-model="formReceta.precio_venta" type="number" step="0.01" min="0.01" required class="form-input"
-            placeholder="Precio de venta" />
+          <input
+            v-model="formReceta.precio_venta"
+            type="number"
+            step="0.01"
+            min="0.01"
+            required
+            class="form-input"
+            placeholder="Precio de venta"
+          />
         </div>
       </div>
 
       <template #footer>
-        <ModalButtons :confirm-text="esEdicion ? 'Actualizar' : 'Guardar Receta'" @cancel="closeModal"
-          @confirm="guardarRecetaBasica" />
+        <ModalButtons
+          :confirm-text="esEdicion ? 'Actualizar' : 'Guardar Receta'"
+          @cancel="closeModal"
+          @confirm="guardarRecetaBasica"
+        />
       </template>
     </BaseModal>
 
     <!-- Modal para Agregar/Eliminar Insumos a Receta -->
-    <BaseModal v-model:show="showModalInsumos" :title="`Gestionar Insumos: ${recetaSeleccionada?.nombre || ''}`"
-      size="large" @close="showModalInsumos = false">
+    <BaseModal
+      v-model:show="showModalInsumos"
+      :title="`Gestionar Insumos: ${recetaSeleccionada?.nombre || ''}`"
+      size="large"
+      @close="showModalInsumos = false"
+    >
       <div class="insumos-section">
         <h4>Agregar Nuevo Insumo:</h4>
         <div class="form-grid">
           <div class="form-group">
             <label>Insumo:</label>
             <div class="select-with-button">
-              <select v-model="nuevoInsumo.insumo_id" required class="form-input" @change="actualizarUnidadNuevoInsumo">
+              <select
+                v-model="nuevoInsumo.insumo_id"
+                required
+                class="form-input"
+                @change="actualizarUnidadNuevoInsumo"
+              >
                 <option value="">Seleccione un insumo</option>
-                <option v-for="item in insumosDisponibles" :key="item.id" :value="item.id">
+                <option
+                  v-for="item in insumosDisponibles"
+                  :key="item.id"
+                  :value="item.id"
+                >
                   {{ item.nombre }} (Stock:
                   {{ formatDecimal(item.stock_actual) }}
                   {{ item.unidad_medida.abreviatura }})
                 </option>
               </select>
-              <button type="button" class="btn-agregar-nuevo" @click="showNuevoInsumoModal = true"
-                title="Agregar nuevo insumo">
+              <button
+                type="button"
+                class="btn-agregar-nuevo"
+                @click="showNuevoInsumoModal = true"
+                title="Agregar nuevo insumo"
+              >
                 <i class="fas fa-plus"></i>
               </button>
             </div>
           </div>
           <div class="form-group">
             <label>Cantidad:</label>
-            <input v-model="nuevoInsumo.cantidad" type="number" step="0.001" min="0.001" required class="form-input"
-              placeholder="0.000" />
+            <input
+              v-model="nuevoInsumo.cantidad"
+              type="number"
+              step="0.001"
+              min="0.001"
+              required
+              class="form-input"
+              placeholder="0.000"
+            />
           </div>
           <div class="form-group">
             <label>Unidad de Medida:</label>
-            <select v-model="nuevoInsumo.unidad_medida_id" required class="form-input">
+            <select
+              v-model="nuevoInsumo.unidad_medida_id"
+              required
+              class="form-input"
+            >
               <option value="">Seleccione una unidad</option>
-              <option v-for="unidad in unidadesMedida" :key="unidad.id" :value="unidad.id">
+              <option
+                v-for="unidad in unidadesMedida"
+                :key="unidad.id"
+                :value="unidad.id"
+              >
                 {{ unidad.nombre }} ({{ unidad.abreviatura }})
               </option>
             </select>
           </div>
           <div class="form-group">
-            <button class="btn-agregar-insumo-modal" @click="agregarInsumoAReceta" :disabled="!puedeAgregarInsumo">
+            <button
+              class="btn-agregar-insumo-modal"
+              @click="agregarInsumoAReceta"
+              :disabled="!puedeAgregarInsumo"
+            >
               <i class="fas fa-plus"></i> Agregar
             </button>
           </div>
@@ -348,7 +455,11 @@
         <h4>
           Insumos Actuales ({{ recetaSeleccionada?.insumos?.length || 0 }}):
         </h4>
-        <div v-for="insumo in recetaSeleccionada?.insumos || []" :key="insumo.id" class="insumo-existente-item">
+        <div
+          v-for="insumo in recetaSeleccionada?.insumos || []"
+          :key="insumo.id"
+          class="insumo-existente-item"
+        >
           <span v-if="!insumo.editando" class="insumo-info">
             {{ insumo.insumo.nombre }} - {{ formatDecimal(insumo.cantidad) }}
             {{ insumo.unidad_medida.abreviatura }}
@@ -360,14 +471,29 @@
             <div class="edit-form-grid">
               <div class="form-group">
                 <label>Cantidad:</label>
-                <input v-model.number="insumo.cantidadEdit" type="number" step="0.001" min="0.001"
-                  class="form-input-small" placeholder="0.000" @input="formatearCantidadInput($event, insumo)" />
+                <input
+                  v-model.number="insumo.cantidadEdit"
+                  type="number"
+                  step="0.001"
+                  min="0.001"
+                  class="form-input-small"
+                  placeholder="0.000"
+                  @input="formatearCantidadInput($event, insumo)"
+                />
               </div>
               <div class="form-group">
                 <label>Unidad:</label>
-                <select v-model="insumo.unidad_medida_id_edit" class="form-input-small" required>
+                <select
+                  v-model="insumo.unidad_medida_id_edit"
+                  class="form-input-small"
+                  required
+                >
                   <option value="">Seleccione...</option>
-                  <option v-for="unidad in unidadesMedida" :key="unidad.id" :value="unidad.id">
+                  <option
+                    v-for="unidad in unidadesMedida"
+                    :key="unidad.id"
+                    :value="unidad.id"
+                  >
                     {{ unidad.abreviatura }} ({{ unidad.nombre }})
                   </option>
                 </select>
@@ -375,20 +501,36 @@
             </div>
           </div>
           <div class="insumo-acciones">
-            <button v-if="!insumo.editando" class="btn-accion-small" @click="activarEdicionInsumo(insumo)"
-              title="Editar insumo">
+            <button
+              v-if="!insumo.editando"
+              class="btn-accion-small"
+              @click="activarEdicionInsumo(insumo)"
+              title="Editar insumo"
+            >
               <i class="fas fa-edit"></i>
             </button>
-            <button v-else class="btn-accion-small btn-confirmar" @click="guardarEdicionInsumo(insumo)"
-              title="Guardar cambios">
+            <button
+              v-else
+              class="btn-accion-small btn-confirmar"
+              @click="guardarEdicionInsumo(insumo)"
+              title="Guardar cambios"
+            >
               <i class="fas fa-check"></i>
             </button>
-            <button v-if="!insumo.editando" class="btn-accion-small btn-eliminar-modal"
-              @click="eliminarInsumoDeReceta(recetaSeleccionada, insumo)" title="Eliminar insumo">
+            <button
+              v-if="!insumo.editando"
+              class="btn-accion-small btn-eliminar-modal"
+              @click="eliminarInsumoDeReceta(recetaSeleccionada, insumo)"
+              title="Eliminar insumo"
+            >
               <i class="fas fa-trash"></i>
             </button>
-            <button v-else class="btn-accion-small btn-cancelar" @click="cancelarEdicionInsumo(insumo)"
-              title="Cancelar edición">
+            <button
+              v-else
+              class="btn-accion-small btn-cancelar"
+              @click="cancelarEdicionInsumo(insumo)"
+              title="Cancelar edición"
+            >
               <i class="fas fa-times"></i>
             </button>
           </div>
@@ -400,50 +542,94 @@
       </div>
 
       <template #footer>
-        <ModalButtons :show-cancel="false" confirm-text="Cerrar" @cancel="showModalInsumos = false"
-          @confirm="showModalInsumos = false" />
+        <ModalButtons
+          :show-cancel="false"
+          confirm-text="Cerrar"
+          @cancel="showModalInsumos = false"
+          @confirm="showModalInsumos = false"
+        />
       </template>
     </BaseModal>
 
     <!-- Modal para Nuevo Insumo -->
-    <BaseModal v-model:show="showNuevoInsumoModal" title="Nuevo Insumo" size="medium"
-      @close="showNuevoInsumoModal = false">
+    <BaseModal
+      v-model:show="showNuevoInsumoModal"
+      title="Nuevo Insumo"
+      size="medium"
+      @close="showNuevoInsumoModal = false"
+    >
       <div class="form-grid">
         <div class="form-group">
           <label>Nombre:</label>
-          <input v-model="formNuevoInsumo.nombre" type="text" required class="form-input"
-            placeholder="Nombre del insumo" />
+          <input
+            v-model="formNuevoInsumo.nombre"
+            type="text"
+            required
+            class="form-input"
+            placeholder="Nombre del insumo"
+          />
         </div>
         <div class="form-group">
           <label>Unidad de Medida:</label>
-          <select v-model="formNuevoInsumo.unidad_medida_id" required class="form-input">
+          <select
+            v-model="formNuevoInsumo.unidad_medida_id"
+            required
+            class="form-input"
+          >
             <option value="">Seleccione una unidad</option>
-            <option v-for="unidad in unidadesPermitidas" :key="unidad.id" :value="unidad.id">
+            <option
+              v-for="unidad in unidadesPermitidas"
+              :key="unidad.id"
+              :value="unidad.id"
+            >
               {{ unidad.nombre }} ({{ unidad.abreviatura }})
             </option>
           </select>
         </div>
         <div class="form-group">
           <label>Stock Mínimo:</label>
-          <input v-model="formNuevoInsumo.stock_minimo" type="number" step="0.001" min="0" required class="form-input"
-            placeholder="0.000" />
+          <input
+            v-model="formNuevoInsumo.stock_minimo"
+            type="number"
+            step="0.001"
+            min="0"
+            required
+            class="form-input"
+            placeholder="0.000"
+          />
         </div>
         <div class="form-group">
           <label>Precio Unitario:</label>
-          <input v-model="formNuevoInsumo.precio_unitario" type="number" step="0.01" min="0" class="form-input"
-            placeholder="0.00" />
+          <input
+            v-model="formNuevoInsumo.precio_unitario"
+            type="number"
+            step="0.01"
+            min="0"
+            class="form-input"
+            placeholder="0.00"
+          />
         </div>
       </div>
 
       <template #footer>
-        <ModalButtons confirm-text="Guardar" @cancel="showNuevoInsumoModal = false" @confirm="guardarNuevoInsumo" />
+        <ModalButtons
+          confirm-text="Guardar"
+          @cancel="showNuevoInsumoModal = false"
+          @confirm="guardarNuevoInsumo"
+        />
       </template>
     </BaseModal>
 
     <!-- Modal de confirmación para eliminar receta -->
-    <ConfirmModal :show="showConfirmModal" title="Confirmar Eliminación"
-      :message="`¿Está seguro de que desea eliminar la receta '${recetaAEliminar?.nombre}'?`" confirm-text="Eliminar"
-      @update:show="showConfirmModal = $event" @cancel="showConfirmModal = false" @confirm="eliminarReceta" />
+    <ConfirmModal
+      :show="showConfirmModal"
+      title="Confirmar Eliminación"
+      :message="`¿Está seguro de que desea eliminar la receta '${recetaAEliminar?.nombre}'?`"
+      confirm-text="Eliminar"
+      @update:show="showConfirmModal = $event"
+      @cancel="showConfirmModal = false"
+      @confirm="eliminarReceta"
+    />
   </div>
 </template>
 
@@ -1598,216 +1784,192 @@ onMounted(() => {
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
 
-/* ----------------------------- BOTONES GENERALES ----------------------------- */
-.botones-acciones {
-  display: flex;
-  gap: 10px;
-}
-
-.btn-nueva-receta {
-  background: linear-gradient(135deg, var(--color-success), #218838);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  padding: 12px 20px;
-  cursor: pointer;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
-  font-size: 0.9rem;
-}
-
-.btn-nueva-receta:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
-}
-
-/* ----------------------------- CARD DE RECETAS ----------------------------- */
+/* ----------------------------- CARD DE RECETAS - MISMO ESTILO QUE STOCK ----------------------------- */
 .recetas-card {
   max-height: calc(100vh - 200px);
   overflow-y: auto;
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(123, 90, 80, 0.1);
-  padding: 5px;
-  margin: 2 auto;
-  border: 1px solid rgba(123, 90, 80, 0.1);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  padding: 16px;
+  margin: 0 auto;
+  border: 1px solid #eaeaea;
 }
 
 .recetas-list {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 12px;
 }
 
 .receta-item {
-  position: relative;
   background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 12px;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #f0f0f0;
   overflow: hidden;
-}
-
-.receta-item::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: linear-gradient(to bottom, var(--color-primary), #f1d0cb);
-  opacity: 0.8;
+  transition: all 0.3s ease;
 }
 
 .receta-item:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(123, 90, 80, 0.15);
-  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
 }
 
-.receta-item.expanded {
-  padding-bottom: 0;
+.receta-item.no-rentable {
+  border-left: 4px solid #dc3545;
 }
 
-.receta-item-main {
+.receta-item:not(.no-rentable) {
+  border-left: 4px solid #28a745;
+}
+
+/* Contenedor compacto - MISMO ESTILO QUE STOCK */
+.receta-item-compact {
   display: flex;
-  flex-direction: column;
-  width: 100%;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 12px;
 }
 
-.receta-header-full {
-  width: 100%;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  border-radius: 8px;
-  padding: 2px 20px;
+/* Indicador de estado - MISMO ESTILO QUE STOCK */
+.estado-indicador {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
-.receta-header-full:hover {
-  background-color: rgba(123, 90, 80, 0.05);
+.estado-indicador.critico {
+  background-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
 }
 
-.receta-header-content {
+.estado-indicador.normal {
+  background-color: #28a745;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+}
+
+/* Información principal - MISMO ESTILO QUE STOCK */
+.info-principal {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.info-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  width: 100%;
-  gap: 20px;
-}
-
-.receta-info-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  justify-content: center;
-
-}
-
-.receta-titulo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  margin-bottom: 6px;
+  gap: 8px;
 }
 
 .receta-nombre {
-  font-weight: 700;
-  font-size: 1.3rem;
-  color: #2c3e50;
   margin: 0;
-}
-
-.receta-badge {
-  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
-  color: white;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.8rem;
+  font-size: 1rem;
   font-weight: 600;
+  color: #2c3e50;
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.receta-datos-compact {
+.badges-container {
   display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.receta-datos-compact .dato-grupo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #6c757d;
-  font-size: 0.9rem;
-  background: rgba(123, 90, 80, 0.05);
-  padding: 6px 12px;
-  border-radius: 6px;
-}
-
-.receta-datos-compact .dato-grupo i {
-  color: var(--color-primary);
-  width: 14px;
-  text-align: center;
-  font-size: 0.8rem;
-}
-
-.receta-header-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
-/* ----------------------------- BOTONES DE ACCIÓN ----------------------------- */
-.receta-acciones {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.receta-estado-badge {
-  padding: 8px 12px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
   gap: 6px;
-  transition: all 0.3s ease;
+  flex-shrink: 0;
 }
 
-.receta-estado-badge.rentable {
+.badge-cantidad,
+.badge-rentabilidad {
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-cantidad {
+  background: #e9ecef;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+}
+
+.badge-rentabilidad.rentable {
   background: linear-gradient(135deg, #28a745, #20c997);
   color: white;
 }
 
-.receta-estado-badge.noRentable {
-  background: linear-gradient(135deg, #ffc107, #e0a800);
-  color: #212529;
+.badge-rentabilidad.no-rentable {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+}
+
+.info-detalles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detalle-grupo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.detalle-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+
+.detalle-label {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.detalle-valor {
+  color: #495057;
+  font-weight: 600;
+}
+
+/* Acciones - MISMO ESTILO QUE STOCK */
+.acciones-container {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .btn-accion {
   border: none;
   cursor: pointer;
-  font-size: 14px;
-  padding: 10px;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  width: 40px;
-  height: 40px;
+  font-size: 12px;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
+}
+
+.btn-gestionar {
+  background: linear-gradient(135deg, #17a2b8, #138496);
+  color: white;
+}
+
+.btn-gestionar:hover {
+  background: linear-gradient(135deg, #138496, #117a8b);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(23, 162, 184, 0.3);
 }
 
 .btn-editar {
@@ -1817,8 +1979,8 @@ onMounted(() => {
 
 .btn-editar:hover {
   background: linear-gradient(135deg, #2980b9, #21618c);
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
 }
 
 .btn-eliminar {
@@ -1828,38 +1990,36 @@ onMounted(() => {
 
 .btn-eliminar:hover {
   background: linear-gradient(135deg, #c0392b, #a93226);
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
 }
 
-.btn-desplegable {
-  background: linear-gradient(135deg, #95a5a6, #7f8c8d);
-  color: white;
+/* ----------------------------- DESPLEGABLE DE DETALLES - MEJORADO ----------------------------- */
+.receta-detalles-desplegable {
+  background: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+  animation: slideDown 0.3s ease-out;
 }
 
-.btn-desplegable:hover {
-  background: linear-gradient(135deg, #7f8c8d, #6c7a7d);
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
-}
-
-/* ----------------------------- DESPLEGABLE DE DETALLES ----------------------------- */
-.receta-detalles-container {
-  width: 100%;
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  border-top: 1px solid #dee2e6;
-  margin-top: 0;
-  flex-shrink: 0;
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+  }
 }
 
 .detalles-content {
-  padding: 20px;
-  border-radius: 0 0 12px 12px;
+  padding: 16px;
 }
 
+/* Información de rentabilidad */
 .receta-rentabilidad-info h4 {
-  margin: 0 0 15px 0;
-  font-size: 1.1rem;
+  margin: 0 0 12px 0;
+  font-size: 1rem;
   color: var(--color-primary);
   font-weight: 600;
   display: flex;
@@ -1870,15 +2030,15 @@ onMounted(() => {
 .receta-rentabilidad-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .rentabilidad-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px;
+  padding: 10px 12px;
   background: white;
   border-radius: 8px;
   border: 1px solid #e9ecef;
@@ -1887,10 +2047,12 @@ onMounted(() => {
 .rentabilidad-label {
   font-weight: 500;
   color: #6c757d;
+  font-size: 0.85rem;
 }
 
 .rentabilidad-valor {
   font-weight: 600;
+  font-size: 0.85rem;
 }
 
 .rentabilidad-valor.positiva {
@@ -1901,23 +2063,23 @@ onMounted(() => {
   color: #dc3545;
 }
 
-/* ----------------------------- SECCIÓN DE INSUMOS ----------------------------- */
+/* ----------------------------- SECCIÓN DE INSUMOS - MEJORADA ----------------------------- */
 .receta-insumos-section {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .insumos-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
-  gap: 15px;
+  gap: 12px;
 }
 
 .insumos-header h4 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: var(--color-primary);
   font-weight: 600;
   display: flex;
@@ -1929,21 +2091,21 @@ onMounted(() => {
   background: linear-gradient(135deg, var(--color-success), #218838);
   color: white;
   border: none;
-  border-radius: 8px;
-  padding: 10px 16px;
+  border-radius: 6px;
+  padding: 8px 12px;
   cursor: pointer;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   transition: all 0.3s ease;
-  font-size: 0.85rem;
-  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.2);
+  font-size: 0.8rem;
+  box-shadow: 0 1px 3px rgba(40, 167, 69, 0.2);
 }
 
 .btn-agregar-insumo:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
 }
 
 .insumos-list {
@@ -1959,7 +2121,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 10px 12px;
   border-bottom: 1px solid #f8f9fa;
   transition: background-color 0.2s;
 }
@@ -1980,20 +2142,17 @@ onMounted(() => {
 }
 
 .insumo-nombre {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: #2c3e50;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .insumo-cantidad {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #6c757d;
   background: #f8f9fa;
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: 3px 6px;
+  border-radius: 4px;
   font-weight: 500;
 }
 
@@ -2003,58 +2162,33 @@ onMounted(() => {
 }
 
 .insumo-costo {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--color-success);
   font-weight: 600;
   background: rgba(40, 167, 69, 0.1);
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: 3px 6px;
+  border-radius: 4px;
 }
 
 /* ----------------------------- ALERTAS DE RECETA ----------------------------- */
 .receta-alerta {
-  padding: 15px;
+  padding: 12px 16px;
   border-radius: 8px;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   font-weight: 600;
+  font-size: 0.85rem;
 }
 
 .alerta-no-rentable {
-  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-  color: #856404;
-  border: 1px solid #ffeaa7;
+  background: linear-gradient(135deg, #f8d7da, #f5b7b1);
+  color: #721c24;
+  border: 1px solid #f5c6cb;
 }
 
-/* ----------------------------- ACCIONES RÁPIDAS ----------------------------- */
-.receta-acciones-rapidas {
-  text-align: right;
-}
-
-.btn-editar-insumos {
-  background: linear-gradient(135deg, #17a2b8, #138496);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 16px;
-  cursor: pointer;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.3s ease;
-  font-size: 0.85rem;
-  box-shadow: 0 2px 6px rgba(23, 162, 184, 0.2);
-}
-
-.btn-editar-insumos:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
-}
-
-/* ----------------------------- BOTÓN FLOTANTE NUEVA RECETA ----------------------------- */
+/* ----------------------------- BOTÓN FLOTANTE NUEVA RECETA - MISMO ESTILO QUE STOCK ----------------------------- */
 .btn-nueva-receta-flotante {
   position: fixed;
   bottom: 30px;
@@ -2078,10 +2212,9 @@ onMounted(() => {
 .btn-nueva-receta-flotante:hover {
   transform: translateY(-3px) scale(1.05);
   box-shadow: 0 8px 25px rgba(123, 90, 80, 0.4);
-  background: linear-gradient(135deg, #9c7a6d, var(--color-primary));
 }
 
-/* ----------------------------- ESTADOS ----------------------------- */
+/* ----------------------------- ESTADOS DE CARGA Y VACÍO - MISMO ESTILO QUE STOCK ----------------------------- */
 .loading-state {
   text-align: center;
   padding: 60px;
@@ -2119,471 +2252,94 @@ onMounted(() => {
 
 .sin-insumos {
   text-align: center;
-  padding: 40px;
+  padding: 30px;
   color: #6c757d;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 15px;
+  gap: 12px;
 }
 
 .sin-insumos i {
-  font-size: 2rem;
+  font-size: 1.5rem;
   color: #bdc3c7;
 }
 
 .sin-insumos p {
   margin: 0;
+  font-size: 0.9rem;
 }
 
 .btn-agregar-insumo-small {
-  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
   color: white;
   border: none;
   border-radius: 6px;
-  padding: 8px 16px;
+  padding: 8px 12px;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   display: flex;
   align-items: center;
   gap: 6px;
   transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(123, 90, 80, 0.2);
 }
 
 .btn-agregar-insumo-small:hover {
-  background: #9c7a6d;
   transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(123, 90, 80, 0.3);
 }
 
-/* Añadir al final de la sección de estilos */
-.cursor-pointer {
-  cursor: pointer;
-}
+/* ==============================
+   RESPONSIVE DESIGN - CONSISTENTE CON STOCK
+   ============================== */
 
-.receta-header-full:hover {
-  background-color: rgba(123, 90, 80, 0.05);
-  border-radius: 8px;
-  transition: background-color 0.2s ease;
-}
-
-/* Indicador visual de que es clickeable */
-.receta-header-full::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: 12px;
-  pointer-events: none;
-  transition: box-shadow 0.2s ease;
-}
-
-.receta-header-full:hover::after {
-  box-shadow: inset 0 0 0 2px rgba(123, 90, 80, 0.1);
-}
-
-/* Mejorar la transición del desplegable */
-.receta-detalles-container {
-  transition: all 0.3s ease;
-  max-height: 0;
-  overflow: hidden;
-}
-
-.receta-item.expanded .receta-detalles-container {
-  max-height: 1000px;
-}
-
-.alertas-rapidas {
-  margin-bottom: 20px;
-  padding: 0 10px;
-}
-
-.alerta-contenido {
-  flex: 1;
-}
-
-.alerta-contenido strong {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 1rem;
-}
-
-.alerta-contenido p {
-  margin: 0;
-  font-size: 0.9rem;
-  opacity: 0.9;
-}
-
-.btn-alerta-cerrar {
-  background: none;
-  border: none;
-  color: inherit;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 50%;
-  transition: background-color 0.2s;
-}
-
-.btn-alerta-cerrar:hover {
-  background-color: rgba(0, 0, 0, 0.1);
-}
-
-/* AGREGAR: Estilos para estadísticas rápidas */
-.estadisticas-rapidas {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.estadistica-item {
-  display: flex;
-  align-items: center;
-}
-
-.estadistica-badge {
-  padding: 8px 12px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.estadistica-badge.warning {
-  background: linear-gradient(135deg, #ffc107, #e0a800);
-  color: #212529;
-}
-
-.estadistica-badge.info {
-  background: linear-gradient(135deg, #17a2b8, #138496);
-  color: white;
-}
-
-/* Nuevos estilos específicos para el modal de insumos */
-.insumos-section {
-  margin-bottom: 30px;
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-}
-
-.insumos-section h4 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  color: var(--color-primary);
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-group label {
-  font-weight: 500;
-  font-size: 0.9rem;
-  color: #495057;
-}
-
-.form-input,
-.form-input-small {
-  padding: 10px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
-}
-
-.form-input:focus,
-.form-input-small:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(156, 122, 109, 0.1);
-}
-
-.form-input-small {
-  padding: 8px 10px;
-  font-size: 0.9rem;
-}
-
-.select-with-button {
-  display: flex;
-  gap: 8px;
-}
-
-.btn-agregar-nuevo {
-  background: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 10px 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-agregar-nuevo:hover {
-  background: #9c7a6d;
-  transform: translateY(-1px);
-}
-
-.btn-agregar-insumo-modal {
-  background: #28a745;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 10px 12px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-}
-
-.btn-agregar-insumo-modal:hover:not(:disabled) {
-  background: #218838;
-  transform: translateY(-1px);
-}
-
-.btn-agregar-insumo-modal:disabled {
-  background: #bdc3c7;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.insumos-existente-section {
-  margin-top: 25px;
-}
-
-.insumos-existente-section h4 {
-  margin-bottom: 15px;
-  color: var(--color-primary);
-  font-size: 1.1rem;
-  font-weight: 600;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #e9ecef;
-}
-
-.insumo-existente-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 15px;
-  margin-bottom: 8px;
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-}
-
-.insumo-existente-item:hover {
-  border-color: var(--color-primary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.insumo-info {
-  flex: 1;
-  font-size: 0.95rem;
-}
-
-.insumo-costo {
-  color: #28a745;
-  font-weight: 500;
-  font-size: 0.85rem;
-  margin-left: 8px;
-}
-
-.insumo-edit-form {
-  flex: 1;
-}
-
-.edit-form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  align-items: center;
-}
-
-.insumo-acciones {
-  display: flex;
-  gap: 5px;
-  margin-left: 15px;
-}
-
-.btn-accion-small {
-  background: none;
-  border: none;
-  border-radius: 4px;
-  padding: 6px 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: #6c757d;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 32px;
-}
-
-.btn-accion-small:hover {
-  background: #f8f9fa;
-  transform: translateY(-1px);
-}
-
-.btn-confirmar {
-  color: #28a745;
-}
-
-.btn-confirmar:hover {
-  background: #d4edda;
-}
-
-.btn-eliminar-modal {
-  color: #dc3545;
-}
-
-.btn-eliminar-modal:hover {
-  background: #f8d7da;
-}
-
-.btn-cancelar {
-  color: #6c757d;
-}
-
-.btn-cancelar:hover {
-  background: #f8f9fa;
-}
-
-.sin-insumos {
-  text-align: center;
-  padding: 30px;
-  color: #6c757d;
-  font-style: italic;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border: 1px dashed #dee2e6;
-}
-
-.sin-insumos i {
-  margin-right: 8px;
-  color: var(--color-primary);
-}
-
-/* Estados de validación */
-.form-input:invalid,
-.form-input-small:invalid {
-  border-color: #dc3545;
-}
-
-.form-input:valid,
-.form-input-small:valid {
-  border-color: #28a745;
-}
-
-/* Animaciones suaves */
-.modal-content {
-  animation: modalAppear 0.3s ease-out;
-}
-
-@keyframes modalAppear {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* AGREGAR: Estilos para el botón de marcar como leída */
-.btn-marcar-leida {
-  background: rgba(255, 255, 255, 0.3);
-  border: none;
-  border-radius: 4px;
-  padding: 4px 8px;
-  cursor: pointer;
-  margin-left: 10px;
-  transition: all 0.2s ease;
-}
-
-.btn-marcar-leida:hover {
-  background: rgba(255, 255, 255, 0.5);
-  transform: scale(1.1);
-}
-
-.cursor-pointer {
-  cursor: pointer;
-}
-
-.ml-2 {
-  margin-left: 8px;
-}
-
-/* Estilo para el badge clickeable */
-.estadistica-badge.bajo.cursor-pointer:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
-/* ----------------------------- MEJORAS RESPONSIVE ----------------------------- */
-
-/* Para pantallas medianas (tablets) */
+/* Tablets */
 @media (max-width: 1024px) {
-  .receta-rentabilidad-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-/* Para tablets pequeñas y móviles grandes */
-
-@media (max-width: 768px) {
-  .main-content {
-    margin-left: 0;
-    padding: 10px 10px 10px 10px;
-  }
-
   .recetas-card {
     padding: 15px;
-    max-height: calc(100vh - 150px);
+  }
+}
+
+/* Tablets pequeñas y móviles grandes */
+@media (max-width: 768px) {
+  .recetas-card {
+    padding: 12px;
   }
 
-  .receta-header-content {
+  .receta-item-compact {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .info-header {
     flex-direction: column;
-    align-items: stretch;
-    gap: 15px;
+    align-items: flex-start;
+    gap: 6px;
   }
 
-  .receta-header-right {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
+  .badges-container {
     width: 100%;
-  }
-
-  .receta-datos-compact {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .receta-datos-compact .dato-grupo {
     justify-content: flex-start;
   }
 
+  .info-detalles {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .detalle-grupo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
   .detalles-content {
-    padding: 15px;
+    padding: 12px;
+  }
+
+  .receta-rentabilidad-grid {
+    grid-template-columns: 1fr;
   }
 
   .insumos-header {
@@ -2596,53 +2352,6 @@ onMounted(() => {
     align-self: flex-start;
   }
 
-  .receta-rentabilidad-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .btn-nueva-receta-flotante {
-    bottom: 20px;
-    right: 20px;
-    padding: 14px 20px;
-    font-size: 0.9rem;
-  }
-
-  .alertas-rapidas {
-    margin-bottom: 15px;
-  }
-
-  .estadisticas-rapidas {
-    justify-content: center;
-    width: 100%;
-    margin-top: 10px;
-  }
-}
-
-/* Para móviles */
-@media (max-width: 480px) {
-  .main-content {
-    margin-left: 0;
-    padding: 10px 10px 10px 10px;
-  }
-
-  .receta-header-full {
-    padding: 12px 15px;
-  }
-
-  .receta-header-right {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .receta-acciones {
-    align-self: center;
-  }
-
-  .receta-nombre {
-    font-size: 1.1rem;
-  }
-
   .insumo-item {
     flex-direction: column;
     align-items: flex-start;
@@ -2653,85 +2362,125 @@ onMounted(() => {
     align-self: flex-end;
   }
 
-  .card-title1 {
-    font-size: 1.5rem;
+  .btn-nueva-receta-flotante {
+    bottom: 20px;
+    right: 20px;
+    padding: 14px 20px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Móviles pequeños */
+@media (max-width: 480px) {
+  .recetas-card {
+    padding: 8px;
   }
 
-  .filtro-input {
-    min-width: 100%;
-  }
-
-  .receta-titulo {
-    flex-direction: column;
-    align-items: flex-start;
+  .receta-item-compact {
+    padding: 8px 10px;
     gap: 8px;
   }
 
+  .receta-nombre {
+    font-size: 0.9rem;
+  }
+
+  .badge-cantidad,
+  .badge-rentabilidad {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+  }
+
+  .detalle-item {
+    font-size: 0.75rem;
+  }
+
+  .acciones-container {
+    gap: 4px;
+  }
+
   .btn-accion {
-    width: 36px;
-    height: 36px;
-    padding: 8px;
+    width: 28px;
+    height: 28px;
+    padding: 6px;
   }
 
   .btn-nueva-receta-flotante {
     bottom: 15px;
     right: 15px;
     padding: 12px 18px;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
   }
 
   .btn-nueva-receta-flotante span {
     display: none;
-    /* Ocultar texto en móviles muy pequeños */
-  }
-
-  .btn-nueva-receta-flotante i {
-    margin-right: 0;
   }
 }
 
-/* Para móviles muy pequeños */
+/* Pantallas muy pequeñas */
 @media (max-width: 360px) {
-  .main-content {
-    margin-left: 0;
-    padding: 10px 10px 10px 10px;
-  }
-
-  .recetas-card {
-    padding: 10px;
-  }
-
-  .receta-header-full {
-    padding: 10px 12px;
+  .receta-item-compact {
+    padding: 6px 8px;
+    gap: 6px;
   }
 
   .receta-nombre {
-    font-size: 1rem;
-  }
-
-  .receta-badge {
-    font-size: 0.7rem;
-    padding: 3px 8px;
-  }
-
-  .receta-datos-compact .dato-grupo {
     font-size: 0.8rem;
-    padding: 4px 8px;
+  }
+
+  .acciones-container {
+    gap: 2px;
   }
 
   .btn-accion {
-    width: 32px;
-    height: 32px;
-    padding: 6px;
+    width: 26px;
+    height: 26px;
+    padding: 5px;
   }
 
-  .receta-estado-badge {
-    font-size: 0.7rem;
-    padding: 6px 10px;
+  .btn-accion i {
+    font-size: 0.8rem;
+  }
+}
+
+/* Mejoras de usabilidad táctil */
+@media (hover: none) and (pointer: coarse) {
+  .receta-item:hover {
+    transform: none;
   }
 
-  .detalles-content {
-    padding: 12px;
+  .btn-accion {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .btn-nueva-receta-flotante {
+    min-height: 44px;
+  }
+}
+
+/* Utilidades */
+.ml-2 {
+  margin-left: 8px;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.animacion-pulsante {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(255, 193, 7, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
   }
 }
 </style>
