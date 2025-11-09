@@ -237,7 +237,7 @@
           <input
             v-model="formInsumo.stock_minimo"
             type="number"
-            step="0.001"
+            step="1"
             min="0"
             required
             class="form-input"
@@ -291,7 +291,7 @@
           <input
             v-model="formCompra.cantidad"
             type="number"
-            step="0.001"
+            step="1"
             min="0"
             required
             class="form-input"
