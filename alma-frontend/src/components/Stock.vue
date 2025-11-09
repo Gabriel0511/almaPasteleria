@@ -97,81 +97,131 @@
             <p>No hay insumos que coincidan con los filtros seleccionados</p>
           </div>
 
-          <div v-else class="stock-list">
-            <div
-              v-for="item in stockFiltrado"
-              :key="item.id"
-              class="stock-item"
-              :class="{
-                'bajo-stock': item.bajoStock,
-                'stock-critico': item.cantidad <= item.stock_minimo * 0.5,
-                expanded: stockDesplegado[item.id],
-              }"
-            >
-              <!-- Contenedor principal compacto -->
-              <div class="stock-item-compact">
-                <!-- Indicador de estado -->
-                <div
-                  class="estado-indicador"
-                  :class="{
-                    critico: item.cantidad <= item.stock_minimo * 0.5,
-                    bajo:
-                      item.bajoStock && item.cantidad > item.stock_minimo * 0.5,
-                    normal: !item.bajoStock,
-                  }"
-                ></div>
+          <div v-else>
+            <!-- Lista de stock con paginación -->
+            <div class="stock-list">
+              <div
+                v-for="item in stockPaginado"
+                :key="item.id"
+                class="stock-item"
+                :class="{
+                  'bajo-stock': item.bajoStock,
+                  'stock-critico': item.cantidad <= item.stock_minimo * 0.5,
+                  expanded: stockDesplegado[item.id],
+                }"
+              >
+                <!-- Contenedor principal compacto -->
+                <div class="stock-item-compact">
+                  <!-- Indicador de estado -->
+                  <div
+                    class="estado-indicador"
+                    :class="{
+                      critico: item.cantidad <= item.stock_minimo * 0.5,
+                      bajo:
+                        item.bajoStock &&
+                        item.cantidad > item.stock_minimo * 0.5,
+                      normal: !item.bajoStock,
+                    }"
+                  ></div>
 
-                <!-- Información principal -->
-                <div class="info-principal" @click="toggleStock(item.id)">
-                  <div class="info-header">
-                    <h4 class="nombre-insumo">{{ item.nombre }}</h4>
-                    <div class="badges-container">
-                      <span class="badge-categoria">{{ item.categoria }}</span>
-                      <span class="badge-proveedor">{{ item.proveedor }}</span>
+                  <!-- Información principal -->
+                  <div class="info-principal" @click="toggleStock(item.id)">
+                    <div class="info-header">
+                      <h4 class="nombre-insumo">{{ item.nombre }}</h4>
+                      <div class="badges-container">
+                        <span class="badge-categoria">{{
+                          item.categoria
+                        }}</span>
+                        <span class="badge-proveedor">{{
+                          item.proveedor
+                        }}</span>
+                      </div>
+                    </div>
+
+                    <div class="info-stock">
+                      <div class="stock-actual">
+                        <span class="cantidad">{{
+                          formatDecimal(item.cantidad)
+                        }}</span>
+                        <span class="unidad">{{ item.unidad }}</span>
+                      </div>
+                      <div class="stock-minimo">
+                        <span class="label">Mín:</span>
+                        <span class="valor"
+                          >{{ formatDecimal(item.stock_minimo) }}
+                          {{ item.unidad }}</span
+                        >
+                      </div>
                     </div>
                   </div>
 
-                  <div class="info-stock">
-                    <div class="stock-actual">
-                      <span class="cantidad">{{
-                        formatDecimal(item.cantidad)
-                      }}</span>
-                      <span class="unidad">{{ item.unidad }}</span>
-                    </div>
-                    <div class="stock-minimo">
-                      <span class="label">Mín:</span>
-                      <span class="valor"
-                        >{{ formatDecimal(item.stock_minimo) }}
-                        {{ item.unidad }}</span
-                      >
-                    </div>
+                  <!-- Acciones -->
+                  <div class="acciones-container">
+                    <button
+                      class="btn-accion btn-reposicion-rapida"
+                      @click="reponerStockRapido(item)"
+                      title="Nueva compra"
+                    >
+                      <i class="fas fa-shopping-cart"></i>
+                    </button>
+                    <button
+                      class="btn-accion btn-editar"
+                      @click="editarInsumo(item)"
+                      title="Editar insumo"
+                    >
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button
+                      class="btn-accion btn-eliminar"
+                      @click="confirmarEliminarInsumo(item)"
+                      title="Eliminar insumo"
+                    >
+                      <i class="fas fa-trash"></i>
+                    </button>
                   </div>
                 </div>
+              </div>
+            </div>
 
-                <!-- Acciones -->
-                <div class="acciones-container">
+            <!-- Controles de paginación -->
+            <div class="pagination-controls" v-if="totalPaginas > 1">
+              <div class="pagination-info">
+                Mostrando {{ inicioPagina }}-{{ finPagina }} de
+                {{ stockFiltrado.length }} insumos
+              </div>
+              <div class="pagination-buttons">
+                <button
+                  class="pagination-btn"
+                  :disabled="paginaActual === 1"
+                  @click="cambiarPagina(paginaActual - 1)"
+                >
+                  <i class="fas fa-chevron-left"></i>
+                </button>
+
+                <div class="pagination-numbers">
                   <button
-                    class="btn-accion btn-reposicion-rapida"
-                    @click="reponerStockRapido(item)"
-                    title="Nueva compra"
+                    v-for="pagina in paginasVisibles"
+                    :key="pagina"
+                    class="pagination-number"
+                    :class="{ active: pagina === paginaActual }"
+                    @click="cambiarPagina(pagina)"
                   >
-                    <i class="fas fa-shopping-cart"></i>
+                    {{ pagina }}
                   </button>
-                  <button
-                    class="btn-accion btn-editar"
-                    @click="editarInsumo(item)"
-                    title="Editar insumo"
+                  <span
+                    v-if="mostrarPuntosSuspensivos"
+                    class="pagination-ellipsis"
+                    >...</span
                   >
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button
-                    class="btn-accion btn-eliminar"
-                    @click="confirmarEliminarInsumo(item)"
-                    title="Eliminar insumo"
-                  >
-                    <i class="fas fa-trash"></i>
-                  </button>
                 </div>
+
+                <button
+                  class="pagination-btn"
+                  :disabled="paginaActual === totalPaginas"
+                  @click="cambiarPagina(paginaActual + 1)"
+                >
+                  <i class="fas fa-chevron-right"></i>
+                </button>
               </div>
             </div>
           </div>
@@ -533,6 +583,10 @@ const busquedaInsumo = ref("");
 const insumosFiltrados = ref([]);
 const filtroActivo = ref(""); // 'critico', 'bajo', 'normal', 'total'
 
+// Variables de paginación
+const paginaActual = ref(1);
+const itemsPorPagina = ref(15);
+
 // Modales
 const showModalInsumo = ref(false);
 const showModalCompra = ref(false);
@@ -590,6 +644,71 @@ const toggleSidebar = () => {
 };
 
 // Computed properties
+// Computed properties para paginación
+const stockPaginado = computed(() => {
+  const inicio = (paginaActual.value - 1) * itemsPorPagina.value;
+  const fin = inicio + itemsPorPagina.value;
+  return stockFiltrado.value.slice(inicio, fin);
+});
+
+const totalPaginas = computed(() => {
+  return Math.ceil(stockFiltrado.value.length / itemsPorPagina.value);
+});
+
+const inicioPagina = computed(() => {
+  return (paginaActual.value - 1) * itemsPorPagina.value + 1;
+});
+
+const finPagina = computed(() => {
+  const fin = paginaActual.value * itemsPorPagina.value;
+  return Math.min(fin, stockFiltrado.value.length);
+});
+
+const paginasVisibles = computed(() => {
+  const total = totalPaginas.value;
+  const actual = paginaActual.value;
+  const paginas = [];
+
+  if (total <= 7) {
+    // Mostrar todas las páginas
+    for (let i = 1; i <= total; i++) {
+      paginas.push(i);
+    }
+  } else {
+    // Mostrar páginas con puntos suspensivos
+    if (actual <= 4) {
+      // Primeras páginas
+      for (let i = 1; i <= 5; i++) {
+        paginas.push(i);
+      }
+      paginas.push(total);
+    } else if (actual >= total - 3) {
+      // Últimas páginas
+      paginas.push(1);
+      for (let i = total - 4; i <= total; i++) {
+        paginas.push(i);
+      }
+    } else {
+      // Páginas intermedias
+      paginas.push(1);
+      for (let i = actual - 1; i <= actual + 1; i++) {
+        paginas.push(i);
+      }
+      paginas.push(total);
+    }
+  }
+
+  return paginas;
+});
+
+const mostrarPuntosSuspensivos = computed(() => {
+  return (
+    totalPaginas.value > 7 &&
+    paginaActual.value > 4 &&
+    paginaActual.value < totalPaginas.value - 3
+  );
+});
+
 const insumosBajoStock = computed(() => {
   return stock.value.filter((item) => item.bajoStock).length;
 });
@@ -736,6 +855,7 @@ const limpiarFiltros = () => {
   filtroActivo.value = "";
   categoriaSeleccionada.value = "";
   searchTerm.value = "";
+  resetearPaginacion();
 
   notificationSystem.show({
     type: "info",
@@ -756,6 +876,19 @@ const filtrarInsumos = () => {
   insumosFiltrados.value = insumos.value.filter((insumo) =>
     insumo.nombre.toLowerCase().includes(termino)
   );
+};
+
+// Métodos de paginación
+const cambiarPagina = (pagina) => {
+  if (pagina >= 1 && pagina <= totalPaginas.value) {
+    paginaActual.value = pagina;
+    // Scroll suave hacia arriba
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+};
+
+const resetearPaginacion = () => {
+  paginaActual.value = 1;
 };
 
 // Métodos
@@ -1335,6 +1468,11 @@ const fetchProveedores = async () => {
     console.error("Error en fetchProveedores:", err);
   }
 };
+
+// Watchers para resetear paginación cuando cambian los filtros
+watch([searchTerm, categoriaSeleccionada, filtroActivo], () => {
+  resetearPaginacion();
+});
 
 // Computed para unidades permitidas
 const unidadesPermitidas = computed(() => {
@@ -1983,6 +2121,104 @@ onUnmounted(() => {
   }
 }
 
+/* Estilos para la paginación */
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  padding: 15px 0;
+  border-top: 1px solid #eaeaea;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.pagination-info {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #dee2e6;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #495057;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+  transform: translateY(-1px);
+}
+
+.pagination-btn:disabled {
+  background: #f8f9fa;
+  color: #adb5bd;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pagination-btn i {
+  font-size: 0.8rem;
+}
+
+.pagination-numbers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid #dee2e6;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #495057;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.pagination-number:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+  transform: translateY(-1px);
+}
+
+.pagination-number.active {
+  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
+  color: white;
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-ellipsis {
+  padding: 0 8px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
 /* ----------------------------- UTILIDADES ----------------------------- */
 .cursor-pointer {
   cursor: pointer;
@@ -2072,6 +2308,19 @@ onUnmounted(() => {
     padding: 6px 10px;
     font-size: 0.8rem;
   }
+
+  .pagination-controls {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .pagination-buttons {
+    order: -1;
+  }
+
+  .pagination-info {
+    text-align: center;
+  }
 }
 
 /* Móviles pequeños */
@@ -2136,6 +2385,21 @@ onUnmounted(() => {
   .estadistica-badge {
     padding: 5px 8px;
     font-size: 0.75rem;
+  }
+
+  .pagination-numbers {
+    gap: 2px;
+  }
+
+  .pagination-number {
+    min-width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
+  }
+
+  .pagination-btn {
+    width: 32px;
+    height: 32px;
   }
 }
 
