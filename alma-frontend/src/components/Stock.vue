@@ -267,7 +267,7 @@
           <label>Insumo:</label>
 
           <!-- MODO REPOSICIÓN RÁPIDA: Mostrar insumo fijo -->
-          <div class="insumo-fijo">
+          <div class="insumo-fijo" v-if="esReposicionRapida && insumoReposicionRapida">
             <div class="insumo-fijo-nombre">
               <div class="insumo-fijo-header">
                 <i class="fas fa-lock"></i>
@@ -1234,6 +1234,13 @@ const guardarProveedor = async () => {
 };
 
 const actualizarUnidadMedida = () => {
+  // Si estamos en modo reposición rápida, usar el insumo fijo
+  if (esReposicionRapida.value && insumoReposicionRapida.value) {
+    unidadCompra.value = insumoReposicionRapida.value.unidad;
+    return;
+  }
+  
+  // Modo normal: buscar en la lista de insumos
   const insumo = insumos.value.find(
     (i) => i.id === parseInt(formCompra.value.insumo_id)
   );
@@ -1405,7 +1412,7 @@ watch(
 // AGREGAR: Método para reposición rápida
 const reponerStockRapido = (item) => {
   esReposicionRapida.value = true;
-  insumoReposicionRapida.value = 0;
+  insumoReposicionRapida.value = item;
   formCompra.value.insumo_id = item.id;
   // Siempre poner 0 en lugar de calcular
   formCompra.value.cantidad = 0;

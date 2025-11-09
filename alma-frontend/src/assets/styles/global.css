@@ -836,3 +836,44 @@ body {
     font-size: 16px;
   }
 }
+
+/* ==================== ESTILOS PARA INSUMO FIJO EN MODAL ==================== */
+/* Agregados específicamente para el modal de compra en Stock.vue */
+
+.insumo-fijo {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.insumo-fijo-header {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* ✅ ESPACIO entre el candado y el nombre */
+  margin-bottom: 4px;
+}
+
+.insumo-fijo-header i {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.insumo-fijo-header strong {
+  color: #2c3e50;
+  font-size: 1rem;
+}
+
+.insumo-fijo-stock {
+  color: #6c757d;
+  font-size: 0.85rem;
+  margin-left: 24px; /* Alineado con el nombre, no con el candado */
+}
+
+.insumo-fijo-categoria {
+  color: #495057;
+  font-size: 0.8rem;
+  font-style: italic;
+  margin-top: 4px;
+}
