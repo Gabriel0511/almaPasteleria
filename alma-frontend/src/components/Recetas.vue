@@ -1663,12 +1663,8 @@ const verificarRentabilidadYNotificar = (receta) => {
     if (!notificacionesLeidas.value.has(notificacionId)) {
       notificationSystem.show({
         type: "warning",
-        title: "Receta No Rentable",
-        message: `"${receta.nombre}" no es rentable. Costo: $${formatDecimal(
-          costoTotal
-        )} vs Venta: $${formatDecimal(precioVenta)} (Pérdida: $${formatDecimal(
-          Math.abs(margen)
-        )})`,
+        title: `${receta.nombre} NO es rentable.`,
+        message: `• Pérdida de $${formatDecimal(Math.abs(margen))}`,
         timeout: 4000,
       });
     }
