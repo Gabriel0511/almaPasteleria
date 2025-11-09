@@ -44,8 +44,7 @@
             </div>
             <div class="estadistica-item">
               <span
-                class="estadistica-badge total"
-                :class="{ active: filtroActivo === 'total' }"
+                class="estadistica-badge-total "
                 @click="aplicarFiltro('total')"
               >
                 <i class="fas fa-boxes"></i>
@@ -53,7 +52,7 @@
               </span>
             </div>
             <!-- Botón para limpiar filtros -->
-            <div class="estadistica-item" v-if="filtroActivo">
+            <div class="estadistica-item" v-if="filtroActivo || categoriaSeleccionada || searchTerm">
               <span
                 class="estadistica-badge limpiar-filtro"
                 @click="limpiarFiltros"
@@ -826,28 +825,16 @@ const estadisticasStock = computed(() => {
 
 // AGREGAR: Métodos para manejar filtros
 const aplicarFiltro = (tipo) => {
+  // Si es "total", no hacer nada (no aplicar filtro)
+  if (tipo === "total") {
+    return; // Salir sin hacer cambios
+  }
+  
   // Si ya está activo el mismo filtro, desactivarlo
   if (filtroActivo.value === tipo) {
     filtroActivo.value = "";
   } else {
     filtroActivo.value = tipo;
-  }
-
-  // Mostrar notificación del filtro aplicado
-  const mensajes = {
-    critico: "Mostrando solo insumos con stock crítico",
-    bajo: "Mostrando solo insumos con stock bajo",
-    normal: "Mostrando solo insumos con stock normal",
-    total: "Mostrando todos los insumos",
-  };
-
-  if (filtroActivo.value) {
-    notificationSystem.show({
-      type: "info",
-      title: "Filtro aplicado",
-      message: mensajes[filtroActivo.value],
-      timeout: 3000,
-    });
   }
 };
 
@@ -857,12 +844,6 @@ const limpiarFiltros = () => {
   searchTerm.value = "";
   resetearPaginacion();
 
-  notificationSystem.show({
-    type: "info",
-    title: "Filtros limpiados",
-    message: "Mostrando todos los insumos",
-    timeout: 3000,
-  });
 };
 
 // 🔍 MÉTODO PARA FILTRAR INSUMOS EN MODAL DE COMPRA
@@ -2063,6 +2044,21 @@ onUnmounted(() => {
   display: flex;
 }
 
+.estadistica-badge-total {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  user-select: none;
+  background: linear-gradient(135deg, #6c757d, #5a6268);
+  color: white;
+}
+
 .estadistica-badge {
   display: flex;
   align-items: center;
@@ -2100,11 +2096,6 @@ onUnmounted(() => {
 
 .estadistica-badge.normal {
   background: linear-gradient(135deg, #28a745, #218838);
-  color: white;
-}
-
-.estadistica-badge.total {
-  background: linear-gradient(135deg, #6c757d, #5a6268);
   color: white;
 }
 
