@@ -694,8 +694,8 @@
           <input
             v-model="formIngrediente.cantidad"
             type="number"
-            step="0.001"
-            min="0.001"
+            step="1"
+            min="0"
             required
             class="form-input"
           />
@@ -718,14 +718,6 @@
                 {{ unidad.nombre }} ({{ unidad.abreviatura }})
               </option>
             </select>
-            <button
-              type="button"
-              class="btn-agregar"
-              @click="showNuevaUnidadModal = true"
-              title="Crear nueva unidad de medida"
-            >
-              <i class="fas fa-plus"></i>
-            </button>
           </div>
         </div>
       </div>
@@ -815,7 +807,7 @@
           <input
             v-model="formInsumo.stock_minimo"
             type="number"
-            step="0.001"
+            step="0"
             required
             class="form-input"
           />
@@ -861,56 +853,6 @@
           confirm-text="Guardar"
           @cancel="showNuevoInsumoModal = false"
           @confirm="guardarNuevoInsumo"
-        />
-      </template>
-    </BaseModal>
-
-    <!-- Modal para Nueva Unidad de Medida -->
-    <BaseModal
-      v-model:show="showNuevaUnidadModal"
-      title="Nueva Unidad de Medida"
-      size="small"
-      @close="showNuevaUnidadModal = false"
-    >
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Nombre:</label>
-          <input
-            v-model="formUnidadMedida.nombre"
-            type="text"
-            required
-            class="form-input"
-            placeholder="Nombre completo"
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Abreviatura:</label>
-          <input
-            v-model="formUnidadMedida.abreviatura"
-            type="text"
-            required
-            class="form-input"
-            placeholder="Ej: kg, g, l, ml"
-            maxlength="10"
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Descripción:</label>
-          <input
-            v-model="formUnidadMedida.descripcion"
-            type="text"
-            class="form-input"
-          />
-        </div>
-      </div>
-
-      <template #footer>
-        <ModalButtons
-          confirm-text="Guardar"
-          @cancel="showNuevaUnidadModal = false"
-          @confirm="guardarNuevaUnidadMedida"
         />
       </template>
     </BaseModal>
@@ -1083,7 +1025,6 @@ const showModalPedido = ref(false);
 const showNuevoClienteModal = ref(false);
 const showModalReceta = ref(false);
 const showNuevoInsumoModal = ref(false);
-const showNuevaUnidadModal = ref(false);
 const showNuevaRecetaModal = ref(false);
 const showNuevaCategoriaModal = ref(false);
 const showNuevaUnidadDeMedidaModal = ref(false);
@@ -1141,12 +1082,6 @@ const formInsumo = ref({
   stock_minimo: 0,
   precio_unitario: null,
   proveedor_id: null,
-});
-
-const formUnidadMedida = ref({
-  nombre: "",
-  abreviatura: "",
-  descripcion: "",
 });
 
 const formCategoria = ref({
@@ -1843,59 +1778,6 @@ const guardarNuevoInsumo = async () => {
   }
 };
 
-const guardarNuevaUnidadMedida = async () => {
-  try {
-    if (!formUnidadMedida.value.nombre) {
-      notificationSystem.show({
-        type: "error",
-        title: "Error de validación",
-        message: "El nombre de la unidad es requerido",
-        timeout: 4000,
-      });
-      return;
-    }
-    if (!formUnidadMedida.value.abreviatura) {
-      notificationSystem.show({
-        type: "error",
-        title: "Error de validación",
-        message: "La abreviatura es requerida",
-        timeout: 4000,
-      });
-      return;
-    }
-
-    const response = await axios.post(
-      "/api/unidades-medida/crear/",
-      formUnidadMedida.value
-    );
-
-    // Actualizar la lista de unidades de medida
-    await fetchUnidadesMedida();
-
-    // Seleccionar automáticamente la nueva unidad
-    formIngrediente.value.unidad_medida_id = response.data.id;
-
-    showNuevaUnidadModal.value = false;
-    resetFormUnidadMedida();
-
-    notificationSystem.show({
-      type: "success",
-      title: "Unidad de medida creada",
-      message: "Unidad de medida creada correctamente",
-      timeout: 4000,
-    });
-  } catch (error) {
-    console.error("Error al guardar unidad de medida:", error);
-
-    notificationSystem.show({
-      type: "error",
-      title: "Error",
-      message: "Error al crear la unidad de medida",
-      timeout: 6000,
-    });
-  }
-};
-
 const guardarNuevaReceta = async () => {
   try {
     if (!formReceta.value.nombre) {
@@ -2266,7 +2148,6 @@ const closeModal = () => {
   showModalIngrediente.value = false;
   showNuevaRecetaModal.value = false;
   showNuevoInsumoModal.value = false;
-  showNuevaUnidadModal.value = false;
   showNuevoClienteModal.value = false;
   resetForms();
 };
@@ -2329,13 +2210,6 @@ const resetFormInsumo = () => {
     stock_minimo: 0,
     precio_unitario: null,
     proveedor_id: null,
-  };
-};
-
-const resetFormUnidadMedida = () => {
-  formUnidadMedida.value = {
-    nombre: "",
-    abreviatura: "",
   };
 };
 
@@ -2504,7 +2378,6 @@ const resetForms = () => {
   resetFormIngrediente();
   resetFormReceta();
   resetFormInsumo();
-  resetFormUnidadMedida();
   esEdicionPedido.value = false;
   esEdicionReceta.value = false;
   esEdicionIngrediente.value = false;

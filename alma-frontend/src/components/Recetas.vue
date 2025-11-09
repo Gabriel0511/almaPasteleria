@@ -352,8 +352,8 @@
           <input
             v-model="formReceta.precio_venta"
             type="number"
-            step="0.01"
-            min="0.01"
+            step="1"
+            min="0"
             required
             class="form-input"
             placeholder="Precio de venta"
@@ -415,8 +415,8 @@
             <input
               v-model="nuevoInsumo.cantidad"
               type="number"
-              step="0.001"
-              min="0.001"
+              step="1"
+              min="0"
               required
               class="form-input"
               placeholder="0.000"
@@ -474,8 +474,8 @@
                 <input
                   v-model.number="insumo.cantidadEdit"
                   type="number"
-                  step="0.001"
-                  min="0.001"
+                  step="1"
+                  min="0"
                   class="form-input-small"
                   placeholder="0.000"
                   @input="formatearCantidadInput($event, insumo)"
@@ -578,7 +578,7 @@
           >
             <option value="">Seleccione una unidad</option>
             <option
-              v-for="unidad in unidadesPermitidas"
+              v-for="unidad in unidadesMedida"
               :key="unidad.id"
               :value="unidad.id"
             >
@@ -591,7 +591,7 @@
           <input
             v-model="formNuevoInsumo.stock_minimo"
             type="number"
-            step="0.001"
+            step="1"
             min="0"
             required
             class="form-input"
@@ -603,7 +603,7 @@
           <input
             v-model="formNuevoInsumo.precio_unitario"
             type="number"
-            step="0.01"
+            step="1"
             min="0"
             class="form-input"
             placeholder="0.00"
@@ -714,25 +714,6 @@ const puedeAgregarInsumo = computed(() => {
   );
 });
 
-// Agrega esta computed property que solo permite kg, litros y unidades
-const unidadesPermitidas = computed(() => {
-  const abreviaturasPermitidas = ["kg", "l", "L", "lt", "un", "ud", "u"];
-  const nombresPermitidos = [
-    "kilogramo",
-    "kilogramos",
-    "litro",
-    "litros",
-    "unidad",
-    "unidades",
-  ];
-
-  return unidadesMedida.value.filter(
-    (unidad) =>
-      abreviaturasPermitidas.includes(unidad.abreviatura.toLowerCase()) ||
-      nombresPermitidos.includes(unidad.nombre.toLowerCase())
-  );
-});
-
 const formNuevoInsumo = ref({
   nombre: "",
   unidad_medida_id: "",
@@ -796,7 +777,7 @@ const formatDecimal = (value) => {
   });
 };
 
-const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => {
+const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => { 
   if (unidadOrigen === unidadDestino) return cantidad;
 
   const conversiones = {
