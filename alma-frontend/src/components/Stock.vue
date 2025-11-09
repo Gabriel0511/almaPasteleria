@@ -13,27 +13,53 @@
           <!-- AGREGAR: Estadísticas de stock con badges -->
           <div class="estadisticas-stock">
             <div class="estadistica-item" v-if="estadisticasStock.critico > 0">
-              <span class="estadistica-badge critico">
+              <span
+                class="estadistica-badge critico"
+                :class="{ active: filtroActivo === 'critico' }"
+                @click="aplicarFiltro('critico')"
+              >
                 <i class="fas fa-exclamation-triangle"></i>
                 {{ estadisticasStock.critico }} crítico
               </span>
             </div>
             <div class="estadistica-item" v-if="estadisticasStock.bajo > 0">
-              <span class="estadistica-badge bajo">
+              <span
+                class="estadistica-badge bajo"
+                :class="{ active: filtroActivo === 'bajo' }"
+                @click="aplicarFiltro('bajo')"
+              >
                 <i class="fas fa-exclamation-circle"></i>
                 {{ estadisticasStock.bajo }} bajo
               </span>
             </div>
             <div class="estadistica-item">
-              <span class="estadistica-badge normal">
+              <span
+                class="estadistica-badge normal"
+                :class="{ active: filtroActivo === 'normal' }"
+                @click="aplicarFiltro('normal')"
+              >
                 <i class="fas fa-check-circle"></i>
                 {{ estadisticasStock.normal }} normal
               </span>
             </div>
             <div class="estadistica-item">
-              <span class="estadistica-badge total">
+              <span
+                class="estadistica-badge total"
+                :class="{ active: filtroActivo === 'total' }"
+                @click="aplicarFiltro('total')"
+              >
                 <i class="fas fa-boxes"></i>
                 {{ estadisticasStock.total }} total
+              </span>
+            </div>
+            <!-- Botón para limpiar filtros -->
+            <div class="estadistica-item" v-if="filtroActivo">
+              <span
+                class="estadistica-badge limpiar-filtro"
+                @click="limpiarFiltros"
+              >
+                <i class="fas fa-times"></i>
+                Limpiar filtros
               </span>
             </div>
           </div>
@@ -257,7 +283,10 @@
           <label>Insumo:</label>
 
           <!-- MODO REPOSICIÓN RÁPIDA: Mostrar insumo fijo -->
-          <div class="insumo-fijo" v-if="esReposicionRapida && insumoReposicionRapida">
+          <div
+            class="insumo-fijo"
+            v-if="esReposicionRapida && insumoReposicionRapida"
+          >
             <div class="insumo-fijo-nombre">
               <div class="insumo-fijo-header">
                 <i class="fas fa-lock"></i>
@@ -502,6 +531,7 @@ const loading = ref(true);
 const stockDesplegado = ref({});
 const busquedaInsumo = ref("");
 const insumosFiltrados = ref([]);
+const filtroActivo = ref(""); // 'critico', 'bajo', 'normal', 'total'
 
 // Modales
 const showModalInsumo = ref(false);
@@ -587,6 +617,27 @@ const stockFiltrado = computed(() => {
     );
   }
 
+  // Aplicar filtro por nivel de stock si está activo
+  if (filtroActivo.value) {
+    switch (filtroActivo.value) {
+      case "critico":
+        filtered = filtered.filter(
+          (item) => item.cantidad <= item.stock_minimo * 0.5
+        );
+        break;
+      case "bajo":
+        filtered = filtered.filter(
+          (item) => item.bajoStock && item.cantidad > item.stock_minimo * 0.5
+        );
+        break;
+      case "normal":
+        filtered = filtered.filter((item) => !item.bajoStock);
+        break;
+      case "total":
+        // No aplicar filtro adicional, mostrar todos
+        break;
+    }
+  }
   // Ordenar: stock crítico primero, luego bajo, luego normal
   return filtered.sort((a, b) => {
     const aCritico = a.cantidad <= a.stock_minimo * 0.5;
@@ -653,6 +704,46 @@ const estadisticasStock = computed(() => {
     total,
   };
 });
+
+// AGREGAR: Métodos para manejar filtros
+const aplicarFiltro = (tipo) => {
+  // Si ya está activo el mismo filtro, desactivarlo
+  if (filtroActivo.value === tipo) {
+    filtroActivo.value = "";
+  } else {
+    filtroActivo.value = tipo;
+  }
+
+  // Mostrar notificación del filtro aplicado
+  const mensajes = {
+    critico: "Mostrando solo insumos con stock crítico",
+    bajo: "Mostrando solo insumos con stock bajo",
+    normal: "Mostrando solo insumos con stock normal",
+    total: "Mostrando todos los insumos",
+  };
+
+  if (filtroActivo.value) {
+    notificationSystem.show({
+      type: "info",
+      title: "Filtro aplicado",
+      message: mensajes[filtroActivo.value],
+      timeout: 3000,
+    });
+  }
+};
+
+const limpiarFiltros = () => {
+  filtroActivo.value = "";
+  categoriaSeleccionada.value = "";
+  searchTerm.value = "";
+
+  notificationSystem.show({
+    type: "info",
+    title: "Filtros limpiados",
+    message: "Mostrando todos los insumos",
+    timeout: 3000,
+  });
+};
 
 // 🔍 MÉTODO PARA FILTRAR INSUMOS EN MODAL DE COMPRA
 const filtrarInsumos = () => {
@@ -1100,7 +1191,7 @@ const actualizarUnidadMedida = () => {
     unidadCompra.value = insumoReposicionRapida.value.unidad;
     return;
   }
-  
+
   // Modo normal: buscar en la lista de insumos
   const insumo = insumos.value.find(
     (i) => i.id === parseInt(formCompra.value.insumo_id)
@@ -1821,6 +1912,77 @@ onUnmounted(() => {
   font-size: 1.1rem;
 }
 
+/* AGREGAR: Estilos para los badges clickeables */
+.estadisticas-stock {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.estadistica-item {
+  display: flex;
+}
+
+.estadistica-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  user-select: none;
+}
+
+.estadistica-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.estadistica-badge.active {
+  border: 2px solid currentColor;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+.estadistica-badge.critico {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+}
+
+.estadistica-badge.bajo {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  color: #212529;
+}
+
+.estadistica-badge.normal {
+  background: linear-gradient(135deg, #28a745, #218838);
+  color: white;
+}
+
+.estadistica-badge.total {
+  background: linear-gradient(135deg, #6c757d, #5a6268);
+  color: white;
+}
+
+.estadistica-badge.limpiar-filtro {
+  background: linear-gradient(135deg, #17a2b8, #138496);
+  color: white;
+}
+
+/* Mejoras de usabilidad táctil */
+@media (hover: none) and (pointer: coarse) {
+  .estadistica-badge {
+    padding: 12px 16px;
+    min-height: 44px;
+  }
+}
+
 /* ----------------------------- UTILIDADES ----------------------------- */
 .cursor-pointer {
   cursor: pointer;
@@ -1902,6 +2064,14 @@ onUnmounted(() => {
   .empty-state p {
     font-size: 1rem;
   }
+  .estadisticas-stock {
+    gap: 8px;
+  }
+
+  .estadistica-badge {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
 }
 
 /* Móviles pequeños */
@@ -1957,6 +2127,15 @@ onUnmounted(() => {
 
   .btn-nueva-compra-flotante span {
     display: none;
+  }
+
+  .estadisticas-stock {
+    justify-content: center;
+  }
+
+  .estadistica-badge {
+    padding: 5px 8px;
+    font-size: 0.75rem;
   }
 }
 
