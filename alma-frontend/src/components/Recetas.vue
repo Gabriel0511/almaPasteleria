@@ -578,7 +578,7 @@
           >
             <option value="">Seleccione una unidad</option>
             <option
-              v-for="unidad in unidadesPermitidas"
+              v-for="unidad in unidadesMedida"
               :key="unidad.id"
               :value="unidad.id"
             >
@@ -711,25 +711,6 @@ const puedeAgregarInsumo = computed(() => {
     nuevoInsumo.value.insumo_id &&
     nuevoInsumo.value.cantidad > 0 &&
     nuevoInsumo.value.unidad_medida_id
-  );
-});
-
-// Agrega esta computed property que solo permite kg, litros y unidades
-const unidadesPermitidas = computed(() => {
-  const abreviaturasPermitidas = ["kg", "l", "L", "lt", "un", "ud", "u"];
-  const nombresPermitidos = [
-    "kilogramo",
-    "kilogramos",
-    "litro",
-    "litros",
-    "unidad",
-    "unidades",
-  ];
-
-  return unidadesMedida.value.filter(
-    (unidad) =>
-      abreviaturasPermitidas.includes(unidad.abreviatura.toLowerCase()) ||
-      nombresPermitidos.includes(unidad.nombre.toLowerCase())
   );
 });
 
