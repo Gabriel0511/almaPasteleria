@@ -206,30 +206,20 @@
 
         <div class="form-group">
           <label>Unidad de Medida:</label>
-          <div class="select-with-button">
-            <select
-              v-model="formInsumo.unidad_medida_id"
-              required
-              class="form-input"
+          <select
+            v-model="formInsumo.unidad_medida_id"
+            required
+            class="form-input"
+          >
+            <option value="">Seleccione una unidad</option>
+            <option
+              v-for="unidad in unidadesPermitidas"
+              :key="unidad.id"
+              :value="unidad.id"
             >
-              <option value="">Seleccione una unidad</option>
-              <option
-                v-for="unidad in unidadesPermitidas"
-                :key="unidad.id"
-                :value="unidad.id"
-              >
-                {{ unidad.nombre }} ({{ unidad.abreviatura }})
-              </option>
-            </select>
-            <button
-              type="button"
-              class="btn-agregar"
-              @click="showNuevaUnidadDeMedidaModal = true"
-              title="Agregar nueva unidad de medida"
-            >
-              <i class="fas fa-plus"></i>
-            </button>
-          </div>
+              {{ unidad.nombre }} ({{ unidad.abreviatura }})
+            </option>
+          </select>
         </div>
 
         <div class="form-group">
@@ -473,57 +463,6 @@
       </template>
     </BaseModal>
 
-    <!-- Modal para Nueva Unidad de Medida -->
-    <BaseModal
-      v-model:show="showNuevaUnidadDeMedidaModal"
-      title="Nueva Unidad de Medida"
-      size="small"
-      @close="showNuevaUnidadDeMedidaModal = false"
-    >
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Nombre:</label>
-          <input
-            v-model="formUnidad.nombre"
-            type="text"
-            required
-            class="form-input"
-            placeholder="Nombre completo"
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Abreviatura:</label>
-          <input
-            v-model="formUnidad.abreviatura"
-            type="text"
-            required
-            class="form-input"
-            placeholder="Ej: kg, g, l, ml"
-            maxlength="10"
-          />
-        </div>
-
-        <div class="form-group full-width">
-          <label>Descripción:</label>
-          <textarea
-            v-model="formUnidad.descripcion"
-            class="form-input"
-            rows="3"
-            placeholder="Descripción de la unidad"
-          ></textarea>
-        </div>
-      </div>
-
-      <template #footer>
-        <ModalButtons
-          confirm-text="Guardar"
-          @cancel="showNuevaUnidadDeMedidaModal = false"
-          @confirm="guardarUnidadDeMedida"
-        />
-      </template>
-    </BaseModal>
-
     <!-- Modal de confirmación para eliminar insumo -->
     <ConfirmModal
       :show="showConfirmModal"
@@ -570,7 +509,6 @@ const showModalCompra = ref(false);
 const showNuevoProveedorModal = ref(false);
 const showConfirmModal = ref(false);
 const showNuevaCategoriaModal = ref(false);
-const showNuevaUnidadDeMedidaModal = ref(false);
 
 // Agregar después de las otras variables
 const esReposicionRapida = ref(false);
@@ -604,13 +542,6 @@ const formProveedor = ref({
 // Agregar formulario para categoría
 const formCategoria = ref({
   nombre: "",
-  descripcion: "",
-});
-
-// Agregar formulario para categoría
-const formUnidad = ref({
-  nombre: "",
-  abreviatura: "",
   descripcion: "",
 });
 
@@ -825,80 +756,10 @@ const guardarCategoria = async () => {
   }
 };
 
-// Método para guardar unidad de medida
-const guardarUnidadDeMedida = async () => {
-  try {
-    if (!formUnidad.value.nombre) {
-      notificationSystem.show({
-        type: "error",
-        title: "Error de validación",
-        message: "El nombre de la unidad es requerido",
-        timeout: 4000,
-      });
-      return;
-    }
-    if (!formUnidad.value.abreviatura) {
-      notificationSystem.show({
-        type: "error",
-        title: "Error de validación",
-        message: "La abreviatura es requerida",
-        timeout: 4000,
-      });
-      return;
-    }
-
-    const response = await axios.post(
-      "/api/unidades-medida/crear/",
-      formUnidad.value
-    );
-
-    // Actualizar lista de unidades
-    await fetchUnidadesMedida();
-
-    showNuevaUnidadDeMedidaModal.value = false;
-    resetFormUnidad();
-
-    notificationSystem.show({
-      type: "success",
-      title: "Unidad de medida creada",
-      message: "Unidad de Medida creada correctamente",
-      timeout: 4000,
-    });
-  } catch (error) {
-    console.error("Error al guardar la unidad de medida:", error);
-    if (error.response?.status === 400 && error.response?.data?.error) {
-      notificationSystem.show({
-        type: "error",
-        title: "Error al crear unidad",
-        message: error.response.data.error,
-        timeout: 6000,
-      });
-      resetFormUnidad();
-    } else {
-      notificationSystem.show({
-        type: "error",
-        title: "Error",
-        message: "Error al guardar la unidad de medida",
-        timeout: 6000,
-      });
-      resetFormUnidad();
-    }
-  }
-};
-
 // Resetear formulario de categoría
 const resetFormCategoria = () => {
   formCategoria.value = {
     nombre: "",
-    descripcion: "",
-  };
-};
-
-// Resetear formulario de unidad
-const resetFormUnidad = () => {
-  formUnidad.value = {
-    nombre: "",
-    abreviatura: "",
     descripcion: "",
   };
 };
