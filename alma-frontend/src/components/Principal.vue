@@ -570,7 +570,7 @@ const isAtrasado = (fechaEntrega) => {
   return entrega < hoy && !isHoy(fechaEntrega);
 };
 
-// Método específico para entregar - CORREGIDO
+// Método específico para entregar
 const marcarComoEntregado = async (task) => {
   try {
     await actualizarEstadoPedido(task.id, "entregado", "entregarHoy");
@@ -831,7 +831,7 @@ onMounted(() => {
   });
 });
 
-// Método para confirmar entrega - ACTUALIZADO
+// Método para confirmar entrega
 const confirmarEntrega = (task) => {
   if (task.estado === "entregado" || task.confirmando) return;
 
@@ -848,7 +848,7 @@ const confirmarEntrega = (task) => {
   showConfirmModal.value = true;
 };
 
-// Método para confirmar preparación - ACTUALIZADO
+// Método para confirmar preparación
 const confirmarPreparacion = (task) => {
   if (
     task.estado === "listo" ||

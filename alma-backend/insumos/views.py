@@ -227,9 +227,6 @@ class InsumoHardDeleteAPIView(generics.DestroyAPIView):
 
 # ==================== VISTAS PARA REPORTES ====================
 class ReporteInsumosAPIView(APIView):
-    """
-    Vista para generar reportes de insumos con cálculo de stock usado
-    """
     def get(self, request):
         try:
             # Obtener parámetros de filtro
@@ -406,9 +403,6 @@ class ReporteInsumosAPIView(APIView):
             return Decimal('0.0')
 
 class ListaComprasAPIView(APIView):
-    """
-    Vista para generar la lista de compras
-    """
     def get(self, request):
         try:
             # Obtener parámetros de filtro

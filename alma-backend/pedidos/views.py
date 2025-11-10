@@ -205,8 +205,7 @@ class EliminarDetallesPedidoView(APIView):
     def delete(self, request, pk):
         try:
             pedido = Pedido.objects.get(pk=pk)
-            # Eliminar todos los detalles del pedido (usando el related_name correcto)
-            pedido.detalles.all().delete()  # ← Cambiado de detallepedido_set a detalles
+            pedido.detalles.all().delete()
             return Response(
                 {'message': 'Detalles del pedido eliminados exitosamente'},
                 status=status.HTTP_200_OK

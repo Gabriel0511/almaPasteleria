@@ -10,7 +10,7 @@
             Gestión de Stock
           </h3>
 
-          <!-- AGREGAR: Estadísticas de stock con badges -->
+          <!-- Estadísticas de stock con badges -->
           <div class="estadisticas-stock">
             <div class="estadistica-item" v-if="estadisticasStock.critico > 0">
               <span
@@ -44,7 +44,7 @@
             </div>
             <div class="estadistica-item">
               <span
-                class="estadistica-badge-total "
+                class="estadistica-badge-total"
                 @click="aplicarFiltro('total')"
               >
                 <i class="fas fa-boxes"></i>
@@ -52,7 +52,10 @@
               </span>
             </div>
             <!-- Botón para limpiar filtros -->
-            <div class="estadistica-item" v-if="filtroActivo || categoriaSeleccionada || searchTerm">
+            <div
+              class="estadistica-item"
+              v-if="filtroActivo || categoriaSeleccionada || searchTerm"
+            >
               <span
                 class="estadistica-badge limpiar-filtro"
                 @click="limpiarFiltros"
@@ -79,6 +82,20 @@
                 <option value="">Todas las categorías</option>
                 <option v-for="cat in categoriasStock" :key="cat" :value="cat">
                   {{ cat }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Filtro por proveedor -->
+            <div class="filtro-group">
+              <select v-model="proveedorSeleccionado" class="filtro-select">
+                <option value="">Todos los proveedores</option>
+                <option
+                  v-for="prov in proveedoresStock"
+                  :key="prov"
+                  :value="prov"
+                >
+                  {{ prov }}
                 </option>
               </select>
             </div>
@@ -341,17 +358,54 @@
                 <i class="fas fa-lock"></i>
                 <strong>{{ insumoReposicionRapida.nombre }}</strong>
               </div>
-              <span class="insumo-fijo-stock">
-                (Stock actual:
-                {{ formatDecimal(insumoReposicionRapida.cantidad) }}
-                {{ insumoReposicionRapida.unidad }})
-              </span>
+              <div class="insumo-fijo-stock-info">
+                <span class="stock-actual-info">
+                  Stock actual:
+                  {{ formatDecimal(insumoReposicionRapida.cantidad) }}
+                  {{ insumoReposicionRapida.unidad }}
+                </span>
+                <span class="stock-minimo-info">
+                  Stock mínimo:
+                  {{ formatDecimal(insumoReposicionRapida.stock_minimo) }}
+                  {{ insumoReposicionRapida.unidad }}
+                </span>
+              </div>
             </div>
             <div class="insumo-fijo-categoria">
               {{ insumoReposicionRapida.categoria }}
             </div>
           </div>
-          <input type="hidden" v-model="formCompra.insumo_id" />
+
+          <!-- MODO NORMAL: Selección de insumo -->
+          <div v-else class="form-group">
+            <input
+              type="text"
+              v-model="busquedaInsumo"
+              @input="filtrarInsumos"
+              placeholder="Buscar insumo..."
+              class="form-input"
+            />
+            <select
+              v-model="formCompra.insumo_id"
+              @change="actualizarUnidadMedida"
+              required
+              class="form-input"
+              size="5"
+              style="margin-top: 8px"
+            >
+              <option value="">Seleccione un insumo</option>
+              <option
+                v-for="insumo in insumosFiltrados"
+                :key="insumo.id"
+                :value="insumo.id"
+              >
+                {{ insumo.nombre }}
+                (Stock: {{ formatDecimal(insumo.stock_actual) }} | Mín:
+                {{ formatDecimal(insumo.stock_minimo) }}
+                {{ insumo.unidad_medida?.abreviatura }})
+              </option>
+            </select>
+          </div>
         </div>
 
         <div class="form-group">
@@ -575,6 +629,7 @@ const categorias = ref([]);
 const unidadesMedida = ref([]);
 const proveedores = ref([]);
 const categoriaSeleccionada = ref("");
+const proveedorSeleccionado = ref("");
 const searchTerm = ref("");
 const loading = ref(true);
 const stockDesplegado = ref({});
@@ -717,6 +772,13 @@ const categoriasStock = computed(() => {
   return [...new Set(categorias)];
 });
 
+const proveedoresStock = computed(() => {
+  const proveedoresUnicos = stock.value.map((item) => item.proveedor);
+  return [...new Set(proveedoresUnicos)].filter(
+    (proveedor) => proveedor && proveedor !== "Sin Proveedor"
+  );
+});
+
 const stockFiltrado = computed(() => {
   let filtered = stock.value;
 
@@ -724,6 +786,13 @@ const stockFiltrado = computed(() => {
   if (categoriaSeleccionada.value) {
     filtered = filtered.filter(
       (item) => item.categoria === categoriaSeleccionada.value
+    );
+  }
+
+  //Filtrar por proveedor
+  if (proveedorSeleccionado.value) {
+    filtered = filtered.filter(
+      (item) => item.proveedor === proveedorSeleccionado.value
     );
   }
 
@@ -769,7 +838,7 @@ const stockFiltrado = computed(() => {
   });
 });
 
-// AGREGAR: Computed properties para notificaciones de stock
+// Computed properties para notificaciones de stock
 const notificacionesStockCritico = computed(() => {
   return stock.value
     .filter((item) => item.cantidad <= item.stock_minimo * 0.5)
@@ -829,7 +898,7 @@ const aplicarFiltro = (tipo) => {
   if (tipo === "total") {
     return; // Salir sin hacer cambios
   }
-  
+
   // Si ya está activo el mismo filtro, desactivarlo
   if (filtroActivo.value === tipo) {
     filtroActivo.value = "";
@@ -841,9 +910,9 @@ const aplicarFiltro = (tipo) => {
 const limpiarFiltros = () => {
   filtroActivo.value = "";
   categoriaSeleccionada.value = "";
+  proveedorSeleccionado.value = "";
   searchTerm.value = "";
   resetearPaginacion();
-
 };
 
 // 🔍 MÉTODO PARA FILTRAR INSUMOS EN MODAL DE COMPRA
@@ -1198,12 +1267,8 @@ const registrarCompra = async () => {
     // Suma precisa de decimales
     const nuevoStock = (stockActual * 1000 + cantidadComprada * 1000) / 1000;
 
-    console.log("Stock actual:", stockActual);
-    console.log("Cantidad comprada:", cantidadComprada);
-    console.log("Nuevo stock calculado:", nuevoStock);
-
     const datosActualizacion = {
-      stock_actual: nuevoStock.toFixed(3).replace(".", ","), // Formato con coma para el backend
+      stock_actual: nuevoStock.toFixed(3).replace(".", ","),
     };
 
     // Si también quieres actualizar el precio unitario
@@ -1216,8 +1281,6 @@ const registrarCompra = async () => {
     if (formCompra.value.proveedor_id) {
       datosActualizacion.proveedor_id = formCompra.value.proveedor_id;
     }
-
-    console.log("Datos a enviar:", datosActualizacion);
 
     // Usa PATCH para actualización parcial
     const response = await axios.patch(
@@ -1451,9 +1514,12 @@ const fetchProveedores = async () => {
 };
 
 // Watchers para resetear paginación cuando cambian los filtros
-watch([searchTerm, categoriaSeleccionada, filtroActivo], () => {
-  resetearPaginacion();
-});
+watch(
+  [searchTerm, categoriaSeleccionada, proveedorSeleccionado, filtroActivo],
+  () => {
+    resetearPaginacion();
+  }
+);
 
 // Computed para unidades permitidas
 const unidadesPermitidas = computed(() => {
@@ -1480,7 +1546,7 @@ watch(
   { deep: true }
 );
 
-// AGREGAR: Método para reposición rápida
+// Método para reposición rápida
 const reponerStockRapido = (item) => {
   esReposicionRapida.value = true;
   insumoReposicionRapida.value = item;
@@ -1498,7 +1564,7 @@ const actualizarNotificacionesStock = () => {
   }
 };
 
-// AGREGAR: Método para verificar y notificar cambios en stock
+// Método para verificar y notificar cambios en stock
 const verificarStockYNotificar = (item, accion) => {
   // Notificar si el stock está crítico
   if (item.cantidad <= item.stock_minimo * 0.5) {
@@ -1516,16 +1582,6 @@ const verificarStockYNotificar = (item, accion) => {
       title: "Stock Bajo",
       message: `${item.nombre} está por debajo del stock mínimo`,
       timeout: 5000,
-    });
-  }
-
-  // Notificar cuando se repone stock
-  if (accion === "reposicion" && !item.bajoStock) {
-    notificationSystem.show({
-      type: "success",
-      title: "Stock Repuesto",
-      message: `${item.nombre} ha sido repuesto correctamente`,
-      timeout: 4000,
     });
   }
 
@@ -2208,6 +2264,46 @@ onUnmounted(() => {
   padding: 0 8px;
   color: #6c757d;
   font-weight: 500;
+}
+
+/* Estilos para la información del insumo fijo en reposición rápida */
+.insumo-fijo-stock-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 0.85rem;
+}
+
+.stock-actual-info {
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.stock-minimo-info {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.insumo-fijo-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.insumo-fijo-header i {
+  color: #6c757d;
+}
+
+/* Estilos para el select de insumos en modo normal */
+.form-input option {
+  padding: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.form-input option:hover {
+  background-color: #f8f9fa;
 }
 
 /* ----------------------------- UTILIDADES ----------------------------- */

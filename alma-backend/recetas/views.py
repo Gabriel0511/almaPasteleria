@@ -106,13 +106,6 @@ class IncrementarRecetaView(APIView):
                 # Verificar stock antes de incrementar
                 insuficientes = []
                 for detalle in detalles:
-                    # DEBUG: Log para verificar los datos
-                    print(f"🔍 Procesando: {detalle.insumo.nombre}")
-                    print(f"   - Unidad receta: {detalle.unidad_medida.abreviatura}")
-                    print(f"   - Unidad insumo: {detalle.insumo.unidad_medida.abreviatura}")
-                    print(f"   - Cantidad original: {detalle.cantidad} {detalle.unidad_medida.abreviatura}")
-                    
-                    # Usar el método de conversión
                     try:
                         cantidad_necesaria = detalle.get_cantidad_en_unidad_insumo()
                         print(f"   - Cantidad convertida: {cantidad_necesaria} {detalle.insumo.unidad_medida.abreviatura}")

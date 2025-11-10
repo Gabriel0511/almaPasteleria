@@ -777,7 +777,7 @@ const formatDecimal = (value) => {
   });
 };
 
-const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => { 
+const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => {
   if (unidadOrigen === unidadDestino) return cantidad;
 
   const conversiones = {
@@ -867,8 +867,6 @@ const cargarNotificacionesLeidas = () => {
 };
 
 const calcularCostoInsumo = (insumoReceta) => {
-  console.log("🔍 Calculando costo para insumo:", insumoReceta);
-
   // Validar que el objeto insumoReceta y sus propiedades existan
   if (
     !insumoReceta ||
@@ -891,10 +889,6 @@ const calcularCostoInsumo = (insumoReceta) => {
       insumoReceta.cantidad.toString().replace(",", ".")
     );
 
-    console.log(
-      `💰 Datos cálculo: precio=${precioUnitario}, cantidad=${cantidad}`
-    );
-
     // Si no hay información de unidades, cálculo directo
     if (!insumoReceta.insumo.unidad_medida || !insumoReceta.unidad_medida) {
       const costoDirecto = precioUnitario * cantidad;
@@ -905,8 +899,6 @@ const calcularCostoInsumo = (insumoReceta) => {
     const unidadInsumo =
       insumoReceta.insumo.unidad_medida.abreviatura.toLowerCase();
     const unidadReceta = insumoReceta.unidad_medida.abreviatura.toLowerCase();
-
-    console.log(`📏 Unidades: insumo=${unidadInsumo}, receta=${unidadReceta}`);
 
     // Si las unidades son iguales, cálculo directo
     if (unidadInsumo === unidadReceta) {
@@ -1047,9 +1039,7 @@ const agregarInsumoAReceta = async () => {
       insumoData
     );
 
-    console.log("Respuesta del servidor:", response.data);
-
-    // ACTUALIZACIÓN EN TIEMPO REAL: Agregar el nuevo insumo a la lista local
+    // Agregar el nuevo insumo a la lista local
     const nuevoInsumoObj = {
       ...response.data,
       editando: false,
@@ -1176,7 +1166,7 @@ const guardarRecetaBasica = async () => {
     await fetchRecetas();
     closeModal();
 
-    // AGREGAR: Verificar rentabilidad y mostrar notificación
+    // Verificar rentabilidad y mostrar notificación
     const recetaGuardada = response.data;
     verificarRentabilidadYNotificar(recetaGuardada);
 
@@ -1577,9 +1567,6 @@ const fetchRecetas = async () => {
     loading.value = true;
     const response = await axios.get("/api/recetas/");
 
-    console.log("📦 Datos recibidos del backend:", response.data);
-
-    // SOLO usar los costos que vienen del backend, NO recalcular en frontend
     recetas.value = response.data.map((receta) => {
       console.log(`🔍 Receta "${receta.nombre}":`, {
         costo_total_backend: receta.costo_total,
@@ -1593,7 +1580,6 @@ const fetchRecetas = async () => {
         receta.insumos = [];
       }
 
-      // ⚠️ IMPORTANTE: Usar SOLO los costos del backend
       return {
         ...receta,
         insumos: receta.insumos || [],
@@ -1642,19 +1628,12 @@ const actualizarNotificacionesRecetas = () => {
   }, 100);
 };
 
-// AGREGAR: Método para emitir notificación cuando se crea/edita una receta no rentable
+// Método para emitir notificación cuando se crea/edita una receta no rentable
 const verificarRentabilidadYNotificar = (receta) => {
   // Validación más precisa
   const costoTotal = parseFloat(receta.costo_total) || 0;
   const precioVenta = parseFloat(receta.precio_venta) || 0;
   const margen = precioVenta - costoTotal;
-
-  console.log(`🔍 Verificación rentabilidad "${receta.nombre}":`, {
-    costoTotal,
-    precioVenta,
-    margen,
-    esRentable: margen > 0,
-  });
 
   if (margen <= 0) {
     const notificacionId = `receta-no-rentable-${receta.id}`;

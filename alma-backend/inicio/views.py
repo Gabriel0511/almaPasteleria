@@ -38,7 +38,7 @@ class PasswordResetRequestView(APIView):
 
         # Enviar WhatsApp directamente
         whatsapp_url = f"https://wa.me/{phone}?text=Tu%20código%20es:%20{reset_code}"
-        webbrowser.open(whatsapp_url)  # Esto abrirá el enlace en el navegador del servidor
+        webbrowser.open(whatsapp_url)  
 
         return Response({'detail': 'Revisa tu WhatsApp'}, status=200)
 

@@ -1311,42 +1311,7 @@ const formatFechaParaBackend = (fechaInput) => {
   return fechaAjustada.toISOString().split("T")[0];
 };
 
-// Función de conversión de unidades
-const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => {
-  // Tabla de conversiones básicas
-  const conversiones = {
-    // Peso
-    kg: { g: 1000, mg: 1000000, kg: 1 },
-    g: { kg: 0.001, mg: 1000, g: 1 },
-    mg: { kg: 0.000001, g: 0.001, mg: 1 },
-
-    // Volumen
-    l: { ml: 1000, cl: 100, l: 1 },
-    ml: { l: 0.001, cl: 0.1, ml: 1 },
-    cl: { l: 0.01, ml: 10, cl: 1 },
-
-    // Unidades (si no hay conversión, asumimos 1:1)
-    unidad: { unidad: 1, u: 1, pz: 1 },
-    u: { unidad: 1, u: 1, pz: 1 },
-    pz: { unidad: 1, u: 1, pz: 1 },
-  };
-
-  // Si las unidades son iguales, no hay conversión
-  if (unidadOrigen === unidadDestino) return cantidad;
-
-  // Buscar conversión
-  if (conversiones[unidadOrigen] && conversiones[unidadOrigen][unidadDestino]) {
-    return cantidad * conversiones[unidadOrigen][unidadDestino];
-  }
-
-  // Si no encuentra conversión, devolver la cantidad original (asumir misma unidad)
-  console.warn(
-    `No se encontró conversión de ${unidadOrigen} a ${unidadDestino}`
-  );
-  return cantidad;
-};
-
-// Función corregida para calcular total del pedido
+// Función para calcular total del pedido
 const calcularTotalPedido = (pedido) => {
   let total = 0;
 
@@ -1509,7 +1474,7 @@ const guardarPedido = async () => {
       await fetchPedidos();
       closeModal();
 
-      // AGREGAR: Verificar estado y notificar
+      // Verificar estado y notificar
       const pedidoActualizado = response.data;
       verificarEstadoPedidoYNotificar(pedidoActualizado, "actualizado");
 
@@ -2031,7 +1996,7 @@ const guardarIngredienteExtra = async () => {
   }
 };
 
-// AGREGAR: Método para marcar pedido como entregado rápidamente
+// Método para marcar pedido como entregado rápidamente
 const marcarComoEntregado = async (pedido) => {
   try {
     const datosActualizacion = {
@@ -2071,7 +2036,7 @@ const marcarComoEntregado = async (pedido) => {
   }
 };
 
-// AGREGAR: Método para obtener estadísticas rápidas
+// Método para obtener estadísticas rápidas
 const estadisticasPedidos = computed(() => {
   const hoy = new Date().toISOString().split("T")[0];
   const atrasados = notificacionesPedidosAtrasados.value.length;
@@ -2089,14 +2054,14 @@ const estadisticasPedidos = computed(() => {
   };
 });
 
-// AGREGAR: Método para actualizar notificaciones en el Header
+// Método para actualizar notificaciones en el Header
 const actualizarNotificacionesPedidos = () => {
   if (headerRef.value && headerRef.value.actualizarNotificaciones) {
     headerRef.value.actualizarNotificaciones();
   }
 };
 
-// AGREGAR: Método para verificar y notificar cambios en pedidos
+// Método para verificar y notificar cambios en pedidos
 const verificarEstadoPedidoYNotificar = (pedido, accion) => {
   const hoy = new Date().toISOString().split("T")[0];
   const manana = new Date();
