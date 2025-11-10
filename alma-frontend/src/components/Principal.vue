@@ -34,7 +34,8 @@
                     </option>
                   </select>
                 </span>
-                <span>Cantidad</span>
+                <span>Stock Actual</span>
+                <span>Stock Mínimo</span>
               </div>
             </div>
 
@@ -44,6 +45,7 @@
                 :key="item.nombre"
                 :class="{ 'low-stock': item.bajoStock }"
                 class="stock-item"
+                @click="irAStockConBusqueda(item.nombre)"
               >
                 <span class="item-name"
                   >{{ item.nombre }}
@@ -53,6 +55,10 @@
                 >
                 <span class="item-quantity"
                   >{{ formatDecimal(item.cantidad) }} {{ item.unidad }}</span
+                >
+                <span class="item-minimum"
+                  >{{ formatDecimal(item.stock_minimo) }}
+                  {{ item.unidad }}</span
                 >
               </li>
             </ul>
@@ -399,6 +405,15 @@ const insumosBajoStock = computed(() => {
   return stock.value.filter((item) => item.bajoStock).length;
 });
 
+// Método para ir a la página Stock con búsqueda
+const irAStockConBusqueda = (nombreInsumo) => {
+  // Navegar a la página Stock.vue y pasar el nombre como parámetro de consulta
+  router.push({
+    path: "/stock",
+    query: { search: nombreInsumo },
+  });
+};
+
 // ----------------------
 // 🔹 Recetas
 // ----------------------
@@ -729,8 +744,10 @@ const fetchStock = async () => {
     const response = await axios.get("/api/insumos/");
     stock.value = response.data.insumos
       .map((insumo) => ({
+        id: insumo.id,
         nombre: insumo.nombre,
         cantidad: insumo.stock_actual,
+        stock_minimo: insumo.stock_minimo || 0,
         unidad: insumo.unidad_medida.abreviatura,
         bajoStock: insumo.necesita_reposicion,
         categoria: insumo.categoria?.nombre || "Sin categoría",
@@ -1146,6 +1163,12 @@ const confirmarPreparacion = (task) => {
   justify-content: space-between;
   padding: 0.5rem;
   border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.stock-item:hover {
+  background-color: #f5f5f5;
 }
 
 .stock-item.low-stock {
@@ -1153,8 +1176,13 @@ const confirmarPreparacion = (task) => {
   border-left: 3px solid #e74c3c;
 }
 
+.stock-item.low-stock:hover {
+  background: #ffdf7e;
+}
+
 .item-name {
   font-weight: 500;
+  flex: 2;
 }
 
 .item-category {
@@ -1164,6 +1192,15 @@ const confirmarPreparacion = (task) => {
 
 .item-quantity {
   font-weight: bold;
+  flex: 1;
+  text-align: center;
+}
+
+.item-minimum {
+  flex: 1;
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
 }
 
 .category-select {
@@ -1520,13 +1557,14 @@ const confirmarPreparacion = (task) => {
 
   /* -------------------- STOCK ITEMS -------------------- */
   .stock-item {
-    flex-direction: column;
+    flex-direction: row;
     gap: 0.25rem;
     padding: 0.75rem 0.5rem;
   }
 
   .item-name {
     font-size: 0.9rem;
+    width: 100%;
   }
 
   .item-category {
@@ -1646,6 +1684,11 @@ const confirmarPreparacion = (task) => {
 
   .search-input {
     width: 100%;
+  }
+
+  .stock-item {
+    flex-direction: row;
+    gap: 0.25rem;
   }
 }
 
