@@ -611,6 +611,7 @@
 <script setup>
 import { useRouter } from "vue-router";
 import { ref, computed, onMounted, onUnmounted, watch, inject } from "vue";
+import { useRoute } from "vue-router";
 import Sidebar from "./Sidebar.vue";
 import Header from "./Header.vue";
 import BaseModal from "./Modals/BaseModal.vue";
@@ -619,6 +620,7 @@ import ConfirmModal from "./Modals/ConfirmModal.vue";
 import axios from "axios";
 
 const router = useRouter();
+const route = useRoute();
 const notificationSystem = inject("notifications");
 
 // Variables de estado
@@ -1589,6 +1591,23 @@ const verificarStockYNotificar = (item, accion) => {
   actualizarNotificacionesStock();
 };
 
+// Método para verificar parámetro de búsqueda en la URL
+const verificarParametroBusqueda = () => {
+  // Verificar si hay un parámetro 'search' en la URL
+  if (route.query.search) {
+    // Asignar el valor del parámetro al campo de búsqueda
+    searchTerm.value = route.query.search;
+
+    // Opcional: Mostrar un mensaje indicando que se aplicó un filtro
+    notificationSystem.show({
+      type: "info",
+      title: "Búsqueda aplicada",
+      message: `Mostrando resultados para: "${route.query.search}"`,
+      timeout: 3000,
+    });
+  }
+};
+
 // Watchers
 watch(() => formCompra.value.insumo_id, actualizarUnidadMedida);
 watch(
@@ -1597,6 +1616,16 @@ watch(
     calcularPrecioUnitario();
   }
 );
+
+// Watcher para limpiar el parámetro de la URL cuando se limpie la búsqueda
+watch(searchTerm, (newValue) => {
+  if (!newValue) {
+    // Si se limpia la búsqueda, también limpiar el parámetro de la URL
+    if (route.query.search) {
+      router.replace({ query: {} });
+    }
+  }
+});
 
 // 🔒 WATCHER PARA RESETEAR MODO REPOSICIÓN RÁPIDA AL CERRAR EL MODAL
 watch(
@@ -1636,6 +1665,9 @@ onMounted(() => {
     .then(() => {
       // AGREGAR: Actualizar notificaciones después de cargar stock
       actualizarNotificacionesStock();
+
+      // AGREGAR: Verificar si hay un parámetro de búsqueda en la URL
+      verificarParametroBusqueda();
     })
     .catch((error) => {
       console.error("Error cargando datos:", error);
