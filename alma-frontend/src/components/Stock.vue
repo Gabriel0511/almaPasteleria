@@ -141,7 +141,7 @@
                   ></div>
 
                   <!-- Información principal -->
-                  <div class="info-principal" @click="toggleStock(item.id)">
+                  <div class="info-principal">
                     <div class="info-header">
                       <h4 class="nombre-insumo">{{ item.nombre }}</h4>
                       <div class="badges-container">
