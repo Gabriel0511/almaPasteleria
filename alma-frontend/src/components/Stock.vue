@@ -121,8 +121,8 @@
                 :key="item.id"
                 class="stock-item"
                 :class="{
-                  'bajo-stock': item.bajoStock,
                   'stock-critico': item.cantidad <= item.stock_minimo * 0.5,
+                  'bajo-stock': item.bajoStock && item.cantidad > item.stock_minimo * 0.5,
                   expanded: stockDesplegado[item.id],
                 }"
               >
