@@ -2481,7 +2481,7 @@ onUnmounted(() => {
 
 /* ----------------------------- CARD DE PEDIDOS - MISMO ESTILO QUE STOCK ----------------------------- */
 .pedidos-card {
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 220px);
   overflow-y: auto;
   background: white;
   border-radius: 12px;

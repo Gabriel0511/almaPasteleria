@@ -122,7 +122,8 @@
                 class="stock-item"
                 :class="{
                   'stock-critico': item.cantidad <= item.stock_minimo * 0.5,
-                  'bajo-stock': item.bajoStock && item.cantidad > item.stock_minimo * 0.5,
+                  'bajo-stock':
+                    item.bajoStock && item.cantidad > item.stock_minimo * 0.5,
                   expanded: stockDesplegado[item.id],
                 }"
               >
@@ -1752,7 +1753,7 @@ onUnmounted(() => {
 
 /* ----------------------------- CARD DE STOCK MEJORADA ----------------------------- */
 .stock-card {
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 220px);
   overflow-y: auto;
   background: white;
   border-radius: 12px;
