@@ -9,59 +9,122 @@
           <!-- Stock -->
           <div class="card stock">
             <div class="stock-header-container">
-              <h3 class="card-title">
-                Stock <br />
-                <span v-if="insumosBajoStock > 0" class="badge alert">
-                  (Hay {{ insumosBajoStock }} insumos con bajo stock)
-                </span>
-                <span v-else class="badge success"> (Stock en orden) </span>
-              </h3>
+              <div class="card-header sticky-header">
+                <h3 class="card-title">📦 Stock</h3>
 
-              <div class="stock-header">
-                <span>
-                  Nombre
-                  <select
-                    v-model="categoriaSeleccionada"
-                    class="category-select"
-                  >
-                    <option value="">Todas</option>
-                    <option
-                      v-for="cat in categoriasStock"
-                      :key="cat"
-                      :value="cat"
+                <div class="stock-controls">
+                  <div class="filtro-container">
+                    <span class="filtro-label">Filtrar por categoría:</span>
+                    <select
+                      v-model="categoriaSeleccionada"
+                      class="category-select"
                     >
-                      {{ cat }}
-                    </option>
-                  </select>
-                </span>
-                <span>Stock Actual</span>
-                <span>Stock Mínimo</span>
+                      <option value="">Todas las categorías</option>
+                      <option
+                        v-for="cat in categoriasStock"
+                        :key="cat"
+                        :value="cat"
+                      >
+                        {{ cat }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <ul class="stock-list">
-              <li
-                v-for="item in stockFiltradoPorCategoria"
-                :key="item.nombre"
-                :class="{ 'low-stock': item.bajoStock }"
-                class="stock-item"
-                @click="irAStockConBusqueda(item.nombre)"
+            <!-- Resumen rápido -->
+            <div class="stock-resumen">
+              <div class="resumen-item">
+                <span class="resumen-label">Total insumos:</span>
+                <span class="resumen-value">{{
+                  stockFiltradoPorCategoria.length
+                }}</span>
+              </div>
+              <div class="resumen-item">
+                <span class="resumen-label">Bajo stock:</span>
+                <span class="resumen-value alert">{{
+                  insumosBajoStockFiltrados
+                }}</span>
+              </div>
+            </div>
+
+            <div class="stock-list-container">
+              <ul class="stock-list">
+                <li
+                  v-for="item in stockPaginado"
+                  :key="item.id"
+                  :class="{
+                    'low-stock': item.bajoStock,
+                    'stock-item-activo': item.bajoStock,
+                  }"
+                  class="stock-item"
+                  @click="irAStockConBusqueda(item.nombre)"
+                >
+                  <div class="stock-info-container">
+                    <div class="stock-icon">
+                      {{ getStockIcon(item.categoria) }}
+                    </div>
+                    <div class="stock-info">
+                      <span class="item-name">{{ item.nombre }}</span>
+                      <span class="item-category">{{ item.categoria }}</span>
+                    </div>
+                  </div>
+
+                  <div class="stock-data">
+                    <div class="stock-cantidad">
+                      <span class="data-label">Stock Actual</span>
+                      <span
+                        class="item-quantity"
+                        :class="{ 'low-stock-text': item.bajoStock }"
+                      >
+                        {{ formatDecimal(item.cantidad) }} {{ item.unidad }}
+                      </span>
+                    </div>
+                    <div class="stock-minimo">
+                      <span class="data-label">Stock Mínimo</span>
+                      <span class="item-minimum">
+                        {{ formatDecimal(item.stock_minimo) }} {{ item.unidad }}
+                      </span>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+
+              <!-- Estado vacío -->
+              <div
+                v-if="stockFiltradoPorCategoria.length === 0"
+                class="stock-empty"
               >
-                <span class="item-name"
-                  >{{ item.nombre }}
-                  <span class="item-category"
-                    >({{ item.categoria }})</span
-                  ></span
-                >
-                <span class="item-quantity"
-                  >{{ formatDecimal(item.cantidad) }} {{ item.unidad }}</span
-                >
-                <span class="item-minimum"
-                  >{{ formatDecimal(item.stock_minimo) }}
-                  {{ item.unidad }}</span
-                >
-              </li>
-            </ul>
+                <div class="empty-icon">📦</div>
+                <p class="empty-text">No hay insumos en esta categoría</p>
+              </div>
+            </div>
+
+            <!-- Paginación -->
+            <div v-if="totalPaginas > 1" class="paginacion">
+              <button
+                @click="paginaAnterior"
+                :disabled="paginaActual === 1"
+                class="btn-paginacion"
+                :class="{ 'btn-disabled': paginaActual === 1 }"
+              >
+                ‹ Anterior
+              </button>
+
+              <div class="paginacion-info">
+                Página {{ paginaActual }} de {{ totalPaginas }}
+              </div>
+
+              <button
+                @click="paginaSiguiente"
+                :disabled="paginaActual === totalPaginas"
+                class="btn-paginacion"
+                :class="{ 'btn-disabled': paginaActual === totalPaginas }"
+              >
+                Siguiente ›
+              </button>
+            </div>
           </div>
 
           <!-- Cards del medio -->
@@ -463,6 +526,56 @@ const error = ref(null);
 const insumosBajoStock = computed(() => {
   return stock.value.filter((item) => item.bajoStock).length;
 });
+// Variables para paginación
+const paginaActual = ref(1);
+const itemsPorPagina = 10;
+
+// Computed properties para paginación
+const insumosBajoStockFiltrados = computed(() => {
+  return stockFiltradoPorCategoria.value.filter((item) => item.bajoStock)
+    .length;
+});
+
+const totalPaginas = computed(() => {
+  return Math.ceil(stockFiltradoPorCategoria.value.length / itemsPorPagina);
+});
+
+const stockPaginado = computed(() => {
+  const startIndex = (paginaActual.value - 1) * itemsPorPagina;
+  const endIndex = startIndex + itemsPorPagina;
+  return stockFiltradoPorCategoria.value.slice(startIndex, endIndex);
+});
+
+// Métodos de paginación
+const paginaSiguiente = () => {
+  if (paginaActual.value < totalPaginas.value) {
+    paginaActual.value++;
+  }
+};
+
+const paginaAnterior = () => {
+  if (paginaActual.value > 1) {
+    paginaActual.value--;
+  }
+};
+
+// Función para obtener iconos según categoría
+const getStockIcon = (categoria) => {
+  const cat = categoria.toLowerCase();
+
+  if (cat.includes("harina") || cat.includes("polvo")) return "🌾";
+  if (cat.includes("azúcar") || cat.includes("dulce")) return "🍬";
+  if (cat.includes("leche") || cat.includes("crema")) return "🥛";
+  if (cat.includes("huevo")) return "🥚";
+  if (cat.includes("fruta")) return "🍎";
+  if (cat.includes("chocolate")) return "🍫";
+  if (cat.includes("aceite") || cat.includes("grasa")) return "🫒";
+  if (cat.includes("sal") || cat.includes("condimento")) return "🧂";
+  if (cat.includes("empaque") || cat.includes("envase")) return "📦";
+  if (cat.includes("líquido") || cat.includes("agua")) return "💧";
+
+  return "📦";
+};
 
 // Método para ir a la página Stock con búsqueda
 const irAStockConBusqueda = (nombreInsumo) => {
@@ -974,29 +1087,6 @@ const confirmarPreparacion = (task) => {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* -------------------- BADGES MEJORADOS -------------------- */
-.badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: bold;
-}
-
-.badge.alert {
-  background: #e74c3c;
-  color: white;
-}
-
-.badge.warning {
-  background: #f39c12;
-  color: white;
-}
-
-.badge.success {
-  background: #27ae60;
-  color: white;
-}
-
 /* -------------------- TAREAS/ITEMS DE PEDIDOS -------------------- */
 .task-item {
   display: flex;
@@ -1403,57 +1493,299 @@ const confirmarPreparacion = (task) => {
   background: #a8a8a8;
 }
 
+/* -------------------- BADGES MEJORADOS -------------------- */
+.badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.badge.alert {
+  background: #e74c3c;
+  color: white;
+}
+
+.badge.warning {
+  background: #f39c12;
+  color: white;
+}
+
+.badge.success {
+  background: #27ae60;
+  color: white;
+}
+
 /* -------------------- STOCK MEJORADO -------------------- */
+.stock-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.filtro-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filtro-label {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.category-select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.category-select:focus {
+  outline: none;
+  border-color: #7b5a50;
+  box-shadow: 0 0 0 2px rgba(123, 90, 80, 0.1);
+}
+
+/* Resumen del stock */
+.stock-resumen {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-weight: bold;
+  display: flex;
+}
+
+.resumen-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.resumen-label {
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.resumen-value {
+  font-size: 1.1rem;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 15px;
+}
+
+.resumen-value.alert {
+  background: rgba(231, 76, 60, 0.3);
+}
+
+/* Lista de stock */
+.stock-list-container {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.stock-list {
+  margin: 0;
+  padding: 0;
+}
+
 .stock-item {
   display: flex;
   justify-content: space-between;
-  padding: 0.5rem;
-  border-bottom: 1px solid #eee;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+  border: 2px solid #f8f9fa;
+  background: white;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.3s ease;
+  min-height: 60px;
 }
 
 .stock-item:hover {
-  background-color: #f5f5f5;
+  border-color: #e9ecef;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .stock-item.low-stock {
-  background: #ffeaa7;
-  border-left: 3px solid #e74c3c;
+  border-color: #e74c3c;
+  background: #fff5f5;
+}
+
+.stock-item.stock-item-activo {
+  border-color: #e74c3c;
+  background: #fff5f5;
 }
 
 .stock-item.low-stock:hover {
   background: #ffdf7e;
 }
 
+.stock-info-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.stock-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.stock-item.low-stock .stock-icon {
+  background: #e74c3c;
+  color: white;
+}
+
+.stock-info {
+  display: flex;
+  flex-direction: column;
+}
+
 .item-name {
-  font-weight: 500;
-  flex: 2;
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 0.95rem;
+  margin-bottom: 0.1rem;
 }
 
 .item-category {
   font-size: 0.8rem;
   color: #666;
+  background: #f8f9fa;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+/* Datos de stock */
+.stock-data {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.stock-cantidad,
+.stock-minimo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 100px;
+}
+
+.data-label {
+  font-size: 0.75rem;
+  color: #666;
+  font-weight: 500;
 }
 
 .item-quantity {
   font-weight: bold;
-  flex: 1;
-  text-align: center;
+  font-size: 0.95rem;
+  color: #2c3e50;
+}
+
+.item-quantity.low-stock-text {
+  color: #e74c3c;
+  font-weight: 800;
 }
 
 .item-minimum {
-  flex: 1;
-  text-align: center;
-  color: #666;
   font-size: 0.9rem;
+  color: #666;
 }
 
-.category-select {
-  margin-left: 0.5rem;
-  padding: 0.25rem;
+/* Estado vacío */
+.stock-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #7f8c8d;
+}
+
+/* Paginación */
+.paginacion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-top: 1px solid #e9ecef;
+  margin-top: 1rem;
+}
+
+.btn-paginacion {
+  padding: 0.6rem 1.2rem;
   border: 1px solid #ddd;
-  border-radius: 4px;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  color: #7b5a50;
+}
+
+.btn-paginacion:hover:not(.btn-disabled) {
+  background: #7b5a50;
+  color: white;
+  border-color: #7b5a50;
+  transform: translateY(-1px);
+}
+
+.btn-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn-disabled:hover {
+  background: white !important;
+  color: #7b5a50 !important;
+  border-color: #ddd !important;
+}
+
+.paginacion-info {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+/* Scroll personalizado */
+.stock-list-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.stock-list-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.stock-list-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.stock-list-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 /* -------------------- CARDS CON HEADER FIJO MEJORADO -------------------- */
@@ -1787,10 +2119,8 @@ const confirmarPreparacion = (task) => {
 
   /* -------------------- ITEMS DE RECETAS -------------------- */
   .receta-item {
-    flex-direction: column;
+    flex-direction: row;
     align-items: stretch;
-    gap: 1rem;
-    padding: 1rem;
   }
 
   .receta-info-container {
@@ -1798,10 +2128,7 @@ const confirmarPreparacion = (task) => {
   }
 
   .contador-container {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
+    justify-content: flex-end;
   }
 
   .contador {
@@ -1809,7 +2136,7 @@ const confirmarPreparacion = (task) => {
   }
 
   .recetas-total {
-    flex-direction: column;
+    flex-direction: row;
     gap: 0.5rem;
     text-align: center;
   }
@@ -1823,19 +2150,56 @@ const confirmarPreparacion = (task) => {
   }
 
   /* -------------------- STOCK ITEMS -------------------- */
-  .stock-item {
-    flex-direction: row;
-    gap: 0.25rem;
-    padding: 0.75rem 0.5rem;
+  .stock-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
   }
 
-  .item-name {
-    font-size: 0.9rem;
+  .filtro-container {
+    justify-content: space-between;
+  }
+
+  .stock-item {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .stock-info-container {
+    justify-content: flex-start;
+  }
+
+  .stock-data {
+    justify-content: space-between;
     width: 100%;
   }
 
-  .item-category {
-    font-size: 0.75rem;
+  .stock-cantidad,
+  .stock-minimo {
+    min-width: auto;
+    flex: 1;
+  }
+
+  .stock-resumen {
+    flex-direction: row;
+    gap: 0.75rem;
+    text-align: center;
+  }
+
+  .resumen-item {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  .paginacion {
+    flex-direction: row;
+    gap: 0.75rem;
+  }
+
+  .btn-paginacion {
+    width: 25%;
+    text-align: center;
   }
 
   /* -------------------- CARDS CON SCROLL -------------------- */
@@ -1945,7 +2309,7 @@ const confirmarPreparacion = (task) => {
   }
 
   .recetas-header {
-    flex-direction: column;
+    flex-direction: row;
     gap: 0.5rem;
   }
 
@@ -1954,7 +2318,7 @@ const confirmarPreparacion = (task) => {
   }
 
   .receta-item {
-    flex-direction: column;
+    flex-direction: row;
     align-items: stretch;
     gap: 1rem;
   }
@@ -1966,7 +2330,7 @@ const confirmarPreparacion = (task) => {
   }
 
   .recetas-total {
-    flex-direction: column;
+    flex-direction: row;
     gap: 0.5rem;
     text-align: center;
   }
@@ -1984,6 +2348,51 @@ const confirmarPreparacion = (task) => {
   .stock-item {
     flex-direction: row;
     gap: 0.25rem;
+  }
+
+  .stock-controls {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .filtro-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .stock-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .stock-data {
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .stock-cantidad,
+  .stock-minimo {
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .stock-resumen {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .paginacion {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .btn-paginacion {
+    width: 100%;
   }
 }
 

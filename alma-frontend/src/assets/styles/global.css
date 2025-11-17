@@ -284,10 +284,8 @@ html,
 .stock-header {
   display: flex;
   justify-content: space-between;
-  font-weight: bold;
-  padding: 10px;
-  border-bottom: 1px solid #ccc;
-  background-color: rgba(123, 90, 80, 0.1);
+  align-items: center;
+  margin-bottom: 1rem;
 }
 
 .stock-list {
