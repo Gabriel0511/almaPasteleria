@@ -224,7 +224,7 @@
           <!-- Recetas -->
           <div class="card recetas">
             <div class="recetas-header">
-              <h3 class="card-title">📋 Recetas</h3>
+              <h3 class="card-title">📋 Recetas del Día</h3>
               <form autocomplete="off" class="search-form">
                 <input
                   autocomplete="off"
@@ -236,39 +236,72 @@
               </form>
             </div>
 
+            <!-- Total del día -->
+            <div class="recetas-total">
+              <span class="total-text">Total preparado hoy:</span>
+              <span class="total-count">{{ totalRecetasHoy }}</span>
+            </div>
+
             <ul class="recetas-list">
               <li
                 v-for="receta in filteredRecetas"
                 :key="receta.id"
                 class="receta-item"
+                :class="{ 'receta-activa': receta.veces_hecha > 0 }"
               >
-                <span class="receta-info">
-                  {{ receta.nombre }}
-                  <span class="receta-rinde">
-                    (Rinde {{ receta.rinde }}
-                    {{ singularizeUnidad(receta.rinde, receta.unidad_rinde) }})
-                  </span>
-                </span>
-                <div class="contador">
-                  <button
-                    @click="decrementarContador(receta)"
-                    :disabled="!receta.veces_hecha"
-                    class="btn-contador"
-                  >
-                    -
-                  </button>
-                  <span class="contador-value">{{
-                    receta.veces_hecha || 0
-                  }}</span>
-                  <button
-                    @click="incrementarContador(receta)"
-                    class="btn-contador"
-                  >
-                    +
-                  </button>
+                <div class="receta-info-container">
+                  <div class="receta-icon">
+                    {{ getRecetaIcon(receta.nombre) }}
+                  </div>
+                  <div class="receta-info">
+                    <span class="receta-nombre">{{ receta.nombre }}</span>
+                    <span class="receta-rinde">
+                      (Rinde {{ receta.rinde }}
+                      {{
+                        singularizeUnidad(receta.rinde, receta.unidad_rinde)
+                      }})
+                    </span>
+                  </div>
+                </div>
+
+                <div class="contador-container">
+                  <span class="contador-label">Hechas hoy:</span>
+                  <div class="contador">
+                    <button
+                      @click="decrementarContador(receta)"
+                      :disabled="!receta.veces_hecha"
+                      class="btn-contador btn-menos"
+                      :class="{ 'btn-disabled': !receta.veces_hecha }"
+                    >
+                      −
+                    </button>
+                    <span
+                      class="contador-value"
+                      :class="{
+                        'contador-cero': receta.veces_hecha === 0,
+                        'contador-activo': receta.veces_hecha > 0,
+                      }"
+                    >
+                      {{ receta.veces_hecha || 0 }}
+                    </span>
+                    <button
+                      @click="incrementarContador(receta)"
+                      class="btn-contador btn-mas"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               </li>
             </ul>
+            <!-- Estado vacío -->
+            <div v-if="filteredRecetas.length === 0" class="recetas-empty">
+              <div class="empty-icon">🔍</div>
+              <p class="empty-text">No se encontraron recetas</p>
+              <p class="empty-subtext">
+                Intenta con otros términos de búsqueda
+              </p>
+            </div>
           </div>
         </section>
       </main>
@@ -350,6 +383,32 @@ const stockFiltradoPorCategoria = computed(() => {
     (item) => item.categoria === categoriaSeleccionada.value
   );
 });
+
+// Total de recetas preparadas hoy
+const totalRecetasHoy = computed(() => {
+  return recetas.value.reduce(
+    (total, receta) => total + (receta.veces_hecha || 0),
+    0
+  );
+});
+
+const getRecetaIcon = (nombreReceta) => {
+  const nombre = nombreReceta.toLowerCase();
+
+  if (nombre.includes("gelatina")) return "🍮";
+  if (nombre.includes("rogel") || nombre.includes("dulce de leche"))
+    return "🥧";
+  if (nombre.includes("lemon") || nombre.includes("pie")) return "🍋";
+  if (nombre.includes("limonada")) return "🍹";
+  if (nombre.includes("pomelada")) return "🍈";
+  if (nombre.includes("huevo") || nombre.includes("tostada")) return "🍳";
+  if (nombre.includes("panqueque")) return "🥞";
+  if (nombre.includes("alfajor")) return "🍪";
+  if (nombre.includes("cafe")) return "☕";
+  if (nombre.includes("torta") || nombre.includes("cake")) return "🎂";
+
+  return "👨‍🍳";
+};
 
 // ----------------------
 // 🔹 Modal de Confirmación
@@ -1093,10 +1152,42 @@ const confirmarPreparacion = (task) => {
 }
 
 .search-input {
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1rem;
   border: 1px solid #ddd;
   border-radius: 20px;
   width: 250px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #7b5a50;
+  box-shadow: 0 0 0 2px rgba(123, 90, 80, 0.1);
+}
+
+/* Total del día */
+.recetas-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-weight: bold;
+}
+
+.total-text {
+  font-size: 0.9rem;
+}
+
+.total-count {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 15px;
+  font-size: 1.1rem;
 }
 
 /* -------------------- ITEMS DE RECETAS MEJORADOS -------------------- */
@@ -1104,40 +1195,137 @@ const confirmarPreparacion = (task) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
-  border-radius: 6px;
-  transition: background-color 0.3s ease;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  border-radius: 10px;
+  border: 2px solid #f8f9fa;
+  background: white;
+  transition: all 0.3s ease;
+  position: relative;
 }
 
 .receta-item:hover {
-  background: #f8f9fa;
+  border-color: #e9ecef;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.receta-info {
+.receta-item.receta-activa {
+  background: #f8fff9;
+}
+
+.receta-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+  border-radius: 8px;
+  font-size: 1.2rem;
+}
+
+.receta-item.receta-activa .receta-icon {
+  background: #27ae60;
+  color: white;
+}
+
+.receta-info-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   flex: 1;
 }
 
+.receta-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.receta-nombre {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
 .receta-rinde {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: #666;
 }
 
 /* -------------------- CONTADOR MEJORADO -------------------- */
-.contador {
+/* Contador mejorado */
+.contador-container {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 0.5rem;
 }
 
+.contador-label {
+  font-size: 0.8rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.contador {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 0.25rem;
+  border: 1px solid #e9ecef;
+}
+
 .btn-contador {
-  width: 30px;
-  height: 30px;
-  border: 1px solid #ddd;
+  width: 32px;
+  height: 32px;
+  border: none;
   background: white;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
+  font-size: 1.2rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-menos {
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
+}
+
+.btn-menos:hover:not(.btn-disabled) {
+  background: #e74c3c;
+  color: white;
+  transform: scale(1.1);
+}
+
+.btn-mas {
+  color: #27ae60;
+  border: 1px solid #27ae60;
+}
+
+.btn-mas:hover {
+  background: #27ae60;
+  color: white;
+  transform: scale(1.1);
+}
+
+.btn-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn-disabled:hover {
+  background: white !important;
+  color: #e74c3c !important;
 }
 
 .btn-contador:hover:not(:disabled) {
@@ -1153,8 +1341,66 @@ const confirmarPreparacion = (task) => {
 
 .contador-value {
   font-weight: bold;
-  min-width: 30px;
+  min-width: 40px;
   text-align: center;
+  font-size: 1.1rem;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.contador-cero {
+  color: #999;
+  background: transparent;
+}
+
+.contador-activo {
+  color: #27ae60;
+  background: rgba(39, 174, 96, 0.1);
+  font-weight: 800;
+}
+
+/* Estado vacío */
+.recetas-empty {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #7f8c8d;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.empty-subtext {
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+/* Scroll personalizado */
+.recetas-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.recetas-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.recetas-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.recetas-list::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 /* -------------------- STOCK MEJORADO -------------------- */
@@ -1542,9 +1788,30 @@ const confirmarPreparacion = (task) => {
   /* -------------------- ITEMS DE RECETAS -------------------- */
   .receta-item {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .receta-info-container {
+    justify-content: flex-start;
+  }
+
+  .contador-container {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .contador {
+    margin-left: auto;
+  }
+
+  .recetas-total {
+    flex-direction: column;
     gap: 0.5rem;
-    padding: 0.5rem;
+    text-align: center;
   }
 
   .receta-info {
@@ -1684,6 +1951,34 @@ const confirmarPreparacion = (task) => {
 
   .search-input {
     width: 100%;
+  }
+
+  .receta-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .contador-container {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .recetas-total {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+
+  .btn-contador {
+    width: 36px;
+    height: 36px;
+  }
+
+  .contador-value {
+    min-width: 36px;
+    font-size: 1rem;
   }
 
   .stock-item {
