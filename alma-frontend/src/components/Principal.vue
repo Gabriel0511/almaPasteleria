@@ -14,7 +14,6 @@
 
                 <div class="stock-controls">
                   <div class="filtro-container">
-                    <span class="filtro-label">Filtrar por categoría:</span>
                     <select
                       v-model="categoriaSeleccionada"
                       class="category-select"
@@ -34,19 +33,15 @@
             </div>
 
             <!-- Resumen rápido -->
-            <div class="stock-resumen">
-              <div class="resumen-item">
-                <span class="resumen-label">Total insumos:</span>
-                <span class="resumen-value">{{
-                  stockFiltradoPorCategoria.length
-                }}</span>
-              </div>
-              <div class="resumen-item">
-                <span class="resumen-label">Bajo stock:</span>
-                <span class="resumen-value alert">{{
-                  insumosBajoStockFiltrados
-                }}</span>
-              </div>
+            <div class="recetas-total">
+              <span class="total-text">Total insumos:</span>
+              <span class="total-count">{{
+                stockFiltradoPorCategoria.length
+              }}</span>
+              <span class="total-text">Bajo stock:</span>
+              <span class="total-count alert">{{
+                insumosBajoStockFiltrados
+              }}</span>
             </div>
 
             <div class="stock-list-container">
@@ -301,69 +296,101 @@
 
             <!-- Total del día -->
             <div class="recetas-total">
+              <span class="total-text">Total Recetas:</span>
+              <span class="total-count">{{ totalRecetas }}</span>
               <span class="total-text">Total preparado hoy:</span>
               <span class="total-count">{{ totalRecetasHoy }}</span>
             </div>
 
-            <ul class="recetas-list">
-              <li
-                v-for="receta in filteredRecetas"
-                :key="receta.id"
-                class="receta-item"
-                :class="{ 'receta-activa': receta.veces_hecha > 0 }"
-              >
-                <div class="receta-info-container">
-                  <div class="receta-icon">
-                    {{ getRecetaIcon(receta.nombre) }}
+            <div class="recetas-list-container">
+              <ul class="recetas-list">
+                <li
+                  v-for="receta in recetasPaginadas"
+                  :key="receta.id"
+                  class="receta-item"
+                  :class="{ 'receta-activa': receta.veces_hecha > 0 }"
+                >
+                  <div class="receta-info-container">
+                    <div class="receta-icon">
+                      {{ getRecetaIcon(receta.nombre) }}
+                    </div>
+                    <div class="receta-info">
+                      <span class="receta-nombre">{{ receta.nombre }}</span>
+                      <span class="receta-rinde">
+                        (Rinde {{ receta.rinde }}
+                        {{
+                          singularizeUnidad(receta.rinde, receta.unidad_rinde)
+                        }})
+                      </span>
+                    </div>
                   </div>
-                  <div class="receta-info">
-                    <span class="receta-nombre">{{ receta.nombre }}</span>
-                    <span class="receta-rinde">
-                      (Rinde {{ receta.rinde }}
-                      {{
-                        singularizeUnidad(receta.rinde, receta.unidad_rinde)
-                      }})
-                    </span>
-                  </div>
-                </div>
 
-                <div class="contador-container">
-                  <span class="contador-label">Hechas hoy:</span>
-                  <div class="contador">
-                    <button
-                      @click="decrementarContador(receta)"
-                      :disabled="!receta.veces_hecha"
-                      class="btn-contador btn-menos"
-                      :class="{ 'btn-disabled': !receta.veces_hecha }"
-                    >
-                      −
-                    </button>
-                    <span
-                      class="contador-value"
-                      :class="{
-                        'contador-cero': receta.veces_hecha === 0,
-                        'contador-activo': receta.veces_hecha > 0,
-                      }"
-                    >
-                      {{ receta.veces_hecha || 0 }}
-                    </span>
-                    <button
-                      @click="incrementarContador(receta)"
-                      class="btn-contador btn-mas"
-                    >
-                      +
-                    </button>
+                  <div class="contador-container">
+                    <span class="contador-label">Hechas hoy:</span>
+                    <div class="contador">
+                      <button
+                        @click="decrementarContador(receta)"
+                        :disabled="!receta.veces_hecha"
+                        class="btn-contador btn-menos"
+                        :class="{ 'btn-disabled': !receta.veces_hecha }"
+                      >
+                        −
+                      </button>
+                      <span
+                        class="contador-value"
+                        :class="{
+                          'contador-cero': receta.veces_hecha === 0,
+                          'contador-activo': receta.veces_hecha > 0,
+                        }"
+                      >
+                        {{ receta.veces_hecha || 0 }}
+                      </span>
+                      <button
+                        @click="incrementarContador(receta)"
+                        class="btn-contador btn-mas"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </li>
-            </ul>
-            <!-- Estado vacío -->
-            <div v-if="filteredRecetas.length === 0" class="recetas-empty">
-              <div class="empty-icon">🔍</div>
-              <p class="empty-text">No se encontraron recetas</p>
-              <p class="empty-subtext">
-                Intenta con otros términos de búsqueda
-              </p>
+                </li>
+              </ul>
+
+              <!-- Estado vacío -->
+              <div v-if="filteredRecetas.length === 0" class="recetas-empty">
+                <div class="empty-icon">🔍</div>
+                <p class="empty-text">No se encontraron recetas</p>
+                <p class="empty-subtext">
+                  Intenta con otros términos de búsqueda
+                </p>
+              </div>
+            </div>
+
+            <!-- Paginación -->
+            <div v-if="totalPaginasRecetas > 1" class="paginacion">
+              <button
+                @click="paginaAnteriorRecetas"
+                :disabled="paginaActualRecetas === 1"
+                class="btn-paginacion"
+                :class="{ 'btn-disabled': paginaActualRecetas === 1 }"
+              >
+                ‹ Anterior
+              </button>
+
+              <div class="paginacion-info">
+                Página {{ paginaActualRecetas }} de {{ totalPaginasRecetas }}
+              </div>
+
+              <button
+                @click="paginaSiguienteRecetas"
+                :disabled="paginaActualRecetas === totalPaginasRecetas"
+                class="btn-paginacion"
+                :class="{
+                  'btn-disabled': paginaActualRecetas === totalPaginasRecetas,
+                }"
+              >
+                Siguiente ›
+              </button>
             </div>
           </div>
         </section>
@@ -453,6 +480,10 @@ const totalRecetasHoy = computed(() => {
     (total, receta) => total + (receta.veces_hecha || 0),
     0
   );
+});
+
+const totalRecetas = computed(() => {
+  return recetas.value.length;
 });
 
 const getRecetaIcon = (nombreReceta) => {
@@ -592,6 +623,31 @@ const irAStockConBusqueda = (nombreInsumo) => {
 const recetas = ref([]);
 const loadingRecetas = ref(false);
 const errorRecetas = ref(null);
+// Variables para paginación de recetas
+const paginaActualRecetas = ref(1);
+const itemsPorPaginaRecetas = 8; // Menos items porque las recetas son más altas
+
+// Computed properties para paginación de recetas
+const totalPaginasRecetas = computed(() => {
+  return Math.ceil(filteredRecetas.value.length / itemsPorPaginaRecetas);
+});
+
+const recetasPaginadas = computed(() => {
+  const startIndex = (paginaActualRecetas.value - 1) * itemsPorPaginaRecetas;
+  const endIndex = startIndex + itemsPorPaginaRecetas;
+  return filteredRecetas.value.slice(startIndex, endIndex);
+});
+
+const inicioPaginaRecetas = computed(() => {
+  return (paginaActualRecetas.value - 1) * itemsPorPaginaRecetas + 1;
+});
+
+const finPaginaRecetas = computed(() => {
+  const endIndex = paginaActualRecetas.value * itemsPorPaginaRecetas;
+  return endIndex > filteredRecetas.value.length
+    ? filteredRecetas.value.length
+    : endIndex;
+});
 
 const incrementarContador = async (receta) => {
   try {
@@ -721,6 +777,19 @@ const singularizeUnidad = (rinde, unidad) => {
     if (unidad === "porciones") return "porción";
   }
   return unidad;
+};
+
+// Métodos de paginación de recetas
+const paginaSiguienteRecetas = () => {
+  if (paginaActualRecetas.value < totalPaginasRecetas.value) {
+    paginaActualRecetas.value++;
+  }
+};
+
+const paginaAnteriorRecetas = () => {
+  if (paginaActualRecetas.value > 1) {
+    paginaActualRecetas.value--;
+  }
 };
 
 // ----------------------
@@ -1094,7 +1163,7 @@ const confirmarPreparacion = (task) => {
   padding: 1rem;
   margin-bottom: 0.75rem;
   border-radius: 10px;
-  background: #f8f9fa;
+  background: white;
   border-left: 4px solid #ddd;
   transition: all 0.3s ease;
 }
@@ -1106,17 +1175,17 @@ const confirmarPreparacion = (task) => {
 
 .task-item.pendiente {
   border-left-color: #e74c3c;
-  background: #fff5f5;
+  background: white;
 }
 
 .task-item.listo {
   border-left-color: #27ae60;
-  background: #fffaf0;
+  background: white;
 }
 
 .task-item.entregado {
   border-left-color: #27ae60;
-  background: #f0fff4;
+  background: white;
   opacity: 0.8;
 }
 
@@ -1234,7 +1303,10 @@ const confirmarPreparacion = (task) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: 0.5rem;
   margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #e9ecef;
 }
 
 .search-form {
@@ -1259,7 +1331,7 @@ const confirmarPreparacion = (task) => {
 /* Total del día */
 .recetas-total {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-around;
   align-items: center;
   padding: 0.75rem 1rem;
   background: var(--color-primary);
@@ -1267,10 +1339,13 @@ const confirmarPreparacion = (task) => {
   border-radius: 8px;
   margin-bottom: 1rem;
   font-weight: bold;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .total-text {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
+  opacity: 0.9;
 }
 
 .total-count {
@@ -1278,6 +1353,18 @@ const confirmarPreparacion = (task) => {
   padding: 0.25rem 0.75rem;
   border-radius: 15px;
   font-size: 1.1rem;
+}
+
+/* Contenedor de lista con scroll */
+.recetas-list-container {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+/* Items de recetas mejorados */
+.recetas-list {
+  margin: 0;
+  padding: 0;
 }
 
 /* -------------------- ITEMS DE RECETAS MEJORADOS -------------------- */
@@ -1292,6 +1379,7 @@ const confirmarPreparacion = (task) => {
   background: white;
   transition: all 0.3s ease;
   position: relative;
+  min-height: 70px;
 }
 
 .receta-item:hover {
@@ -1301,7 +1389,15 @@ const confirmarPreparacion = (task) => {
 }
 
 .receta-item.receta-activa {
+  border-color: #27ae60;
   background: #f8fff9;
+}
+
+.receta-info-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
 }
 
 .receta-icon {
@@ -1531,17 +1627,11 @@ const confirmarPreparacion = (task) => {
   gap: 0.5rem;
 }
 
-.filtro-label {
-  font-size: 0.9rem;
-  color: #666;
-  font-weight: 500;
-}
-
 .category-select {
-  padding: 0.5rem 0.75rem;
+  padding: 0.6rem 1rem;
   border: 1px solid #ddd;
-  border-radius: 6px;
-  background: white;
+  border-radius: 20px;
+  width: 250px;
   font-size: 0.9rem;
   transition: all 0.3s ease;
 }
@@ -1563,12 +1653,13 @@ const confirmarPreparacion = (task) => {
   border-radius: 8px;
   margin-bottom: 1rem;
   font-weight: bold;
-  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .resumen-item {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   gap: 0.25rem;
 }
