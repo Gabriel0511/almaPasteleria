@@ -11,7 +11,6 @@
           </h3>
 
           <!-- Estadísticas de recetas -->
-          <!-- Actualizar la sección de estadísticas -->
           <div class="estadisticas-stock">
             <div class="estadistica-item" v-if="notificacionesRecetasNoRentables.length > 0">
               <span class="estadistica-badge bajo" :class="{ active: filtroActivo === 'no-rentable' }"
@@ -33,6 +32,7 @@
               </span>
             </div>
           </div>
+          
           <!-- Filtros de recetas -->
           <div class="filtros-derecha">
             <div class="filtro-group">
@@ -53,7 +53,7 @@
           </div>
 
           <div v-else class="recetas-list">
-            <div v-for="receta in recetasFiltradas" :key="receta.id" class="receta-item" :class="{
+            <div v-for="receta in recetasPaginadas" :key="receta.id" class="receta-item" :class="{
               'no-rentable': receta.precio_venta <= receta.costo_total,
               expanded: recetaDesplegada[receta.id],
             }">
@@ -110,7 +110,7 @@
                   </div>
                 </div>
 
-                <!-- Acciones -->
+                <!-- Acciones - DENTRO del contenedor compacto -->
                 <div class="acciones-container">
                   <button class="btn-accion btn-gestionar" @click="agregarInsumosAReceta(receta)"
                     title="Gestionar insumos">
@@ -126,7 +126,7 @@
                 </div>
               </div>
 
-              <!-- Desplegable de detalles de la receta - MEJORADO -->
+              <!-- Desplegable de detalles de la receta - DENTRO del mismo receta-item -->
               <div v-if="recetaDesplegada[receta.id]" class="receta-detalles-desplegable">
                 <div class="detalles-content">
                   <!-- Información de rentabilidad -->
@@ -244,15 +244,42 @@
               </div>
             </div>
           </div>
+
+          <!-- Controles de paginación - FUERA del recetas-list pero DENTRO del recetas-card -->
+          <div class="pagination-controls" v-if="totalPaginas > 1">
+            <div class="pagination-info">
+              Mostrando {{ inicioPagina }}-{{ finPagina }} de
+              {{ recetasFiltradas.length }} receta(s)
+            </div>
+            <div class="pagination-buttons">
+              <button class="pagination-btn" :disabled="paginaActual === 1" @click="cambiarPagina(paginaActual - 1)">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+
+              <div class="pagination-numbers">
+                <button v-for="pagina in paginasVisibles" :key="pagina" class="pagination-number"
+                  :class="{ active: pagina === paginaActual }" @click="cambiarPagina(pagina)">
+                  {{ pagina }}
+                </button>
+                <span v-if="mostrarPuntosSuspensivos" class="pagination-ellipsis">...</span>
+              </div>
+
+              <button class="pagination-btn" :disabled="paginaActual === totalPaginas"
+                @click="cambiarPagina(paginaActual + 1)">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
         </div>
 
-        <!-- Botón Nueva Receta flotante - ESTILO COMO STOCK -->
+        <!-- Botón Nueva Receta flotante - FUERA del card -->
         <button class="btn-nueva-receta-flotante" @click="showNuevaRecetaModal">
           <i class="fas fa-plus"></i>
           <span>Nueva Receta</span>
         </button>
       </main>
     </div>
+
     <!-- MODALES REFACTORIZADOS -->
 
     <!-- Modal para Nueva/Editar Receta -->
@@ -467,6 +494,10 @@ const showNuevoInsumoModal = ref(false);
 // Agregar variable de estado para filtro activo
 const filtroActivo = ref('');
 
+// Variables de paginación
+const paginaActual = ref(1);
+const itemsPorPagina = ref(10); // 10 recetas por página
+
 // Referencia al sidebar para controlarlo desde el header
 const sidebarRef = ref(null);
 
@@ -481,6 +512,7 @@ const toggleSidebar = () => {
 const limpiarFiltros = () => {
   filtroActivo.value = '';
   searchTerm.value = '';
+  resetearPaginacion();
 };
 
 // Formularios
@@ -505,7 +537,73 @@ const recetaSeleccionada = ref(null);
 // Método para aplicar filtro de no rentables
 const aplicarFiltroNoRentables = () => {
   filtroActivo.value = filtroActivo.value === 'no-rentable' ? '' : 'no-rentable';
+  resetearPaginacion();
 };
+
+// Computed properties para paginación
+const recetasPaginadas = computed(() => {
+  const inicio = (paginaActual.value - 1) * itemsPorPagina.value;
+  const fin = inicio + itemsPorPagina.value;
+  return recetasFiltradas.value.slice(inicio, fin);
+});
+
+const totalPaginas = computed(() => {
+  return Math.ceil(recetasFiltradas.value.length / itemsPorPagina.value);
+});
+
+const inicioPagina = computed(() => {
+  return (paginaActual.value - 1) * itemsPorPagina.value + 1;
+});
+
+const finPagina = computed(() => {
+  const fin = paginaActual.value * itemsPorPagina.value;
+  return Math.min(fin, recetasFiltradas.value.length);
+});
+
+const paginasVisibles = computed(() => {
+  const total = totalPaginas.value;
+  const actual = paginaActual.value;
+  const paginas = [];
+
+  if (total <= 7) {
+    // Mostrar todas las páginas
+    for (let i = 1; i <= total; i++) {
+      paginas.push(i);
+    }
+  } else {
+    // Mostrar páginas con puntos suspensivos
+    if (actual <= 4) {
+      // Primeras páginas
+      for (let i = 1; i <= 5; i++) {
+        paginas.push(i);
+      }
+      paginas.push(total);
+    } else if (actual >= total - 3) {
+      // Últimas páginas
+      paginas.push(1);
+      for (let i = total - 4; i <= total; i++) {
+        paginas.push(i);
+      }
+    } else {
+      // Páginas intermedias
+      paginas.push(1);
+      for (let i = actual - 1; i <= actual + 1; i++) {
+        paginas.push(i);
+      }
+      paginas.push(total);
+    }
+  }
+
+  return paginas;
+});
+
+const mostrarPuntosSuspensivos = computed(() => {
+  return (
+    totalPaginas.value > 7 &&
+    paginaActual.value > 4 &&
+    paginaActual.value < totalPaginas.value - 3
+  );
+});
 
 // Actualizar recetasFiltradas para incluir este filtro
 const recetasFiltradas = computed(() => {
@@ -566,9 +664,17 @@ const notificacionesRecetasNoRentables = computed(() => {
     .filter((notif) => !notif.leida); // Solo mostrar no leídas
 });
 
-// Métodos
-const handleNavigation = (route) => {
-  router.push(route);
+// Métodos de paginación
+const cambiarPagina = (pagina) => {
+  if (pagina >= 1 && pagina <= totalPaginas.value) {
+    paginaActual.value = pagina;
+    // Scroll suave hacia arriba
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+};
+
+const resetearPaginacion = () => {
+  paginaActual.value = 1;
 };
 
 // Nuevo método para toggle del desplegable
@@ -973,40 +1079,63 @@ const guardarRecetaBasica = async () => {
     };
 
     let response;
+    let esNuevaReceta = !esEdicion.value; // Guardar este valor ANTES de hacer cualquier cosa
+
     if (esEdicion.value) {
       response = await axios.put(
         `/api/recetas/${formReceta.value.id}/`,
         datosParaEnviar
       );
+
+      // ✅ NOTIFICACIÓN PARA EDICIÓN
+      notificationSystem.show({
+        type: "success",
+        title: "Receta actualizada",
+        message: "Receta actualizada correctamente",
+        timeout: 4000,
+      });
     } else {
       response = await axios.post("/api/recetas/", datosParaEnviar);
+
+      // ✅ NOTIFICACIÓN PARA CREACIÓN
+      notificationSystem.show({
+        type: "success",
+        title: "Receta creada",
+        message: "Receta creada correctamente",
+        timeout: 4000,
+      });
     }
 
+    // ✅ CORREGIDO: Esperar a que fetchRecetas termine completamente
     await fetchRecetas();
+
+    // ✅ CORREGIDO: Cerrar el modal inmediatamente después de guardar
     closeModal();
 
     // Verificar rentabilidad y mostrar notificación
     const recetaGuardada = response.data;
     verificarRentabilidadYNotificar(recetaGuardada);
 
-    notificationSystem.show({
-      type: "success",
-      title: esEdicion.value ? "Receta actualizada" : "Receta creada",
-      message: esEdicion.value
-        ? "Receta actualizada correctamente"
-        : "Receta creada correctamente. Ahora puede agregarle insumos.",
-      timeout: 4000,
-    });
-
-    // ✅ CORREGIDO: Solo abrir modal de insumos para NUEVAS recetas, NO para edición
-    if (!esEdicion.value && response.data.id) {
-      const nuevaReceta = recetas.value.find((r) => r.id === response.data.id);
-      if (nuevaReceta) {
-        setTimeout(() => {
+    // ✅ SOLO para NUEVAS recetas abrir modal de insumos - DE FORMA SEPARADA Y CONTROLADA
+    if (esNuevaReceta && response.data.id) {
+      // Pequeña pausa para asegurar que el modal se cerró completamente
+      setTimeout(() => {
+        // Verificar nuevamente que no es edición (por si acaso)
+        if (!esEdicion.value) {
+          const nuevaReceta = {
+            id: response.data.id,
+            nombre: response.data.nombre,
+            rinde: response.data.rinde,
+            unidad_rinde: response.data.unidad_rinde,
+            precio_venta: response.data.precio_venta,
+            costo_total: response.data.costo_total || 0,
+            insumos: response.data.insumos || []
+          };
           agregarInsumosAReceta(nuevaReceta);
-        }, 1000);
-      }
+        }
+      }, 100);
     }
+
   } catch (error) {
     console.error("Error al guardar receta:", error);
 
@@ -2498,6 +2627,7 @@ onMounted(() => {
   transform: translateY(-3px) scale(1.05);
   box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
 }
+
 /* Estilos para los badges de estadísticas */
 .estadisticas-stock {
   display: flex;
@@ -2549,5 +2679,103 @@ onMounted(() => {
 .estadistica-badge.limpiar-filtro {
   background: linear-gradient(135deg, #17a2b8, #138496);
   color: white;
+}
+
+/* Estilos de paginación (copiar del Stock.vue) */
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  padding: 15px 0;
+  border-top: 1px solid #eaeaea;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.pagination-info {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #dee2e6;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #495057;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+  transform: translateY(-1px);
+}
+
+.pagination-btn:disabled {
+  background: #f8f9fa;
+  color: #adb5bd;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pagination-btn i {
+  font-size: 0.8rem;
+}
+
+.pagination-numbers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid #dee2e6;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #495057;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.pagination-number:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+  transform: translateY(-1px);
+}
+
+.pagination-number.active {
+  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
+  color: white;
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-ellipsis {
+  padding: 0 8px;
+  color: #6c757d;
+  font-weight: 500;
 }
 </style>
