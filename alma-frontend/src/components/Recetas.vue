@@ -11,19 +11,13 @@
           </h3>
 
           <!-- Estadísticas de recetas -->
+          <!-- Actualizar la sección de estadísticas -->
           <div class="estadisticas-stock">
-            <div
-              class="estadistica-item"
-              v-if="notificacionesRecetasNoRentables.length > 0"
-            >
-              <span
-                class="estadistica-badge bajo animacion-pulsante"
-                @click="marcarTodasComoLeidas"
-                title="Marcar todas como leídas"
-              >
+            <div class="estadistica-item" v-if="notificacionesRecetasNoRentables.length > 0">
+              <span class="estadistica-badge bajo" :class="{ active: filtroActivo === 'no-rentable' }"
+                @click="aplicarFiltroNoRentables" title="Filtrar recetas no rentables">
                 <i class="fas fa-exclamation-circle"></i>
                 {{ notificacionesRecetasNoRentables.length }} no rentable(s)
-                <i class="fas fa-check ml-2" style="font-size: 0.7rem"></i>
               </span>
             </div>
             <div class="estadistica-item">
@@ -32,17 +26,17 @@
                 {{ recetasFiltradas.length }} receta(s)
               </span>
             </div>
+            <div class="estadistica-item" v-if="filtroActivo || searchTerm">
+              <span class="estadistica-badge limpiar-filtro" @click="limpiarFiltros">
+                <i class="fas fa-times"></i>
+                Limpiar filtros
+              </span>
+            </div>
           </div>
-
           <!-- Filtros de recetas -->
           <div class="filtros-derecha">
             <div class="filtro-group">
-              <input
-                type="text"
-                v-model="searchTerm"
-                placeholder="Buscar receta..."
-                class="filtro-input"
-              />
+              <input type="text" v-model="searchTerm" placeholder="Buscar receta..." class="filtro-input" />
             </div>
           </div>
         </section>
@@ -59,25 +53,17 @@
           </div>
 
           <div v-else class="recetas-list">
-            <div
-              v-for="receta in recetasFiltradas"
-              :key="receta.id"
-              class="receta-item"
-              :class="{
-                'no-rentable': receta.precio_venta <= receta.costo_total,
-                expanded: recetaDesplegada[receta.id],
-              }"
-            >
+            <div v-for="receta in recetasFiltradas" :key="receta.id" class="receta-item" :class="{
+              'no-rentable': receta.precio_venta <= receta.costo_total,
+              expanded: recetaDesplegada[receta.id],
+            }">
               <!-- Contenedor principal compacto - ESTILO COMO STOCK -->
               <div class="receta-item-compact">
                 <!-- Indicador de estado -->
-                <div
-                  class="estado-indicador"
-                  :class="{
-                    critico: receta.precio_venta <= receta.costo_total,
-                    normal: receta.precio_venta > receta.costo_total,
-                  }"
-                ></div>
+                <div class="estado-indicador" :class="{
+                  critico: receta.precio_venta <= receta.costo_total,
+                  normal: receta.precio_venta > receta.costo_total,
+                }"></div>
 
                 <!-- Información principal -->
                 <div class="info-principal" @click="toggleReceta(receta.id)">
@@ -87,14 +73,10 @@
                       <span class="badge-cantidad">
                         {{ (receta.insumos || []).length }} insumos
                       </span>
-                      <span
-                        class="badge-rentabilidad"
-                        :class="
-                          receta.precio_venta > receta.costo_total
-                            ? 'rentable'
-                            : 'no-rentable'
-                        "
-                      >
+                      <span class="badge-rentabilidad" :class="receta.precio_venta > receta.costo_total
+                        ? 'rentable'
+                        : 'no-rentable'
+                        ">
                         {{
                           receta.precio_venta > receta.costo_total
                             ? "Rentable"
@@ -130,35 +112,22 @@
 
                 <!-- Acciones -->
                 <div class="acciones-container">
-                  <button
-                    class="btn-accion btn-gestionar"
-                    @click="agregarInsumosAReceta(receta)"
-                    title="Gestionar insumos"
-                  >
+                  <button class="btn-accion btn-gestionar" @click="agregarInsumosAReceta(receta)"
+                    title="Gestionar insumos">
                     <i class="fas fa-list"></i>
                   </button>
-                  <button
-                    class="btn-accion btn-editar"
-                    @click="editarReceta(receta)"
-                    title="Editar receta"
-                  >
+                  <button class="btn-accion btn-editar" @click="editarReceta(receta)" title="Editar receta">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button
-                    class="btn-accion btn-eliminar"
-                    @click="confirmarEliminarReceta(receta)"
-                    title="Eliminar receta"
-                  >
+                  <button class="btn-accion btn-eliminar" @click="confirmarEliminarReceta(receta)"
+                    title="Eliminar receta">
                     <i class="fas fa-trash"></i>
                   </button>
                 </div>
               </div>
 
               <!-- Desplegable de detalles de la receta - MEJORADO -->
-              <div
-                v-if="recetaDesplegada[receta.id]"
-                class="receta-detalles-desplegable"
-              >
+              <div v-if="recetaDesplegada[receta.id]" class="receta-detalles-desplegable">
                 <div class="detalles-content">
                   <!-- Información de rentabilidad -->
                   <div class="receta-rentabilidad-info">
@@ -181,13 +150,10 @@
                       </div>
                       <div class="rentabilidad-item">
                         <span class="rentabilidad-label">Ganancia:</span>
-                        <span
-                          class="rentabilidad-valor"
-                          :class="{
-                            positiva: receta.precio_venta > receta.costo_total,
-                            negativa: receta.precio_venta <= receta.costo_total,
-                          }"
-                        >
+                        <span class="rentabilidad-valor" :class="{
+                          positiva: receta.precio_venta > receta.costo_total,
+                          negativa: receta.precio_venta <= receta.costo_total,
+                        }">
                           ${{
                             formatDecimal(
                               receta.precio_venta - receta.costo_total
@@ -197,20 +163,17 @@
                       </div>
                       <div class="rentabilidad-item">
                         <span class="rentabilidad-label">Margen:</span>
-                        <span
-                          class="rentabilidad-valor"
-                          :class="{
-                            positiva: receta.precio_venta > receta.costo_total,
-                            negativa: receta.precio_venta <= receta.costo_total,
-                          }"
-                        >
+                        <span class="rentabilidad-valor" :class="{
+                          positiva: receta.precio_venta > receta.costo_total,
+                          negativa: receta.precio_venta <= receta.costo_total,
+                        }">
                           {{
                             receta.costo_total > 0
                               ? formatDecimal(
-                                  ((receta.precio_venta - receta.costo_total) /
-                                    receta.costo_total) *
-                                    100
-                                )
+                                ((receta.precio_venta - receta.costo_total) /
+                                  receta.costo_total) *
+                                100
+                              )
                               : "0.00"
                           }}%
                         </span>
@@ -226,20 +189,13 @@
                           (receta.insumos || []).length
                         }})
                       </h4>
-                      <button
-                        class="btn-agregar-insumo"
-                        @click="agregarInsumosAReceta(receta)"
-                      >
+                      <button class="btn-agregar-insumo" @click="agregarInsumosAReceta(receta)">
                         <i class="fas fa-plus"></i> Gestionar Insumos
                       </button>
                     </div>
 
                     <div class="insumos-list">
-                      <div
-                        v-for="insumo in receta.insumos || []"
-                        :key="insumo.id"
-                        class="insumo-item"
-                      >
+                      <div v-for="insumo in receta.insumos || []" :key="insumo.id" class="insumo-item">
                         <div class="insumo-info">
                           <span class="insumo-nombre">
                             {{ insumo.insumo.nombre }}
@@ -250,10 +206,7 @@
                           </span>
                         </div>
                         <div class="insumo-costo-container">
-                          <span
-                            class="insumo-costo"
-                            v-if="insumo.insumo.precio_unitario != null"
-                          >
+                          <span class="insumo-costo" v-if="insumo.insumo.precio_unitario != null">
                             ${{ formatDecimal(calcularCostoInsumo(insumo)) }}
                             <small style="font-size: 0.7rem; opacity: 0.7">
                               (${{
@@ -269,16 +222,10 @@
                           </span>
                         </div>
                       </div>
-                      <div
-                        v-if="(receta.insumos || []).length === 0"
-                        class="sin-insumos"
-                      >
+                      <div v-if="(receta.insumos || []).length === 0" class="sin-insumos">
                         <i class="fas fa-info-circle"></i>
                         <p>Esta receta no tiene insumos asignados</p>
-                        <button
-                          class="btn-agregar-insumo-small"
-                          @click="agregarInsumosAReceta(receta)"
-                        >
+                        <button class="btn-agregar-insumo-small" @click="agregarInsumosAReceta(receta)">
                           <i class="fas fa-plus"></i> Agregar Insumos
                         </button>
                       </div>
@@ -286,10 +233,7 @@
                   </div>
 
                   <!-- Alertas de rentabilidad -->
-                  <div
-                    v-if="receta.precio_venta <= receta.costo_total"
-                    class="receta-alerta alerta-no-rentable"
-                  >
+                  <div v-if="receta.precio_venta <= receta.costo_total" class="receta-alerta alerta-no-rentable">
                     <i class="fas fa-exclamation-circle"></i>
                     <span>
                       ¡Receta no rentable! El precio de venta no cubre los
@@ -312,33 +256,18 @@
     <!-- MODALES REFACTORIZADOS -->
 
     <!-- Modal para Nueva/Editar Receta -->
-    <BaseModal
-      v-model:show="showModalReceta"
-      :title="esEdicion ? 'Editar Receta' : 'Nueva Receta'"
-      size="medium"
-      @close="closeModal"
-    >
+    <BaseModal v-model:show="showModalReceta" :title="esEdicion ? 'Editar Receta' : 'Nueva Receta'" size="medium"
+      @close="closeModal">
       <div class="form-grid">
         <div class="form-group">
           <label>Nombre:</label>
-          <input
-            v-model="formReceta.nombre"
-            type="text"
-            required
-            class="form-input"
-            placeholder="Nombre de la receta"
-          />
+          <input v-model="formReceta.nombre" type="text" required class="form-input"
+            placeholder="Nombre de la receta" />
         </div>
         <div class="form-group">
           <label>Rinde:</label>
-          <input
-            v-model="formReceta.rinde"
-            type="number"
-            min="1"
-            required
-            class="form-input"
-            placeholder="Cantidad que rinde"
-          />
+          <input v-model="formReceta.rinde" type="number" min="1" required class="form-input"
+            placeholder="Cantidad que rinde" />
         </div>
         <div class="form-group">
           <label>Unidad de Rinde:</label>
@@ -349,102 +278,54 @@
         </div>
         <div class="form-group">
           <label>Precio de Venta:</label>
-          <input
-            v-model="formReceta.precio_venta"
-            type="number"
-            step="1"
-            min="0"
-            required
-            class="form-input"
-            placeholder="Precio de venta"
-          />
+          <input v-model="formReceta.precio_venta" type="number" step="1" min="0" required class="form-input"
+            placeholder="Precio de venta" />
         </div>
       </div>
 
       <template #footer>
-        <ModalButtons
-          :confirm-text="esEdicion ? 'Actualizar' : 'Guardar Receta'"
-          @cancel="closeModal"
-          @confirm="guardarRecetaBasica"
-        />
+        <ModalButtons :confirm-text="esEdicion ? 'Actualizar' : 'Guardar Receta'" @cancel="closeModal"
+          @confirm="guardarRecetaBasica" />
       </template>
     </BaseModal>
 
     <!-- Modal para Agregar/Eliminar Insumos a Receta -->
-    <BaseModal
-      v-model:show="showModalInsumos"
-      :title="`Gestionar Insumos: ${recetaSeleccionada?.nombre || ''}`"
-      size="large"
-      @close="showModalInsumos = false"
-    >
+    <BaseModal v-model:show="showModalInsumos" :title="`Gestionar Insumos: ${recetaSeleccionada?.nombre || ''}`"
+      size="large" @close="showModalInsumos = false">
       <div class="insumos-section">
         <h4>Agregar Nuevo Insumo:</h4>
         <div class="form-grid">
           <div class="form-group">
             <label>Insumo:</label>
             <div class="select-with-button">
-              <select
-                v-model="nuevoInsumo.insumo_id"
-                required
-                class="form-input"
-                @change="actualizarUnidadNuevoInsumo"
-              >
+              <select v-model="nuevoInsumo.insumo_id" required class="form-input" @change="actualizarUnidadNuevoInsumo">
                 <option value="">Seleccione un insumo</option>
-                <option
-                  v-for="item in insumosDisponibles"
-                  :key="item.id"
-                  :value="item.id"
-                >
-                  {{ item.nombre }} (Stock:
-                  {{ formatDecimal(item.stock_actual) }}
-                  {{ item.unidad_medida.abreviatura }})
+                <option v-for="item in insumosDisponibles" :key="item.id" :value="item.id">
+                  {{ item.nombre }}
                 </option>
               </select>
-              <button
-                type="button"
-                class="btn-agregar-nuevo"
-                @click="showNuevoInsumoModal = true"
-                title="Agregar nuevo insumo"
-              >
+              <button type="button" class="btn-agregar-nuevo" @click="showNuevoInsumoModal = true"
+                title="Agregar nuevo insumo">
                 <i class="fas fa-plus"></i>
               </button>
             </div>
           </div>
           <div class="form-group">
             <label>Cantidad:</label>
-            <input
-              v-model="nuevoInsumo.cantidad"
-              type="number"
-              step="1"
-              min="0"
-              required
-              class="form-input"
-              placeholder="0.000"
-            />
+            <input v-model="nuevoInsumo.cantidad" type="number" step="1" min="0" required class="form-input"
+              placeholder="0.000" />
           </div>
           <div class="form-group">
             <label>Unidad de Medida:</label>
-            <select
-              v-model="nuevoInsumo.unidad_medida_id"
-              required
-              class="form-input"
-            >
+            <select v-model="nuevoInsumo.unidad_medida_id" required class="form-input">
               <option value="">Seleccione una unidad</option>
-              <option
-                v-for="unidad in unidadesMedida"
-                :key="unidad.id"
-                :value="unidad.id"
-              >
+              <option v-for="unidad in unidadesMedida" :key="unidad.id" :value="unidad.id">
                 {{ unidad.nombre }} ({{ unidad.abreviatura }})
               </option>
             </select>
           </div>
           <div class="form-group">
-            <button
-              class="btn-agregar-insumo-modal"
-              @click="agregarInsumoAReceta"
-              :disabled="!puedeAgregarInsumo"
-            >
+            <button class="btn-agregar-insumo-modal" @click="agregarInsumoAReceta" :disabled="!puedeAgregarInsumo">
               <i class="fas fa-plus"></i> Agregar
             </button>
           </div>
@@ -455,11 +336,7 @@
         <h4>
           Insumos Actuales ({{ recetaSeleccionada?.insumos?.length || 0 }}):
         </h4>
-        <div
-          v-for="insumo in recetaSeleccionada?.insumos || []"
-          :key="insumo.id"
-          class="insumo-existente-item"
-        >
+        <div v-for="insumo in recetaSeleccionada?.insumos || []" :key="insumo.id" class="insumo-existente-item">
           <span v-if="!insumo.editando" class="insumo-info">
             {{ insumo.insumo.nombre }} - {{ formatDecimal(insumo.cantidad) }}
             {{ insumo.unidad_medida.abreviatura }}
@@ -471,29 +348,14 @@
             <div class="edit-form-grid">
               <div class="form-group">
                 <label>Cantidad:</label>
-                <input
-                  v-model.number="insumo.cantidadEdit"
-                  type="number"
-                  step="1"
-                  min="0"
-                  class="form-input-small"
-                  placeholder="0.000"
-                  @input="formatearCantidadInput($event, insumo)"
-                />
+                <input v-model.number="insumo.cantidadEdit" type="number" step="1" min="0" class="form-input-small"
+                  placeholder="0.000" @input="formatearCantidadInput($event, insumo)" />
               </div>
               <div class="form-group">
                 <label>Unidad:</label>
-                <select
-                  v-model="insumo.unidad_medida_id_edit"
-                  class="form-input-small"
-                  required
-                >
+                <select v-model="insumo.unidad_medida_id_edit" class="form-input-small" required>
                   <option value="">Seleccione...</option>
-                  <option
-                    v-for="unidad in unidadesMedida"
-                    :key="unidad.id"
-                    :value="unidad.id"
-                  >
+                  <option v-for="unidad in unidadesMedida" :key="unidad.id" :value="unidad.id">
                     {{ unidad.abreviatura }} ({{ unidad.nombre }})
                   </option>
                 </select>
@@ -501,36 +363,20 @@
             </div>
           </div>
           <div class="insumo-acciones">
-            <button
-              v-if="!insumo.editando"
-              class="btn-accion-small"
-              @click="activarEdicionInsumo(insumo)"
-              title="Editar insumo"
-            >
+            <button v-if="!insumo.editando" class="btn-accion-small" @click="activarEdicionInsumo(insumo)"
+              title="Editar insumo">
               <i class="fas fa-edit"></i>
             </button>
-            <button
-              v-else
-              class="btn-accion-small btn-confirmar"
-              @click="guardarEdicionInsumo(insumo)"
-              title="Guardar cambios"
-            >
+            <button v-else class="btn-accion-small btn-confirmar" @click="guardarEdicionInsumo(insumo)"
+              title="Guardar cambios">
               <i class="fas fa-check"></i>
             </button>
-            <button
-              v-if="!insumo.editando"
-              class="btn-accion-small btn-eliminar-modal"
-              @click="eliminarInsumoDeReceta(recetaSeleccionada, insumo)"
-              title="Eliminar insumo"
-            >
+            <button v-if="!insumo.editando" class="btn-accion-small btn-eliminar-modal"
+              @click="eliminarInsumoDeReceta(recetaSeleccionada, insumo)" title="Eliminar insumo">
               <i class="fas fa-trash"></i>
             </button>
-            <button
-              v-else
-              class="btn-accion-small btn-cancelar"
-              @click="cancelarEdicionInsumo(insumo)"
-              title="Cancelar edición"
-            >
+            <button v-else class="btn-accion-small btn-cancelar" @click="cancelarEdicionInsumo(insumo)"
+              title="Cancelar edición">
               <i class="fas fa-times"></i>
             </button>
           </div>
@@ -542,94 +388,50 @@
       </div>
 
       <template #footer>
-        <ModalButtons
-          :show-cancel="false"
-          confirm-text="Cerrar"
-          @cancel="showModalInsumos = false"
-          @confirm="showModalInsumos = false"
-        />
+        <ModalButtons :show-cancel="false" confirm-text="Cerrar" @cancel="showModalInsumos = false"
+          @confirm="showModalInsumos = false" />
       </template>
     </BaseModal>
 
     <!-- Modal para Nuevo Insumo -->
-    <BaseModal
-      v-model:show="showNuevoInsumoModal"
-      title="Nuevo Insumo"
-      size="medium"
-      @close="showNuevoInsumoModal = false"
-    >
+    <BaseModal v-model:show="showNuevoInsumoModal" title="Nuevo Insumo" size="medium"
+      @close="showNuevoInsumoModal = false">
       <div class="form-grid">
         <div class="form-group">
           <label>Nombre:</label>
-          <input
-            v-model="formNuevoInsumo.nombre"
-            type="text"
-            required
-            class="form-input"
-            placeholder="Nombre del insumo"
-          />
+          <input v-model="formNuevoInsumo.nombre" type="text" required class="form-input"
+            placeholder="Nombre del insumo" />
         </div>
         <div class="form-group">
           <label>Unidad de Medida:</label>
-          <select
-            v-model="formNuevoInsumo.unidad_medida_id"
-            required
-            class="form-input"
-          >
+          <select v-model="formNuevoInsumo.unidad_medida_id" required class="form-input">
             <option value="">Seleccione una unidad</option>
-            <option
-              v-for="unidad in unidadesMedida"
-              :key="unidad.id"
-              :value="unidad.id"
-            >
+            <option v-for="unidad in unidadesMedida" :key="unidad.id" :value="unidad.id">
               {{ unidad.nombre }} ({{ unidad.abreviatura }})
             </option>
           </select>
         </div>
         <div class="form-group">
           <label>Stock Mínimo:</label>
-          <input
-            v-model="formNuevoInsumo.stock_minimo"
-            type="number"
-            step="1"
-            min="0"
-            required
-            class="form-input"
-            placeholder="0.000"
-          />
+          <input v-model="formNuevoInsumo.stock_minimo" type="number" step="1" min="0" required class="form-input"
+            placeholder="0.000" />
         </div>
         <div class="form-group">
           <label>Precio Unitario:</label>
-          <input
-            v-model="formNuevoInsumo.precio_unitario"
-            type="number"
-            step="1"
-            min="0"
-            class="form-input"
-            placeholder="0.00"
-          />
+          <input v-model="formNuevoInsumo.precio_unitario" type="number" step="1" min="0" class="form-input"
+            placeholder="0.00" />
         </div>
       </div>
 
       <template #footer>
-        <ModalButtons
-          confirm-text="Guardar"
-          @cancel="showNuevoInsumoModal = false"
-          @confirm="guardarNuevoInsumo"
-        />
+        <ModalButtons confirm-text="Guardar" @cancel="showNuevoInsumoModal = false" @confirm="guardarNuevoInsumo" />
       </template>
     </BaseModal>
 
     <!-- Modal de confirmación para eliminar receta -->
-    <ConfirmModal
-      :show="showConfirmModal"
-      title="Confirmar Eliminación"
-      :message="`¿Está seguro de que desea eliminar la receta '${recetaAEliminar?.nombre}'?`"
-      confirm-text="Eliminar"
-      @update:show="showConfirmModal = $event"
-      @cancel="showConfirmModal = false"
-      @confirm="eliminarReceta"
-    />
+    <ConfirmModal :show="showConfirmModal" title="Confirmar Eliminación"
+      :message="`¿Está seguro de que desea eliminar la receta '${recetaAEliminar?.nombre}'?`" confirm-text="Eliminar"
+      @update:show="showConfirmModal = $event" @cancel="showConfirmModal = false" @confirm="eliminarReceta" />
   </div>
 </template>
 
@@ -662,6 +464,9 @@ const showModalInsumos = ref(false);
 const showConfirmModal = ref(false);
 const showNuevoInsumoModal = ref(false);
 
+// Agregar variable de estado para filtro activo
+const filtroActivo = ref('');
+
 // Referencia al sidebar para controlarlo desde el header
 const sidebarRef = ref(null);
 
@@ -670,6 +475,12 @@ const toggleSidebar = () => {
   if (sidebarRef.value) {
     sidebarRef.value.toggleSidebar();
   }
+};
+
+// Método para limpiar filtros
+const limpiarFiltros = () => {
+  filtroActivo.value = '';
+  searchTerm.value = '';
 };
 
 // Formularios
@@ -691,9 +502,19 @@ const esEdicion = ref(false);
 const recetaAEliminar = ref(null);
 const recetaSeleccionada = ref(null);
 
-// Computed properties
+// Método para aplicar filtro de no rentables
+const aplicarFiltroNoRentables = () => {
+  filtroActivo.value = filtroActivo.value === 'no-rentable' ? '' : 'no-rentable';
+};
+
+// Actualizar recetasFiltradas para incluir este filtro
 const recetasFiltradas = computed(() => {
   let filtered = recetas.value;
+
+  // Filtrar por no rentables si está activo
+  if (filtroActivo.value === 'no-rentable') {
+    filtered = filtered.filter(receta => receta.precio_venta <= receta.costo_total);
+  }
 
   // Filtrar por término de búsqueda
   if (searchTerm.value) {
@@ -703,7 +524,16 @@ const recetasFiltradas = computed(() => {
     );
   }
 
-  return filtered;
+  // Ordenar: no rentables primero, luego alfabéticamente
+  return filtered.sort((a, b) => {
+    const aNoRentable = a.precio_venta <= a.costo_total;
+    const bNoRentable = b.precio_venta <= b.costo_total;
+
+    if (aNoRentable && !bNoRentable) return -1;
+    if (!aNoRentable && bNoRentable) return 1;
+
+    return a.nombre.localeCompare(b.nombre);
+  });
 });
 
 const puedeAgregarInsumo = computed(() => {
@@ -982,21 +812,10 @@ const actualizarUnidadNuevoInsumo = () => {
   );
 
   if (insumo && insumo.unidad_medida) {
-    // Establecer la unidad de medida por defecto del insumo
     nuevoInsumo.value.unidad_medida_id = insumo.unidad_medida.id;
 
-    // Establecer una cantidad por defecto pequeña
-    if (!nuevoInsumo.value.cantidad || nuevoInsumo.value.cantidad === 0) {
-      // Dependiendo de la unidad, establecer un valor por defecto razonable
-      const unidad = insumo.unidad_medida.abreviatura.toLowerCase();
-      if (unidad === "kg" || unidad === "l") {
-        nuevoInsumo.value.cantidad = 0.1; // 100g o 100ml por defecto
-      } else if (unidad === "g" || unidad === "ml") {
-        nuevoInsumo.value.cantidad = 100; // 100g o 100ml por defecto
-      } else {
-        nuevoInsumo.value.cantidad = 1; // 1 unidad por defecto
-      }
-    }
+    // CAMBIO: Siempre establecer cantidad en 1
+    nuevoInsumo.value.cantidad = 1;
   } else {
     nuevoInsumo.value.unidad_medida_id = "";
   }
@@ -1179,7 +998,7 @@ const guardarRecetaBasica = async () => {
       timeout: 4000,
     });
 
-    // Si es una receta nueva, abrir modal para agregar insumos
+    // ✅ CORREGIDO: Solo abrir modal de insumos para NUEVAS recetas, NO para edición
     if (!esEdicion.value && response.data.id) {
       const nuevaReceta = recetas.value.find((r) => r.id === response.data.id);
       if (nuevaReceta) {
@@ -1955,6 +1774,7 @@ onMounted(() => {
     opacity: 0;
     max-height: 0;
   }
+
   to {
     opacity: 1;
     max-height: 1000px;
@@ -2378,6 +2198,7 @@ onMounted(() => {
 .btn-nueva-receta-flotante:hover {
   transform: translateY(-3px) scale(1.05);
   box-shadow: 0 8px 25px rgba(123, 90, 80, 0.4);
+  color: #212529;
 }
 
 /* ----------------------------- ESTADOS DE CARGA Y VACÍO - MISMO ESTILO QUE STOCK ----------------------------- */
@@ -2642,11 +2463,91 @@ onMounted(() => {
   0% {
     box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
   }
+
   70% {
     box-shadow: 0 0 0 6px rgba(255, 193, 7, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
   }
+}
+
+/* Estilos para el nuevo botón flotante */
+.btn-nueva-receta-flotante {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 16px 24px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+  z-index: 100;
+  font-size: 1rem;
+}
+
+.btn-nueva-receta-flotante:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+}
+/* Estilos para los badges de estadísticas */
+.estadisticas-stock {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.estadistica-item {
+  display: flex;
+}
+
+.estadistica-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  user-select: none;
+}
+
+.estadistica-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.estadistica-badge.active {
+  border: 2px solid currentColor;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+.estadistica-badge.bajo {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  color: #212529;
+}
+
+.estadistica-badge.total {
+  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
+  color: white;
+}
+
+.estadistica-badge.limpiar-filtro {
+  background: linear-gradient(135deg, #17a2b8, #138496);
+  color: white;
 }
 </style>
