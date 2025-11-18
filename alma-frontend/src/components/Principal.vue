@@ -1822,6 +1822,7 @@ const confirmarPreparacion = (task) => {
   padding: 1rem;
   border-top: 1px solid #e9ecef;
   margin-top: 1rem;
+  margin-top: auto;
 }
 
 .btn-paginacion {
