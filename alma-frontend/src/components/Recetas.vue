@@ -2304,11 +2304,12 @@ onMounted(() => {
 }
 
 /* ----------------------------- BOTÓN FLOTANTE NUEVA RECETA - MISMO ESTILO QUE STOCK ----------------------------- */
+/* Estilos para el nuevo botón flotante */
 .btn-nueva-receta-flotante {
   position: fixed;
   bottom: 30px;
   right: 30px;
-  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
+  background: linear-gradient(135deg, #28a745, #20c997);
   color: white;
   border: none;
   border-radius: 50px;
@@ -2319,14 +2320,14 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   transition: all 0.3s ease;
-  box-shadow: 0 6px 20px rgba(123, 90, 80, 0.3);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
   z-index: 100;
   font-size: 1rem;
 }
 
 .btn-nueva-receta-flotante:hover {
   transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 8px 25px rgba(123, 90, 80, 0.4);
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
   color: #212529;
 }
 
@@ -2602,31 +2603,6 @@ onMounted(() => {
   }
 }
 
-/* Estilos para el nuevo botón flotante */
-.btn-nueva-receta-flotante {
-  position: fixed;
-  bottom: 30px;
-  right: 30px;
-  background: linear-gradient(135deg, #28a745, #20c997);
-  color: white;
-  border: none;
-  border-radius: 50px;
-  padding: 16px 24px;
-  cursor: pointer;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: all 0.3s ease;
-  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
-  z-index: 100;
-  font-size: 1rem;
-}
-
-.btn-nueva-receta-flotante:hover {
-  transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
-}
 
 /* Estilos para los badges de estadísticas */
 .estadisticas-stock {

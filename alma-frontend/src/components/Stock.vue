@@ -154,11 +154,13 @@
                         <span class="unidad">{{ item.unidad }}</span>
                       </div>
                       <div class="stock-minimo">
-                        <span class="label">Mín:</span>
+                        <span class="label"><b>Mín:</b></span>
                         <span class="valor"
                           >{{ formatDecimal(item.stock_minimo) }}
-                          {{ item.unidad }}</span
-                        >
+                          {{ item.unidad }}
+                          <span style="margin-left: 10px;"><b>Precio por {{ item.unidad }}:</b> ${{ item.precio_unitario }}</span>
+                        
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -439,7 +441,7 @@
         </div>
 
         <div class="form-group">
-          <label>Precio Unitario:</label>
+          <label>Precio por {{ unidadCompra }}:</label>
           <input
             :value="formCompra.precio_unitario"
             type="number"
@@ -2054,7 +2056,7 @@ onUnmounted(() => {
   position: fixed;
   bottom: 30px;
   right: 30px;
-  background: linear-gradient(135deg, #218838, #1e7e34);
+  background: linear-gradient(135deg, #28a745, #20c997);
   color: white;
   border: none;
   border-radius: 50px;
@@ -2065,14 +2067,15 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   transition: all 0.3s ease;
-  box-shadow: 0 6px 20px rgba(33, 136, 56, 0.3);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
   z-index: 100;
   font-size: 1rem;
 }
 
 .btn-nueva-compra-flotante:hover {
   transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 8px 25px rgba(33, 136, 56, 0.4);
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+  color: #212529;
 }
 
 /* ----------------------------- ESTADOS ----------------------------- */
