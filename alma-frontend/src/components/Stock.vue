@@ -7,7 +7,8 @@
       <main class="main-content">
         <section class="principal-content">
           <h3 class="card-title1" :class="{ 'mobile-center': isMobile }">
-            Gestión de Stock
+            Gestión de Insumos 
+            <span class="total-counter-small">({{ estadisticasStock.total }} Total)</span>
           </h3>
 
           <!-- Estadísticas de stock con badges -->
@@ -42,15 +43,6 @@
                 {{ estadisticasStock.normal }} normal
               </span>
             </div>
-            <div class="estadistica-item">
-              <span
-                class="estadistica-badge-total"
-                @click="aplicarFiltro('total')"
-              >
-                <i class="fas fa-boxes"></i>
-                {{ estadisticasStock.total }} total
-              </span>
-            </div>
             <!-- Botón para limpiar filtros -->
             <div
               class="estadistica-item"
@@ -65,7 +57,6 @@
               </span>
             </div>
           </div>
-
           <!-- Filtros de stock -->
           <div class="filtros-derecha">
             <div class="filtro-group">
@@ -163,11 +154,13 @@
                         <span class="unidad">{{ item.unidad }}</span>
                       </div>
                       <div class="stock-minimo">
-                        <span class="label">Mín:</span>
+                        <span class="label"><b>Mín:</b></span>
                         <span class="valor"
                           >{{ formatDecimal(item.stock_minimo) }}
-                          {{ item.unidad }}</span
-                        >
+                          {{ item.unidad }}
+                          <span style="margin-left: 10px;"><b>Precio por {{ item.unidad }}:</b> ${{ item.precio_unitario }}</span>
+                        
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -448,7 +441,7 @@
         </div>
 
         <div class="form-group">
-          <label>Precio Unitario:</label>
+          <label>Precio por {{ unidadCompra }}:</label>
           <input
             :value="formCompra.precio_unitario"
             type="number"
@@ -642,7 +635,7 @@ const filtroActivo = ref(""); // 'critico', 'bajo', 'normal', 'total'
 
 // Variables de paginación
 const paginaActual = ref(1);
-const itemsPorPagina = ref(15);
+const itemsPorPagina = ref(10);
 
 // Modales
 const showModalInsumo = ref(false);
@@ -2063,7 +2056,7 @@ onUnmounted(() => {
   position: fixed;
   bottom: 30px;
   right: 30px;
-  background: linear-gradient(135deg, #218838, #1e7e34);
+  background: linear-gradient(135deg, #28a745, #20c997);
   color: white;
   border: none;
   border-radius: 50px;
@@ -2074,14 +2067,15 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   transition: all 0.3s ease;
-  box-shadow: 0 6px 20px rgba(33, 136, 56, 0.3);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
   z-index: 100;
   font-size: 1rem;
 }
 
 .btn-nueva-compra-flotante:hover {
   transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 8px 25px rgba(33, 136, 56, 0.4);
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+  color: #212529;
 }
 
 /* ----------------------------- ESTADOS ----------------------------- */
@@ -2120,7 +2114,7 @@ onUnmounted(() => {
   font-size: 1.1rem;
 }
 
-/* AGREGAR: Estilos para los badges clickeables */
+/* ----------------------------- ESTADÍSTICAS STOCK ----------------------------- */
 .estadisticas-stock {
   display: flex;
   flex-wrap: wrap;
@@ -2133,33 +2127,19 @@ onUnmounted(() => {
   display: flex;
 }
 
-.estadistica-badge-total {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
-  user-select: none;
-  background: linear-gradient(135deg, #6c757d, #5a6268);
-  color: white;
-}
-
 .estadistica-badge {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
+  padding: 8px 9px;
   border-radius: 20px;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   border: 2px solid transparent;
   user-select: none;
+  white-space: nowrap;
 }
 
 .estadistica-badge:hover {
@@ -2174,23 +2154,23 @@ onUnmounted(() => {
 }
 
 .estadistica-badge.critico {
-  background: linear-gradient(135deg, #dc3545, #c82333);
-  color: white;
+  background: linear-gradient(135deg, #f8b1b7, #eb7f75);
+  color: #721c24;
 }
 
 .estadistica-badge.bajo {
-  background: linear-gradient(135deg, #ffc107, #e0a800);
-  color: #212529;
+  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+  color: #856404;
 }
 
 .estadistica-badge.normal {
-  background: linear-gradient(135deg, #28a745, #218838);
-  color: white;
+  background: linear-gradient(135deg, #d4edda, #a8e6a3);
+  color: #155724;
 }
 
 .estadistica-badge.limpiar-filtro {
-  background: linear-gradient(135deg, #17a2b8, #138496);
-  color: white;
+  background: linear-gradient(135deg, #d1ecf1, #a6e3e9);
+  color: #0c5460;
 }
 
 /* Mejoras de usabilidad táctil */
@@ -2201,12 +2181,36 @@ onUnmounted(() => {
   }
 }
 
+/* Responsive para estadísticas */
+@media (max-width: 768px) {
+  .estadisticas-stock {
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .estadistica-badge {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .estadisticas-stock {
+    gap: 6px;
+  }
+
+  .estadistica-badge {
+    padding: 5px 8px;
+    font-size: 0.75rem;
+  }
+}
+
 /* Estilos para la paginación */
 .pagination-controls {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 20px;
+  margin-top: auto;
   padding: 15px 0;
   border-top: 1px solid #eaeaea;
   flex-wrap: wrap;
@@ -2564,5 +2568,14 @@ onUnmounted(() => {
   .btn-nueva-compra-flotante {
     min-height: 44px;
   }
+}
+.total-counter-small {
+  font-size: 0.7em;
+  color: var(--color-primary);
+  font-weight: 600;
+  margin-left: 0;
+  background: rgba(108, 117, 125, 0.1);
+  padding: 0;
+  border-radius: 8px;
 }
 </style>
