@@ -8,10 +8,10 @@
         <div class="reportes-container">
           <!-- Encabezado y Filtros -->
           <div class="principal-content">
-            <h1 class="card-title1">Reportes de Insumos</h1>
+            <h1 class="reportes-card-title1">Reportes de Insumos</h1>
 
             <div
-              class="filtros-mobile-toggle"
+              class="reportes-filtros-mobile-toggle"
               v-if="isMobile"
               @click="mostrarFiltros = !mostrarFiltros"
             >
@@ -23,35 +23,35 @@
             </div>
 
             <div
-              class="filtros-derecha"
-              :class="{ 'filtros-visible': mostrarFiltros }"
+              class="reportes-filtros-derecha"
+              :class="{ 'reportes-filtros-visible': mostrarFiltros }"
             >
-              <div class="filtro-group">
+              <div class="reportes-filtro-group">
                 <label for="fecha-inicio">Fecha Inicio</label>
                 <input
                   id="fecha-inicio"
                   type="date"
                   v-model="filtros.fechaInicio"
-                  class="filtro-input"
+                  class="reportes-filtro-input"
                 />
               </div>
 
-              <div class="filtro-group">
+              <div class="reportes-filtro-group">
                 <label for="fecha-fin">Fecha Fin</label>
                 <input
                   id="fecha-fin"
                   type="date"
                   v-model="filtros.fechaFin"
-                  class="filtro-input"
+                  class="reportes-filtro-input"
                 />
               </div>
 
-              <div class="filtro-group">
+              <div class="reportes-filtro-group">
                 <label for="proveedor">Proveedor</label>
                 <select
                   id="proveedor"
                   v-model="filtros.proveedorId"
-                  class="filtro-select"
+                  class="reportes-filtro-select"
                 >
                   <option value="">Todos los proveedores</option>
                   <option
@@ -64,14 +64,14 @@
                 </select>
               </div>
 
-              <button @click="aplicarFiltros" class="btn-agregar">
+              <button @click="aplicarFiltros" class="reportes-btn-agregar">
                 <i class="fas fa-filter"></i>
                 Aplicar
               </button>
 
               <button
                 @click="limpiarFiltros"
-                class="btn-agregar"
+                class="reportes-btn-agregar"
                 style="background-color: #6c757d"
               >
                 <i class="fas fa-eraser"></i>
@@ -103,12 +103,33 @@
               <!-- Pestaña 1: Reporte de Insumos -->
               <div v-show="tabActiva === 'reporte-insumos'" class="tab-pane">
                 <!-- Tabla de Reportes -->
-                <div class="card reporte-table">
-                  <div class="table-header-reportes">
+                <div class="reportes-card">
+                  <div class="reportes-table-header">
                     <h3 class="card-title">Reporte de Insumos</h3>
+                    <!-- Botón Generar PDF para reportes -->
+                    <div
+                      class="reportes-seccion-pdf"
+                      v-if="reporteFiltrado.length > 0"
+                    >
+                      <button
+                        @click="generarPDF"
+                        class="reportes-btn-generar-pdf"
+                      >
+                        <i class="fas fa-file-pdf"></i>
+                        Generar PDF
+                      </button>
+
+                      <div
+                        v-if="generandoPDF"
+                        class="reportes-estado-generando-pdf"
+                      >
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Generando PDF...
+                      </div>
+                    </div>
                   </div>
-                  <div class="table-scroll-container">
-                    <table class="reporte-table-content">
+                  <div class="reportes-table-scroll-container">
+                    <table class="reportes-table-content">
                       <thead>
                         <tr>
                           <th>Insumo</th>
@@ -124,30 +145,30 @@
                           v-for="item in reporteFiltrado"
                           :key="item.id"
                           :class="{
-                            'fila-stock-bajo': item.necesitaReposicion,
+                            'reportes-fila-stock-bajo': item.necesitaReposicion,
                           }"
                         >
-                          <td class="columna-insumo-nombre">
+                          <td class="reportes-columna-insumo-nombre">
                             {{ item.nombre }}
-                            <span class="categoria-insumo"
+                            <span class="reportes-categoria-insumo"
                               >({{ item.categoria }})</span
                             >
                           </td>
-                          <td class="columna-stock-usado">
+                          <td class="reportes-columna-stock-usado">
                             {{ formatDecimal(item.stockUsado) }}
                             {{ item.unidad }}
                           </td>
-                          <td class="columna-stock-actual">
+                          <td class="reportes-columna-stock-actual">
                             {{ formatDecimal(item.stockActual) }}
                             {{ item.unidad }}
                           </td>
-                          <td class="columna-stock-minimo">
+                          <td class="reportes-columna-stock-minimo">
                             {{ formatDecimal(item.stockMinimo) }}
                             {{ item.unidad }}
                           </td>
-                          <td class="columna-reposicion">
+                          <td class="reportes-columna-reposicion">
                             <span
-                              class="badge"
+                              class="reportes-badge"
                               :class="
                                 item.necesitaReposicion ? 'alert' : 'success'
                               "
@@ -155,36 +176,23 @@
                               {{ item.necesitaReposicion ? "SÍ" : "NO" }}
                             </span>
                           </td>
-                          <td class="columna-proveedor">
+                          <td class="reportes-columna-proveedor">
                             {{ item.proveedor || "Sin proveedor" }}
                           </td>
                         </tr>
                       </tbody>
                     </table>
-                    <div v-if="loading" class="loading-state">
+                    <div v-if="loading" class="reportes-loading-state">
                       <i class="fas fa-spinner fa-spin"></i>
                       <p>Cargando reporte...</p>
                     </div>
                     <div
                       v-else-if="reporteFiltrado.length === 0"
-                      class="empty-state"
+                      class="reportes-empty-state"
                     >
                       <i class="fas fa-inbox"></i>
                       <p>No hay datos para mostrar con los filtros actuales</p>
                     </div>
-                  </div>
-                </div>
-
-                <!-- Botón Generar PDF para reportes -->
-                <div class="seccion-pdf" v-if="reporteFiltrado.length > 0">
-                  <button @click="generarPDF" class="btn-generar-pdf">
-                    <i class="fas fa-file-pdf"></i>
-                    Generar Reporte PDF
-                  </button>
-
-                  <div v-if="generandoPDF" class="estado-generando-pdf">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    Generando PDF...
                   </div>
                 </div>
               </div>
@@ -192,14 +200,35 @@
               <!-- Pestaña 2: Lista de Compras -->
               <div v-show="tabActiva === 'lista-compras'" class="tab-pane">
                 <!-- Tabla de Lista de Compras -->
-                <div class="card reporte-table">
-                  <div class="table-header-reportes">
+                <div class="reportes-card">
+                  <div class="reportes-table-header">
                     <h3 class="card-title">
                       📋 Lista de Compras - Próxima Semana
                     </h3>
+                    <!-- Botón Generar PDF para lista de compras -->
+                    <div
+                      class="reportes-seccion-pdf"
+                      v-if="listaComprasFiltrada.length > 0"
+                    >
+                      <button
+                        @click="generarPDFListaCompras"
+                        class="reportes-btn-generar-pdf"
+                      >
+                        <i class="fas fa-file-pdf"></i>
+                        Generar PDF
+                      </button>
+
+                      <div
+                        v-if="generandoPDFListaCompras"
+                        class="reportes-estado-generando-pdf"
+                      >
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Generando PDF...
+                      </div>
+                    </div>
                   </div>
-                  <div class="table-scroll-container">
-                    <table class="reporte-table-content">
+                  <div class="reportes-table-scroll-container">
+                    <table class="reportes-table-content">
                       <thead>
                         <tr>
                           <th>Insumo</th>
@@ -215,37 +244,39 @@
                         <tr
                           v-for="item in listaComprasFiltrada"
                           :key="'compra-' + item.id"
-                          :class="{ 'fila-urgente': item.totalComprar > 0 }"
+                          :class="{
+                            'reportes-fila-urgente': item.totalComprar > 0,
+                          }"
                         >
-                          <td class="columna-insumo-nombre">
+                          <td class="reportes-columna-insumo-nombre">
                             {{ item.nombre }}
-                            <span class="categoria-insumo"
+                            <span class="reportes-categoria-insumo"
                               >({{ item.categoria }})</span
                             >
                           </td>
-                          <td class="columna-stock-actual">
+                          <td class="reportes-columna-stock-actual">
                             {{ formatDecimal(item.stockActual) }}
                             {{ item.unidad }}
                           </td>
-                          <td class="columna-stock-minimo">
+                          <td class="reportes-columna-stock-minimo">
                             {{ formatDecimal(item.stockMinimo) }}
                             {{ item.unidad }}
                           </td>
-                          <td class="columna-pedidos">
+                          <td class="reportes-columna-pedidos">
                             {{ formatDecimal(item.pedidos) }} {{ item.unidad }}
                           </td>
-                          <td class="columna-total-comprar">
+                          <td class="reportes-columna-total-comprar">
                             <strong
                               >{{ formatDecimal(item.totalComprar) }}
                               {{ item.unidad }}</strong
                             >
                           </td>
-                          <td class="columna-proveedor">
+                          <td class="reportes-columna-proveedor">
                             {{ item.proveedor || "Sin proveedor" }}
                           </td>
-                          <td class="columna-dia-compra">
+                          <td class="reportes-columna-dia-compra">
                             <span
-                              class="badge-dia"
+                              class="reportes-badge-dia"
                               :class="getClaseDiaCompra(item.diaCompra)"
                             >
                               {{ item.diaCompra }}
@@ -254,13 +285,16 @@
                         </tr>
                       </tbody>
                     </table>
-                    <div v-if="loadingListaCompras" class="loading-state">
+                    <div
+                      v-if="loadingListaCompras"
+                      class="reportes-loading-state"
+                    >
                       <i class="fas fa-spinner fa-spin"></i>
                       <p>Cargando lista de compras...</p>
                     </div>
                     <div
                       v-else-if="listaComprasFiltrada.length === 0"
-                      class="empty-state"
+                      class="reportes-empty-state"
                     >
                       <i class="fas fa-check-circle"></i>
                       <p>
@@ -269,44 +303,43 @@
                     </div>
                   </div>
                 </div>
-
-                <!-- Botón Generar PDF para lista de compras -->
-                <div class="seccion-pdf" v-if="listaComprasFiltrada.length > 0">
-                  <button
-                    @click="generarPDFListaCompras"
-                    class="btn-generar-pdf"
-                    style="
-                      background: linear-gradient(135deg, #28a745, #20c997);
-                    "
-                  >
-                    <i class="fas fa-file-pdf"></i>
-                    Generar Lista de Compras PDF
-                  </button>
-
-                  <div
-                    v-if="generandoPDFListaCompras"
-                    class="estado-generando-pdf"
-                  >
-                    <i class="fas fa-spinner fa-spin"></i>
-                    Generando PDF...
-                  </div>
-                </div>
               </div>
 
               <!-- Pestaña 3: Recetas Hechas -->
               <div v-show="tabActiva === 'recetas-hechas'" class="tab-pane">
                 <!-- Tabla de Recetas Hechas -->
-                <div class="card reporte-table">
-                  <div class="table-header-reportes">
+                <div class="reportes-card">
+                  <div class="reportes-table-header">
                     <h3 class="card-title">🍽️ Recetas Hechas</h3>
-                    <div class="fecha-info">
+                    <div class="reportes-fecha-info">
                       <span
                         >Mostrando recetas del: {{ fechaRecetasTexto }}</span
                       >
                     </div>
+                    <!-- Botón Generar PDF para recetas hechas -->
+                    <div
+                      class="reportes-seccion-pdf"
+                      v-if="recetasHechasFiltradas.length > 0"
+                    >
+                      <button
+                        @click="generarPDFRecetas"
+                        class="reportes-btn-generar-pdf"
+                      >
+                        <i class="fas fa-file-pdf"></i>
+                        Generar PDF
+                      </button>
+
+                      <div
+                        v-if="generandoPDFRecetas"
+                        class="reportes-estado-generando-pdf"
+                      >
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Generando PDF...
+                      </div>
+                    </div>
                   </div>
-                  <div class="table-scroll-container">
-                    <table class="reporte-table-content">
+                  <div class="reportes-table-scroll-container">
+                    <table class="reportes-table-content">
                       <thead>
                         <tr>
                           <th>Receta</th>
@@ -322,65 +355,43 @@
                           v-for="item in recetasHechasFiltradas"
                           :key="'receta-' + item.id"
                         >
-                          <td class="columna-receta-nombre">
+                          <td class="reportes-columna-receta-nombre">
                             {{ item.nombre }}
                           </td>
-                          <td class="columna-cantidad">
+                          <td class="reportes-columna-cantidad">
                             {{ item.cantidad }}
                           </td>
-                          <td class="columna-fecha">
+                          <td class="reportes-columna-fecha">
                             {{ formatearFecha(item.fecha) }}
                           </td>
-                          <td class="columna-hora">
+                          <td class="reportes-columna-hora">
                             {{ item.hora }}
                           </td>
-                          <td class="columna-estado">
+                          <td class="reportes-columna-estado">
                             <span
-                              class="badge"
+                              class="reportes-badge"
                               :class="getClaseEstadoReceta(item.estado)"
                             >
                               {{ item.estado }}
                             </span>
                           </td>
-                          <td class="columna-empleado">
+                          <td class="reportes-columna-empleado">
                             {{ item.empleado || "No asignado" }}
                           </td>
                         </tr>
                       </tbody>
                     </table>
-                    <div v-if="loadingRecetas" class="loading-state">
+                    <div v-if="loadingRecetas" class="reportes-loading-state">
                       <i class="fas fa-spinner fa-spin"></i>
                       <p>Cargando recetas...</p>
                     </div>
                     <div
                       v-else-if="recetasHechasFiltradas.length === 0"
-                      class="empty-state"
+                      class="reportes-empty-state"
                     >
                       <i class="fas fa-utensils"></i>
                       <p>No hay recetas para la fecha seleccionada</p>
                     </div>
-                  </div>
-                </div>
-
-                <!-- Botón Generar PDF para recetas hechas -->
-                <div
-                  class="seccion-pdf"
-                  v-if="recetasHechasFiltradas.length > 0"
-                >
-                  <button
-                    @click="generarPDFRecetas"
-                    class="btn-generar-pdf"
-                    style="
-                      background: linear-gradient(135deg, #007bff, #0056b3);
-                    "
-                  >
-                    <i class="fas fa-file-pdf"></i>
-                    Generar Reporte de Recetas PDF
-                  </button>
-
-                  <div v-if="generandoPDFRecetas" class="estado-generando-pdf">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    Generando PDF...
                   </div>
                 </div>
               </div>
@@ -388,17 +399,38 @@
               <!-- Pestaña 4: Pedidos -->
               <div v-show="tabActiva === 'pedidos'" class="tab-pane">
                 <!-- Tabla de Pedidos -->
-                <div class="card reporte-table">
-                  <div class="table-header-reportes">
+                <div class="reportes-card">
+                  <div class="reportes-table-header">
                     <h3 class="card-title">📦 Pedidos</h3>
-                    <div class="fecha-info">
+                    <div class="reportes-fecha-info">
                       <span
                         >Mostrando pedidos del: {{ fechaPedidosTexto }}</span
                       >
                     </div>
+                    <!-- Botón Generar PDF para pedidos -->
+                    <div
+                      class="reportes-seccion-pdf"
+                      v-if="pedidosFiltrados.length > 0"
+                    >
+                      <button
+                        @click="generarPDFPedidos"
+                        class="reportes-btn-generar-pdf"
+                      >
+                        <i class="fas fa-file-pdf"></i>
+                        Generar PDF
+                      </button>
+
+                      <div
+                        v-if="generandoPDFPedidos"
+                        class="reportes-estado-generando-pdf"
+                      >
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Generando PDF...
+                      </div>
+                    </div>
                   </div>
-                  <div class="table-scroll-container">
-                    <table class="reporte-table-content">
+                  <div class="reportes-table-scroll-container">
+                    <table class="reportes-table-content">
                       <thead>
                         <tr>
                           <th>Pedido ID</th>
@@ -414,63 +446,47 @@
                           v-for="item in pedidosFiltrados"
                           :key="'pedido-' + item.id"
                           :class="{
-                            'fila-pedido-urgente': item.estado === 'Pendiente',
+                            'reportes-fila-pedido-urgente':
+                              item.estado === 'Pendiente',
                           }"
                         >
-                          <td class="columna-pedido-id">#{{ item.id }}</td>
-                          <td class="columna-cliente">
+                          <td class="reportes-columna-pedido-id">
+                            #{{ item.id }}
+                          </td>
+                          <td class="reportes-columna-cliente">
                             {{ item.cliente }}
                           </td>
-                          <td class="columna-total">
+                          <td class="reportes-columna-total">
                             ${{ formatDecimal(item.total) }}
                           </td>
-                          <td class="columna-fecha">
+                          <td class="reportes-columna-fecha">
                             {{ formatearFecha(item.fecha) }}
                           </td>
-                          <td class="columna-estado">
+                          <td class="reportes-columna-estado">
                             <span
-                              class="badge"
+                              class="reportes-badge"
                               :class="getClaseEstadoPedido(item.estado)"
                             >
                               {{ item.estado }}
                             </span>
                           </td>
-                          <td class="columna-metodo-pago">
+                          <td class="reportes-columna-metodo-pago">
                             {{ item.metodoPago }}
                           </td>
                         </tr>
                       </tbody>
                     </table>
-                    <div v-if="loadingPedidos" class="loading-state">
+                    <div v-if="loadingPedidos" class="reportes-loading-state">
                       <i class="fas fa-spinner fa-spin"></i>
                       <p>Cargando pedidos...</p>
                     </div>
                     <div
                       v-else-if="pedidosFiltrados.length === 0"
-                      class="empty-state"
+                      class="reportes-empty-state"
                     >
                       <i class="fas fa-shopping-bag"></i>
                       <p>No hay pedidos para la fecha seleccionada</p>
                     </div>
-                  </div>
-                </div>
-
-                <!-- Botón Generar PDF para pedidos -->
-                <div class="seccion-pdf" v-if="pedidosFiltrados.length > 0">
-                  <button
-                    @click="generarPDFPedidos"
-                    class="btn-generar-pdf"
-                    style="
-                      background: linear-gradient(135deg, #6f42c1, #563d7c);
-                    "
-                  >
-                    <i class="fas fa-file-pdf"></i>
-                    Generar Reporte de Pedidos PDF
-                  </button>
-
-                  <div v-if="generandoPDFPedidos" class="estado-generando-pdf">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    Generando PDF...
                   </div>
                 </div>
               </div>
@@ -1012,12 +1028,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* ==================== ESTILOS ESPECÍFICOS PARA REPORTES.VUE ==================== */
-
-.reportes-container {
-  padding: 0 10px;
-}
-
 /* -------------------- PESTAÑAS -------------------- */
 .tabs-container {
   margin-top: 20px;
@@ -1085,7 +1095,7 @@ onMounted(() => {
   }
 }
 
-/* Badge para contador en pestañas */
+/* Badge para contador en pestañas - ESPECÍFICO PARA REPORTES */
 .tab-button .badge-contador {
   background-color: var(--color-primary);
   color: white;
@@ -1096,8 +1106,8 @@ onMounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-/* -------------------- ESTILOS PARA ESTADÍSTICAS -------------------- */
-.estadisticas-reporte {
+/* -------------------- ESTILOS PARA ESTADÍSTICAS - ESPECÍFICOS REPORTES -------------------- */
+.reportes-estadisticas {
   display: flex;
   gap: 15px;
   margin-bottom: 20px;
@@ -1105,16 +1115,22 @@ onMounted(() => {
   width: 100%;
 }
 
-.estadisticas-reporte .estadistica-badge {
+.reportes-estadisticas .reportes-estadistica-badge {
   flex: 1;
   min-width: 200px;
   justify-content: center;
   padding: 12px 16px;
   font-size: 0.9rem;
+  border-radius: 20px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* Nuevo estilo para el estado de loading en estadísticas */
-.estadistica-badge.loading {
+.reportes-estadistica-badge.loading {
   background: linear-gradient(135deg, #6c757d, #868e96);
   color: white;
   display: flex;
@@ -1122,28 +1138,28 @@ onMounted(() => {
   gap: 8px;
 }
 
-.estadistica-badge.loading i {
+.reportes-estadistica-badge.loading i {
   font-size: 0.9rem;
 }
 
-.estadistica-badge.total {
+.reportes-estadistica-badge.total {
   background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
   color: white;
 }
 
-.estadistica-badge.critico {
+.reportes-estadistica-badge.critico {
   background: linear-gradient(135deg, #dc3545, #c82333);
   color: white;
   animation: pulse 2s infinite;
 }
 
-.estadistica-badge.normal {
+.reportes-estadistica-badge.normal {
   background: linear-gradient(135deg, #28a745, #20c997);
   color: white;
 }
 
-/* TOGGLE FILTROS CELULAR - mantener nombres existentes */
-.filtros-mobile-toggle {
+/* TOGGLE FILTROS CELULAR - ESPECÍFICO PARA REPORTES */
+.reportes-filtros-mobile-toggle {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1158,26 +1174,50 @@ onMounted(() => {
   width: 100%;
 }
 
-.filtros-derecha {
+.reportes-filtros-derecha {
   display: flex;
   gap: 15px;
   align-items: center;
   flex-wrap: wrap;
   width: 100%;
+  margin-bottom: 20px;
 }
 
-.btn-agregar {
-  margin-top: auto;
+.reportes-btn-agregar {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   height: 44px;
+  margin-top: auto;
+}
+
+.reportes-btn-agregar:hover {
+  background-color: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.reportes-btn-agregar:active {
+  transform: translateY(0);
 }
 
 /* Ocultar filtros en móvil cuando no están activos */
 @media (max-width: 768px) {
-  .filtros-derecha:not(.filtros-visible) {
+  .reportes-filtros-derecha:not(.reportes-filtros-visible) {
     display: none;
   }
 
-  .filtros-derecha.filtros-visible {
+  .reportes-filtros-derecha.reportes-filtros-visible {
     display: flex;
   }
 
@@ -1197,13 +1237,19 @@ onMounted(() => {
 }
 
 /* -------------------- TABLA DE REPORTES - STICKY FUNCIONAL -------------------- */
-.card.reporte-table {
+.reportes-card {
   display: flex;
   flex-direction: column;
   width: 100%;
+  background-color: var(--color-background);
+  border-radius: 10px;
+  box-shadow: 10px 8px 10px #aaa;
+  padding: 8px;
+  padding-top: 2px;
+  overflow-y: auto;
 }
 
-.table-header-reportes {
+.reportes-table-header {
   flex-shrink: 0;
   padding: 15px;
   border-bottom: 1px solid #eee;
@@ -1213,13 +1259,13 @@ onMounted(() => {
   align-items: center;
 }
 
-.fecha-info {
+.reportes-fecha-info {
   font-size: 0.9rem;
   color: #6c757d;
 }
 
 /* CONTENEDOR DE SCROLL PRINCIPAL - CLAVE PARA STICKY */
-.table-scroll-container {
+.reportes-table-scroll-container {
   flex: 1;
   overflow: auto;
   position: relative;
@@ -1227,7 +1273,7 @@ onMounted(() => {
 }
 
 /* TABLA PRINCIPAL */
-.reporte-table-content {
+.reportes-table-content {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
@@ -1237,13 +1283,13 @@ onMounted(() => {
 }
 
 /* THEAD STICKY - FUNCIONA PORQUE EL CONTENEDOR TIENE SCROLL */
-.reporte-table-content thead {
+.reportes-table-content thead {
   position: sticky;
   top: 0;
   z-index: 100;
 }
 
-.reporte-table-content th {
+.reportes-table-content th {
   background: linear-gradient(135deg, var(--color-primary), #6d4c41);
   padding: 12px 8px;
   text-align: left;
@@ -1256,114 +1302,114 @@ onMounted(() => {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.reporte-table-content td {
+.reportes-table-content td {
   padding: 10px 8px;
   border-bottom: 1px solid #eee;
   text-align: left;
   background: white;
 }
 
-.reporte-table-content tr:hover td {
+.reportes-table-content tr:hover td {
   background-color: rgba(123, 90, 80, 0.05);
 }
 
 /* Centrar las columnas específicas */
-.reporte-table-content th:nth-child(2),
-.reporte-table-content th:nth-child(3),
-.reporte-table-content th:nth-child(4),
-.reporte-table-content th:nth-child(5),
-.reporte-table-content td:nth-child(2),
-.reporte-table-content td:nth-child(3),
-.reporte-table-content td:nth-child(4),
-.reporte-table-content td:nth-child(5) {
+.reportes-table-content th:nth-child(2),
+.reportes-table-content th:nth-child(3),
+.reportes-table-content th:nth-child(4),
+.reportes-table-content th:nth-child(5),
+.reportes-table-content td:nth-child(2),
+.reportes-table-content td:nth-child(3),
+.reportes-table-content td:nth-child(4),
+.reportes-table-content td:nth-child(5) {
   text-align: center;
 }
 
 /* Filas con stock bajo */
-.fila-stock-bajo td {
+.reportes-fila-stock-bajo td {
   background-color: rgba(220, 53, 69, 0.05);
   border-left: 3px solid var(--color-danger);
 }
 
-.fila-stock-bajo:hover td {
+.reportes-fila-stock-bajo:hover td {
   background-color: rgba(220, 53, 69, 0.1);
 }
 
 /* Filas urgentes en lista de compras */
-.fila-urgente td {
+.reportes-fila-urgente td {
   background-color: rgba(40, 167, 69, 0.05);
   border-left: 3px solid var(--color-success);
 }
 
-.fila-urgente:hover td {
+.reportes-fila-urgente:hover td {
   background-color: rgba(40, 167, 69, 0.1);
 }
 
 /* Filas urgentes en pedidos */
-.fila-pedido-urgente td {
+.reportes-fila-pedido-urgente td {
   background-color: rgba(255, 193, 7, 0.05);
   border-left: 3px solid var(--color-warning);
 }
 
-.fila-pedido-urgente:hover td {
+.reportes-fila-pedido-urgente:hover td {
   background-color: rgba(255, 193, 7, 0.1);
 }
 
 /* Columnas específicas */
-.columna-insumo-nombre,
-.columna-receta-nombre {
+.reportes-columna-insumo-nombre,
+.reportes-columna-receta-nombre {
   font-weight: 500;
   color: var(--color-text);
 }
 
-.categoria-insumo {
+.reportes-categoria-insumo {
   font-size: 0.8rem;
   color: #666;
   font-style: italic;
 }
 
-.columna-stock-usado,
-.columna-stock-actual,
-.columna-stock-minimo,
-.columna-pedidos,
-.columna-cantidad,
-.columna-total {
+.reportes-columna-stock-usado,
+.reportes-columna-stock-actual,
+.reportes-columna-stock-minimo,
+.reportes-columna-pedidos,
+.reportes-columna-cantidad,
+.reportes-columna-total {
   font-family: monospace;
   font-weight: 500;
 }
 
-.columna-total-comprar {
+.reportes-columna-total-comprar {
   font-family: monospace;
   font-weight: 600;
   color: var(--color-success);
   text-align: center;
 }
 
-.columna-reposicion,
-.columna-estado {
+.reportes-columna-reposicion,
+.reportes-columna-estado {
   text-align: center;
 }
 
-.columna-proveedor,
-.columna-empleado,
-.columna-cliente,
-.columna-metodo-pago {
+.reportes-columna-proveedor,
+.reportes-columna-empleado,
+.reportes-columna-cliente,
+.reportes-columna-metodo-pago {
   color: #555;
 }
 
-.columna-dia-compra,
-.columna-fecha,
-.columna-hora {
+.reportes-columna-dia-compra,
+.reportes-columna-fecha,
+.reportes-columna-hora {
   text-align: center;
 }
 
-.columna-pedido-id {
+.reportes-columna-pedido-id {
   font-weight: 600;
   color: var(--color-primary);
 }
 
 /* Badges específicos para reportes */
-.badge {
+.reportes-badge {
   padding: 4px 8px;
   border-radius: 12px;
   font-size: 0.75rem;
@@ -1371,33 +1417,33 @@ onMounted(() => {
   display: inline-block;
 }
 
-.badge.alert {
+.reportes-badge.alert {
   background: linear-gradient(135deg, #dc3545, #c82333);
   color: white;
 }
 
-.badge.success {
+.reportes-badge.success {
   background: linear-gradient(135deg, #28a745, #20c997);
   color: white;
 }
 
-.badge.warning {
+.reportes-badge.warning {
   background: linear-gradient(135deg, #ffc107, #e0a800);
   color: #212529;
 }
 
-.badge.info {
+.reportes-badge.info {
   background: linear-gradient(135deg, #17a2b8, #138496);
   color: white;
 }
 
-.badge.default {
+.reportes-badge.default {
   background: linear-gradient(135deg, #6c757d, #495057);
   color: white;
 }
 
 /* Badges para días de compra */
-.badge-dia {
+.reportes-badge-dia {
   padding: 4px 8px;
   border-radius: 12px;
   font-size: 0.75rem;
@@ -1406,40 +1452,28 @@ onMounted(() => {
   color: white;
 }
 
-.dia-lunes {
+.reportes-dia-lunes {
   background: linear-gradient(135deg, #007bff, #0056b3);
 }
 
-.dia-martes {
+.reportes-dia-martes {
   background: linear-gradient(135deg, #6f42c1, #563d7c);
 }
 
-.dia-jueves {
+.reportes-dia-jueves {
   background: linear-gradient(135deg, #e83e8c, #d91a72);
 }
 
-.dia-viernes {
+.reportes-dia-viernes {
   background: linear-gradient(135deg, #fd7e14, #e55a00);
 }
 
-.dia-default {
+.reportes-dia-default {
   background: linear-gradient(135deg, #6c757d, #495057);
 }
 
 /* -------------------- BOTÓN PDF -------------------- */
-.seccion-pdf {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 15px;
-  padding: 20px;
-  background-color: var(--color-background);
-  border-radius: 10px;
-  margin-top: 20px;
-  width: 100%;
-}
-
-.btn-generar-pdf {
+.reportes-btn-generar-pdf {
   background: linear-gradient(135deg, #dc3545, #c82333);
   color: white;
   border: none;
@@ -1455,16 +1489,16 @@ onMounted(() => {
   box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
 
-.btn-generar-pdf:hover {
+.reportes-btn-generar-pdf:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(220, 53, 69, 0.4);
 }
 
-.btn-generar-pdf:active {
+.reportes-btn-generar-pdf:active {
   transform: translateY(0);
 }
 
-.estado-generando-pdf {
+.reportes-estado-generando-pdf {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1473,20 +1507,20 @@ onMounted(() => {
 }
 
 /* -------------------- LOADING -------------------- */
-.loading-state {
+.reportes-loading-state {
   text-align: center;
   padding: 3rem;
   color: var(--color-primary);
   width: 100%;
 }
 
-.loading-state i {
+.reportes-loading-state i {
   font-size: 2rem;
   margin-bottom: 1rem;
 }
 
 /* -------------------- ESTADO VACÍO -------------------- */
-.empty-state {
+.reportes-empty-state {
   text-align: center;
   padding: 3rem;
   color: #7f8c8d;
@@ -1497,72 +1531,72 @@ onMounted(() => {
   width: 100%;
 }
 
-.empty-state i {
+.reportes-empty-state i {
   font-size: 3rem;
   margin-bottom: 1rem;
   opacity: 0.5;
 }
 
-.empty-state p {
+.reportes-empty-state p {
   margin: 0;
   font-size: 1.1rem;
 }
 
 /* -------------------- MEJORAS RESPONSIVE -------------------- */
 @media (max-width: 768px) {
-  .estadisticas-reporte {
+  .reportes-estadisticas {
     flex-direction: column;
     gap: 10px;
   }
 
-  .estadisticas-reporte .estadistica-badge {
+  .reportes-estadisticas .reportes-estadistica-badge {
     min-width: unset;
   }
 
-  .filtros-derecha {
+  .reportes-filtros-derecha {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .filtro-group {
+  .reportes-filtro-group {
     width: 100%;
   }
 
-  .filtro-input,
-  .filtro-select {
+  .reportes-filtro-input,
+  .reportes-filtro-select {
     width: 100%;
   }
 
-  .seccion-pdf {
+  .reportes-seccion-pdf {
     flex-direction: column;
     gap: 10px;
   }
 
-  .btn-generar-pdf {
+  .reportes-btn-generar-pdf {
     width: 100%;
     justify-content: center;
   }
 
   /* Ajustes para tabla en móvil */
-  .table-scroll-container {
+  .reportes-table-scroll-container {
     max-height: 60vh;
   }
 
-  .reporte-table-content {
+  .reportes-table-content {
     font-size: 0.8rem;
   }
 
-  .reporte-table-content th,
-  .reporte-table-content td {
+  .reportes-table-content th,
+  .reportes-table-content td {
     padding: 8px 4px;
   }
 
-  .categoria-insumo {
+  .reportes-categoria-insumo {
     display: block;
     font-size: 0.7rem;
   }
 
-  .table-header-reportes {
+  .reportes-table-header {
     flex-direction: column;
     gap: 10px;
     align-items: flex-start;
@@ -1570,22 +1604,22 @@ onMounted(() => {
 }
 
 /* Scrollbar personalizado */
-.table-scroll-container::-webkit-scrollbar {
+.reportes-table-scroll-container::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-.table-scroll-container::-webkit-scrollbar-track {
+.reportes-table-scroll-container::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 4px;
 }
 
-.table-scroll-container::-webkit-scrollbar-thumb {
+.reportes-table-scroll-container::-webkit-scrollbar-thumb {
   background: var(--color-primary);
   border-radius: 4px;
 }
 
-.table-scroll-container::-webkit-scrollbar-thumb:hover {
+.reportes-table-scroll-container::-webkit-scrollbar-thumb:hover {
   background: #6d4c41;
 }
 
@@ -1600,5 +1634,41 @@ onMounted(() => {
   100% {
     box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
   }
+}
+
+/* Título específico para reportes */
+.reportes-card-title1 {
+  color: var(--color-primary);
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(123, 90, 80, 0.1);
+}
+
+/* Filtros específicos para reportes */
+.reportes-filtro-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.reportes-filtro-input,
+.reportes-filtro-select {
+  padding: 12px 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  font-size: 14px;
+  height: 46px;
+  transition: all 0.3s ease;
+  background: white;
+  min-width: 200px;
+}
+
+.reportes-filtro-input:focus,
+.reportes-filtro-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(123, 90, 80, 0.1);
+  transform: translateY(-1px);
 }
 </style>
