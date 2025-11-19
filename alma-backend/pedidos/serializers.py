@@ -139,7 +139,6 @@ class PedidoReadSerializer(serializers.ModelSerializer):
     cliente = ClienteSerializer(read_only=True)
     detalles = DetallePedidoReadSerializer(many=True, required=False)
     total = serializers.SerializerMethodField()
-    metodo_pago = serializers.SerializerMethodField()
 
     class Meta:
         model = Pedido
@@ -147,7 +146,7 @@ class PedidoReadSerializer(serializers.ModelSerializer):
             'id', 'cliente', 'fecha_pedido', 'fecha_entrega',
             'fecha_fabricacion', 'estado', 'detalles', 'total'
         ]
-        
+
     def get_total(self, obj):
        return obj.total
 

@@ -34,9 +34,9 @@ class Pedido(models.Model):
         """Calcular el total del pedido sumando todos los detalles"""
         total = 0
         for detalle in self.detalles.all():
-            # Asumiendo que Receta tiene precio_venta
-            total += detalle.cantidad * detalle.receta.precio_venta
-        return total
+            if hasattr(detalle.receta, 'precio_venta') and detalle.receta.precio_venta:
+                total += detalle.cantidad * float(detalle.receta.precio_venta)
+        return round(total, 2)
 
     def __str__(self):
         return f"Pedido #{self.id} - {self.cliente.nombre}"
