@@ -8,7 +8,7 @@
         <div class="reportes-container">
           <!-- Encabezado y Filtros -->
           <div class="principal-content">
-            <h1 class="reportes-card-title1">Reportes de Insumos</h1>
+            <h1 class="reportes-card-title1">Reportes</h1>
 
             <div
               class="reportes-filtros-mobile-toggle"
@@ -105,7 +105,7 @@
                 <!-- Tabla de Reportes -->
                 <div class="reportes-card">
                   <div class="reportes-table-header">
-                    <h3 class="card-title">Reporte de Insumos</h3>
+                    <h3 class="card-title">Reporte de Insumos utilizados</h3>
                     <!-- Botón Generar PDF para reportes -->
                     <div
                       class="reportes-seccion-pdf"
@@ -191,7 +191,10 @@
                       class="reportes-empty-state"
                     >
                       <i class="fas fa-inbox"></i>
-                      <p>No hay datos para mostrar con los filtros actuales</p>
+                      <p>
+                        No hay insumos con stock usado en el período
+                        seleccionado
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -237,7 +240,6 @@
                           <th>Pedidos</th>
                           <th>Total a Comprar</th>
                           <th>Proveedor</th>
-                          <th>Día Compra</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -273,14 +275,6 @@
                           </td>
                           <td class="reportes-columna-proveedor">
                             {{ item.proveedor || "Sin proveedor" }}
-                          </td>
-                          <td class="reportes-columna-dia-compra">
-                            <span
-                              class="reportes-badge-dia"
-                              :class="getClaseDiaCompra(item.diaCompra)"
-                            >
-                              {{ item.diaCompra }}
-                            </span>
                           </td>
                         </tr>
                       </tbody>
@@ -401,11 +395,16 @@
                 <!-- Tabla de Pedidos -->
                 <div class="reportes-card">
                   <div class="reportes-table-header">
-                    <h3 class="card-title">📦 Pedidos</h3>
+                    <h3 class="card-title">📦 Pedidos Entregados</h3>
                     <div class="reportes-fecha-info">
-                      <span
-                        >Mostrando pedidos del: {{ fechaPedidosTexto }}</span
-                      >
+                      <span v-if="filtros.fechaInicio && filtros.fechaFin">
+                        Mostrando pedidos del
+                        {{ formatearFecha(filtros.fechaInicio) }} al
+                        {{ formatearFecha(filtros.fechaFin) }}
+                      </span>
+                      <span v-else>
+                        Mostrando todos los pedidos entregados
+                      </span>
                     </div>
                     <!-- Botón Generar PDF para pedidos -->
                     <div
@@ -435,10 +434,9 @@
                         <tr>
                           <th>Pedido ID</th>
                           <th>Cliente</th>
-                          <th>Total</th>
                           <th>Fecha</th>
                           <th>Estado</th>
-                          <th>Método Pago</th>
+                          <th>Total</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -469,9 +467,6 @@
                             >
                               {{ item.estado }}
                             </span>
-                          </td>
-                          <td class="reportes-columna-metodo-pago">
-                            {{ item.metodoPago }}
                           </td>
                         </tr>
                       </tbody>
@@ -599,6 +594,8 @@ const reporteFiltrado = computed(() => {
       (item) => item.proveedorId === parseInt(filtros.value.proveedorId)
     );
   }
+
+  filtered = filtered.filter((item) => item.stockUsado > 0);
 
   return filtered;
 });
@@ -817,9 +814,12 @@ const generarPDFPedidos = async () => {
   try {
     generandoPDFPedidos.value = true;
 
-    // Hacer la petición para generar el PDF de pedidos
-    const response = await axios.get("/api/reportes/generar-pdf-pedidos/", {
-      params: { fecha: fechaPedidos.value },
+    // Usar la misma endpoint con los mismos filtros
+    const response = await axios.get("/api/pedidos/entregados/", {
+      params: {
+        fecha_inicio: filtros.value.fechaInicio,
+        fecha_fin: filtros.value.fechaFin,
+      },
       responseType: "blob",
     });
 
@@ -827,7 +827,10 @@ const generarPDFPedidos = async () => {
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `pedidos_${fechaPedidos.value}.pdf`);
+    link.setAttribute(
+      "download",
+      `pedidos_entregados_${new Date().toISOString().split("T")[0]}.pdf`
+    );
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -958,21 +961,24 @@ const fetchPedidos = async () => {
   try {
     loadingPedidos.value = true;
 
-    const response = await axios.get("/api/reportes/pedidos/", {
-      params: { fecha: fechaPedidos.value },
+    // Cambiar a la nueva endpoint de pedidos entregados
+    const response = await axios.get("/api/pedidos/entregados/", {
+      params: {
+        fecha_inicio: filtros.value.fechaInicio,
+        fecha_fin: filtros.value.fechaFin,
+      },
     });
 
     if (!response.data) {
       throw new Error("No se recibieron datos del servidor para pedidos");
     }
 
-    pedidos.value = response.data.map((item) => ({
+    pedidos.value = response.data.pedidos.map((item) => ({
       id: item.id,
-      cliente: item.cliente,
-      total: item.total,
-      fecha: item.fecha,
+      cliente: item.cliente.nombre,
+      total: item.total || 0,
+      fecha: item.fecha_entrega,
       estado: item.estado,
-      metodoPago: item.metodo_pago,
     }));
   } catch (error) {
     console.error("Error al cargar pedidos:", error);
@@ -1269,7 +1275,9 @@ onMounted(() => {
   flex: 1;
   overflow: auto;
   position: relative;
-  max-height: calc(70vh - 60px); /* Altura del contenedor menos el header */
+  min-height: 400px; /* Altura mínima */
+  max-height: 600px; /* Altura máxima */
+  height: auto; /* Se ajusta entre min y max */
 }
 
 /* TABLA PRINCIPAL */
@@ -1392,12 +1400,10 @@ onMounted(() => {
 
 .reportes-columna-proveedor,
 .reportes-columna-empleado,
-.reportes-columna-cliente,
-.reportes-columna-metodo-pago {
+.reportes-columna-cliente {
   color: #555;
 }
 
-.reportes-columna-dia-compra,
 .reportes-columna-fecha,
 .reportes-columna-hora {
   text-align: center;

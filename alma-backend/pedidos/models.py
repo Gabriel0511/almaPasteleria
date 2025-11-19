@@ -29,8 +29,14 @@ class Pedido(models.Model):
     fecha_fabricacion = models.DateField(blank=True, null=True)
     estado = models.CharField(max_length=20, choices=ESTADO_PEDIDO, default='pendiente')
 
-    # ELIMINAR el método save() - Dejar que Django maneje el guardado normal
-    # La lógica de fecha_fabricacion se puede manejar en el serializer
+    @property
+    def total(self):
+        """Calcular el total del pedido sumando todos los detalles"""
+        total = 0
+        for detalle in self.detalles.all():
+            # Asumiendo que Receta tiene precio_venta
+            total += detalle.cantidad * detalle.receta.precio_venta
+        return total
 
     def __str__(self):
         return f"Pedido #{self.id} - {self.cliente.nombre}"

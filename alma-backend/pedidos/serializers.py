@@ -138,13 +138,18 @@ class DetallePedidoWriteSerializer(serializers.ModelSerializer):
 class PedidoReadSerializer(serializers.ModelSerializer):
     cliente = ClienteSerializer(read_only=True)
     detalles = DetallePedidoReadSerializer(many=True, required=False)
+    total = serializers.SerializerMethodField()
+    metodo_pago = serializers.SerializerMethodField()
 
     class Meta:
         model = Pedido
         fields = [
             'id', 'cliente', 'fecha_pedido', 'fecha_entrega',
-            'fecha_fabricacion', 'estado', 'detalles'
+            'fecha_fabricacion', 'estado', 'detalles', 'total'
         ]
+        
+    def get_total(self, obj):
+       return obj.total
 
 class PedidoWriteSerializer(serializers.ModelSerializer):
     cliente_id = serializers.PrimaryKeyRelatedField(

@@ -215,3 +215,44 @@ class EliminarDetallesPedidoView(APIView):
                 {'error': 'Pedido no encontrado'},
                 status=status.HTTP_404_NOT_FOUND
             )
+        
+class PedidosEntregadosView(APIView):
+    def get(self, request):
+        # Obtener parámetros de fecha
+        fecha_inicio = request.GET.get('fecha_inicio')
+        fecha_fin = request.GET.get('fecha_fin')
+        
+        # Filtrar solo pedidos entregados
+        pedidos = Pedido.objects.filter(estado='entregado').order_by('-fecha_entrega')
+        
+        # Aplicar filtros de fecha si se proporcionan
+        if fecha_inicio:
+            try:
+                fecha_inicio = date.fromisoformat(fecha_inicio)
+                pedidos = pedidos.filter(fecha_entrega__gte=fecha_inicio)
+            except ValueError:
+                return Response(
+                    {'error': 'Formato de fecha_inicio inválido. Use YYYY-MM-DD'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        if fecha_fin:
+            try:
+                fecha_fin = date.fromisoformat(fecha_fin)
+                pedidos = pedidos.filter(fecha_entrega__lte=fecha_fin)
+            except ValueError:
+                return Response(
+                    {'error': 'Formato de fecha_fin inválido. Use YYYY-MM-DD'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        serializer = PedidoReadSerializer(pedidos, many=True)
+        
+        return Response({
+            'pedidos': serializer.data,
+            'total': pedidos.count(),
+            'filtros': {
+                'fecha_inicio': fecha_inicio,
+                'fecha_fin': fecha_fin
+            }
+        })

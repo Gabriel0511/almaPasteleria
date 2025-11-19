@@ -12,7 +12,8 @@ from .views import (
     PedidosPorEstadoView,
     IngredientesExtraCreateAPIView,
     IngredientesExtraRetrieveUpdateDestroyAPIView,
-    EliminarDetallesPedidoView
+    EliminarDetallesPedidoView,
+    PedidosEntregadosView,
 )
 
 urlpatterns = [
@@ -35,4 +36,7 @@ urlpatterns = [
     # Ingredientes extra - Nuevos endpoints
     path('ingredientes-extra/', IngredientesExtraCreateAPIView.as_view(), name='ingredientes-extra-create'),
     path('ingredientes-extra/<int:pk>/', IngredientesExtraRetrieveUpdateDestroyAPIView.as_view(), name='ingredientes-extra-detail'),
+
+    # Pedidos entregados
+    path('pedidos/entregados/', PedidosEntregadosView.as_view(), name='pedidos-entregados'),
 ]
