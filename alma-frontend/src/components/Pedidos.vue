@@ -1446,6 +1446,7 @@ const editarPedido = (pedido) => {
     });
     return;
   }
+
   esEdicionPedido.value = true;
   formPedido.value = {
     id: pedido.id,
@@ -1529,17 +1530,41 @@ const guardarPedido = async () => {
 
     let response;
     if (esEdicionPedido.value) {
-      response = await axios.put(
-        `/api/pedidos/${formPedido.value.id}/`,
-        formPedido.value
+      // Para edición: obtener el pedido actual y enviar sus detalles
+      const pedidoActual = pedidos.value.find(
+        (p) => p.id === formPedido.value.id
       );
 
-      await fetchPedidos();
-      closeModal();
+      const datosActualizacion = {
+        cliente_id: formPedido.value.cliente_id,
+        fecha_pedido: formPedido.value.fecha_pedido,
+        fecha_entrega: formPedido.value.fecha_entrega,
+        estado: formPedido.value.estado,
+        detalles:
+          pedidoActual?.detalles?.map((detalle) => ({
+            id: detalle.id,
+            receta_id: detalle.receta.id,
+            cantidad: detalle.cantidad,
+            observaciones: detalle.observaciones || "",
+            ingredientes_extra:
+              detalle.ingredientes_extra?.map((ing) => ({
+                id: ing.id,
+                insumo_id: ing.insumo.id,
+                cantidad: ing.cantidad,
+                unidad_medida_id: ing.unidad_medida.id,
+              })) || [],
+          })) || [],
+      };
 
-      // Verificar estado y notificar
-      const pedidoActualizado = response.data;
-      verificarEstadoPedidoYNotificar(pedidoActualizado, "actualizado");
+      console.log("Enviando datos para edición:", datosActualizacion);
+
+      response = await axios.put(
+        `/api/pedidos/${formPedido.value.id}/`,
+        datosActualizacion
+      );
+
+      await fetchPedidos(); // Recargar todos los pedidos
+      closeModal();
 
       notificationSystem.show({
         type: "success",
@@ -1548,14 +1573,19 @@ const guardarPedido = async () => {
         timeout: 4000,
       });
     } else {
-      response = await axios.post("/api/pedidos/", formPedido.value);
+      // Para nuevo pedido (código existente)
+      const datosNuevoPedido = {
+        cliente_id: formPedido.value.cliente_id,
+        fecha_pedido: formPedido.value.fecha_pedido,
+        fecha_entrega: formPedido.value.fecha_entrega,
+        estado: formPedido.value.estado,
+        detalles: [],
+      };
+
+      response = await axios.post("/api/pedidos/", datosNuevoPedido);
 
       await fetchPedidos();
       closeModal();
-
-      // AGREGAR: Verificar estado y notificar
-      const nuevoPedidoData = response.data; // Cambiado el nombre aquí
-      verificarEstadoPedidoYNotificar(nuevoPedidoData, "creado");
 
       notificationSystem.show({
         type: "success",
@@ -1564,15 +1594,11 @@ const guardarPedido = async () => {
         timeout: 4000,
       });
 
-      // 🆕 ABRIR MODAL DE AGREGAR RECETA AUTOMÁTICAMENTE
-      // Buscar el pedido recién creado en la lista actualizada
       const nuevoPedidoCompleto = pedidos.value.find(
-        // Cambiado el nombre aquí
         (pedido) => pedido.id === response.data.id
       );
 
       if (nuevoPedidoCompleto) {
-        // Pequeño delay para que el usuario vea la notificación
         setTimeout(() => {
           showAgregarRecetaModal(nuevoPedidoCompleto);
         }, 500);
@@ -1580,13 +1606,12 @@ const guardarPedido = async () => {
     }
   } catch (error) {
     console.error("Error al guardar pedido:", error);
+    console.error("Detalles del error:", error.response?.data);
 
-    // MEJORAR: Manejo de errores más específico
     let errorMessage = "Error al guardar el pedido";
 
     if (error.response?.data) {
       if (typeof error.response.data === "object") {
-        // Extraer mensajes de error del backend
         const errors = [];
         for (const key in error.response.data) {
           if (Array.isArray(error.response.data[key])) {
@@ -2060,40 +2085,75 @@ const guardarIngredienteExtra = async () => {
 };
 
 // Método para marcar pedido como entregado rápidamente
+// Método para marcar pedido como entregado rápidamente - CORREGIDO
 const marcarComoEntregado = async (pedido) => {
   try {
+    // Verificar que el pedido no esté ya entregado
+    if (pedido.estado === "entregado") {
+      notificationSystem.show({
+        type: "warning",
+        title: "Pedido ya entregado",
+        message: "Este pedido ya está marcado como entregado",
+        timeout: 4000,
+      });
+      return;
+    }
+
+    // Crear objeto con solo los datos necesarios para la actualización
     const datosActualizacion = {
-      ...pedido,
+      cliente_id: pedido.cliente.id,
+      fecha_pedido: pedido.fecha_pedido,
+      fecha_entrega: pedido.fecha_entrega,
       estado: "entregado",
     };
 
-    await axios.put(`/api/pedidos/${pedido.id}/`, datosActualizacion);
+    console.log(
+      "Actualizando pedido:",
+      pedido.id,
+      "con datos:",
+      datosActualizacion
+    );
 
-    // Actualizar localmente
+    const response = await axios.put(
+      `/api/pedidos/${pedido.id}/`,
+      datosActualizacion
+    );
+
+    // Actualizar localmente - FORMA CORRECTA
+    const pedidoActualizado = response.data;
     const index = pedidos.value.findIndex((p) => p.id === pedido.id);
     if (index !== -1) {
-      pedidos.value[index].estado = "entregado";
+      // Actualizar el objeto completo con la respuesta del servidor
+      pedidos.value[index] = { ...pedidos.value[index], ...pedidoActualizado };
     }
 
     // Notificar
-    verificarEstadoPedidoYNotificar(
-      { ...pedido, estado: "entregado" },
-      "entregado"
-    );
-
     notificationSystem.show({
       type: "success",
       title: "Pedido Entregado",
       message: `Pedido de ${pedido.cliente.nombre} marcado como entregado`,
       timeout: 4000,
     });
+
+    // Actualizar notificaciones
+    actualizarNotificacionesPedidos();
   } catch (error) {
     console.error("Error al marcar pedido como entregado:", error);
+    console.error("Detalles del error:", error.response?.data);
+
+    let mensajeError = "Error al marcar el pedido como entregado";
+    if (error.response?.data) {
+      if (typeof error.response.data === "object") {
+        mensajeError += ": " + JSON.stringify(error.response.data);
+      } else {
+        mensajeError += ": " + error.response.data;
+      }
+    }
 
     notificationSystem.show({
       type: "error",
       title: "Error",
-      message: "Error al marcar el pedido como entregado",
+      message: mensajeError,
       timeout: 6000,
     });
   }
@@ -2125,34 +2185,31 @@ const actualizarNotificacionesPedidos = () => {
 };
 
 // Método para verificar y notificar cambios en pedidos
+// Método para verificar y notificar cambios en pedidos - CORREGIDO
 const verificarEstadoPedidoYNotificar = (pedido, accion) => {
   const hoy = new Date().toISOString().split("T")[0];
-  const manana = new Date();
-  manana.setDate(manana.getDate() + 1);
-  const mananaStr = manana.toISOString().split("T")[0];
 
-  // Notificar si el pedido está atrasado
-  if (
-    pedido.fecha_entrega < hoy &&
-    pedido.estado !== "entregado" &&
-    pedido.estado !== "cancelado"
-  ) {
-    notificationSystem.show({
-      type: "warning",
-      title: "Pedido Atrasado",
-      message: `El pedido de ${pedido.cliente.nombre} está atrasado`,
-      timeout: 6000,
-    });
-  }
+  // Solo notificar si el pedido no está entregado
+  if (pedido.estado !== "entregado") {
+    // Notificar si el pedido está atrasado
+    if (pedido.fecha_entrega < hoy) {
+      notificationSystem.show({
+        type: "warning",
+        title: "Pedido Atrasado",
+        message: `El pedido de ${pedido.cliente.nombre} está atrasado`,
+        timeout: 6000,
+      });
+    }
 
-  // Notificar si el pedido es para hoy
-  if (pedido.fecha_entrega === hoy && pedido.estado !== "entregado") {
-    notificationSystem.show({
-      type: "info",
-      title: "Entrega Hoy",
-      message: `Recuerda entregar el pedido de ${pedido.cliente.nombre} hoy`,
-      timeout: 5000,
-    });
+    // Notificar si el pedido es para hoy
+    if (pedido.fecha_entrega === hoy) {
+      notificationSystem.show({
+        type: "info",
+        title: "Entrega Hoy",
+        message: `Recuerda entregar el pedido de ${pedido.cliente.nombre} hoy`,
+        timeout: 5000,
+      });
+    }
   }
 
   // Notificar cuando se marca como entregado

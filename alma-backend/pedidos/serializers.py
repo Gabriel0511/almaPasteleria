@@ -182,14 +182,19 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
 
         return pedido
 
-    def update(self, instance, validated_data):  # ← CORREGIDO: Ahora está dentro de la clase
-        detalles_data = validated_data.pop('detalles', [])
+    def update(self, instance, validated_data):
+        detalles_data = validated_data.pop('detalles', None)
         
-        # actualizar campos del pedido
+        # Actualizar campos del pedido
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
+        # Si no se enviaron detalles, mantener los existentes
+        if detalles_data is None:
+            return instance
+
+        # Manejar detalles existentes y nuevos
         existing_detalles = {d.id: d for d in instance.detalles.all()}
         sent_detalles_ids = []
 
@@ -198,36 +203,41 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
             detalle_id = detalle_data.get("id")
 
             if detalle_id and detalle_id in existing_detalles:
+                # Actualizar detalle existente
                 detalle = existing_detalles[detalle_id]
                 for attr, value in detalle_data.items():
                     setattr(detalle, attr, value)
                 detalle.save()
                 sent_detalles_ids.append(detalle_id)
             else:
+                # Crear nuevo detalle
                 detalle = DetallePedido.objects.create(pedido=instance, **detalle_data)
+                sent_detalles_ids.append(detalle.id)
 
+            # Manejar ingredientes extra del detalle
             existing_ing = {i.id: i for i in detalle.ingredientes_extra.all()}
             sent_ing_ids = []
 
             for ing_data in ingredientes_data:
                 ing_id = ing_data.get("id")
                 if ing_id and ing_id in existing_ing:
+                    # Actualizar ingrediente existente
                     ing = existing_ing[ing_id]
                     for attr, value in ing_data.items():
                         setattr(ing, attr, value)
                     ing.save()
                     sent_ing_ids.append(ing_id)
                 else:
-                    # Añadir el detalle_id al ing_data
-                    ing_data['detalle_id'] = detalle.id
+                    # Crear nuevo ingrediente
+                    ing_data['detalle'] = detalle
                     IngredientesExtra.objects.create(**ing_data)
 
-            # eliminar ingredientes que ya no están
+            # Eliminar ingredientes que ya no están en la solicitud
             for ing_id, ing in existing_ing.items():
                 if ing_id not in sent_ing_ids:
                     ing.delete()
 
-        # eliminar detalles que ya no están
+        # Eliminar detalles que ya no están en la solicitud
         for detalle_id, detalle in existing_detalles.items():
             if detalle_id not in sent_detalles_ids:
                 detalle.delete()
