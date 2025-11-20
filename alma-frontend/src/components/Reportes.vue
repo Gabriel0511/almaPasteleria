@@ -455,8 +455,33 @@
                             {{ item.cliente }}
                           </td>
                           <td class="reportes-columna-recetas">
-                            <div class="recetas-pedido-detalle">
-                              {{ getRecetasText(item.detalles) }}
+                            <!-- ← Nueva columna -->
+                            <div class="recetas-lista">
+                              <div
+                                v-for="(receta, index) in item.recetas"
+                                :key="index"
+                                class="receta-item"
+                              >
+                                <span class="receta-nombre">{{
+                                  receta.nombre
+                                }}</span>
+                                <span class="receta-cantidad"
+                                  >x{{ receta.cantidad }}</span
+                                >
+                                <span
+                                  v-if="receta.observaciones"
+                                  class="receta-observaciones"
+                                  :title="receta.observaciones"
+                                >
+                                  📝
+                                </span>
+                              </div>
+                              <div
+                                v-if="item.recetas.length === 0"
+                                class="sin-recetas"
+                              >
+                                Sin recetas
+                              </div>
                             </div>
                           </td>
                           <td class="reportes-columna-fecha">
@@ -680,20 +705,6 @@ const formatearFecha = (fecha) => {
     timeZone: "UTC",
   };
   return fechaUTC.toLocaleDateString("es-ES", opciones);
-};
-
-const getRecetasText = (detalles) => {
-  if (!detalles || detalles.length === 0) {
-    return "Sin recetas";
-  }
-
-  return detalles
-    .map((detalle) => {
-      // Acceder correctamente a los datos de la receta
-      const recetaNombre = detalle.receta?.nombre || "Receta no disponible";
-      return `${recetaNombre} (x${detalle.cantidad})`;
-    })
-    .join(", ");
 };
 
 const getClaseDiaCompra = (dia) => {
@@ -993,15 +1004,13 @@ const fetchPedidos = async () => {
       throw new Error("No se recibieron datos del servidor para pedidos");
     }
 
-    console.log("Datos de pedidos recibidos:", response.data); // ← Agregar para debug
-
     pedidos.value = response.data.pedidos.map((item) => ({
       id: item.id,
       cliente: item.cliente?.nombre || "Cliente no disponible",
       total: item.total || 0,
       fecha: item.fecha_entrega,
-      detalles: item.detalles || [], // ← Asegurar que detalles sea un array
-      estado: item.estado || "entregado", // ← Agregar estado
+      recetas: item.recetas || [], // ← Ahora viene del backend
+      metodoPago: item.metodo_pago || "No especificado",
     }));
   } catch (error) {
     console.error("Error al cargar pedidos:", error);
@@ -1416,7 +1425,8 @@ onMounted(() => {
   text-align: center;
 }
 
-.reportes-columna-reposicion {
+.reportes-columna-reposicion,
+.reportes-columna-estado {
   text-align: center;
 }
 
@@ -1434,17 +1444,6 @@ onMounted(() => {
 .reportes-columna-pedido-id {
   font-weight: 600;
   color: var(--color-primary);
-}
-
-.recetas-pedido-detalle {
-  max-width: 300px;
-  line-height: 1.4;
-  font-size: 0.85rem;
-}
-
-.reportes-columna-recetas {
-  max-width: 350px;
-  word-wrap: break-word;
 }
 
 /* Badges específicos para reportes */
