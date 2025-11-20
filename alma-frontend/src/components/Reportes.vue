@@ -63,12 +63,6 @@
                   </option>
                 </select>
               </div>
-
-              <button @click="aplicarFiltros" class="reportes-btn-agregar">
-                <i class="fas fa-filter"></i>
-                Aplicar
-              </button>
-
               <button
                 @click="limpiarFiltros"
                 class="reportes-btn-agregar"
@@ -435,7 +429,7 @@
                           <th>Pedido ID</th>
                           <th>Cliente</th>
                           <th>Recetas</th>
-                          <th>Fecha</th>
+                          <th>Fecha Entrega</th>
                           <th>Total</th>
                         </tr>
                       </thead>
@@ -445,7 +439,7 @@
                           :key="'pedido-' + item.id"
                           :class="{
                             'reportes-fila-pedido-urgente':
-                              item.estado === 'Pendiente',
+                              item.estado === 'pendiente',
                           }"
                         >
                           <td class="reportes-columna-pedido-id">
@@ -455,37 +449,22 @@
                             {{ item.cliente }}
                           </td>
                           <td class="reportes-columna-recetas">
-                            <!-- ← Nueva columna -->
-                            <div class="recetas-lista">
-                              <div
-                                v-for="(receta, index) in item.recetas"
-                                :key="index"
-                                class="receta-item"
-                              >
-                                <span class="receta-nombre">{{
-                                  receta.nombre
-                                }}</span>
-                                <span class="receta-cantidad"
-                                  >x{{ receta.cantidad }}</span
-                                >
-                                <span
-                                  v-if="receta.observaciones"
-                                  class="receta-observaciones"
-                                  :title="receta.observaciones"
-                                >
-                                  📝
-                                </span>
-                              </div>
-                              <div
-                                v-if="item.recetas.length === 0"
-                                class="sin-recetas"
-                              >
-                                Sin recetas
-                              </div>
+                            <div class="recetas-pedido-detalle">
+                              {{ getRecetasText(item.detalles) }}
+                            </div>
+                            <!-- Mostrar ingredientes extra si existen -->
+                            <div
+                              v-if="hasIngredientesExtra(item.detalles)"
+                              class="ingredientes-extra-detalle"
+                            >
+                              <small>
+                                <strong>Ingredientes extra:</strong>
+                                {{ getIngredientesExtraText(item.detalles) }}
+                              </small>
                             </div>
                           </td>
                           <td class="reportes-columna-fecha">
-                            {{ formatearFecha(item.fecha) }}
+                            {{ formatearFecha(item.fecha_entrega) }}
                           </td>
                           <td class="reportes-columna-total">
                             ${{ formatDecimal(item.total) }}
@@ -607,6 +586,26 @@ const fechaPedidos = ref(new Date().toISOString().split("T")[0]);
 // ----------------------
 // 🔹 Computed Properties
 // ----------------------
+const pedidosFiltrados = computed(() => {
+  // Filtrar solo pedidos entregados en el frontend
+  const pedidosEntregados = pedidos.value.filter(
+    (pedido) => pedido.estado === "entregado"
+  );
+
+  // Aplicar filtro de fecha si existe
+  if (filtros.value.fechaInicio && filtros.value.fechaFin) {
+    return pedidosEntregados.filter((pedido) => {
+      const fechaEntrega = new Date(pedido.fecha_entrega);
+      const fechaInicio = new Date(filtros.value.fechaInicio);
+      const fechaFin = new Date(filtros.value.fechaFin);
+
+      return fechaEntrega >= fechaInicio && fechaEntrega <= fechaFin;
+    });
+  }
+
+  return pedidosEntregados;
+});
+
 const reporteFiltrado = computed(() => {
   let filtered = [...reportes.value];
 
@@ -640,10 +639,6 @@ const recetasHechasFiltradas = computed(() => {
   return recetasHechas.value.filter(
     (receta) => receta.fecha === fechaRecetas.value
   );
-});
-
-const pedidosFiltrados = computed(() => {
-  return pedidos.value.filter((pedido) => pedido.fecha === fechaPedidos.value);
 });
 
 const fechaRecetasTexto = computed(() => {
@@ -707,14 +702,62 @@ const formatearFecha = (fecha) => {
   return fechaUTC.toLocaleDateString("es-ES", opciones);
 };
 
-const getClaseDiaCompra = (dia) => {
-  const clasesDias = {
-    Lunes: "dia-lunes",
-    Martes: "dia-martes",
-    Jueves: "dia-jueves",
-    Viernes: "dia-viernes",
+const getRecetasText = (detalles) => {
+  if (!detalles || detalles.length === 0) {
+    return "Sin recetas";
+  }
+
+  return detalles
+    .map((detalle) => {
+      const recetaNombre = detalle.receta?.nombre || "Receta no disponible";
+      const cantidad = detalle.cantidad || 1;
+      return `${recetaNombre} (x${cantidad})`;
+    })
+    .join(", ");
+};
+
+const hasIngredientesExtra = (detalles) => {
+  if (!detalles) return false;
+  return detalles.some(
+    (detalle) =>
+      detalle.ingredientes_extra && detalle.ingredientes_extra.length > 0
+  );
+};
+
+const getIngredientesExtraText = (detalles) => {
+  if (!detalles) return "";
+
+  const ingredientesExtra = [];
+  detalles.forEach((detalle) => {
+    if (detalle.ingredientes_extra && detalle.ingredientes_extra.length > 0) {
+      detalle.ingredientes_extra.forEach((ing) => {
+        const insumoNombre = ing.insumo?.nombre || "Insumo no disponible";
+        const cantidad = ing.cantidad || 0;
+        const unidad = ing.unidad_medida?.abreviatura || "u";
+        ingredientesExtra.push(`${insumoNombre}: ${cantidad} ${unidad}`);
+      });
+    }
+  });
+
+  return ingredientesExtra.join(", ");
+};
+
+const getEstadoText = (estado) => {
+  const estados = {
+    pendiente: "Pendiente",
+    listo: "Listo",
+    entregado: "Entregado",
   };
-  return clasesDias[dia] || "dia-default";
+  return estados[estado] || estado;
+};
+
+const getClaseEstadoPedido = (estado) => {
+  const clasesEstados = {
+    entregado: "success",
+    pendiente: "warning",
+    listo: "info",
+  };
+  return clasesEstados[estado] || "default";
 };
 
 const getClaseEstadoReceta = (estado) => {
@@ -722,16 +765,6 @@ const getClaseEstadoReceta = (estado) => {
     Completado: "success",
     "En proceso": "warning",
     Cancelado: "alert",
-  };
-  return clasesEstados[estado] || "default";
-};
-
-const getClaseEstadoPedido = (estado) => {
-  const clasesEstados = {
-    Completado: "success",
-    Pendiente: "warning",
-    Cancelado: "alert",
-    "En camino": "info",
   };
   return clasesEstados[estado] || "default";
 };
@@ -993,7 +1026,8 @@ const fetchPedidos = async () => {
   try {
     loadingPedidos.value = true;
 
-    const response = await axios.get("/api/pedidos/entregados/", {
+    // Obtener todos los pedidos (no solo los entregados, para poder filtrar en frontend)
+    const response = await axios.get("/api/pedidos/", {
       params: {
         fecha_inicio: filtros.value.fechaInicio,
         fecha_fin: filtros.value.fechaFin,
@@ -1004,13 +1038,16 @@ const fetchPedidos = async () => {
       throw new Error("No se recibieron datos del servidor para pedidos");
     }
 
-    pedidos.value = response.data.pedidos.map((item) => ({
+    console.log("Datos de pedidos recibidos:", response.data);
+
+    pedidos.value = response.data.map((item) => ({
       id: item.id,
       cliente: item.cliente?.nombre || "Cliente no disponible",
       total: item.total || 0,
-      fecha: item.fecha_entrega,
-      recetas: item.recetas || [], // ← Ahora viene del backend
-      metodoPago: item.metodo_pago || "No especificado",
+      fecha_entrega: item.fecha_entrega,
+      fecha_pedido: item.fecha_pedido,
+      detalles: item.detalles || [],
+      estado: item.estado || "pendiente",
     }));
   } catch (error) {
     console.error("Error al cargar pedidos:", error);
@@ -1441,9 +1478,41 @@ onMounted(() => {
   text-align: center;
 }
 
-.reportes-columna-pedido-id {
-  font-weight: 600;
+/* Estilos para los detalles de recetas en reportes */
+.recetas-pedido-detalle {
+  max-width: 300px;
+  line-height: 1.4;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+
+.ingredientes-extra-detalle {
+  background: #f8f9fa;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border-left: 3px solid var(--color-primary);
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 4px;
+}
+
+.ingredientes-extra-detalle strong {
   color: var(--color-primary);
+}
+
+.reportes-columna-recetas {
+  max-width: 350px;
+  word-wrap: break-word;
+}
+
+/* Ajustar el contenedor de scroll para mejor visualización */
+.reportes-table-scroll-container {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  min-height: 400px;
+  max-height: 600px;
+  height: auto;
 }
 
 /* Badges específicos para reportes */

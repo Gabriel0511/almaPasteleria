@@ -1296,19 +1296,82 @@ const formatFecha = (fecha) => {
   });
 };
 
-// Función para enviar fechas al backend correctamente
-const formatFechaParaBackend = (fechaInput) => {
-  if (!fechaInput) return "";
+// Función para convertir entre unidades de medida
+const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => {
+  // Si las unidades son iguales, no hay conversión
+  if (unidadOrigen === unidadDestino) {
+    return cantidad;
+  }
 
-  // Crear fecha en la zona horaria local
-  const fecha = new Date(fechaInput);
+  // Definir factores de conversión comunes
+  const conversiones = {
+    // Peso
+    kg: { g: 1000, mg: 1000000, lb: 2.20462, oz: 35.274 },
+    g: { kg: 0.001, mg: 1000, lb: 0.00220462, oz: 0.035274 },
+    mg: { kg: 0.000001, g: 0.001, lb: 0.00000220462, oz: 0.000035274 },
+    lb: { kg: 0.453592, g: 453.592, mg: 453592, oz: 16 },
+    oz: { kg: 0.0283495, g: 28.3495, mg: 28349.5, lb: 0.0625 },
 
-  // Ajustar para que se guarde como UTC pero representando la fecha local correcta
-  const fechaAjustada = new Date(
-    fecha.getTime() - fecha.getTimezoneOffset() * 60000
-  );
+    // Volumen
+    l: { ml: 1000, cl: 100, dl: 10, gal: 0.264172 },
+    ml: { l: 0.001, cl: 0.1, dl: 0.01, gal: 0.000264172 },
+    cl: { l: 0.01, ml: 10, dl: 0.1, gal: 0.00264172 },
+    dl: { l: 0.1, ml: 100, cl: 10, gal: 0.0264172 },
+    gal: { l: 3.78541, ml: 3785.41, cl: 378.541, dl: 37.8541 },
 
-  return fechaAjustada.toISOString().split("T")[0];
+    // Unidades simples (sin conversión)
+    unidad: { unidad: 1 },
+    porcion: { porcion: 1 },
+    paquete: { paquete: 1 },
+    caja: { caja: 1 },
+  };
+
+  // Normalizar nombres de unidades
+  const normalizarUnidad = (unidad) => {
+    const normalizadas = {
+      kilogramo: "kg",
+      kilogramos: "kg",
+      kilo: "kg",
+      gramo: "g",
+      gramos: "g",
+      miligramo: "mg",
+      miligramos: "mg",
+      libra: "lb",
+      libras: "lb",
+      onza: "oz",
+      onzas: "oz",
+      litro: "l",
+      litros: "l",
+      mililitro: "ml",
+      mililitros: "ml",
+      centilitro: "cl",
+      centilitros: "cl",
+      decilitro: "dl",
+      decilitros: "dl",
+      galon: "gal",
+      galones: "gal",
+      unidades: "unidad",
+      unidad: "unidad",
+      porciones: "porcion",
+      porcion: "porcion",
+      paquetes: "paquete",
+      paquete: "paquete",
+      cajas: "caja",
+      caja: "caja",
+    };
+    return normalizadas[unidad.toLowerCase()] || unidad.toLowerCase();
+  };
+
+  const origenNorm = normalizarUnidad(unidadOrigen);
+  const destinoNorm = normalizarUnidad(unidadDestino);
+
+  // Si no hay conversión disponible, devolver la cantidad original
+  if (!conversiones[origenNorm] || !conversiones[origenNorm][destinoNorm]) {
+    console.warn(`No se encontró conversión de ${origenNorm} a ${destinoNorm}`);
+    return cantidad;
+  }
+
+  return cantidad * conversiones[origenNorm][destinoNorm];
 };
 
 // Función para calcular total del pedido
