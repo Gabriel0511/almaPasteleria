@@ -456,7 +456,7 @@
                           </td>
                           <td class="reportes-columna-recetas">
                             <div class="recetas-pedido-detalle">
-                              {{ getRecetasTextPedidos(item.detalles) }}
+                              {{ getRecetasText(item.detalles) }}
                             </div>
                           </td>
                           <td class="reportes-columna-fecha">
@@ -682,13 +682,14 @@ const formatearFecha = (fecha) => {
   return fechaUTC.toLocaleDateString("es-ES", opciones);
 };
 
-const getRecetasTextPedidos = (detalles) => {
+const getRecetasText = (detalles) => {
   if (!detalles || detalles.length === 0) {
     return "Sin recetas";
   }
 
   return detalles
     .map((detalle) => {
+      // Acceder correctamente a los datos de la receta
       const recetaNombre = detalle.receta?.nombre || "Receta no disponible";
       return `${recetaNombre} (x${detalle.cantidad})`;
     })
@@ -992,12 +993,15 @@ const fetchPedidos = async () => {
       throw new Error("No se recibieron datos del servidor para pedidos");
     }
 
+    console.log("Datos de pedidos recibidos:", response.data); // ← Agregar para debug
+
     pedidos.value = response.data.pedidos.map((item) => ({
       id: item.id,
       cliente: item.cliente?.nombre || "Cliente no disponible",
       total: item.total || 0,
       fecha: item.fecha_entrega,
-      detalles: item.detalles,
+      detalles: item.detalles || [], // ← Asegurar que detalles sea un array
+      estado: item.estado || "entregado", // ← Agregar estado
     }));
   } catch (error) {
     console.error("Error al cargar pedidos:", error);

@@ -223,7 +223,9 @@ class PedidosEntregadosView(APIView):
         fecha_fin = request.GET.get('fecha_fin')
         
         # Filtrar solo pedidos entregados
-        pedidos = Pedido.objects.filter(estado='entregado').order_by('-fecha_entrega')
+        pedidos = Pedido.objects.filter(estado='entregado')\
+                       .prefetch_related('detalles__receta', 'detalles__ingredientes_extra')\
+                       .order_by('-fecha_entrega')
         
         # Aplicar filtros de fecha si se proporcionan
         if fecha_inicio:
