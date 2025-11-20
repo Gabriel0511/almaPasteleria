@@ -176,9 +176,7 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
             detalle = DetallePedido.objects.create(pedido=pedido, **detalle_data)
 
             for ingrediente_data in ingredientes_data:
-                # Añadir el detalle_id al ingrediente_data
-                ingrediente_data['detalle_id'] = detalle.id
-                IngredientesExtra.objects.create(**ingrediente_data)
+                IngredientesExtra.objects.create(detalle=detalle, **ingrediente_data)
 
         return pedido
 

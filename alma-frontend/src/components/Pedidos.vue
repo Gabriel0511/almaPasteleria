@@ -1530,33 +1530,16 @@ const guardarPedido = async () => {
 
     let response;
     if (esEdicionPedido.value) {
-      // Para edición: obtener el pedido actual y enviar sus detalles
-      const pedidoActual = pedidos.value.find(
-        (p) => p.id === formPedido.value.id
-      );
-
+      // Para edición: enviar SOLO los datos básicos del pedido, NO los detalles
       const datosActualizacion = {
         cliente_id: formPedido.value.cliente_id,
         fecha_pedido: formPedido.value.fecha_pedido,
         fecha_entrega: formPedido.value.fecha_entrega,
         estado: formPedido.value.estado,
-        detalles:
-          pedidoActual?.detalles?.map((detalle) => ({
-            id: detalle.id,
-            receta_id: detalle.receta.id,
-            cantidad: detalle.cantidad,
-            observaciones: detalle.observaciones || "",
-            ingredientes_extra:
-              detalle.ingredientes_extra?.map((ing) => ({
-                id: ing.id,
-                insumo_id: ing.insumo.id,
-                cantidad: ing.cantidad,
-                unidad_medida_id: ing.unidad_medida.id,
-              })) || [],
-          })) || [],
+        // NO incluir detalles aquí - se mantendrán los existentes
       };
 
-      console.log("Enviando datos para edición:", datosActualizacion);
+      console.log("Enviando datos básicos para edición:", datosActualizacion);
 
       response = await axios.put(
         `/api/pedidos/${formPedido.value.id}/`,
