@@ -1588,9 +1588,6 @@ const guardarPedido = async () => {
       }
     }
   } catch (error) {
-    console.error("Error al guardar pedido:", error);
-    console.error("Detalles del error:", error.response?.data);
-
     let errorMessage = "Error al guardar el pedido";
 
     if (error.response?.data) {
@@ -2858,8 +2855,8 @@ onUnmounted(() => {
 
 /* ----------------------------- DESPLEGABLE DE DETALLES - MEJORADO ----------------------------- */
 .pedido-detalles-desplegable {
-  background: #f8f9fa;
-  border-top: 1px solid #e9ecef;
+  background: #fafbfc;
+  border-top: 1px solid #eef1f4;
   animation: slideDown 0.3s ease-out;
 }
 
@@ -2875,81 +2872,93 @@ onUnmounted(() => {
 }
 
 .detalles-content {
-  padding: 16px;
+  padding: 20px;
 }
 
 .agregar-receta-container {
-  margin-bottom: 16px;
-  text-align: right;
+  margin-bottom: 20px;
+  text-align: left;
+  border-bottom: 1px dashed #e1e5e9;
+  padding-bottom: 16px;
 }
 
 .btn-agregar-receta {
-  background: linear-gradient(135deg, var(--color-success), #218838);
+  background: linear-gradient(135deg, #28a745, #20c997);
   color: white;
   border: none;
-  border-radius: 8px;
-  padding: 10px 16px;
+  border-radius: 10px;
+  padding: 12px 20px;
   cursor: pointer;
   font-weight: 600;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.2);
-  font-size: 0.85rem;
+  box-shadow: 0 3px 10px rgba(40, 167, 69, 0.2);
+  font-size: 0.9rem;
 }
 
 .btn-agregar-receta:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+  background: linear-gradient(135deg, #218838, #1e9e8a);
 }
 
 .pedido-entregado-mensaje {
-  background: linear-gradient(135deg, #d4edda, #c3e6cb);
-  color: #155724;
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 16px;
+  background: linear-gradient(135deg, #d4f7e2, #c3f0d9);
+  color: #0f5132;
+  padding: 14px 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
   text-align: center;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 0.9rem;
+  border-left: 4px solid #28a745;
+}
+
+.pedido-entregado-mensaje i {
+  color: #28a745;
+  font-size: 1.1rem;
 }
 
 /* ----------------------------- RECETAS E INGREDIENTES - MEJORADO ----------------------------- */
 .recetas-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .receta-item {
   background: white;
   border: 1px solid #e9ecef;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .receta-item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #d1e7ff;
 }
 
 .receta-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: #f8f9fa;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #f8f9fa, #f1f3f5);
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid transparent;
 }
 
 .receta-header:hover {
-  background: #e9ecef;
+  background: linear-gradient(135deg, #f1f3f5, #e9ecef);
 }
 
 .receta-info {
@@ -2960,62 +2969,109 @@ onUnmounted(() => {
 .receta-titulo {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  gap: 12px;
 }
 
 .receta-nombre {
-  font-weight: 600;
+  font-weight: 700;
   color: #2c3e50;
-  font-size: 0.9rem;
+  font-size: 1rem;
+  flex: 1;
 }
 
 .receta-precio {
   font-weight: 700;
-  color: var(--color-success);
+  color: #28a745;
   background: rgba(40, 167, 69, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.8rem;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  border: 1px solid rgba(40, 167, 69, 0.2);
+  white-space: nowrap;
 }
 
 .receta-observaciones {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: #6c757d;
   font-style: italic;
+  background: rgba(108, 117, 125, 0.05);
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .receta-header-acciones {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  margin-left: 12px;
 }
 
 .chevron-icon {
   color: #6c757d;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
+  transition: transform 0.2s ease;
+}
+
+.receta-header:hover .chevron-icon {
+  color: #495057;
 }
 
 .receta-detalles {
-  padding: 12px 16px;
+  padding: 20px;
   background: white;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid #f1f3f5;
   animation: slideDown 0.2s ease-out;
 }
 
+.ingredientes-extras {
+  margin-bottom: 20px;
+}
+
 .ingredientes-extras h4 {
-  margin-bottom: 8px;
-  color: var(--color-primary);
-  font-size: 0.9rem;
+  margin-bottom: 12px;
+  color: #495057;
+  font-size: 0.95rem;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.ingredientes-extras h4::before {
+  content: "🧩";
+  font-size: 1rem;
+}
+
+.ingredientes-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .ingrediente-extra {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 0;
-  border-bottom: 1px dashed #dee2e6;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+.ingrediente-extra:hover {
+  background: #ffffff;
+  border-color: #d1e7ff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 .ingrediente-extra:last-child {
@@ -3023,39 +3079,86 @@ onUnmounted(() => {
 }
 
 .ingrediente-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-size: 0.85rem;
   color: #495057;
+  flex: 1;
+}
+
+.ingrediente-nombre {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.ingrediente-cantidad {
+  background: rgba(0, 123, 255, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  color: #007bff;
+  font-size: 0.8rem;
 }
 
 .ingrediente-acciones {
   display: flex;
-  gap: 4px;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.ingrediente-extra:hover .ingrediente-acciones {
+  opacity: 1;
 }
 
 .receta-acciones {
-  margin-top: 12px;
-  text-align: right;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px dashed #e9ecef;
 }
 
 .btn-agregar-ingrediente {
   background: linear-gradient(135deg, #17a2b8, #138496);
   color: white;
   border: none;
-  border-radius: 6px;
-  padding: 8px 12px;
+  border-radius: 8px;
+  padding: 10px 16px;
   cursor: pointer;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   transition: all 0.3s ease;
-  box-shadow: 0 1px 3px rgba(23, 162, 184, 0.2);
-  font-size: 0.8rem;
+  box-shadow: 0 2px 6px rgba(23, 162, 184, 0.2);
+  font-size: 0.85rem;
 }
 
 .btn-agregar-ingrediente:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(23, 162, 184, 0.3);
+  box-shadow: 0 4px 10px rgba(23, 162, 184, 0.3);
+  background: linear-gradient(135deg, #138496, #117a8b);
+}
+
+/* Indicador de estado para recetas expandidas */
+.receta-item.expanded .receta-header {
+  background: linear-gradient(135deg, #e3f2fd, #e1f5fe);
+  border-bottom-color: #d1e7ff;
+}
+
+.receta-item.expanded .receta-header .chevron-icon {
+  transform: rotate(180deg);
+  color: #007bff;
+}
+
+/* ----------------------------- ESTADOS ESPECIALES ----------------------------- */
+.receta-item.sin-ingredientes .receta-detalles {
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
 }
 
 /* ----------------------------- BOTÓN FLOTANTE NUEVO PEDIDO - MISMO ESTILO QUE STOCK ----------------------------- */
@@ -3129,6 +3232,18 @@ onUnmounted(() => {
   .pedidos-card {
     padding: 15px;
   }
+
+  .detalles-content {
+    padding: 18px;
+  }
+
+  .receta-header {
+    padding: 14px 18px;
+  }
+
+  .receta-detalles {
+    padding: 18px;
+  }
 }
 
 /* Tablets pequeñas y móviles grandes */
@@ -3165,27 +3280,56 @@ onUnmounted(() => {
   }
 
   .detalles-content {
-    padding: 12px;
+    padding: 16px;
   }
 
   .receta-header {
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+
+  .receta-titulo {
+    flex-direction: column;
+    align-items: flex-start;
     gap: 8px;
+  }
+
+  .receta-precio {
+    align-self: flex-start;
   }
 
   .receta-header-acciones {
     align-self: flex-end;
+    margin-left: 0;
+    margin-top: 8px;
   }
 
   .ingrediente-extra {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
+    align-items: stretch;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .ingrediente-info {
+    justify-content: space-between;
   }
 
   .ingrediente-acciones {
     align-self: flex-end;
+    opacity: 1; /* Siempre visible en móvil */
+  }
+
+  .receta-acciones {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .btn-agregar-ingrediente {
+    justify-content: center;
   }
 
   .btn-nuevo-pedido-flotante {
@@ -3241,6 +3385,38 @@ onUnmounted(() => {
   .btn-nuevo-pedido-flotante span {
     display: none;
   }
+
+  .detalles-content {
+    padding: 12px;
+  }
+
+  .agregar-receta-container {
+    text-align: center;
+  }
+
+  .btn-agregar-receta {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 16px;
+  }
+
+  .receta-header {
+    padding: 12px 14px;
+  }
+
+  .receta-detalles {
+    padding: 14px;
+  }
+
+  .ingrediente-extra {
+    padding: 12px;
+  }
+
+  .ingrediente-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
 }
 
 /* Pantallas muy pequeñas */
@@ -3275,6 +3451,17 @@ onUnmounted(() => {
     transform: none;
   }
 
+  .ingrediente-acciones {
+    opacity: 1; /* Siempre visible en dispositivos táctiles */
+  }
+
+  .receta-item:hover {
+    transform: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  }
+
+  .btn-agregar-receta,
+  .btn-agregar-ingrediente,
   .btn-accion {
     min-height: 44px;
     min-width: 44px;
