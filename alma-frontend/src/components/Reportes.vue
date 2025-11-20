@@ -434,8 +434,8 @@
                         <tr>
                           <th>Pedido ID</th>
                           <th>Cliente</th>
+                          <th>Recetas</th>
                           <th>Fecha</th>
-                          <th>Estado</th>
                           <th>Total</th>
                         </tr>
                       </thead>
@@ -454,19 +454,16 @@
                           <td class="reportes-columna-cliente">
                             {{ item.cliente }}
                           </td>
-                          <td class="reportes-columna-total">
-                            ${{ formatDecimal(item.total) }}
+                          <td class="reportes-columna-recetas">
+                            <div class="recetas-pedido-detalle">
+                              {{ getRecetasTextPedidos(item.detalles) }}
+                            </div>
                           </td>
                           <td class="reportes-columna-fecha">
                             {{ formatearFecha(item.fecha) }}
                           </td>
-                          <td class="reportes-columna-estado">
-                            <span
-                              class="reportes-badge"
-                              :class="getClaseEstadoPedido(item.estado)"
-                            >
-                              {{ item.estado }}
-                            </span>
+                          <td class="reportes-columna-total">
+                            ${{ formatDecimal(item.total) }}
                           </td>
                         </tr>
                       </tbody>
@@ -671,8 +668,31 @@ const formatDecimal = (value) => {
 
 const formatearFecha = (fecha) => {
   if (!fecha) return "";
-  const opciones = { year: "numeric", month: "long", day: "numeric" };
-  return new Date(fecha).toLocaleDateString("es-ES", opciones);
+
+  // Dividir la fecha en partes y crear Date en UTC
+  const [year, month, day] = fecha.split("-");
+  const fechaUTC = new Date(Date.UTC(year, month - 1, day));
+
+  const opciones = {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  };
+  return fechaUTC.toLocaleDateString("es-ES", opciones);
+};
+
+const getRecetasTextPedidos = (detalles) => {
+  if (!detalles || detalles.length === 0) {
+    return "Sin recetas";
+  }
+
+  return detalles
+    .map((detalle) => {
+      const recetaNombre = detalle.receta?.nombre || "Receta no disponible";
+      return `${recetaNombre} (x${detalle.cantidad})`;
+    })
+    .join(", ");
 };
 
 const getClaseDiaCompra = (dia) => {
@@ -961,7 +981,6 @@ const fetchPedidos = async () => {
   try {
     loadingPedidos.value = true;
 
-    // Cambiar a la nueva endpoint de pedidos entregados
     const response = await axios.get("/api/pedidos/entregados/", {
       params: {
         fecha_inicio: filtros.value.fechaInicio,
@@ -975,10 +994,10 @@ const fetchPedidos = async () => {
 
     pedidos.value = response.data.pedidos.map((item) => ({
       id: item.id,
-      cliente: item.cliente.nombre,
+      cliente: item.cliente?.nombre || "Cliente no disponible",
       total: item.total || 0,
       fecha: item.fecha_entrega,
-      estado: item.estado,
+      detalles: item.detalles,
     }));
   } catch (error) {
     console.error("Error al cargar pedidos:", error);
@@ -1393,8 +1412,7 @@ onMounted(() => {
   text-align: center;
 }
 
-.reportes-columna-reposicion,
-.reportes-columna-estado {
+.reportes-columna-reposicion {
   text-align: center;
 }
 
@@ -1412,6 +1430,17 @@ onMounted(() => {
 .reportes-columna-pedido-id {
   font-weight: 600;
   color: var(--color-primary);
+}
+
+.recetas-pedido-detalle {
+  max-width: 300px;
+  line-height: 1.4;
+  font-size: 0.85rem;
+}
+
+.reportes-columna-recetas {
+  max-width: 350px;
+  word-wrap: break-word;
 }
 
 /* Badges específicos para reportes */

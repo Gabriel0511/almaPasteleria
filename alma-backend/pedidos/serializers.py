@@ -139,16 +139,29 @@ class PedidoReadSerializer(serializers.ModelSerializer):
     cliente = ClienteSerializer(read_only=True)
     detalles = DetallePedidoReadSerializer(many=True, required=False)
     total = serializers.SerializerMethodField()
+    recetas = serializers.SerializerMethodField()
 
     class Meta:
         model = Pedido
         fields = [
             'id', 'cliente', 'fecha_pedido', 'fecha_entrega',
-            'fecha_fabricacion', 'estado', 'detalles', 'total'
+            'fecha_fabricacion', 'estado', 'detalles', 'total', 'receta'
         ]
 
     def get_total(self, obj):
        return obj.total
+    
+    def get_recetas(self, obj):
+        """Obtener las recetas del pedido formateadas"""
+        recetas = []
+        for detalle in obj.detalles.all():
+            receta_info = {
+                'nombre': detalle.receta.nombre,
+                'cantidad': detalle.cantidad,
+                'observaciones': detalle.observaciones
+            }
+            recetas.append(receta_info)
+        return recetas
 
 class PedidoWriteSerializer(serializers.ModelSerializer):
     cliente_id = serializers.PrimaryKeyRelatedField(
