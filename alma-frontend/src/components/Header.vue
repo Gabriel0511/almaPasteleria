@@ -11,6 +11,13 @@
 
     <div class="header-left">
       <br />
+      <div class="date-text">
+        <i class="fas fa-calendar-alt date-icon"></i>
+        <div class="date-content">
+          <div class="date-day">{{ dayOfWeek }}</div>
+          <div class="date-full">{{ formattedDate }}</div>
+        </div>
+      </div>
       <div class="logo" @click="goToHome">
         <img src="/src/Logo2.png" alt="Logo Pastelería" />
       </div>
@@ -181,6 +188,24 @@ const notificacionesPedidos = ref([]);
 const isMobile = ref(false);
 const emit = defineEmits(["toggle-sidebar"]);
 
+// MODIFICAR: Fecha actual sin "de" antes del año
+const currentDate = ref(new Date());
+const dayOfWeek = computed(() => {
+  return currentDate.value.toLocaleDateString('es-ES', { 
+    weekday: 'long' 
+  });
+});
+const formattedDate = computed(() => {
+  const day = currentDate.value.getDate();
+  const month = currentDate.value.toLocaleDateString('es-ES', { 
+    month: 'long' 
+  });
+  const year = currentDate.value.getFullYear();
+  
+  return `${day} de ${month} ${year}`; // ← Quitamos el "de" antes del año
+});
+
+
 const checkScreenSize = () => {
   isMobile.value = window.innerWidth <= 768;
 };
@@ -192,6 +217,23 @@ const toggleMobileSidebar = () => {
 onMounted(() => {
   checkScreenSize();
   window.addEventListener("resize", checkScreenSize);
+  
+  // AGREGAR: Actualizar la fecha cada día
+  const updateDate = () => {
+    currentDate.value = new Date();
+  };
+  
+  // Actualizar a medianoche
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  const timeUntilMidnight = midnight - now;
+  
+  setTimeout(() => {
+    updateDate();
+    // Actualizar cada 24 horas
+    setInterval(updateDate, 24 * 60 * 60 * 1000);
+  }, timeUntilMidnight);
 });
 
 onUnmounted(() => {
@@ -514,7 +556,49 @@ onUnmounted(() => {
 .header-left {
   display: flex;
   align-items: center;
+  gap: 15px;
 }
+
+.date-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.date-icon {
+  font-size: 1.6rem;
+  color: rgba(255, 255, 255, 0.9);
+  opacity: 0.8;
+}
+
+.date-content {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.date-day {
+  font-size: 1.0rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  opacity: 0.9;
+  margin-bottom: 1px;
+  white-space: nowrap;
+}
+
+.date-full {
+  font-size: 1.4rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
 
 .logo {
   cursor: pointer; /* Hace que aparezca la manito al pasar el mouse */
@@ -1035,7 +1119,7 @@ onUnmounted(() => {
 /* ----------------------------- RESPONSIVE ----------------------------- */
 @media (max-width: 768px) {
   .header {
-    padding: 10px 15px;
+    padding: 10px 15px 10px 60px !important;
   }
 
   .logo img {
@@ -1076,7 +1160,7 @@ onUnmounted(() => {
 
 @media (max-width: 480px) {
   .header {
-    padding: 8px 10px;
+    padding: 8px 10px 8px 50px !important;
   }
 
   .dropdown-menu {
