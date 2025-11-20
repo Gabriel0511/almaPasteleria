@@ -145,7 +145,7 @@ class PedidoReadSerializer(serializers.ModelSerializer):
         model = Pedido
         fields = [
             'id', 'cliente', 'fecha_pedido', 'fecha_entrega',
-            'fecha_fabricacion', 'estado', 'detalles', 'total', 'receta'
+            'fecha_fabricacion', 'estado', 'detalles', 'total'
         ]
 
     def get_total(self, obj):
