@@ -1120,113 +1120,104 @@ const eliminarInsumo = async () => {
 
 const guardarInsumo = async () => {
   try {
-    if (!formInsumo.value.nombre) {
-      notificationSystem.show({
-        type: "error",
-        title: "Error de validación",
-        message: "El nombre es requerido",
-        timeout: 4000,
-      });
-      return;
-    }
-    if (!formInsumo.value.unidad_medida_id) {
-      notificationSystem.show({
-        type: "error",
-        title: "Error de validación",
-        message: "La unidad de medida es requerida",
-        timeout: 4000,
-      });
-      return;
-    }
-    if (!formInsumo.value.stock_minimo && formInsumo.value.stock_minimo !== 0) {
-      notificationSystem.show({
-        type: "error",
-        title: "Error de validación",
-        message: "El stock mínimo es requerido",
-        timeout: 4000,
-      });
-      return;
-    }
+    const nombreNuevo = formInsumo.value.nombre;
 
-    const formatearParaBackend = (valor) => {
-      if (valor === null || valor === undefined) return null;
-      return valor.toString().replace(".", ",");
-    };
-
-    // Preparar datos
     const datosParaEnviar = {
-      nombre: formInsumo.value.nombre,
-      categoria_id: formInsumo.value.categoria_id || null,
+      nombre: nombreNuevo,
+      categoria_id: formInsumo.value.categoria_id,
       unidad_medida_id: formInsumo.value.unidad_medida_id,
-      stock_minimo: formatearParaBackend(
-        parseFloat(formInsumo.value.stock_minimo)
-      ),
-      precio_unitario: formInsumo.value.precio_unitario
-        ? formatearParaBackend(parseFloat(formInsumo.value.precio_unitario))
-        : null,
-      proveedor_id: formInsumo.value.proveedor_id || null,
-      activo: true,
+      stock_minimo: formInsumo.value.stock_minimo,
     };
 
-    // Solo agregar stock_actual = 0 cuando sea un insumo nuevo
+    // 👉 SOLO para creación
     if (!esEdicion.value) {
       datosParaEnviar.stock_actual = 0;
     }
 
+    console.log("📤 Payload enviado al servidor:", datosParaEnviar);
+
     let response;
+
+    // -----------------------------
+    // ✔ EDICIÓN
+    // -----------------------------
     if (esEdicion.value) {
       response = await axios.patch(
         `/api/insumos/${formInsumo.value.id}/actualizar-parcial/`,
         datosParaEnviar
       );
-    } else {
-      response = await axios.post("/api/insumos/crear/", datosParaEnviar);
+
+      notificationSystem.show({
+        type: "success",
+        title: "Insumo editado",
+        message: "Los cambios se guardaron correctamente",
+        timeout: 3000,
+      });
+
+      closeModal();
+      await fetchStock();
+      await fetchInsumos();
+      return;
     }
 
-    // Refrescar tanto stock como insumos
+    // -----------------------------
+    // ✔ CREACIÓN
+    // -----------------------------
+    response = await axios.post("/api/insumos/crear/", datosParaEnviar);
+
+    console.log("📥 Respuesta del servidor:", response.data);
+
+    const nuevoID = response.data?.id;
+
     await fetchStock();
     await fetchInsumos();
-    closeModal();
 
-    const insumoGuardado = response.data;
-    if (esEdicion.value) {
-      // Buscar el item actualizado en el stock
-      const itemActualizado = stock.value.find(
-        (item) => item.id === insumoGuardado.id
-      );
-      if (itemActualizado) {
-        verificarStockYNotificar(itemActualizado, "actualizado");
-      }
-    }
+    closeModal();
 
     notificationSystem.show({
       type: "success",
-      title: esEdicion.value ? "Insumo actualizado" : "Insumo creado",
-      message: esEdicion.value
-        ? "Insumo actualizado correctamente"
-        : "Insumo creado correctamente",
+      title: "Insumo creado",
+      message: "Insumo creado correctamente",
       timeout: 4000,
     });
-  } catch (error) {
-    if (error.response?.status === 400 && error.response?.data?.error) {
-      notificationSystem.show({
-        type: "error",
-        title: "Error al guardar insumo",
-        message: error.response.data.error,
-        timeout: 6000,
-      });
-      resetFormInsumo();
-    } else {
-      notificationSystem.show({
-        type: "error",
-        title: "Error",
-        message: "Error al guardar el insumo",
-        timeout: 6000,
-      });
-      resetFormInsumo();
+
+    let nuevoInsumoCompleto = null;
+
+    if (nuevoID) {
+      nuevoInsumoCompleto = stock.value.find(i => i.id === nuevoID);
     }
+
+    if (!nuevoInsumoCompleto) {
+      nuevoInsumoCompleto = stock.value.find(
+        i => i.nombre?.toLowerCase() === nombreNuevo.toLowerCase()
+      );
+    }
+
+    console.log("🔍 Insumo creado:", nuevoInsumoCompleto);
+
+    if (nuevoInsumoCompleto) {
+      setTimeout(() => {
+        reponerStockRapido(nuevoInsumoCompleto);
+      }, 300);
+    }
+
+  } catch (error) {
+    console.error("❌ ERROR COMPLETO:", error);
+
+    if (error.response) {
+      console.log("📥 ERROR response.data:", error.response.data);
+      console.log("📥 ERROR status:", error.response.status);
+    }
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: "No se pudo guardar el insumo. Revisá la consola.",
+      timeout: 4000,
+    });
   }
 };
+
 
 const registrarCompra = async () => {
   try {
@@ -1407,7 +1398,7 @@ const resetFormInsumo = () => {
 const resetFormCompra = () => {
   formCompra.value = {
     insumo_id: "",
-    cantidad: 0, // Cambiar a 0 en lugar de 0.001
+    cantidad: 0,
     precio_total: 0,
     precio_unitario: 0,
     proveedor_id: "",
@@ -1542,13 +1533,14 @@ watch(
   { deep: true }
 );
 
-// Método para reposición rápida
 const reponerStockRapido = (item) => {
   esReposicionRapida.value = true;
   insumoReposicionRapida.value = item;
   formCompra.value.insumo_id = item.id;
   // Siempre poner 0 en lugar de calcular
   formCompra.value.cantidad = 0;
+  formCompra.value.precio_total = 0;
+  formCompra.value.precio_unitario = 0;
   actualizarUnidadMedida();
   showModalCompra.value = true;
 };
