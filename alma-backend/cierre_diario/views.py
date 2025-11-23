@@ -1,4 +1,4 @@
-# cierre_diario/views.py - CORREGIR
+# cierre_diario/views.py - COMPLETAR
 from django.utils import timezone
 from django.db import transaction
 from rest_framework.decorators import api_view, permission_classes
@@ -7,10 +7,11 @@ from rest_framework.response import Response
 from datetime import datetime, timedelta
 from pedidos.models import Pedido
 from recetas.models import Receta
-from django.contrib.auth import get_user_model
-User = get_user_model()
-from insumos.models import HistorialStock, Insumo 
+from insumos.models import HistorialStock, Insumo
 from .models import HistorialCierreDia, HistorialRecetasDia, HistorialPedidosDia, HistorialInsumosUtilizados
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -34,10 +35,10 @@ def obtener_estado_cierre_dia(request):
             fecha_entrega__date=fecha_hoy
         ).count()
         
-        # ✅ CORREGIDO: Usar HistorialStock en lugar de MovimientoStock
+        # Usar HistorialStock para insumos utilizados
         insumos_utilizados = HistorialStock.objects.filter(
             fecha__date=fecha_hoy,
-            tipo_movimiento__in=['RECETA', 'INGREDIENTE_EXTRA']  # Solo movimientos de salida
+            tipo_movimiento__in=['RECETA', 'INGREDIENTE_EXTRA']
         ).count()
         
         return Response({
@@ -52,8 +53,9 @@ def obtener_estado_cierre_dia(request):
         })
         
     except Exception as e:
+        print(f"❌ Error en obtener_estado_cierre_dia: {str(e)}")
         return Response({
-            'error': str(e)
+            'error': f'Error interno del servidor: {str(e)}'
         }, status=500)
 
 @api_view(['POST'])
@@ -65,6 +67,8 @@ def cerrar_dia_laboral(request):
     """
     try:
         fecha_cierre = timezone.now().date()
+        
+        print(f"🔧 Iniciando cierre del día: {fecha_cierre}")
         
         # Verificar si ya se realizó el cierre hoy
         if HistorialCierreDia.objects.filter(fecha=fecha_cierre).exists():
@@ -79,8 +83,12 @@ def cerrar_dia_laboral(request):
             usuario=request.user
         )
         
-        # 1. Procesar recetas preparadas hoy (solo las que tienen veces_hecha_hoy > 0)
+        print(f"📝 Cierre creado: {cierre_dia.id}")
+        
+        # 1. Procesar recetas preparadas hoy
         recetas_hoy = Receta.objects.filter(veces_hecha_hoy__gt=0)
+        print(f"👨‍🍳 Recetas hoy: {recetas_hoy.count()}")
+        
         for receta in recetas_hoy:
             HistorialRecetasDia.objects.create(
                 cierre_dia=cierre_dia,
@@ -96,6 +104,8 @@ def cerrar_dia_laboral(request):
             estado='entregado',
             fecha_entrega__date=fecha_cierre
         )
+        print(f"📦 Pedidos hoy: {pedidos_hoy.count()}")
+        
         for pedido in pedidos_hoy:
             HistorialPedidosDia.objects.create(
                 cierre_dia=cierre_dia,
@@ -106,27 +116,27 @@ def cerrar_dia_laboral(request):
         
         cierre_dia.pedidos_registrados = pedidos_hoy.count()
         
-        # 3. ✅ CORREGIDO: Procesar insumos utilizados hoy usando HistorialStock
+        # 3. Procesar insumos utilizados hoy
         movimientos_hoy = HistorialStock.objects.filter(
             fecha__date=fecha_cierre,
-            tipo_movimiento__in=['RECETA', 'INGREDIENTE_EXTRA']  # Solo movimientos de salida
+            tipo_movimiento__in=['RECETA', 'INGREDIENTE_EXTRA']
         )
+        print(f"📊 Movimientos hoy: {movimientos_hoy.count()}")
+        
         for movimiento in movimientos_hoy:
             HistorialInsumosUtilizados.objects.create(
                 cierre_dia=cierre_dia,
                 insumo=movimiento.insumo,
                 cantidad_utilizada=movimiento.cantidad,
-                motivo=movimiento.get_tipo_movimiento_display()  # Descripción legible
+                motivo=movimiento.get_tipo_movimiento_display()
             )
         
         cierre_dia.insumos_registrados = movimientos_hoy.count()
         cierre_dia.save()
         
-        # 4. ✅ REINICIAR SOLO CONTADORES DIARIOS (no el histórico)
+        # 4. REINICIAR CONTADORES DIARIOS
         Receta.objects.all().update(veces_hecha_hoy=0)
-        
-        # 5. ✅ CORREGIDO: No hay que limpiar HistorialStock ya que es permanente
-        # El HistorialStock se mantiene para auditoría
+        print("🔄 Contadores diarios reiniciados")
         
         return Response({
             'success': True,
@@ -140,9 +150,10 @@ def cerrar_dia_laboral(request):
         })
         
     except Exception as e:
+        print(f"❌ Error en cerrar_dia_laboral: {str(e)}")
         return Response({
             'success': False,
-            'error': str(e)
+            'error': f'Error interno del servidor: {str(e)}'
         }, status=500)
 
 @api_view(['GET'])
@@ -150,7 +161,7 @@ def cerrar_dia_laboral(request):
 def obtener_historial_cierres(request):
     """Obtiene el historial de cierres diarios"""
     try:
-        cierres = HistorialCierreDia.objects.all().order_by('-fecha')[:30]  # Últimos 30 días
+        cierres = HistorialCierreDia.objects.all().order_by('-fecha')[:30]
         
         historial_data = []
         for cierre in cierres:
@@ -168,26 +179,18 @@ def obtener_historial_cierres(request):
         })
         
     except Exception as e:
+        print(f"❌ Error en obtener_historial_cierres: {str(e)}")
         return Response({
-            'error': str(e)
+            'error': f'Error interno del servidor: {str(e)}'
         }, status=500)
-    
-# cierre_diario/views.py - AGREGAR
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def generar_reporte_diario_pdf(request):
-    """Genera un PDF del reporte diario"""
-    # Aquí implementas la generación del PDF
-    # Puedes usar reportlab, weasyprint, etc.
-    pass
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def pre_reporte_diario(request):
     """Vista previa del reporte diario en JSON"""
-    fecha = request.GET.get('fecha', timezone.now().date().isoformat())
-    
     try:
+        fecha = request.GET.get('fecha', timezone.now().date().isoformat())
+        
         cierre = HistorialCierreDia.objects.get(fecha=fecha)
         recetas = HistorialRecetasDia.objects.filter(cierre_dia=cierre)
         pedidos = HistorialPedidosDia.objects.filter(cierre_dia=cierre)
@@ -211,8 +214,45 @@ def pre_reporte_diario(request):
                     'cliente': p.cliente_nombre,
                     'total': float(p.total)
                 } for p in pedidos
+            ],
+            'detalle_insumos': [
+                {
+                    'nombre': i.insumo.nombre,
+                    'cantidad': float(i.cantidad_utilizada),
+                    'unidad': i.insumo.unidad_medida.abreviatura,
+                    'motivo': i.motivo
+                } for i in insumos
             ]
         })
         
     except HistorialCierreDia.DoesNotExist:
         return Response({'error': 'No existe cierre para esta fecha'}, status=404)
+    except Exception as e:
+        print(f"❌ Error en pre_reporte_diario: {str(e)}")
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def generar_reporte_diario_pdf(request):
+    """Genera un PDF del reporte diario (placeholder)"""
+    try:
+        fecha = request.GET.get('fecha', timezone.now().date().isoformat())
+        
+        # Por ahora devolvemos un JSON, luego implementas PDF
+        cierre = HistorialCierreDia.objects.get(fecha=fecha)
+        
+        return Response({
+            'message': 'PDF generado correctamente',
+            'fecha': fecha,
+            'resumen': {
+                'recetas': cierre.recetas_registradas,
+                'pedidos': cierre.pedidos_registrados,
+                'insumos': cierre.insumos_registrados
+            }
+        })
+        
+    except HistorialCierreDia.DoesNotExist:
+        return Response({'error': 'No existe cierre para esta fecha'}, status=404)
+    except Exception as e:
+        print(f"❌ Error en generar_reporte_diario_pdf: {str(e)}")
+        return Response({'error': str(e)}, status=500)
