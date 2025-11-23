@@ -256,3 +256,63 @@ def generar_reporte_diario_pdf(request):
     except Exception as e:
         print(f"❌ Error en generar_reporte_diario_pdf: {str(e)}")
         return Response({'error': str(e)}, status=500)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def recetas_por_fecha(request):
+    """Obtiene las recetas hechas en una fecha específica desde el historial"""
+    try:
+        fecha_param = request.GET.get('fecha')
+        if not fecha_param:
+            return Response({'error': 'El parámetro fecha es requerido'}, status=400)
+        
+        # Convertir fecha
+        fecha = timezone.datetime.strptime(fecha_param, '%Y-%m-%d').date()
+        
+        # Buscar el cierre del día para esa fecha
+        try:
+            cierre_dia = HistorialCierreDia.objects.get(fecha=fecha)
+        except HistorialCierreDia.DoesNotExist:
+            # Si no hay cierre para esa fecha, devolver array vacío
+            return Response({
+                'fecha': fecha.isoformat(),
+                'total_recetas': 0,
+                'recetas': []
+            })
+        
+        # Obtener las recetas del historial para esa fecha
+        recetas_historial = HistorialRecetasDia.objects.filter(
+            cierre_dia=cierre_dia
+        ).select_related('receta', 'empleado')
+        
+        # Preparar datos para la respuesta
+        recetas_data = []
+        for rh in recetas_historial:
+            recetas_data.append({
+                'id': rh.id,
+                'receta_id': rh.receta.id,
+                'nombre': rh.receta.nombre,
+                'cantidad': rh.cantidad_preparada,
+                'fecha': fecha.isoformat(),
+                'hora': rh.cierre_dia.fecha_cierre.strftime('%H:%M:%S'),
+                'estado': 'Completado',
+                'empleado': rh.empleado.username if rh.empleado else 'No asignado',
+                'rinde': rh.receta.rinde,
+                'unidad_rinde': rh.receta.unidad_rinde,
+                'costo_total': float(rh.receta.costo_total) if rh.receta.costo_total else 0,
+                'precio_venta': float(rh.receta.precio_venta) if rh.receta.precio_venta else 0
+            })
+        
+        return Response({
+            'fecha': fecha.isoformat(),
+            'total_recetas': len(recetas_data),
+            'recetas': recetas_data
+        })
+        
+    except ValueError:
+        return Response({'error': 'Formato de fecha inválido. Use YYYY-MM-DD'}, status=400)
+    except Exception as e:
+        print(f"❌ Error en recetas_por_fecha: {str(e)}")
+        return Response({
+            'error': f'Error interno del servidor: {str(e)}'
+        }, status=500)

@@ -90,18 +90,6 @@
                   {{ obtenerContador(tab.id) }}
                 </span>
               </button>
-              <!-- Cierre Diario -->
-              <button
-                @click="cambiarTab('cierre-diario')"
-                class="tab-button"
-                :class="{ active: tabActiva === 'cierre-diario' }"
-              >
-                <i class="fas fa-lock"></i>
-                Cierre Diario
-                <span class="badge-contador">
-                  {{ historialCierres.length }}
-                </span>
-              </button>
             </div>
 
             <!-- Contenido de las pestañas -->
@@ -310,11 +298,28 @@
                 <!-- Tabla de Recetas Hechas -->
                 <div class="reportes-card">
                   <div class="reportes-table-header">
-                    <h3 class="card-title">🍽️ Recetas Hechas</h3>
+                    <h3 class="card-title">🍽️ Recetas Hechas - Historial</h3>
                     <div class="reportes-fecha-info">
+                      <div class="reportes-filtro-group" style="margin: 0">
+                        <label for="fecha-recetas">Fecha:</label>
+                        <input
+                          id="fecha-recetas"
+                          type="date"
+                          v-model="fechaRecetas"
+                          class="reportes-filtro-input"
+                          style="width: 180px"
+                          @change="fetchRecetasHoy"
+                        />
+                      </div>
                       <span
                         >Mostrando recetas del: {{ fechaRecetasTexto }}</span
                       >
+                      <div
+                        class="reportes-total-badge"
+                        v-if="recetasHechasFiltradas.length > 0"
+                      >
+                        Total: {{ recetasHechasFiltradas.length }} recetas
+                      </div>
                     </div>
                     <!-- Botón Generar PDF para recetas hechas -->
                     <div
@@ -343,11 +348,13 @@
                       <thead>
                         <tr>
                           <th>Receta</th>
-                          <th>Cantidad</th>
-                          <th>Fecha</th>
+                          <th>Veces Preparada</th>
+                          <th>Rinde</th>
+                          <th>Costo Total</th>
+                          <th>Precio Venta</th>
+                          <th>Empleado</th>
                           <th>Hora</th>
                           <th>Estado</th>
-                          <th>Empleado</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -359,38 +366,49 @@
                             {{ item.nombre }}
                           </td>
                           <td class="reportes-columna-cantidad">
-                            {{ item.cantidad }}
+                            {{ item.cantidad }} veces
                           </td>
-                          <td class="reportes-columna-fecha">
-                            {{ formatearFecha(item.fecha) }}
+                          <td class="reportes-columna-rinde">
+                            {{ item.rinde }} {{ item.unidad_rinde }}
+                          </td>
+                          <td class="reportes-columna-costo">
+                            ${{ formatDecimal(item.costo_total) }}
+                          </td>
+                          <td class="reportes-columna-precio">
+                            ${{ formatDecimal(item.precio_venta) }}
+                          </td>
+                          <td class="reportes-columna-empleado">
+                            {{ item.empleado }}
                           </td>
                           <td class="reportes-columna-hora">
                             {{ item.hora }}
                           </td>
                           <td class="reportes-columna-estado">
-                            <span
-                              class="reportes-badge"
-                              :class="getClaseEstadoReceta(item.estado)"
-                            >
+                            <span class="reportes-badge success">
                               {{ item.estado }}
                             </span>
-                          </td>
-                          <td class="reportes-columna-empleado">
-                            {{ item.empleado || "No asignado" }}
                           </td>
                         </tr>
                       </tbody>
                     </table>
                     <div v-if="loadingRecetas" class="reportes-loading-state">
                       <i class="fas fa-spinner fa-spin"></i>
-                      <p>Cargando recetas...</p>
+                      <p>Cargando recetas del historial...</p>
                     </div>
                     <div
                       v-else-if="recetasHechasFiltradas.length === 0"
                       class="reportes-empty-state"
                     >
                       <i class="fas fa-utensils"></i>
-                      <p>No hay recetas para la fecha seleccionada</p>
+                      <p>No hay recetas registradas para esta fecha</p>
+                      <small v-if="fechaRecetas === fechaHoy">
+                        Las recetas aparecerán aquí después de realizar el
+                        cierre del día
+                      </small>
+                      <small v-else>
+                        No se realizó cierre del día para esta fecha o no hubo
+                        recetas preparadas
+                      </small>
                     </div>
                   </div>
                 </div>
@@ -498,212 +516,6 @@
                   </div>
                 </div>
               </div>
-
-              <!-- ✅ NUEVA PESTAÑA: Cierre Diario -->
-              <div v-show="tabActiva === 'cierre-diario'" class="tab-pane">
-                <div class="cierre-diario-content">
-                  <!-- Estado Actual del Día -->
-                  <div class="estado-dia-card">
-                    <h3>📊 Estado del Día Actual</h3>
-                    <div class="estado-info">
-                      <div class="estado-item">
-                        <span class="estado-label">Fecha:</span>
-                        <span class="estado-value">{{
-                          estadoCierre.fecha_actual
-                        }}</span>
-                      </div>
-                      <div class="estado-item">
-                        <span class="estado-label">Hora actual:</span>
-                        <span class="estado-value">{{
-                          estadoCierre.estadisticas_dia?.hora_actual
-                        }}</span>
-                      </div>
-                      <div class="estado-item">
-                        <span class="estado-label">Estado:</span>
-                        <span
-                          class="estado-badge"
-                          :class="
-                            estadoCierre.cierre_realizado
-                              ? 'completado'
-                              : 'pendiente'
-                          "
-                        >
-                          {{
-                            estadoCierre.cierre_realizado
-                              ? "CERRADO"
-                              : "EN PRODUCCIÓN"
-                          }}
-                        </span>
-                      </div>
-                    </div>
-
-                    <!-- Estadísticas del Día -->
-                    <div class="estadisticas-dia">
-                      <h4>📈 Producción del Día</h4>
-                      <div class="estadisticas-grid">
-                        <div class="estadistica-item">
-                          <div class="estadistica-icon">👨‍🍳</div>
-                          <div class="estadistica-info">
-                            <span class="estadistica-valor">
-                              {{
-                                estadoCierre.estadisticas_dia
-                                  ?.recetas_preparadas || 0
-                              }}
-                            </span>
-                            <span class="estadistica-label"
-                              >Recetas Preparadas</span
-                            >
-                          </div>
-                        </div>
-                        <div class="estadistica-item">
-                          <div class="estadistica-icon">📦</div>
-                          <div class="estadistica-info">
-                            <span class="estadistica-valor">
-                              {{
-                                estadoCierre.estadisticas_dia
-                                  ?.pedidos_entregados || 0
-                              }}
-                            </span>
-                            <span class="estadistica-label"
-                              >Pedidos Entregados</span
-                            >
-                          </div>
-                        </div>
-                        <div class="estadistica-item">
-                          <div class="estadistica-icon">📊</div>
-                          <div class="estadistica-info">
-                            <span class="estadistica-valor">
-                              {{
-                                estadoCierre.estadisticas_dia
-                                  ?.insumos_utilizados || 0
-                              }}
-                            </span>
-                            <span class="estadistica-label"
-                              >Insumos Utilizados</span
-                            >
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Botones de Acción -->
-                    <div
-                      class="acciones-cierre"
-                      v-if="!estadoCierre.cierre_realizado"
-                    >
-                      <button
-                        @click="ejecutarCierreDia"
-                        :disabled="cerrandoDia"
-                        class="btn-cierre"
-                      >
-                        <i
-                          class="fas"
-                          :class="
-                            cerrandoDia ? 'fa-spinner fa-spin' : 'fa-lock'
-                          "
-                        ></i>
-                        {{
-                          cerrandoDia ? "Cerrando Día..." : "Cerrar Día Laboral"
-                        }}
-                      </button>
-
-                      <button
-                        @click="generarPreReporteDiario"
-                        class="btn-preview"
-                      >
-                        <i class="fas fa-eye"></i>
-                        Vista Previa del Reporte
-                      </button>
-                    </div>
-
-                    <div v-else class="cierre-completado">
-                      <div class="completado-icon">✅</div>
-                      <p>El día ya fue cerrado correctamente</p>
-                      <button
-                        @click="generarReporteDiarioCompleto"
-                        class="btn-reporte"
-                      >
-                        <i class="fas fa-file-pdf"></i>
-                        Generar Reporte PDF
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Historial de Cierres -->
-                  <div class="historial-cierres-card">
-                    <h3>📋 Historial de Cierres Diarios</h3>
-
-                    <div class="historial-table-container">
-                      <table class="historial-table">
-                        <thead>
-                          <tr>
-                            <th>Fecha</th>
-                            <th>Usuario</th>
-                            <th>Recetas</th>
-                            <th>Pedidos</th>
-                            <th>Insumos</th>
-                            <th>Hora Cierre</th>
-                            <th>Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr
-                            v-for="cierre in historialCierres"
-                            :key="cierre.fecha"
-                          >
-                            <td class="fecha-cierre">
-                              {{ formatearFecha(cierre.fecha) }}
-                            </td>
-                            <td class="usuario-cierre">{{ cierre.usuario }}</td>
-                            <td class="recetas-cierre">
-                              <span class="badge-count">{{
-                                cierre.recetas_registradas
-                              }}</span>
-                            </td>
-                            <td class="pedidos-cierre">
-                              <span class="badge-count">{{
-                                cierre.pedidos_registrados
-                              }}</span>
-                            </td>
-                            <td class="insumos-cierre">
-                              <span class="badge-count">{{
-                                cierre.insumos_registrados
-                              }}</span>
-                            </td>
-                            <td class="hora-cierre">
-                              {{ formatearHora(cierre.fecha_cierre) }}
-                            </td>
-                            <td class="acciones-cierre">
-                              <button
-                                @click="descargarReporteCierre(cierre.fecha)"
-                                class="btn-descarga"
-                                title="Descargar Reporte"
-                              >
-                                <i class="fas fa-download"></i>
-                              </button>
-                              <button
-                                @click="verDetallesCierre(cierre.fecha)"
-                                class="btn-detalles"
-                                title="Ver Detalles"
-                              >
-                                <i class="fas fa-search"></i>
-                              </button>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-
-                      <div
-                        v-if="historialCierres.length === 0"
-                        class="historial-vacio"
-                      >
-                        <i class="fas fa-inbox"></i>
-                        <p>No hay historial de cierres disponibles</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -748,6 +560,22 @@ const cambiarTab = (tabId) => {
   tabActiva.value = tabId;
 };
 
+// Método para obtener el contador de elementos por pestaña
+const obtenerContador = (tabId) => {
+  switch (tabId) {
+    case "reporte-insumos":
+      return reporteFiltrado.value.length;
+    case "lista-compras":
+      return listaComprasFiltrada.value.length;
+    case "recetas-hechas":
+      return recetasHechasFiltradas.value.length;
+    case "pedidos":
+      return pedidosFiltrados.value.length;
+    default:
+      return 0;
+  }
+};
+
 // Método para alternar el sidebar desde el header
 const toggleSidebar = () => {
   if (sidebarRef.value) {
@@ -773,14 +601,7 @@ const generandoPDFRecetas = ref(false);
 const generandoPDFPedidos = ref(false);
 const mostrarFiltros = ref(false);
 const isMobile = ref(false);
-const estadoCierre = ref({
-  fecha_actual: "",
-  cierre_realizado: false,
-  estadisticas_dia: {},
-});
-const cerrandoDia = ref(false);
-const historialCierres = ref([]);
-const cargandoHistorial = ref(false);
+const fechaHoy = ref(new Date().toISOString().split("T")[0]);
 
 // Filtros
 const filtros = ref({
@@ -846,13 +667,15 @@ const listaComprasFiltrada = computed(() => {
 });
 
 const recetasHechasFiltradas = computed(() => {
-  return recetasHechas.value.filter(
-    (receta) => receta.fecha === fechaRecetas.value
-  );
+  return recetasHechas.value;
 });
 
 const fechaRecetasTexto = computed(() => {
   return formatearFecha(fechaRecetas.value);
+});
+
+const fechaHoyTexto = computed(() => {
+  return formatearFecha(fechaHoy.value);
 });
 
 const fechaPedidosTexto = computed(() => {
@@ -885,7 +708,7 @@ const limpiarFiltros = () => {
 
   fetchReportes();
   fetchListaCompras();
-  fetchRecetasHechas();
+  fetchRecetasHoy();
   fetchPedidos();
 };
 
@@ -1062,8 +885,8 @@ const generarPDFRecetas = async () => {
   try {
     generandoPDFRecetas.value = true;
 
-    // Hacer la petición para generar el PDF de recetas
-    const response = await axios.get("/api/reportes/generar-pdf-recetas/", {
+    // ✅ CORREGIDO: Usar el endpoint correcto
+    const response = await axios.get("/api/cierre_diario/reporte-pdf/", {
       params: { fecha: fechaRecetas.value },
       responseType: "blob",
     });
@@ -1118,146 +941,47 @@ const generarPDFPedidos = async () => {
   }
 };
 
-// MÉTODOS CIERRE DIARIO
-const fetchEstadoCierre = async () => {
+const fetchRecetasHoy = async () => {
   try {
-    const response = await axios.get("/api/cierre-dia/estado/");
-    estadoCierre.value = response.data;
-  } catch (error) {
-    console.error("Error al obtener estado del cierre:", error);
-  }
-};
+    loadingRecetas.value = true;
 
-const fetchHistorialCierres = async () => {
-  try {
-    cargandoHistorial.value = true;
-    const response = await axios.get("/api/cierre-dia/historial/");
-    historialCierres.value = response.data.historial || [];
-  } catch (error) {
-    console.error("Error al obtener historial de cierres:", error);
-  } finally {
-    cargandoHistorial.value = false;
-  }
-};
+    // Usar la fecha seleccionada en el filtro (por defecto hoy)
+    const fecha = fechaRecetas.value || new Date().toISOString().split("T")[0];
 
-const ejecutarCierreDia = async () => {
-  try {
-    cerrandoDia.value = true;
-    const response = await axios.post("/api/cierre-dia/cerrar/");
+    const response = await axios.get("/api/cierre_diario/recetas-por-fecha/", {
+      params: { fecha: fecha },
+    });
 
-    if (response.data.success) {
-      // Recargar datos
-      await fetchEstadoCierre();
-      await fetchHistorialCierres();
-
-      // Mostrar notificación de éxito
-      alert("✅ Día laboral cerrado correctamente");
+    if (!response.data) {
+      throw new Error("No se recibieron datos del servidor para recetas");
     }
-  } catch (error) {
-    console.error("Error al cerrar el día:", error);
-    alert(
-      "❌ Error al cerrar el día: " +
-        (error.response?.data?.error || error.message)
+
+    console.log("📊 Recetas del historial recibidas:", response.data);
+
+    // Mapear los datos de la respuesta
+    recetasHechas.value = response.data.recetas.map((item) => ({
+      id: item.id,
+      receta_id: item.receta_id,
+      nombre: item.nombre,
+      cantidad: item.cantidad,
+      fecha: item.fecha,
+      hora: item.hora,
+      estado: item.estado,
+      empleado: item.empleado,
+      rinde: item.rinde,
+      unidad_rinde: item.unidad_rinde,
+      costo_total: item.costo_total,
+      precio_venta: item.precio_venta,
+    }));
+
+    console.log(
+      `📊 Recetas cargadas para ${fecha}: ${recetasHechas.value.length}`
     );
+  } catch (error) {
+    console.error("Error al cargar recetas del historial:", error);
+    recetasHechas.value = [];
   } finally {
-    cerrandoDia.value = false;
-  }
-};
-
-const generarPreReporteDiario = async () => {
-  try {
-    const response = await axios.get("/api/cierre-dia/pre-reporte/", {
-      params: {
-        fecha: estadoCierre.value.fecha_actual,
-      },
-    });
-
-    // Aquí puedes mostrar un modal con la vista previa
-    console.log("Vista previa:", response.data);
-    alert("📊 Vista previa generada - Revisa la consola para ver los detalles");
-  } catch (error) {
-    console.error("Error al generar vista previa:", error);
-    alert("Error al generar vista previa");
-  }
-};
-
-const generarReporteDiarioCompleto = async () => {
-  try {
-    const response = await axios.get("/api/cierre-dia/reporte-pdf/", {
-      responseType: "blob",
-      params: {
-        fecha: estadoCierre.value.fecha_actual,
-      },
-    });
-
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute(
-      "download",
-      `reporte_diario_${estadoCierre.value.fecha_actual}.pdf`
-    );
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  } catch (error) {
-    console.error("Error al generar reporte PDF:", error);
-    alert("Error al generar el reporte PDF");
-  }
-};
-
-const descargarReporteCierre = async (fecha) => {
-  try {
-    const response = await axios.get("/api/cierre-dia/reporte-pdf/", {
-      responseType: "blob",
-      params: { fecha },
-    });
-
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `reporte_diario_${fecha}.pdf`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  } catch (error) {
-    console.error("Error al descargar reporte:", error);
-    alert("Error al descargar el reporte");
-  }
-};
-
-const verDetallesCierre = (fecha) => {
-  // Aquí puedes implementar un modal con detalles específicos
-  alert(
-    `Detalles del cierre del ${fecha}\n\nEsta funcionalidad puede expandirse para mostrar más información.`
-  );
-};
-
-// ✅ NUEVAS FUNCIONES DE FORMATEO
-const formatearHora = (fechaHora) => {
-  if (!fechaHora) return "";
-  const fecha = new Date(fechaHora);
-  return fecha.toLocaleTimeString("es-AR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-// Actualizar el método obtenerContador
-const obtenerContador = (tabId) => {
-  switch (tabId) {
-    case "reporte-insumos":
-      return reporteFiltrado.value.length;
-    case "lista-compras":
-      return listaComprasFiltrada.value.length;
-    case "recetas-hechas":
-      return recetasHechasFiltradas.value.length;
-    case "pedidos":
-      return pedidosFiltrados.value.length;
-    case "cierre-diario":
-      return historialCierres.value.length; // ✅ NUEVO
-    default:
-      return 0;
+    loadingRecetas.value = false;
   }
 };
 
@@ -1348,7 +1072,8 @@ const fetchRecetasHechas = async () => {
   try {
     loadingRecetas.value = true;
 
-    const response = await axios.get("/api/reportes/recetas-hechas/", {
+    // ✅ CORREGIDO: Usar el endpoint de cierre_diario
+    const response = await axios.get("/api/cierre_diario/recetas-por-fecha/", {
       params: { fecha: fechaRecetas.value },
     });
 
@@ -1358,14 +1083,21 @@ const fetchRecetasHechas = async () => {
       );
     }
 
-    recetasHechas.value = response.data.map((item) => ({
+    console.log("📊 Recetas del historial recibidas:", response.data);
+
+    recetasHechas.value = response.data.recetas.map((item) => ({
       id: item.id,
+      receta_id: item.receta_id,
       nombre: item.nombre,
       cantidad: item.cantidad,
       fecha: item.fecha,
       hora: item.hora,
       estado: item.estado,
       empleado: item.empleado || "No asignado",
+      rinde: item.rinde,
+      unidad_rinde: item.unidad_rinde,
+      costo_total: item.costo_total,
+      precio_venta: item.precio_venta,
     }));
   } catch (error) {
     console.error("Error al cargar recetas hechas:", error);
@@ -1446,8 +1178,6 @@ onMounted(() => {
     fetchRecetasHechas(),
     fetchPedidos(),
     fetchProveedores(),
-    fetchEstadoCierre(),
-    fetchHistorialCierres(),
   ]).catch((error) => {
     console.error("Error cargando datos:", error);
     if (error.response?.status === 401) {
@@ -2004,269 +1734,6 @@ onMounted(() => {
   font-size: 1.1rem;
 }
 
-/* ✅ ESTILOS PARA CIERRE DIARIO */
-.cierre-diario-content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.estado-dia-card {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.estado-info {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-
-.estado-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.estado-label {
-  font-size: 0.9rem;
-  color: #666;
-  font-weight: 500;
-}
-
-.estado-value {
-  font-weight: 600;
-  color: #333;
-  font-size: 1rem;
-}
-
-.estado-badge {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
-.estado-badge.pendiente {
-  background: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffeaa7;
-}
-
-.estado-badge.completado {
-  background: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-}
-
-.estadisticas-dia {
-  margin: 20px 0;
-}
-
-.estadisticas-dia h4 {
-  margin-bottom: 16px;
-  color: #333;
-}
-
-.estadisticas-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.estadistica-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border-left: 4px solid var(--color-primary);
-}
-
-.estadistica-icon {
-  font-size: 1.5rem;
-  width: 40px;
-  text-align: center;
-}
-
-.estadistica-valor {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: var(--color-primary);
-  display: block;
-}
-
-.estadistica-label {
-  font-size: 0.9rem;
-  color: #666;
-}
-
-.acciones-cierre {
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
-  flex-wrap: wrap;
-}
-
-.btn-cierre {
-  background: linear-gradient(135deg, #28a745, #20c997);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.3s ease;
-}
-
-.btn-cierre:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-}
-
-.btn-cierre:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-preview {
-  background: linear-gradient(135deg, #17a2b8, #138496);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.cierre-completado {
-  text-align: center;
-  padding: 20px;
-  background: #f8fff9;
-  border: 2px solid #d4edda;
-  border-radius: 8px;
-  margin-top: 20px;
-}
-
-.completado-icon {
-  font-size: 3rem;
-  margin-bottom: 10px;
-}
-
-.btn-reporte {
-  background: linear-gradient(135deg, #dc3545, #c82333);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 10px auto 0;
-}
-
-/* Historial de Cierres */
-.historial-cierres-card {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.historial-table-container {
-  overflow-x: auto;
-  margin-top: 16px;
-}
-
-.historial-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-.historial-table th {
-  background: linear-gradient(135deg, var(--color-primary), #6d4c41);
-  padding: 12px 8px;
-  text-align: left;
-  font-weight: 600;
-  color: white;
-  border-bottom: 2px solid #5a3f36;
-}
-
-.historial-table td {
-  padding: 10px 8px;
-  border-bottom: 1px solid #eee;
-}
-
-.historial-table tr:hover td {
-  background-color: rgba(123, 90, 80, 0.05);
-}
-
-.badge-count {
-  background: var(--color-primary);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  min-width: 30px;
-  display: inline-block;
-  text-align: center;
-}
-
-.acciones-cierre {
-  display: flex;
-  gap: 6px;
-}
-
-.btn-descarga,
-.btn-detalles {
-  background: none;
-  border: 1px solid #ddd;
-  padding: 6px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-descarga:hover {
-  background: #28a745;
-  color: white;
-  border-color: #28a745;
-}
-
-.btn-detalles:hover {
-  background: #17a2b8;
-  color: white;
-  border-color: #17a2b8;
-}
-
-.historial-vacio {
-  text-align: center;
-  padding: 3rem;
-  color: #7f8c8d;
-  font-style: italic;
-}
-
-.historial-vacio i {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
 /* -------------------- MEJORAS RESPONSIVE -------------------- */
 @media (max-width: 768px) {
   .reportes-estadisticas {
@@ -2325,28 +1792,6 @@ onMounted(() => {
     flex-direction: column;
     gap: 10px;
     align-items: flex-start;
-  }
-
-  .estado-info {
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .estadisticas-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .acciones-cierre {
-    flex-direction: column;
-  }
-
-  .historial-table {
-    font-size: 0.8rem;
-  }
-
-  .acciones-cierre {
-    flex-direction: column;
-    gap: 4px;
   }
 }
 
