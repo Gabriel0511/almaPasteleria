@@ -512,6 +512,7 @@ const toggleSidebar = () => {
 const limpiarFiltros = () => {
   filtroActivo.value = '';
   searchTerm.value = '';
+  cerrarTodasLasRecetas(); // Cerrar recetas al limpiar filtros
   resetearPaginacion();
 };
 
@@ -537,6 +538,7 @@ const recetaSeleccionada = ref(null);
 // Método para aplicar filtro de no rentables
 const aplicarFiltroNoRentables = () => {
   filtroActivo.value = filtroActivo.value === 'no-rentable' ? '' : 'no-rentable';
+  cerrarTodasLasRecetas(); // Cerrar recetas al aplicar filtro
   resetearPaginacion();
 };
 
@@ -667,6 +669,9 @@ const notificacionesRecetasNoRentables = computed(() => {
 // Métodos de paginación
 const cambiarPagina = (pagina) => {
   if (pagina >= 1 && pagina <= totalPaginas.value) {
+    // CERRAR TODAS LAS RECETAS ANTES DE CAMBIAR DE PÁGINA
+    cerrarTodasLasRecetas();
+    
     paginaActual.value = pagina;
     // Scroll suave hacia arriba
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -674,15 +679,26 @@ const cambiarPagina = (pagina) => {
 };
 
 const resetearPaginacion = () => {
+  cerrarTodasLasRecetas();
   paginaActual.value = 1;
 };
 
-// Nuevo método para toggle del desplegable
+// Método para toggle del desplegable - SOLO UNA RECETA ABIERTA
 const toggleReceta = (recetaId) => {
-  recetaDesplegada.value = {
-    ...recetaDesplegada.value,
-    [recetaId]: !recetaDesplegada.value[recetaId],
-  };
+  const estaAbierta = recetaDesplegada.value[recetaId];
+  
+  // Si ya está abierta, cerrarla
+  if (estaAbierta) {
+    recetaDesplegada.value = { [recetaId]: false };
+  } else {
+    // Cerrar todas y abrir solo esta
+    recetaDesplegada.value = { [recetaId]: true };
+  }
+};
+
+// Método para cerrar todas las recetas desplegadas
+const cerrarTodasLasRecetas = () => {
+  recetaDesplegada.value = {};
 };
 
 const logout = async () => {
