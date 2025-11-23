@@ -106,6 +106,7 @@ class HistorialStock(models.Model):
     unidad_medida = models.ForeignKey(UnidadMedida, on_delete=models.PROTECT)
     fecha = models.DateTimeField(auto_now_add=True)
     descripcion = models.TextField(blank=True, null=True)
+    es_temporal = models.BooleanField(default=False)
     
     # Referencias opcionales
     receta = models.ForeignKey('recetas.Receta', on_delete=models.SET_NULL, null=True, blank=True)

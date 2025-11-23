@@ -12,7 +12,8 @@ class Receta(models.Model):
     ]
 
     nombre = models.CharField(max_length=100)
-    veces_hecha = models.PositiveIntegerField(default=0)
+    veces_hecha = models.PositiveIntegerField(default=0)  # Contador histórico total
+    veces_hecha_hoy = models.PositiveIntegerField(default=0)  # ✅ NUEVO: Contador diario
     rinde = models.PositiveIntegerField()
     unidad_rinde = models.CharField(max_length=20, choices=UNIDADES_RINDE)
     costo_unitario = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -22,6 +23,28 @@ class Receta(models.Model):
 
     def __str__(self):
         return self.nombre
+    
+    # ✅ NUEVO MÉTODO: Incrementar contador diario
+    def incrementar_contador_diario(self):
+        """Incrementa tanto el contador diario como el histórico"""
+        self.veces_hecha_hoy += 1
+        self.veces_hecha += 1
+        self.save()
+    
+    # ✅ NUEVO MÉTODO: Decrementar contador diario
+    def decrementar_contador_diario(self):
+        """Decrementa el contador diario y el histórico si es posible"""
+        if self.veces_hecha_hoy > 0:
+            self.veces_hecha_hoy -= 1
+        if self.veces_hecha > 0:
+            self.veces_hecha -= 1
+        self.save()
+    
+    # ✅ NUEVO MÉTODO: Reiniciar contador diario (para el cierre)
+    def reiniciar_contador_diario(self):
+        """Reinicia solo el contador diario (para cierre del día)"""
+        self.veces_hecha_hoy = 0
+        self.save(update_fields=['veces_hecha_hoy'])
     
     def calcular_costo_total(self):
         """Calcula el costo total sumando el costo de todos los insumos"""

@@ -308,7 +308,7 @@
                   v-for="receta in recetasPaginadas"
                   :key="receta.id"
                   class="receta-item"
-                  :class="{ 'receta-activa': receta.veces_hecha > 0 }"
+                  :class="{ 'receta-activa': receta.veces_hecha_hoy > 0 }"
                 >
                   <div class="receta-info-container">
                     <div class="receta-icon">
@@ -330,20 +330,20 @@
                     <div class="contador">
                       <button
                         @click="decrementarContador(receta)"
-                        :disabled="!receta.veces_hecha"
+                        :disabled="!receta.veces_hecha_hoy"
                         class="btn-contador btn-menos"
-                        :class="{ 'btn-disabled': !receta.veces_hecha }"
+                        :class="{ 'btn-disabled': !receta.veces_hecha_hoy }"
                       >
                         −
                       </button>
                       <span
                         class="contador-value"
                         :class="{
-                          'contador-cero': receta.veces_hecha === 0,
-                          'contador-activo': receta.veces_hecha > 0,
+                          'contador-cero': receta.veces_hecha_hoy === 0,
+                          'contador-activo': receta.veces_hecha_hoy > 0,
                         }"
                       >
-                        {{ receta.veces_hecha || 0 }}
+                        {{ receta.veces_hecha_hoy || 0 }}
                       </span>
                       <button
                         @click="incrementarContador(receta)"
@@ -477,7 +477,7 @@ const stockFiltradoPorCategoria = computed(() => {
 // Total de recetas preparadas hoy
 const totalRecetasHoy = computed(() => {
   return recetas.value.reduce(
-    (total, receta) => total + (receta.veces_hecha || 0),
+    (total, receta) => total + (receta.veces_hecha_hoy || 0),
     0
   );
 });
@@ -668,7 +668,9 @@ const incrementarContador = async (receta) => {
 
     const recetaIndex = recetas.value.findIndex((r) => r.id === receta.id);
     if (recetaIndex !== -1) {
-      recetas.value[recetaIndex].veces_hecha = response.data.nuevo_contador;
+      recetas.value[recetaIndex].veces_hecha = response.data.veces_hecha;
+      recetas.value[recetaIndex].veces_hecha_hoy =
+        response.data.veces_hecha_hoy;
     }
 
     if (response.data.stock_actualizado) {
@@ -711,11 +713,12 @@ const incrementarContador = async (receta) => {
 
 const decrementarContador = async (receta) => {
   try {
-    if (receta.veces_hecha <= 0) {
+    if (receta.veces_hecha_hoy <= 0) {
+      // ✅ ACTUALIZADO: Verificar contador diario
       notificationSystem.show({
         type: "warning",
         title: "No se puede revertir",
-        message: "Esta receta no ha sido preparada aún",
+        message: "Esta receta no ha sido preparada hoy",
         timeout: 4000,
       });
       return;
@@ -735,7 +738,10 @@ const decrementarContador = async (receta) => {
 
     const recetaIndex = recetas.value.findIndex((r) => r.id === receta.id);
     if (recetaIndex !== -1) {
-      recetas.value[recetaIndex].veces_hecha = response.data.nuevo_contador;
+      // ✅ ACTUALIZADO: Usar los nuevos campos
+      recetas.value[recetaIndex].veces_hecha = response.data.veces_hecha;
+      recetas.value[recetaIndex].veces_hecha_hoy =
+        response.data.veces_hecha_hoy;
     }
 
     if (response.data.stock_actualizado) {
@@ -1018,7 +1024,8 @@ const fetchRecetas = async () => {
       nombre: receta.nombre,
       rinde: receta.rinde,
       unidad_rinde: receta.unidad_rinde,
-      veces_hecha: receta.veces_hecha || 0,
+      veces_hecha: receta.veces_hecha || 0, // Contador histórico
+      veces_hecha_hoy: receta.veces_hecha_hoy || 0, // ✅ NUEVO: Contador diario
     }));
   } catch (err) {
     errorRecetas.value = "Error al cargar las recetas";

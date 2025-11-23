@@ -25,13 +25,14 @@ def healthcheck(request):
     return HttpResponse("OK")
 
 urlpatterns = [
-    path("", healthcheck),  # Nueva ruta específica
+    path("", healthcheck),
     path('admin/', admin.site.urls),
-    path('api/auth/', include('inicio.urls')),  # Para las rutas de autenticación
-    path('api/auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # Nueva ruta
+    path('api/auth/', include('inicio.urls')),
+    path('api/auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'), 
     path('api/', include('insumos.urls')),
-    path('api/', include('recetas.urls')),# Para las rutas de insumos
-    path('api/', include('pedidos.urls')),# Para las rutas de insumos
+    path('api/', include('recetas.urls')),
+    path('api/', include('pedidos.urls')),
+    path('api/cierre-dia/', include('cierre_diario.urls')),
 ]
 
 if settings.DEBUG:

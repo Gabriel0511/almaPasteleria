@@ -160,10 +160,13 @@ class IncrementarRecetaView(APIView):
                     detalle.insumo.save()
 
                 receta.veces_hecha += 1
+                receta.veces_hecha_hoy += 1
                 receta.save()
 
                 return Response({
                     'nuevo_contador': receta.veces_hecha,
+                    'veces_hecha': receta.veces_hecha,
+                    'veces_hecha_hoy': receta.veces_hecha_hoy,
                     'stock_actualizado': True,
                     'mensaje': f'Receta "{receta.nombre}" preparada exitosamente'
                 }, status=status.HTTP_200_OK)
@@ -181,7 +184,9 @@ class DecrementarRecetaView(APIView):
         try:
             with transaction.atomic():
                 receta = Receta.objects.get(pk=pk)
-                if receta.veces_hecha <= 0:
+                
+                # ✅ VERIFICAR AMBOS CONTADORES
+                if receta.veces_hecha <= 0 or receta.veces_hecha_hoy <= 0:
                     return Response({
                         'error': 'El contador ya está en cero',
                         'receta_nombre': receta.nombre
@@ -209,11 +214,15 @@ class DecrementarRecetaView(APIView):
                         'unidad': insumo.unidad_medida.abreviatura
                     })
 
-                receta.veces_hecha -= 1
+                if receta.veces_hecha > 0:
+                    receta.veces_hecha -= 1
+                if receta.veces_hecha_hoy > 0:
+                    receta.veces_hecha_hoy -= 1
                 receta.save()
 
                 return Response({
                     'nuevo_contador': receta.veces_hecha,
+                    'veces_hecha_hoy': receta.veces_hecha_hoy,
                     'stock_actualizado': True,
                     'mensaje': f'Se ha revertido la preparación de "{receta.nombre}"',
                     'insumos_devueltos': insumos_devueltos
