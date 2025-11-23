@@ -171,3 +171,48 @@ def obtener_historial_cierres(request):
         return Response({
             'error': str(e)
         }, status=500)
+    
+# cierre_diario/views.py - AGREGAR
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def generar_reporte_diario_pdf(request):
+    """Genera un PDF del reporte diario"""
+    # Aquí implementas la generación del PDF
+    # Puedes usar reportlab, weasyprint, etc.
+    pass
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def pre_reporte_diario(request):
+    """Vista previa del reporte diario en JSON"""
+    fecha = request.GET.get('fecha', timezone.now().date().isoformat())
+    
+    try:
+        cierre = HistorialCierreDia.objects.get(fecha=fecha)
+        recetas = HistorialRecetasDia.objects.filter(cierre_dia=cierre)
+        pedidos = HistorialPedidosDia.objects.filter(cierre_dia=cierre)
+        insumos = HistorialInsumosUtilizados.objects.filter(cierre_dia=cierre)
+        
+        return Response({
+            'fecha': fecha,
+            'resumen': {
+                'recetas': cierre.recetas_registradas,
+                'pedidos': cierre.pedidos_registrados,
+                'insumos': cierre.insumos_registrados
+            },
+            'detalle_recetas': [
+                {
+                    'nombre': r.receta.nombre,
+                    'cantidad': r.cantidad_preparada
+                } for r in recetas
+            ],
+            'detalle_pedidos': [
+                {
+                    'cliente': p.cliente_nombre,
+                    'total': float(p.total)
+                } for p in pedidos
+            ]
+        })
+        
+    except HistorialCierreDia.DoesNotExist:
+        return Response({'error': 'No existe cierre para esta fecha'}, status=404)
