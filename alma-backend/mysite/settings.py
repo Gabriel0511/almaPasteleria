@@ -59,7 +59,6 @@ INSTALLED_APPS = [
     'insumos',
     'pedidos',
     'recetas',
-    'cierre_diario',
 ]
 
 AUTH_USER_MODEL = 'inicio.Usuario'
