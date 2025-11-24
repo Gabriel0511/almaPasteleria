@@ -885,8 +885,7 @@ const generarPDFRecetas = async () => {
   try {
     generandoPDFRecetas.value = true;
 
-    // ✅ CORREGIDO: Usar el endpoint correcto
-    const response = await axios.get("/api/cierre_diario/reporte-pdf/", {
+    const response = await axios.get("/api/cierre-dia/reporte-pdf/", {
       params: { fecha: fechaRecetas.value },
       responseType: "blob",
     });
@@ -1072,8 +1071,8 @@ const fetchRecetasHechas = async () => {
   try {
     loadingRecetas.value = true;
 
-    // ✅ CORREGIDO: Usar el endpoint de cierre_diario
-    const response = await axios.get("/api/cierre_diario/recetas-por-fecha/", {
+    // ✅ CORREGIDO: Usar cierre-dia en lugar de cierre_diario
+    const response = await axios.get("/api/cierre-dia/recetas-por-fecha/", {
       params: { fecha: fechaRecetas.value },
     });
 

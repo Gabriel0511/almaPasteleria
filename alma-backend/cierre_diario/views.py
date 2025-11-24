@@ -1,4 +1,4 @@
-# cierre_diario/views.py - COMPLETAR
+# cierre_diario/views.py - CORREGIDO
 from django.utils import timezone
 from django.db import transaction
 from rest_framework.decorators import api_view, permission_classes
@@ -9,9 +9,6 @@ from pedidos.models import Pedido
 from recetas.models import Receta
 from insumos.models import HistorialStock, Insumo
 from .models import HistorialCierreDia, HistorialRecetasDia, HistorialPedidosDia, HistorialInsumosUtilizados
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -77,15 +74,14 @@ def cerrar_dia_laboral(request):
                 'error': f'El día {fecha_cierre} ya fue cerrado'
             }, status=400)
         
-        # Crear registro principal del cierre
+        # Crear registro principal del cierre (SIN usuario)
         cierre_dia = HistorialCierreDia.objects.create(
-            fecha=fecha_cierre,
-            usuario=request.user
+            fecha=fecha_cierre
         )
         
         print(f"📝 Cierre creado: {cierre_dia.id}")
         
-        # 1. Procesar recetas preparadas hoy
+        # 1. Procesar recetas preparadas hoy (SIN empleado)
         recetas_hoy = Receta.objects.filter(veces_hecha_hoy__gt=0)
         print(f"👨‍🍳 Recetas hoy: {recetas_hoy.count()}")
         
@@ -93,8 +89,8 @@ def cerrar_dia_laboral(request):
             HistorialRecetasDia.objects.create(
                 cierre_dia=cierre_dia,
                 receta=receta,
-                cantidad_preparada=receta.veces_hecha_hoy,
-                empleado=request.user
+                cantidad_preparada=receta.veces_hecha_hoy
+                # ✅ SIN empleado
             )
         
         cierre_dia.recetas_registradas = recetas_hoy.count()
@@ -167,7 +163,7 @@ def obtener_historial_cierres(request):
         for cierre in cierres:
             historial_data.append({
                 'fecha': cierre.fecha.isoformat(),
-                'usuario': cierre.usuario.username,
+                # ✅ SIN usuario
                 'recetas_registradas': cierre.recetas_registradas,
                 'pedidos_registrados': cierre.pedidos_registrados,
                 'insumos_registrados': cierre.insumos_registrados,
@@ -283,7 +279,7 @@ def recetas_por_fecha(request):
         # Obtener las recetas del historial para esa fecha
         recetas_historial = HistorialRecetasDia.objects.filter(
             cierre_dia=cierre_dia
-        ).select_related('receta', 'empleado')
+        ).select_related('receta')  # ✅ SIN empleado
         
         # Preparar datos para la respuesta
         recetas_data = []
@@ -296,7 +292,7 @@ def recetas_por_fecha(request):
                 'fecha': fecha.isoformat(),
                 'hora': rh.cierre_dia.fecha_cierre.strftime('%H:%M:%S'),
                 'estado': 'Completado',
-                'empleado': rh.empleado.username if rh.empleado else 'No asignado',
+                # ✅ SIN empleado
                 'rinde': rh.receta.rinde,
                 'unidad_rinde': rh.receta.unidad_rinde,
                 'costo_total': float(rh.receta.costo_total) if rh.receta.costo_total else 0,

@@ -1,16 +1,12 @@
 # cierre_diario/models.py - CORREGIR
 from django.db import models
-from django.conf import settings  # ✅ IMPORTAR settings
+from django.conf import settings
 from pedidos.models import Pedido
 from recetas.models import Receta
 from insumos.models import Insumo
 
 class HistorialCierreDia(models.Model):
     fecha = models.DateField(unique=True)
-    usuario = models.ForeignKey(
-        settings.AUTH_USER_MODEL,  # ✅ CAMBIADO: Usar AUTH_USER_MODEL
-        on_delete=models.CASCADE
-    )
     recetas_registradas = models.IntegerField(default=0)
     pedidos_registrados = models.IntegerField(default=0)
     insumos_registrados = models.IntegerField(default=0)
@@ -25,11 +21,6 @@ class HistorialRecetasDia(models.Model):
     cierre_dia = models.ForeignKey(HistorialCierreDia, on_delete=models.CASCADE, related_name='recetas')
     receta = models.ForeignKey(Receta, on_delete=models.CASCADE)
     cantidad_preparada = models.IntegerField(default=0)
-    empleado = models.ForeignKey(
-        settings.AUTH_USER_MODEL,  # ✅ CAMBIADO: Usar AUTH_USER_MODEL
-        on_delete=models.SET_NULL, 
-        null=True
-    )
     
     class Meta:
         db_table = 'cierre_dia_recetas'
