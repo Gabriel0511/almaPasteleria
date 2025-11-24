@@ -276,3 +276,50 @@ class RecetasHechasHoyView(APIView):
             return Response({
                 'error': f'Error interno del servidor: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class RecetasPorFechaView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            # Obtener fecha del query parameter o usar hoy por defecto
+            fecha_str = request.GET.get('fecha')
+            if fecha_str:
+                fecha_filtro = timezone.datetime.strptime(fecha_str, '%Y-%m-%d').date()
+            else:
+                fecha_filtro = timezone.now().date()
+            
+            # Filtrar recetas que se han preparado en la fecha especificada
+            # Para esto necesitamos un campo de fecha en el modelo Receta o usar veces_hecha_hoy
+            # Como no tenemos fecha específica, usaremos todas las recetas con veces_hecha > 0
+            # y mostraremos el contador histórico
+            recetas = Receta.objects.filter(
+                veces_hecha__gt=0
+            ).order_by('-creado_en')
+            
+            # Preparar datos para la respuesta
+            recetas_data = []
+            for receta in recetas:
+                recetas_data.append({
+                    'id': receta.id,
+                    'nombre': receta.nombre,
+                    'cantidad': receta.veces_hecha,  # Contador histórico total
+                    'rinde': receta.rinde,
+                    'unidad_rinde': receta.unidad_rinde,
+                    'costo_total': float(receta.costo_total) if receta.costo_total else 0,
+                    'precio_venta': float(receta.precio_venta) if receta.precio_venta else 0,
+                    'creado_en': receta.creado_en.isoformat() if receta.creado_en else None,
+                    'veces_hecha_hoy': receta.veces_hecha_hoy  # Contador diario
+                })
+            
+            return Response({
+                'fecha': fecha_filtro.isoformat(),
+                'total_recetas': len(recetas_data),
+                'recetas': recetas_data
+            })
+            
+        except Exception as e:
+            print(f"❌ Error en RecetasPorFechaView: {str(e)}")
+            return Response({
+                'error': f'Error interno del servidor: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)            

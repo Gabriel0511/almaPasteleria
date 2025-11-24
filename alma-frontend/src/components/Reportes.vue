@@ -303,6 +303,16 @@
                       <span
                         >Mostrando recetas del: {{ fechaRecetasTexto }}</span
                       >
+                      <div class="reportes-filtro-group">
+                        <label for="fecha-recetas">Fecha:</label>
+                        <input
+                          id="fecha-recetas"
+                          type="date"
+                          v-model="fechaRecetas"
+                          class="reportes-filtro-input"
+                          style="max-width: 200px"
+                        />
+                      </div>
                       <div
                         class="reportes-total-badge"
                         v-if="recetasHechasFiltradas.length > 0"
@@ -337,13 +347,12 @@
                       <thead>
                         <tr>
                           <th>Receta</th>
-                          <th>Veces Preparada</th>
+                          <th>Veces Preparada (Histórico)</th>
+                          <th>Preparadas Hoy</th>
                           <th>Rinde</th>
                           <th>Costo Total</th>
                           <th>Precio Venta</th>
-                          <th>Empleado</th>
-                          <th>Hora</th>
-                          <th>Estado</th>
+                          <th>Fecha Creación</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -357,6 +366,9 @@
                           <td class="reportes-columna-cantidad">
                             {{ item.cantidad }} veces
                           </td>
+                          <td class="reportes-columna-cantidad-hoy">
+                            {{ item.veces_hecha_hoy }} veces
+                          </td>
                           <td class="reportes-columna-rinde">
                             {{ item.rinde }} {{ item.unidad_rinde }}
                           </td>
@@ -366,16 +378,8 @@
                           <td class="reportes-columna-precio">
                             ${{ formatDecimal(item.precio_venta) }}
                           </td>
-                          <td class="reportes-columna-empleado">
-                            {{ item.empleado }}
-                          </td>
-                          <td class="reportes-columna-hora">
-                            {{ item.hora }}
-                          </td>
-                          <td class="reportes-columna-estado">
-                            <span class="reportes-badge success">
-                              {{ item.estado }}
-                            </span>
+                          <td class="reportes-columna-fecha">
+                            {{ formatearFecha(item.creado_en) }}
                           </td>
                         </tr>
                       </tbody>
@@ -389,14 +393,10 @@
                       class="reportes-empty-state"
                     >
                       <i class="fas fa-utensils"></i>
-                      <p>No hay recetas registradas para esta fecha</p>
-                      <small v-if="fechaRecetas === fechaHoy">
-                        Las recetas aparecerán aquí después de realizar el
-                        cierre del día
-                      </small>
-                      <small v-else>
-                        No se realizó cierre del día para esta fecha o no hubo
-                        recetas preparadas
+                      <p>No hay recetas preparadas</p>
+                      <small>
+                        Las recetas aparecerán aquí después de que se preparen
+                        usando el botón "Preparar"
                       </small>
                     </div>
                   </div>
@@ -1073,16 +1073,14 @@ const fetchRecetasHechas = async () => {
 
     recetasHechas.value = response.data.recetas.map((item) => ({
       id: item.id,
-      receta_id: item.receta_id,
       nombre: item.nombre,
-      cantidad: item.cantidad,
-      fecha: item.fecha,
-      hora: item.hora,
-      estado: item.estado,
+      cantidad: item.cantidad, // veces_hecha (histórico)
       rinde: item.rinde,
       unidad_rinde: item.unidad_rinde,
       costo_total: item.costo_total,
       precio_venta: item.precio_venta,
+      creado_en: item.creado_en,
+      veces_hecha_hoy: item.veces_hecha_hoy, // contador diario
     }));
   } catch (error) {
     console.error("Error al cargar recetas hechas:", error);
