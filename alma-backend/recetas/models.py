@@ -29,15 +29,25 @@ class Receta(models.Model):
         """Incrementa tanto el contador diario como el histórico"""
         self.veces_hecha_hoy += 1
         self.veces_hecha += 1
+        # Crear registro en historial
+        HistorialReceta.objects.create(
+        receta=self,
+        cantidad_preparada=1,
+    )
         self.save()
     
-    # ✅ NUEVO MÉTODO: Decrementar contador diario
     def decrementar_contador_diario(self):
         """Decrementa el contador diario y el histórico si es posible"""
         if self.veces_hecha_hoy > 0:
             self.veces_hecha_hoy -= 1
         if self.veces_hecha > 0:
             self.veces_hecha -= 1
+        
+        # Eliminar el registro más reciente del historial
+        ultimo_historial = self.historial.order_by('-fecha_preparacion').first()
+        if ultimo_historial:
+            ultimo_historial.delete()
+        
         self.save()
     
     # ✅ NUEVO MÉTODO: Reiniciar contador diario (para el cierre)
@@ -166,4 +176,15 @@ class RecetaInsumo(models.Model):
                     
         except Exception as e:
             print(f"❌ Error en get_cantidad_en_unidad_insumo: {e}")
-            return Decimal(str(self.cantidad))
+            return Decimal(str(self.cantidad))  
+
+class HistorialReceta(models.Model):
+    receta = models.ForeignKey(Receta, on_delete=models.CASCADE, related_name='historial')
+    fecha_preparacion = models.DateTimeField(auto_now_add=True)
+    cantidad_preparada = models.PositiveIntegerField(default=1)
+    
+    def __str__(self):
+        return f"{self.receta.nombre} - {self.fecha_preparacion.date()}"
+    
+    class Meta:
+        ordering = ['-fecha_preparacion']  # Ordenar por fecha más reciente primero

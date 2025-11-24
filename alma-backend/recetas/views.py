@@ -6,7 +6,7 @@ from decimal import Decimal
 from django.utils import timezone
 
 # Importar los modelos correctamente
-from .models import Receta, RecetaInsumo
+from .models import Receta, RecetaInsumo, HistorialReceta
 from .serializers import RecetaSerializer, RecetaInsumoSerializer, RecetaInsumoCreateSerializer
 from insumos.models import Insumo
 from insumos.conversiones import convertir_unidad
@@ -282,39 +282,54 @@ class RecetasPorFechaView(APIView):
     
     def get(self, request):
         try:
-            # Obtener fecha del query parameter o usar hoy por defecto
-            fecha_str = request.GET.get('fecha')
-            if fecha_str:
-                fecha_filtro = timezone.datetime.strptime(fecha_str, '%Y-%m-%d').date()
-            else:
-                fecha_filtro = timezone.now().date()
+            # Obtener fechas del query parameter
+            fecha_inicio_str = request.GET.get('fecha_inicio')
+            fecha_fin_str = request.GET.get('fecha_fin')
             
-            # Filtrar recetas que se han preparado en la fecha especificada
-            # Para esto necesitamos un campo de fecha en el modelo Receta o usar veces_hecha_hoy
-            # Como no tenemos fecha específica, usaremos todas las recetas con veces_hecha > 0
-            # y mostraremos el contador histórico
-            recetas = Receta.objects.filter(
-                veces_hecha__gt=0
-            ).order_by('-creado_en')
+            # Usar el historial en lugar de las recetas directamente
+            historial_query = HistorialReceta.objects.select_related('receta')
             
-            # Preparar datos para la respuesta
+            # Aplicar filtro por fecha si se proporciona
+            if fecha_inicio_str and fecha_fin_str:
+                fecha_inicio = timezone.datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+                fecha_fin = timezone.datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+                
+                # Validar que las fechas no sean futuras
+                hoy = timezone.now().date()
+                if fecha_inicio > hoy or fecha_fin > hoy:
+                    return Response({
+                        'error': 'No se pueden filtrar fechas futuras'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Filtrar por fecha de preparación
+                historial_query = historial_query.filter(
+                    fecha_preparacion__date__range=[fecha_inicio, fecha_fin]
+                )
+            
+            historial_query = historial_query.order_by('-fecha_preparacion')
+            
+            # Agrupar por receta y contar preparaciones
+            from django.db.models import Count, Sum
             recetas_data = []
-            for receta in recetas:
+            
+            for historial in historial_query:
+                receta = historial.receta
                 recetas_data.append({
                     'id': receta.id,
                     'nombre': receta.nombre,
-                    'cantidad': receta.veces_hecha,  # Contador histórico total
+                    'cantidad': historial.cantidad_preparada,  # Cantidad en esta preparación
                     'rinde': receta.rinde,
                     'unidad_rinde': receta.unidad_rinde,
                     'costo_total': float(receta.costo_total) if receta.costo_total else 0,
                     'precio_venta': float(receta.precio_venta) if receta.precio_venta else 0,
-                    'creado_en': receta.creado_en.isoformat() if receta.creado_en else None,
-                    'veces_hecha_hoy': receta.veces_hecha_hoy  # Contador diario
+                    'fecha_preparacion': historial.fecha_preparacion.isoformat(),
+                    'veces_hecha_hoy': receta.veces_hecha_hoy  # contador diario
                 })
             
             return Response({
-                'fecha': fecha_filtro.isoformat(),
-                'total_recetas': len(recetas_data),
+                'fecha_inicio': fecha_inicio_str,
+                'fecha_fin': fecha_fin_str,
+                'total_preparaciones': len(recetas_data),
                 'recetas': recetas_data
             })
             
@@ -322,4 +337,4 @@ class RecetasPorFechaView(APIView):
             print(f"❌ Error en RecetasPorFechaView: {str(e)}")
             return Response({
                 'error': f'Error interno del servidor: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)            
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

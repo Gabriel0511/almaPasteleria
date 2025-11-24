@@ -300,24 +300,17 @@
                   <div class="reportes-table-header">
                     <h3 class="card-title">🍽️ Recetas Hechas - Historial</h3>
                     <div class="reportes-fecha-info">
-                      <span
-                        >Mostrando recetas del: {{ fechaRecetasTexto }}</span
-                      >
-                      <div class="reportes-filtro-group">
-                        <label for="fecha-recetas">Fecha:</label>
-                        <input
-                          id="fecha-recetas"
-                          type="date"
-                          v-model="fechaRecetas"
-                          class="reportes-filtro-input"
-                          style="max-width: 200px"
-                        />
-                      </div>
+                      <span v-if="filtros.fechaInicio && filtros.fechaFin">
+                        Mostrando preparaciones del
+                        {{ formatearFecha(filtros.fechaInicio) }} al
+                        {{ formatearFecha(filtros.fechaFin) }}
+                      </span>
+                      <span v-else> Mostrando todas las preparaciones </span>
                       <div
                         class="reportes-total-badge"
                         v-if="recetasHechasFiltradas.length > 0"
                       >
-                        Total: {{ recetasHechasFiltradas.length }} recetas
+                        Total: {{ recetasHechasFiltradas.length }} preparaciones
                       </div>
                     </div>
                     <!-- Botón Generar PDF para recetas hechas -->
@@ -347,24 +340,28 @@
                       <thead>
                         <tr>
                           <th>Receta</th>
-                          <th>Veces Preparada (Histórico)</th>
+                          <th>Cantidad Preparada</th>
                           <th>Preparadas Hoy</th>
                           <th>Rinde</th>
                           <th>Costo Total</th>
                           <th>Precio Venta</th>
-                          <th>Fecha Creación</th>
+                          <th>Fecha Preparación</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr
                           v-for="item in recetasHechasFiltradas"
-                          :key="'receta-' + item.id"
+                          :key="
+                            'receta-' + item.id + '-' + item.fecha_preparacion
+                          "
                         >
                           <td class="reportes-columna-receta-nombre">
                             {{ item.nombre }}
                           </td>
                           <td class="reportes-columna-cantidad">
-                            {{ item.cantidad }} veces
+                            {{ item.cantidad }} vez{{
+                              item.cantidad !== 1 ? "es" : ""
+                            }}
                           </td>
                           <td class="reportes-columna-cantidad-hoy">
                             {{ item.veces_hecha_hoy }} veces
@@ -379,24 +376,24 @@
                             ${{ formatDecimal(item.precio_venta) }}
                           </td>
                           <td class="reportes-columna-fecha">
-                            {{ formatearFecha(item.creado_en) }}
+                            {{ formatearFecha(item.fecha_preparacion) }}
                           </td>
                         </tr>
                       </tbody>
                     </table>
                     <div v-if="loadingRecetas" class="reportes-loading-state">
                       <i class="fas fa-spinner fa-spin"></i>
-                      <p>Cargando recetas del historial...</p>
+                      <p>Cargando preparaciones...</p>
                     </div>
                     <div
                       v-else-if="recetasHechasFiltradas.length === 0"
                       class="reportes-empty-state"
                     >
                       <i class="fas fa-utensils"></i>
-                      <p>No hay recetas preparadas</p>
+                      <p>No hay preparaciones en el período seleccionado</p>
                       <small>
-                        Las recetas aparecerán aquí después de que se preparen
-                        usando el botón "Preparar"
+                        Las preparaciones aparecerán aquí después de usar el
+                        botón "Preparar"
                       </small>
                     </div>
                   </div>
@@ -599,10 +596,6 @@ const filtros = ref({
   proveedorId: "",
 });
 
-// Fechas para recetas y pedidos (por defecto hoy)
-const fechaRecetas = ref(new Date().toISOString().split("T")[0]);
-const fechaPedidos = ref(new Date().toISOString().split("T")[0]);
-
 // ----------------------
 // 🔹 Computed Properties
 // ----------------------
@@ -659,18 +652,6 @@ const recetasHechasFiltradas = computed(() => {
   return recetasHechas.value;
 });
 
-const fechaRecetasTexto = computed(() => {
-  return formatearFecha(fechaRecetas.value);
-});
-
-const fechaHoyTexto = computed(() => {
-  return formatearFecha(fechaHoy.value);
-});
-
-const fechaPedidosTexto = computed(() => {
-  return formatearFecha(fechaPedidos.value);
-});
-
 const insumosReponer = computed(() => {
   return reporteFiltrado.value.filter((item) => item.necesitaReposicion).length;
 });
@@ -692,8 +673,6 @@ const limpiarFiltros = () => {
     fechaFin: "",
     proveedorId: "",
   };
-  fechaRecetas.value = new Date().toISOString().split("T")[0];
-  fechaPedidos.value = new Date().toISOString().split("T")[0];
 
   fetchReportes();
   fetchListaCompras();
@@ -711,17 +690,37 @@ const formatDecimal = (value) => {
 const formatearFecha = (fecha) => {
   if (!fecha) return "";
 
-  // Dividir la fecha en partes y crear Date en UTC
-  const [year, month, day] = fecha.split("-");
-  const fechaUTC = new Date(Date.UTC(year, month - 1, day));
+  try {
+    // Si la fecha ya es un string en formato YYYY-MM-DD
+    if (typeof fecha === "string" && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+      const [year, month, day] = fecha.split("-");
+      const fechaUTC = new Date(Date.UTC(year, month - 1, day));
 
-  const opciones = {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    timeZone: "UTC",
-  };
-  return fechaUTC.toLocaleDateString("es-ES", opciones);
+      const opciones = {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        timeZone: "UTC",
+      };
+      return fechaUTC.toLocaleDateString("es-ES", opciones);
+    }
+
+    // Si es una fecha ISO (con tiempo)
+    const fechaObj = new Date(fecha);
+    if (isNaN(fechaObj.getTime())) {
+      return "Fecha inválida";
+    }
+
+    const opciones = {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    };
+    return fechaObj.toLocaleDateString("es-ES", opciones);
+  } catch (error) {
+    console.error("Error formateando fecha:", error, fecha);
+    return "Fecha inválida";
+  }
 };
 
 const getRecetasText = (detalles) => {
@@ -874,8 +873,13 @@ const generarPDFRecetas = async () => {
   try {
     generandoPDFRecetas.value = true;
 
-    const response = await axios.get("/api/cierre-dia/reporte-pdf/", {
-      params: { fecha: fechaRecetas.value },
+    const params = {};
+    if (filtros.value.fechaInicio)
+      params.fecha_inicio = filtros.value.fechaInicio;
+    if (filtros.value.fechaFin) params.fecha_fin = filtros.value.fechaFin;
+
+    const response = await axios.get("/api/recetas-por-fecha/pdf/", {
+      params: params,
       responseType: "blob",
     });
 
@@ -883,7 +887,16 @@ const generarPDFRecetas = async () => {
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `recetas_${fechaRecetas.value}.pdf`);
+
+    // Nombre del archivo basado en las fechas de filtro
+    let fileName = "recetas_hechas";
+    if (filtros.value.fechaInicio && filtros.value.fechaFin) {
+      fileName = `recetas_${filtros.value.fechaInicio}_a_${filtros.value.fechaFin}`;
+    } else {
+      fileName = `recetas_${new Date().toISOString().split("T")[0]}`;
+    }
+
+    link.setAttribute("download", `${fileName}.pdf`);
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -1059,8 +1072,26 @@ const fetchRecetasHechas = async () => {
   try {
     loadingRecetas.value = true;
 
+    // Validar que no se estén filtrando fechas futuras
+    const hoy = new Date().toISOString().split("T")[0];
+    if (filtros.value.fechaInicio && filtros.value.fechaInicio > hoy) {
+      console.warn("⚠️ Fecha de inicio no puede ser futura");
+      recetasHechas.value = [];
+      return;
+    }
+    if (filtros.value.fechaFin && filtros.value.fechaFin > hoy) {
+      console.warn("⚠️ Fecha de fin no puede ser futura");
+      recetasHechas.value = [];
+      return;
+    }
+
+    const params = {};
+    if (filtros.value.fechaInicio)
+      params.fecha_inicio = filtros.value.fechaInicio;
+    if (filtros.value.fechaFin) params.fecha_fin = filtros.value.fechaFin;
+
     const response = await axios.get("/api/recetas-por-fecha/", {
-      params: { fecha: fechaRecetas.value },
+      params: params,
     });
 
     if (!response.data) {
@@ -1069,21 +1100,28 @@ const fetchRecetasHechas = async () => {
       );
     }
 
-    console.log("📊 Recetas del historial recibidas:", response.data);
+    // Si el backend devuelve un error, mostrarlo
+    if (response.data.error) {
+      console.error("Error del backend:", response.data.error);
+      recetasHechas.value = [];
+      return;
+    }
+
+    console.log("📊 Preparaciones del historial recibidas:", response.data);
 
     recetasHechas.value = response.data.recetas.map((item) => ({
       id: item.id,
       nombre: item.nombre,
-      cantidad: item.cantidad, // veces_hecha (histórico)
+      cantidad: item.cantidad, // cantidad en esta preparación específica
       rinde: item.rinde,
       unidad_rinde: item.unidad_rinde,
       costo_total: item.costo_total,
       precio_venta: item.precio_venta,
-      creado_en: item.creado_en,
+      fecha_preparacion: item.fecha_preparacion, // fecha real de preparación
       veces_hecha_hoy: item.veces_hecha_hoy, // contador diario
     }));
   } catch (error) {
-    console.error("Error al cargar recetas hechas:", error);
+    console.error("Error al cargar preparaciones:", error);
     recetasHechas.value = [];
   } finally {
     loadingRecetas.value = false;
@@ -1169,11 +1207,14 @@ onMounted(() => {
   });
 });
 
-watch(fechaRecetas, (newFecha) => {
-  if (newFecha) {
-    fetchRecetasHechas();
+watch(
+  () => [filtros.value.fechaInicio, filtros.value.fechaFin],
+  ([newFechaInicio, newFechaFin]) => {
+    if (newFechaInicio || newFechaFin) {
+      fetchRecetasHechas();
+    }
   }
-});
+);
 </script>
 
 <style scoped>
