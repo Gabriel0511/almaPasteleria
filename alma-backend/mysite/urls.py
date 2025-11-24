@@ -32,7 +32,7 @@ urlpatterns = [
     path('api/', include('insumos.urls')),
     path('api/', include('recetas.urls')),
     path('api/', include('pedidos.urls')),
-    path('api/cierre-dia/', include('cierre_diario.urls')),
+    path('api/', include('cierre_diario.urls')),
 ]
 
 if settings.DEBUG:

@@ -300,17 +300,6 @@
                   <div class="reportes-table-header">
                     <h3 class="card-title">🍽️ Recetas Hechas - Historial</h3>
                     <div class="reportes-fecha-info">
-                      <div class="reportes-filtro-group" style="margin: 0">
-                        <label for="fecha-recetas">Fecha:</label>
-                        <input
-                          id="fecha-recetas"
-                          type="date"
-                          v-model="fechaRecetas"
-                          class="reportes-filtro-input"
-                          style="width: 180px"
-                          @change="fetchRecetasHoy"
-                        />
-                      </div>
                       <span
                         >Mostrando recetas del: {{ fechaRecetasTexto }}</span
                       >
@@ -525,7 +514,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 import Sidebar from "./Sidebar.vue";
@@ -708,7 +697,7 @@ const limpiarFiltros = () => {
 
   fetchReportes();
   fetchListaCompras();
-  fetchRecetasHoy();
+  fetchRecetasHechas();
   fetchPedidos();
 };
 
@@ -947,7 +936,7 @@ const fetchRecetasHoy = async () => {
     // Usar la fecha seleccionada en el filtro (por defecto hoy)
     const fecha = fechaRecetas.value || new Date().toISOString().split("T")[0];
 
-    const response = await axios.get("/api/cierre_diario/recetas-por-fecha/", {
+    const response = await axios.get("/api/recetas-por-fecha/", {
       params: { fecha: fecha },
     });
 
@@ -966,7 +955,6 @@ const fetchRecetasHoy = async () => {
       fecha: item.fecha,
       hora: item.hora,
       estado: item.estado,
-      empleado: item.empleado,
       rinde: item.rinde,
       unidad_rinde: item.unidad_rinde,
       costo_total: item.costo_total,
@@ -1071,8 +1059,7 @@ const fetchRecetasHechas = async () => {
   try {
     loadingRecetas.value = true;
 
-    // ✅ CORREGIDO: Usar cierre-dia en lugar de cierre_diario
-    const response = await axios.get("/api/cierre-dia/recetas-por-fecha/", {
+    const response = await axios.get("/api/recetas-por-fecha/", {
       params: { fecha: fechaRecetas.value },
     });
 
@@ -1092,7 +1079,6 @@ const fetchRecetasHechas = async () => {
       fecha: item.fecha,
       hora: item.hora,
       estado: item.estado,
-      empleado: item.empleado || "No asignado",
       rinde: item.rinde,
       unidad_rinde: item.unidad_rinde,
       costo_total: item.costo_total,
@@ -1183,6 +1169,12 @@ onMounted(() => {
       router.push("/login");
     }
   });
+});
+
+watch(fechaRecetas, (newFecha) => {
+  if (newFecha) {
+    fetchRecetasHechas();
+  }
 });
 </script>
 
