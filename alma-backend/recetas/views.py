@@ -36,7 +36,12 @@ class RecetaListCreateAPIView(generics.ListCreateAPIView):
         instance.refresh_from_db()
     
     def get_queryset(self):
-        return Receta.objects.prefetch_related('insumos__insumo', 'insumos__unidad_medida').order_by('-creado_en')
+        queryset = Receta.objects.prefetch_related('insumos__insumo', 'insumos__unidad_medida').order_by('-creado_en')
+        
+        for receta in queryset:
+            receta.verificar_reinicio_diario()
+            
+        return queryset
 
 
 class RecetaRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):

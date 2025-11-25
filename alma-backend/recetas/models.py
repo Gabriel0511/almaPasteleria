@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, date
 from insumos.models import Insumo, UnidadMedida
 from insumos.conversiones import convertir_unidad
 from decimal import Decimal
@@ -20,21 +20,42 @@ class Receta(models.Model):
     costo_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     precio_venta = models.DecimalField(max_digits=10, decimal_places=2)
     creado_en = models.DateTimeField(auto_now_add=True)
+    ultima_actualizacion_diaria = models.DateField(auto_now=True) 
 
     def __str__(self):
         return self.nombre
     
+    def verificar_reinicio_diario(self):
+        """Verifica y reinicia el contador diario si es un nuevo día"""
+        hoy = timezone.now().date()
+        
+        if self.ultima_actualizacion_diaria != hoy:
+            self.veces_hecha_hoy = 0
+            self.ultima_actualizacion_diaria = hoy
+            self.save(update_fields=['veces_hecha_hoy', 'ultima_actualizacion_diaria'])
+            return True
+        return False
+    
     # ✅ NUEVO MÉTODO: Incrementar contador diario
     def incrementar_contador_diario(self):
         """Incrementa tanto el contador diario como el histórico"""
+        # Verificar reinicio primero
+        self.verificar_reinicio_diario()
+        
         self.veces_hecha_hoy += 1
         self.veces_hecha += 1
+        
         # Crear registro en historial
         HistorialReceta.objects.create(
-        receta=self,
-        cantidad_preparada=1,
-    )
+            receta=self,
+            cantidad_preparada=1,
+        )
         self.save()
+
+    def get_veces_hecha_hoy_actualizado(self):
+        """Obtiene el contador diario actualizado (con reinicio automático)"""
+        self.verificar_reinicio_diario()
+        return self.veces_hecha_hoy
     
     def decrementar_contador_diario(self):
         """Decrementa el contador diario y el histórico si es posible"""
@@ -50,7 +71,6 @@ class Receta(models.Model):
         
         self.save()
     
-    # ✅ NUEVO MÉTODO: Reiniciar contador diario (para el cierre)
     def reiniciar_contador_diario(self):
         """Reinicia solo el contador diario (para cierre del día)"""
         self.veces_hecha_hoy = 0
@@ -187,4 +207,4 @@ class HistorialReceta(models.Model):
         return f"{self.receta.nombre} - {self.fecha_preparacion.date()}"
     
     class Meta:
-        ordering = ['-fecha_preparacion']  # Ordenar por fecha más reciente primero
+        ordering = ['-fecha_preparacion'] 
