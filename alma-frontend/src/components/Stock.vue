@@ -174,6 +174,14 @@
                     >
                       <i class="fas fa-shopping-cart"></i>
                     </button>
+                    <!-- Botón Registrar Pérdida -->
+                    <button
+                      class="btn-accion btn-perdida"
+                      @click="registrarPerdidaRapida(item)"
+                      title="Registrar pérdida"
+                    >
+                      <i class="fas fa-minus-circle"></i>
+                    </button>
                     <button
                       class="btn-accion btn-editar"
                       @click="editarInsumo(item)"
@@ -237,7 +245,7 @@
           </div>
         </div>
 
-        <!-- Botón Nueva Compra flotante -->
+        <!-- Botón Nuevo Insumo flotante -->
         <button class="btn-nueva-compra-flotante" @click="showNuevoInsumoModal">
           <i class="fas fa-plus"></i>
           <span>Nuevo Insumo</span>
@@ -600,6 +608,115 @@
       @confirm="eliminarInsumo"
     />
     
+    <!-- Modal para Registrar Pérdida -->
+    <BaseModal
+      v-model:show="showRegistrarPerdidaModal"
+      :title="esPerdidaRapida ? 'Registrar Pérdida' : 'Registrar Pérdida'"
+      size="medium"
+      @close="cerrarModalPerdida"
+    >
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Insumo:</label>
+
+          <!-- MODO PÉRDIDA RÁPIDA: Mostrar insumo fijo -->
+          <div
+            class="insumo-fijo"
+            v-if="esPerdidaRapida && insumoPerdidaRapida"
+          >
+            <div class="insumo-fijo-nombre">
+              <div class="insumo-fijo-header">
+                <i class="fas fa-lock"></i>
+                <strong>{{ insumoPerdidaRapida.nombre }}</strong>
+              </div>
+              <div class="insumo-fijo-stock-info">
+                <span class="stock-actual-info">
+                  Stock actual:
+                  {{ formatDecimal(insumoPerdidaRapida.cantidad) }}
+                  {{ insumoPerdidaRapida.unidad }}
+                </span>
+                <span class="stock-minimo-info">
+                  Stock mínimo:
+                  {{ formatDecimal(insumoPerdidaRapida.stock_minimo) }}
+                  {{ insumoPerdidaRapida.unidad }}
+                </span>
+              </div>
+            </div>
+            <div class="insumo-fijo-categoria">
+              {{ insumoPerdidaRapida.categoria }}
+            </div>
+          </div>
+
+          <!-- MODO NORMAL: Selección de insumo -->
+          <select
+            v-else
+            v-model="formPerdida.insumo_id"
+            required
+            class="form-input"
+          >
+            <option value="">Seleccione un insumo</option>
+            <option
+              v-for="insumo in insumos"
+              :key="insumo.id"
+              :value="insumo.id"
+            >
+              {{ insumo.nombre }} 
+              (Stock: {{ formatDecimal(insumo.stock_actual) }} {{ insumo.unidad_medida?.abreviatura }})
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Cantidad a descontar:</label>
+          <input
+            v-model="formPerdida.cantidad"
+            type="number"
+            step="0.001"
+            min="0.001"
+            required
+            class="form-input"
+            placeholder="0.000"
+            @input="validarCantidadPerdida"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Motivo:</label>
+          <select
+            v-model="formPerdida.motivo"
+            required
+            class="form-input"
+          >
+            <option value="">Seleccione un motivo</option>
+            <option value="deterioro">Deterioro</option>
+            <option value="vencimiento">Vencimiento</option>
+            <option value="rotura">Rotura</option>
+            <option value="error">Error en registro</option>
+            <option value="uso_interno">Uso interno</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Observaciones:</label>
+          <textarea
+            v-model="formPerdida.observaciones"
+            class="form-input"
+            rows="3"
+            placeholder="Observaciones adicionales..."
+          ></textarea>
+        </div>
+      </div>
+
+      <template #footer>
+        <ModalButtons
+          confirm-text="Registrar Pérdida"
+          @cancel="cerrarModalPerdida"
+          @confirm="registrarPerdida"
+        />
+      </template>
+    </BaseModal>
+
     <!-- Modal para reactivar insumo desactivado -->
     <BaseModal
       v-model:show="showReactivarModal"
@@ -691,6 +808,18 @@ const stockDesplegado = ref({});
 const busquedaInsumo = ref("");
 const insumosFiltrados = ref([]);
 const filtroActivo = ref(""); // 'critico', 'bajo', 'normal', 'total'
+// Variables de estado para registrar perdida
+const showRegistrarPerdidaModal = ref(false);
+const esPerdidaRapida = ref(false);
+const insumoPerdidaRapida = ref(null);
+const formPerdida = ref({
+  insumo_id: "",
+  cantidad: 0,
+  motivo: "",
+  observaciones: ""
+});
+
+
 // Variables para manejo de insumo desactivado
 const showReactivarModal = ref(false);
 const insumoDesactivado = ref(null);
@@ -755,6 +884,155 @@ const toggleSidebar = () => {
     sidebarRef.value.toggleSidebar();
   }
 };
+
+// Método para registrar pérdida rápida
+const registrarPerdidaRapida = (item) => {
+  esPerdidaRapida.value = true;
+  insumoPerdidaRapida.value = item;
+  formPerdida.value.insumo_id = item.id;
+  formPerdida.value.cantidad = 0;
+  formPerdida.value.motivo = "";
+  formPerdida.value.observaciones = "";
+  showRegistrarPerdidaModal.value = true;
+};
+
+// Método para registrar pérdida
+const registrarPerdida = async () => {
+  try {
+    // Validar que la cantidad sea mayor a 0
+    if (parseFloat(formPerdida.value.cantidad) <= 0) {
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "La cantidad debe ser mayor a 0",
+        timeout: 4000,
+      });
+      return;
+    }
+
+    // Validar motivo
+    if (!formPerdida.value.motivo) {
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "Debe seleccionar un motivo",
+        timeout: 4000,
+      });
+      return;
+    }
+
+    const insumo = insumos.value.find(
+      (i) => i.id === parseInt(formPerdida.value.insumo_id)
+    );
+
+    if (!insumo) {
+      throw new Error("Insumo no encontrado");
+    }
+
+    // Convertir valores con coma a número
+    const parsearNumeroConComa = (valor) => {
+      if (typeof valor === "string") {
+        return parseFloat(valor.replace(",", "."));
+      }
+      return valor;
+    };
+
+    const stockActual = parsearNumeroConComa(insumo.stock_actual);
+    const cantidadPerdida = parseFloat(formPerdida.value.cantidad);
+
+    // Validar que no se descuente más del stock disponible
+    if (cantidadPerdida > stockActual) {
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: `No puede descontar más del stock disponible (${formatDecimal(stockActual)} ${insumo.unidad_medida?.abreviatura})`,
+        timeout: 4000,
+      });
+      return;
+    }
+
+    // Calcular nuevo stock
+    const nuevoStock = (stockActual * 1000 - cantidadPerdida * 1000) / 1000;
+
+    const datosActualizacion = {
+      stock_actual: nuevoStock.toFixed(3).replace(".", ","),
+    };
+
+    // Actualizar stock
+    await axios.patch(
+      `/api/insumos/${formPerdida.value.insumo_id}/actualizar-parcial/`,
+      datosActualizacion
+    );
+
+    // Registrar la pérdida en el historial (si tienes esta funcionalidad)
+    try {
+      await axios.post("/api/perdidas/registrar/", {
+        insumo_id: formPerdida.value.insumo_id,
+        cantidad: formPerdida.value.cantidad,
+        motivo: formPerdida.value.motivo,
+        observaciones: formPerdida.value.observaciones,
+        fecha: new Date().toISOString().split('T')[0]
+      });
+    } catch (error) {
+      console.warn("No se pudo registrar en el historial de pérdidas:", error);
+      // No mostrar error al usuario si falla el historial
+    }
+
+    // Refrescar datos
+    await fetchStock();
+    await fetchInsumos();
+
+    const itemActualizado = stock.value.find(
+      (item) => item.id === parseInt(formPerdida.value.insumo_id)
+    );
+    if (itemActualizado) {
+      verificarStockYNotificar(itemActualizado, "perdida");
+    }
+
+    // Cerrar modal
+    showRegistrarPerdidaModal.value = false;
+    resetFormPerdida();
+
+    notificationSystem.show({
+      type: "success",
+      title: "Pérdida registrada",
+      message: "La pérdida se registró correctamente",
+      timeout: 4000,
+    });
+  } catch (error) {
+    console.error("Error al registrar pérdida:", error);
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: "No se pudo registrar la pérdida",
+      timeout: 6000,
+    });
+  }
+};
+
+// Método para resetear formulario de pérdida
+const resetFormPerdida = () => {
+  formPerdida.value = {
+    insumo_id: "",
+    cantidad: 0,
+    motivo: "",
+    observaciones: ""
+  };
+  esPerdidaRapida.value = false;
+  insumoPerdidaRapida.value = null;
+};
+
+
+// Watcher para resetear modo pérdida rápida al cerrar el modal
+watch(
+  () => showRegistrarPerdidaModal.value,
+  (newVal) => {
+    if (!newVal) {
+      esPerdidaRapida.value = false;
+      insumoPerdidaRapida.value = null;
+    }
+  }
+);
 
 // Computed properties
 // Computed properties para paginación
@@ -1577,6 +1855,7 @@ const resetForms = () => {
   resetFormInsumo();
   resetFormCompra();
   resetFormProveedor();
+  resetFormPerdida();
   esEdicion.value = false;
 };
 
@@ -1747,6 +2026,21 @@ const verificarParametroBusqueda = () => {
       message: `Mostrando resultados para: "${route.query.search}"`,
       timeout: 3000,
     });
+  }
+};
+
+const cerrarModalPerdida = () => {
+  showRegistrarPerdidaModal.value = false;
+  // Resetear modo pérdida rápida
+  esPerdidaRapida.value = false;
+  insumoPerdidaRapida.value = null;
+  resetFormPerdida();
+};
+
+const validarCantidadPerdida = () => {
+  // Solo validar que no sea negativo, pero permitir 0
+  if (parseFloat(formPerdida.value.cantidad) < 0) {
+    formPerdida.value.cantidad = 0;
   }
 };
 
@@ -2580,6 +2874,25 @@ onUnmounted(() => {
 .btn-cancelar:hover:not(:disabled) {
   background: #5a6268;
   transform: translateY(-1px);
+}
+
+/* Estilo para el botón de pérdida */
+.btn-perdida {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+}
+
+.btn-perdida:hover {
+  background: linear-gradient(135deg, #c0392b, #a93226);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
+}
+
+/* Reorganizar contenedor de acciones si es necesario */
+.acciones-container {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 /* ----------------------------- RESPONSIVE ----------------------------- */

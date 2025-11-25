@@ -6,8 +6,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from django.http import HttpResponse, JsonResponse
-from .models import Insumo, UnidadMedida, CategoriaInsumo, Proveedor
-from .serializers import InsumoSerializer, UnidadMedidaSerializer, CategoriaInsumoSerializer, ProveedorSerializer
+from .models import Insumo, UnidadMedida, CategoriaInsumo, Proveedor, Perdida, HistorialStock
+from .serializers import InsumoSerializer, UnidadMedidaSerializer, CategoriaInsumoSerializer, ProveedorSerializer, PerdidaSerializer, PerdidaCreateSerializer
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField, Q
 from django.db import models
 from datetime import datetime, timedelta, date
@@ -241,6 +241,79 @@ class InsumoHardDeleteAPIView(generics.DestroyAPIView):
             },
             status=status.HTTP_204_NO_CONTENT
         )
+
+# ==================== VISTAS PARA PÉRDIDAS ====================
+class PerdidaListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = Perdida.objects.all().order_by('-fecha', '-id')
+    
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return PerdidaCreateSerializer
+        return PerdidaSerializer
+    
+    def get_queryset(self):
+        queryset = Perdida.objects.all().order_by('-fecha', '-id')
+        
+        # Filtros
+        fecha_inicio = self.request.query_params.get('fecha_inicio')
+        fecha_fin = self.request.query_params.get('fecha_fin')
+        insumo_id = self.request.query_params.get('insumo_id')
+        motivo = self.request.query_params.get('motivo')
+        
+        if fecha_inicio:
+            queryset = queryset.filter(fecha__gte=fecha_inicio)
+        if fecha_fin:
+            queryset = queryset.filter(fecha__lte=fecha_fin)
+        if insumo_id:
+            queryset = queryset.filter(insumo_id=insumo_id)
+        if motivo:
+            queryset = queryset.filter(motivo=motivo)
+            
+        return queryset
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        try:
+            # Validar que el insumo existe
+            insumo_id = serializer.validated_data['insumo'].id
+            insumo = Insumo.objects.get(id=insumo_id)
+            
+            # Validar que hay suficiente stock
+            cantidad_perdida = serializer.validated_data['cantidad']
+            if cantidad_perdida > insumo.stock_actual:
+                return Response({
+                    'error': f'No hay suficiente stock. Stock actual: {insumo.stock_actual}'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Crear la pérdida (el save() del modelo actualizará el stock automáticamente)
+            perdida = serializer.save()
+            
+            # Crear registro en el historial
+            HistorialStock.objects.create(
+                insumo=insumo,
+                tipo_movimiento='PERDIDA',
+                cantidad=-cantidad_perdida,  # Negativo porque es una salida
+                unidad_medida=insumo.unidad_medida,
+                descripcion=f"Pérdida registrada - Motivo: {perdida.get_motivo_display()}",
+                perdida=perdida
+            )
+            
+            # Devolver los datos completos
+            response_serializer = PerdidaSerializer(perdida)
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+            
+        except Insumo.DoesNotExist:
+            return Response({'error': 'Insumo no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class PerdidaDetailView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = Perdida.objects.all()
+    serializer_class = PerdidaSerializer
 
 # ==================== VISTAS PARA REPORTES ====================
 class ReporteInsumosAPIView(APIView):

@@ -1,6 +1,6 @@
 # serializers.py - Versión actualizada
 from rest_framework import serializers
-from .models import Insumo, UnidadMedida, CategoriaInsumo, Proveedor
+from .models import Insumo, UnidadMedida, CategoriaInsumo, Proveedor, Perdida
 
 class UnidadMedidaSerializer(serializers.ModelSerializer):
     class Meta:
@@ -98,3 +98,29 @@ class InsumoSerializer(serializers.ModelSerializer):
                 pass
                 
         return data
+
+# --- SERIALIZERS PARA PÉRDIDAS ---
+class PerdidaSerializer(serializers.ModelSerializer):
+    insumo_nombre = serializers.CharField(source='insumo.nombre', read_only=True)
+    categoria = serializers.CharField(source='insumo.categoria.nombre', read_only=True)
+    unidad = serializers.CharField(source='insumo.unidad_medida.abreviatura', read_only=True)
+    
+    class Meta:
+        model = Perdida
+        fields = [
+            'id', 
+            'insumo', 
+            'insumo_nombre',
+            'categoria',
+            'unidad',
+            'cantidad', 
+            'motivo', 
+            'observaciones', 
+            'fecha'
+        ]
+        read_only_fields = ['id']
+
+class PerdidaCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Perdida
+        fields = ['insumo', 'cantidad', 'motivo', 'observaciones', 'fecha']

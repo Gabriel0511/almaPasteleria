@@ -10,7 +10,9 @@ from .views import (
     ProveedorCreateAPIView, 
     CategoriaInsumoCreateAPIView, 
     ReporteInsumosAPIView,
-    ListaComprasAPIView
+    ListaComprasAPIView,
+    PerdidaListCreateView,
+    PerdidaDetailView
 )
 
 urlpatterns = [
@@ -56,4 +58,7 @@ urlpatterns = [
     # Reactivar insumo desactivado
     path('insumos/<int:id>/reactivar/', views.InsumoReactivarAPIView.as_view(), name='insumos-reactivar'),
 
+    # Pérdidas
+    path('perdidas/', PerdidaListCreateView.as_view(), name='perdidas-list-create'),
+    path('perdidas/<int:pk>/', PerdidaDetailView.as_view(), name='perdidas-detail'),
 ]
