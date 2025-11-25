@@ -291,7 +291,7 @@
                     :disabled="totalRecetasHoy === 0"
                     :class="{ 'btn-disabled': totalRecetasHoy === 0 }"
                   >
-                    🏁 Cierre Diario
+                    🏁 Cierre
                     <span v-if="totalRecetasHoy > 0" class="cierre-badge">
                       {{ totalRecetasHoy }}
                     </span>
@@ -457,7 +457,7 @@
 </template>
 
 <script setup>
-import { formatDecimal, parseDecimal } from "../helpers/formatters";
+import { formatDecimal } from "../helpers/formatters";
 import { onMounted, ref, computed, inject } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
@@ -477,7 +477,12 @@ const toggleSidebar = () => {
   }
 };
 
+// ---------------------- STOCK ----------------------
+const stock = ref([]);
 const categoriaSeleccionada = ref("");
+const paginaActual = ref(1);
+const itemsPorPagina = 10;
+
 const categoriasStock = computed(() => {
   const categorias = stock.value.map((item) => item.categoria);
   return [...new Set(categorias)];
@@ -490,7 +495,70 @@ const stockFiltradoPorCategoria = computed(() => {
   );
 });
 
-// Total de recetas preparadas hoy
+const insumosBajoStockFiltrados = computed(() => {
+  return stockFiltradoPorCategoria.value.filter((item) => item.bajoStock)
+    .length;
+});
+
+const totalPaginas = computed(() => {
+  return Math.ceil(stockFiltradoPorCategoria.value.length / itemsPorPagina);
+});
+
+const stockPaginado = computed(() => {
+  const startIndex = (paginaActual.value - 1) * itemsPorPagina;
+  const endIndex = startIndex + itemsPorPagina;
+  return stockFiltradoPorCategoria.value.slice(startIndex, endIndex);
+});
+
+const paginaSiguiente = () => {
+  if (paginaActual.value < totalPaginas.value) {
+    paginaActual.value++;
+  }
+};
+
+const paginaAnterior = () => {
+  if (paginaActual.value > 1) {
+    paginaActual.value--;
+  }
+};
+
+const getStockIcon = (categoria) => {
+  const cat = categoria.toLowerCase();
+
+  if (cat.includes("harina") || cat.includes("polvo")) return "🌾";
+  if (cat.includes("azúcar") || cat.includes("dulce")) return "🍬";
+  if (cat.includes("leche") || cat.includes("crema")) return "🥛";
+  if (cat.includes("huevo")) return "🥚";
+  if (cat.includes("fruta")) return "🍎";
+  if (cat.includes("chocolate")) return "🍫";
+  if (cat.includes("aceite") || cat.includes("grasa")) return "🫒";
+  if (cat.includes("sal") || cat.includes("condimento")) return "🧂";
+  if (cat.includes("empaque") || cat.includes("envase")) return "📦";
+  if (cat.includes("líquido") || cat.includes("agua")) return "💧";
+
+  return "📦";
+};
+
+const irAStockConBusqueda = (nombreInsumo) => {
+  router.push({
+    path: "/stock",
+    query: { search: nombreInsumo },
+  });
+};
+
+// ---------------------- RECETAS ----------------------
+const recetas = ref([]);
+const searchTerm = ref("");
+const paginaActualRecetas = ref(1);
+const itemsPorPaginaRecetas = 8;
+
+const filteredRecetas = computed(() => {
+  if (!searchTerm.value) return recetas.value;
+  return recetas.value.filter((r) =>
+    r.nombre.toLowerCase().includes(searchTerm.value.toLowerCase())
+  );
+});
+
 const totalRecetasHoy = computed(() => {
   return recetas.value.reduce(
     (total, receta) => total + (receta.veces_hecha_hoy || 0),
@@ -501,6 +569,28 @@ const totalRecetasHoy = computed(() => {
 const totalRecetas = computed(() => {
   return recetas.value.length;
 });
+
+const totalPaginasRecetas = computed(() => {
+  return Math.ceil(filteredRecetas.value.length / itemsPorPaginaRecetas);
+});
+
+const recetasPaginadas = computed(() => {
+  const startIndex = (paginaActualRecetas.value - 1) * itemsPorPaginaRecetas;
+  const endIndex = startIndex + itemsPorPaginaRecetas;
+  return filteredRecetas.value.slice(startIndex, endIndex);
+});
+
+const paginaSiguienteRecetas = () => {
+  if (paginaActualRecetas.value < totalPaginasRecetas.value) {
+    paginaActualRecetas.value++;
+  }
+};
+
+const paginaAnteriorRecetas = () => {
+  if (paginaActualRecetas.value > 1) {
+    paginaActualRecetas.value--;
+  }
+};
 
 const getRecetaIcon = (nombreReceta) => {
   const nombre = nombreReceta.toLowerCase();
@@ -520,14 +610,80 @@ const getRecetaIcon = (nombreReceta) => {
   return "👨‍🍳";
 };
 
-// ----------------------
-// 🔹 Modal de Confirmación
-// ----------------------
+const singularizeUnidad = (rinde, unidad) => {
+  if (rinde === 1) {
+    if (unidad === "unidades") return "unidad";
+    if (unidad === "porciones") return "porción";
+  }
+  return unidad;
+};
+
+// ---------------------- PEDIDOS ----------------------
+const entregarHoy = ref([]);
+const hacerHoy = ref([]);
+
+const entregarHoyOrdenados = computed(() => {
+  return [...entregarHoy.value].sort((a, b) => {
+    if (a.estado !== "entregado" && b.estado === "entregado") return -1;
+    if (a.estado === "entregado" && b.estado !== "entregado") return 1;
+    return new Date(a.fecha_entrega) - new Date(b.fecha_entrega);
+  });
+});
+
+const hacerHoyOrdenados = computed(() => {
+  return [...hacerHoy.value].sort((a, b) => {
+    if (a.estado === "pendiente" && b.estado !== "pendiente") return -1;
+    if (a.estado !== "pendiente" && b.estado === "pendiente") return 1;
+    return new Date(a.fecha_entrega) - new Date(b.fecha_entrega);
+  });
+});
+
+const isAtrasado = (fechaEntrega) => {
+  const hoy = new Date();
+  const entrega = new Date(fechaEntrega);
+  return entrega < hoy && !isHoy(fechaEntrega);
+};
+
+const isHoy = (fechaEntrega) => {
+  const hoy = new Date().toDateString();
+  const entrega = new Date(fechaEntrega).toDateString();
+  return hoy === entrega;
+};
+
+const getEstadoText = (estado) => {
+  const estados = {
+    pendiente: "Pendiente",
+    listo: "Listo",
+    entregado: "Entregado",
+  };
+  return estados[estado] || estado;
+};
+
+const getRecetasText = (detalles) => {
+  return detalles
+    .map((detalle) => `${detalle.receta.nombre} (x${detalle.cantidad})`)
+    .join(", ");
+};
+
+const getDiasRestantes = (fechaEntrega) => {
+  const hoy = new Date();
+  const entrega = new Date(fechaEntrega);
+  const diffTime = entrega - hoy;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return "🎯 ¡Entrega hoy!";
+  if (diffDays === 1) return "📌 Mañana";
+  if (diffDays === 2) return "⏳ Pasado mañana";
+  if (diffDays < 0) return `⚠️ ${Math.abs(diffDays)} día(s) de retraso`;
+  return `⏳ En ${diffDays} días`;
+};
+
+// ---------------------- MODAL ----------------------
 const showConfirmModal = ref(false);
 const modalTitle = ref("");
 const modalMessage = ref("");
 const modalDetails = ref("");
-const modalType = ref(""); // 'entrega' o 'preparacion'
+const modalType = ref("");
 const modalAction = ref(null);
 const currentTask = ref(null);
 
@@ -558,7 +714,7 @@ const confirmAction = () => {
   }
   showConfirmModal.value = false;
   if (currentTask.value) {
-    currentTask.value.confirmando = false; // Resetear estado de confirmación
+    currentTask.value.confirmando = false;
   }
   currentTask.value = null;
   modalAction.value = null;
@@ -567,120 +723,49 @@ const confirmAction = () => {
 const cancelAction = () => {
   showConfirmModal.value = false;
   if (currentTask.value) {
-    currentTask.value.confirmando = false; // Resetear estado de confirmación
+    currentTask.value.confirmando = false;
   }
   currentTask.value = null;
   modalAction.value = null;
 };
 
-// ----------------------
-// 🔹 Stock
-// ----------------------
-const stock = ref([]);
-const loading = ref(true);
-const error = ref(null);
-const insumosBajoStock = computed(() => {
-  return stock.value.filter((item) => item.bajoStock).length;
-});
-// Variables para paginación
-const paginaActual = ref(1);
-const itemsPorPagina = 10;
+// ---------------------- ACCIONES ----------------------
+const confirmarEntrega = (task) => {
+  if (task.estado === "entregado" || task.confirmando) return;
 
-// Computed properties para paginación
-const insumosBajoStockFiltrados = computed(() => {
-  return stockFiltradoPorCategoria.value.filter((item) => item.bajoStock)
-    .length;
-});
+  task.confirmando = true;
+  currentTask.value = task;
+  modalType.value = "entrega";
+  modalTitle.value = "Confirmar Entrega";
+  modalMessage.value = `¿Estás seguro que quieres marcar como ENTREGADO el pedido?`;
+  modalDetails.value = `Cliente: ${task.nombre}`;
+  modalAction.value = () => marcarComoEntregado(task);
 
-const totalPaginas = computed(() => {
-  return Math.ceil(stockFiltradoPorCategoria.value.length / itemsPorPagina);
-});
-
-const stockPaginado = computed(() => {
-  const startIndex = (paginaActual.value - 1) * itemsPorPagina;
-  const endIndex = startIndex + itemsPorPagina;
-  return stockFiltradoPorCategoria.value.slice(startIndex, endIndex);
-});
-
-// Métodos de paginación
-const paginaSiguiente = () => {
-  if (paginaActual.value < totalPaginas.value) {
-    paginaActual.value++;
-  }
+  showConfirmModal.value = true;
 };
 
-const paginaAnterior = () => {
-  if (paginaActual.value > 1) {
-    paginaActual.value--;
-  }
+const confirmarPreparacion = (task) => {
+  if (
+    task.estado === "listo" ||
+    task.estado === "entregado" ||
+    task.confirmando
+  )
+    return;
+
+  task.confirmando = true;
+  currentTask.value = task;
+  modalType.value = "preparacion";
+  modalTitle.value = "Terminar pedido";
+  modalMessage.value = `¿Estás seguro que quieres terminar el pedido?`;
+  modalDetails.value = `Cliente: ${
+    task.nombre
+  }\nFecha de entrega: ${formatFecha(task.fecha_entrega)}`;
+  modalAction.value = () => empezarPreparacion(task);
+
+  showConfirmModal.value = true;
 };
 
-// Función para obtener iconos según categoría
-const getStockIcon = (categoria) => {
-  const cat = categoria.toLowerCase();
-
-  if (cat.includes("harina") || cat.includes("polvo")) return "🌾";
-  if (cat.includes("azúcar") || cat.includes("dulce")) return "🍬";
-  if (cat.includes("leche") || cat.includes("crema")) return "🥛";
-  if (cat.includes("huevo")) return "🥚";
-  if (cat.includes("fruta")) return "🍎";
-  if (cat.includes("chocolate")) return "🍫";
-  if (cat.includes("aceite") || cat.includes("grasa")) return "🫒";
-  if (cat.includes("sal") || cat.includes("condimento")) return "🧂";
-  if (cat.includes("empaque") || cat.includes("envase")) return "📦";
-  if (cat.includes("líquido") || cat.includes("agua")) return "💧";
-
-  return "📦";
-};
-
-// Método para ir a la página Stock con búsqueda
-const irAStockConBusqueda = (nombreInsumo) => {
-  // Navegar a la página Stock.vue y pasar el nombre como parámetro de consulta
-  router.push({
-    path: "/stock",
-    query: { search: nombreInsumo },
-  });
-};
-
-// ----------------------
-// 🔹 Recetas
-// ----------------------
-const recetas = ref([]);
-const loadingRecetas = ref(false);
-const errorRecetas = ref(null);
-// Variables para paginación de recetas
-const paginaActualRecetas = ref(1);
-const itemsPorPaginaRecetas = 8; // Menos items porque las recetas son más altas
-
-// Computed properties para paginación de recetas
-const totalPaginasRecetas = computed(() => {
-  return Math.ceil(filteredRecetas.value.length / itemsPorPaginaRecetas);
-});
-
-const recetasPaginadas = computed(() => {
-  const startIndex = (paginaActualRecetas.value - 1) * itemsPorPaginaRecetas;
-  const endIndex = startIndex + itemsPorPaginaRecetas;
-  return filteredRecetas.value.slice(startIndex, endIndex);
-});
-
-const inicioPaginaRecetas = computed(() => {
-  return (paginaActualRecetas.value - 1) * itemsPorPaginaRecetas + 1;
-});
-
-const finPaginaRecetas = computed(() => {
-  const endIndex = paginaActualRecetas.value * itemsPorPaginaRecetas;
-  return endIndex > filteredRecetas.value.length
-    ? filteredRecetas.value.length
-    : endIndex;
-});
-
-// Método para confirmar cierre diario - VERSIÓN CORREGIDA
 const confirmarCierreDiario = () => {
-  console.log(
-    "🔹 confirmarCierreDiario llamado, totalRecetasHoy:",
-    totalRecetasHoy.value
-  );
-
   if (totalRecetasHoy.value === 0) {
     notificationSystem.show({
       type: "warning",
@@ -701,63 +786,100 @@ const confirmarCierreDiario = () => {
   showConfirmModal.value = true;
 };
 
-// Método para realizar el cierre diario - VERSIÓN CORREGIDA
-const realizarCierreDiario = async () => {
-  console.log("🔹 realizarCierreDiario ejecutándose...");
-
+const marcarComoEntregado = async (task) => {
   try {
-    const response = await axios.post("/api/cierre-diario/");
-    console.log("🔹 Respuesta del servidor:", response.data);
+    await actualizarEstadoPedido(task.id, "entregado", "entregarHoy");
 
-    if (response.data.cierre_realizado) {
-      // Actualizar las recetas localmente
-      await fetchRecetas();
+    const index = entregarHoy.value.findIndex((p) => p.id === task.id);
+    if (index !== -1) {
+      entregarHoy.value[index].estado = "entregado";
+      entregarHoy.value[index].confirmando = false;
+    }
 
-      // Mostrar notificación de éxito
-      notificationSystem.show({
-        type: "success",
-        title: "✅ Cierre diario completado",
-        message: `Se reiniciaron los contadores de ${response.data.total_recetas_procesadas} recetas`,
-        timeout: 6000,
-      });
+    notificationSystem.show({
+      type: "success",
+      title: "¡Pedido entregado!",
+      message: `El pedido de ${task.nombre} ha sido marcado como entregado`,
+      timeout: 3000,
+    });
+  } catch (error) {
+    console.error("Error al marcar como entregado:", error);
+    const index = entregarHoy.value.findIndex((p) => p.id === task.id);
+    if (index !== -1) {
+      entregarHoy.value[index].confirmando = false;
+    }
+  }
+};
 
-      // Mostrar resumen detallado
-      if (
-        response.data.recetas_procesadas &&
-        response.data.recetas_procesadas.length > 0
-      ) {
-        let mensajeResumen = `Preparaciones registradas:\n`;
-        response.data.recetas_procesadas.forEach((receta) => {
-          mensajeResumen += `• ${receta.nombre}: ${receta.preparaciones}\n`;
-        });
+const empezarPreparacion = async (task) => {
+  try {
+    await actualizarEstadoPedido(task.id, "listo", "hacerHoy");
 
-        setTimeout(() => {
-          notificationSystem.show({
-            type: "info",
-            title: "📊 Resumen del cierre",
-            message: mensajeResumen,
-            timeout: 10000,
-          });
-        }, 1000);
+    const index = hacerHoy.value.findIndex((p) => p.id === task.id);
+    if (index !== -1) {
+      hacerHoy.value[index].estado = "listo";
+      hacerHoy.value[index].confirmando = false;
+    }
+
+    notificationSystem.show({
+      type: "info",
+      title: "Pedido Terminado",
+      message: `El pedido de ${task.nombre} ahora está listo`,
+      timeout: 3000,
+    });
+  } catch (error) {
+    console.error("Error al terminar pedido:", error);
+    const index = hacerHoy.value.findIndex((p) => p.id === task.id);
+    if (index !== -1) {
+      hacerHoy.value[index].confirmando = false;
+    }
+  }
+};
+
+const actualizarEstadoPedido = async (pedidoId, nuevoEstado, lista) => {
+  try {
+    const pedido =
+      lista === "entregarHoy"
+        ? entregarHoy.value.find((p) => p.id === pedidoId)
+        : hacerHoy.value.find((p) => p.id === pedidoId);
+
+    if (pedido.actualizando) return;
+
+    pedido.actualizando = true;
+
+    await axios.patch(`/api/pedidos/${pedidoId}/actualizar-estado/`, {
+      estado: nuevoEstado,
+    });
+
+    if (lista === "entregarHoy") {
+      const index = entregarHoy.value.findIndex((p) => p.id === pedidoId);
+      if (index !== -1) {
+        entregarHoy.value[index].estado = nuevoEstado;
+        entregarHoy.value[index].actualizando = false;
       }
-    } else {
-      notificationSystem.show({
-        type: "info",
-        title: "Cierre diario",
-        message: response.data.mensaje,
-        timeout: 4000,
-      });
+    } else if (lista === "hacerHoy") {
+      const index = hacerHoy.value.findIndex((p) => p.id === pedidoId);
+      if (index !== -1) {
+        hacerHoy.value[index].estado = nuevoEstado;
+        hacerHoy.value[index].actualizando = false;
+      }
     }
   } catch (err) {
-    console.error("❌ Error en cierre diario:", err);
-    console.error("❌ Respuesta del error:", err.response);
+    console.error("Error al actualizar estado:", err);
+
+    if (lista === "entregarHoy") {
+      const index = entregarHoy.value.findIndex((p) => p.id === pedidoId);
+      if (index !== -1) entregarHoy.value[index].actualizando = false;
+    } else if (lista === "hacerHoy") {
+      const index = hacerHoy.value.findIndex((p) => p.id === pedidoId);
+      if (index !== -1) hacerHoy.value[index].actualizando = false;
+    }
 
     notificationSystem.show({
       type: "error",
-      title: "Error en cierre diario",
-      message:
-        err.response?.data?.error || "Error al realizar el cierre diario",
-      timeout: 8000,
+      title: "Error",
+      message: err.response?.data?.error || "Error al actualizar el pedido",
+      timeout: 6000,
     });
   }
 };
@@ -801,7 +923,6 @@ const incrementarContador = async (receta) => {
     let mensajeError = "Error al incrementar receta";
     if (err.response?.data) {
       if (err.response.data.insuficientes) {
-        // Usar el mismo formato para errores de catch
         notificationSystem.show({
           type: "error",
           title: `❌ Stock insuficiente - ${receta.nombre}`,
@@ -827,7 +948,6 @@ const incrementarContador = async (receta) => {
 const decrementarContador = async (receta) => {
   try {
     if (receta.veces_hecha_hoy <= 0) {
-      // ✅ ACTUALIZADO: Verificar contador diario
       notificationSystem.show({
         type: "warning",
         title: "No se puede revertir",
@@ -851,7 +971,6 @@ const decrementarContador = async (receta) => {
 
     const recetaIndex = recetas.value.findIndex((r) => r.id === receta.id);
     if (recetaIndex !== -1) {
-      // ✅ ACTUALIZADO: Usar los nuevos campos
       recetas.value[recetaIndex].veces_hecha = response.data.veces_hecha;
       recetas.value[recetaIndex].veces_hecha_hoy =
         response.data.veces_hecha_hoy;
@@ -890,217 +1009,61 @@ const decrementarContador = async (receta) => {
   }
 };
 
-const singularizeUnidad = (rinde, unidad) => {
-  if (rinde === 1) {
-    if (unidad === "unidades") return "unidad";
-    if (unidad === "porciones") return "porción";
-  }
-  return unidad;
-};
-
-// Métodos de paginación de recetas
-const paginaSiguienteRecetas = () => {
-  if (paginaActualRecetas.value < totalPaginasRecetas.value) {
-    paginaActualRecetas.value++;
-  }
-};
-
-const paginaAnteriorRecetas = () => {
-  if (paginaActualRecetas.value > 1) {
-    paginaActualRecetas.value--;
-  }
-};
-
-// ----------------------
-// 🔹 Pedidos - Métodos Mejorados
-// ----------------------
-const entregarHoy = ref([]);
-const hacerHoy = ref([]);
-
-// Computed properties para ordenar pedidos
-const entregarHoyOrdenados = computed(() => {
-  return [...entregarHoy.value].sort((a, b) => {
-    // Primero los pendientes, luego los entregados
-    if (a.estado !== "entregado" && b.estado === "entregado") return -1;
-    if (a.estado === "entregado" && b.estado !== "entregado") return 1;
-    // Luego por fecha
-    return new Date(a.fecha_entrega) - new Date(b.fecha_entrega);
-  });
-});
-
-const hacerHoyOrdenados = computed(() => {
-  return [...hacerHoy.value].sort((a, b) => {
-    // Primero los pendientes, luego los en preparación
-    if (a.estado === "pendiente" && b.estado !== "pendiente") return -1;
-    if (a.estado !== "pendiente" && b.estado === "pendiente") return 1;
-    // Luego por fecha más próxima
-    return new Date(a.fecha_entrega) - new Date(b.fecha_entrega);
-  });
-});
-
-// Método para verificar si un pedido está atrasado
-const isAtrasado = (fechaEntrega) => {
-  const hoy = new Date();
-  const entrega = new Date(fechaEntrega);
-  return entrega < hoy && !isHoy(fechaEntrega);
-};
-
-// Método específico para entregar
-const marcarComoEntregado = async (task) => {
+const realizarCierreDiario = async () => {
   try {
-    await actualizarEstadoPedido(task.id, "entregado", "entregarHoy");
+    const response = await axios.post("/api/cierre-diario/");
 
-    const index = entregarHoy.value.findIndex((p) => p.id === task.id);
-    if (index !== -1) {
-      entregarHoy.value[index].estado = "entregado";
-      entregarHoy.value[index].confirmando = false; // Resetear estado
-    }
+    if (response.data.cierre_realizado) {
+      await fetchRecetas();
 
-    notificationSystem.show({
-      type: "success",
-      title: "¡Pedido entregado!",
-      message: `El pedido de ${task.nombre} ha sido marcado como entregado`,
-      timeout: 3000,
-    });
-  } catch (error) {
-    console.error("Error al marcar como entregado:", error);
-    // En caso de error, también resetear el estado
-    const index = entregarHoy.value.findIndex((p) => p.id === task.id);
-    if (index !== -1) {
-      entregarHoy.value[index].confirmando = false;
-    }
-  }
-};
+      notificationSystem.show({
+        type: "success",
+        title: "✅ Cierre diario completado",
+        message: `Se reiniciaron los contadores de ${response.data.total_recetas_procesadas} recetas`,
+        timeout: 6000,
+      });
 
-const empezarPreparacion = async (task) => {
-  try {
-    await actualizarEstadoPedido(task.id, "listo", "hacerHoy");
+      if (
+        response.data.recetas_procesadas &&
+        response.data.recetas_procesadas.length > 0
+      ) {
+        let mensajeResumen = `Preparaciones registradas:\n`;
+        response.data.recetas_procesadas.forEach((receta) => {
+          mensajeResumen += `• ${receta.nombre}: ${receta.preparaciones}\n`;
+        });
 
-    const index = hacerHoy.value.findIndex((p) => p.id === task.id);
-    if (index !== -1) {
-      hacerHoy.value[index].estado = "listo";
-      hacerHoy.value[index].confirmando = false; // Resetear estado
-    }
-
-    notificationSystem.show({
-      type: "info",
-      title: "Pedido Terminado",
-      message: `El pedido de ${task.nombre} ahora está listo`,
-      timeout: 3000,
-    });
-  } catch (error) {
-    console.error("Error al terminar pedido:", error);
-    // En caso de error, también resetear el estado
-    const index = hacerHoy.value.findIndex((p) => p.id === task.id);
-    if (index !== -1) {
-      hacerHoy.value[index].confirmando = false;
-    }
-  }
-};
-
-const actualizarEstadoPedido = async (pedidoId, nuevoEstado, lista) => {
-  try {
-    // Prevenir múltiples clics
-    const pedido =
-      lista === "entregarHoy"
-        ? entregarHoy.value.find((p) => p.id === pedidoId)
-        : hacerHoy.value.find((p) => p.id === pedidoId);
-
-    if (pedido.actualizando) return; // Ya se está actualizando
-
-    pedido.actualizando = true; // Marcar como actualizando
-
-    await axios.patch(`/api/pedidos/${pedidoId}/actualizar-estado/`, {
-      estado: nuevoEstado,
-    });
-
-    // Actualizar estado localmente
-    if (lista === "entregarHoy") {
-      const index = entregarHoy.value.findIndex((p) => p.id === pedidoId);
-      if (index !== -1) {
-        entregarHoy.value[index].estado = nuevoEstado;
-        entregarHoy.value[index].actualizando = false;
+        setTimeout(() => {
+          notificationSystem.show({
+            type: "info",
+            title: "📊 Resumen del cierre",
+            message: mensajeResumen,
+            timeout: 10000,
+          });
+        }, 1000);
       }
-    } else if (lista === "hacerHoy") {
-      const index = hacerHoy.value.findIndex((p) => p.id === pedidoId);
-      if (index !== -1) {
-        hacerHoy.value[index].estado = nuevoEstado;
-        hacerHoy.value[index].actualizando = false;
-      }
+    } else {
+      notificationSystem.show({
+        type: "info",
+        title: "Cierre diario",
+        message: response.data.mensaje,
+        timeout: 4000,
+      });
     }
   } catch (err) {
-    console.error("Error al actualizar estado:", err);
-
-    // Resetear el estado de actualización en caso de error
-    if (lista === "entregarHoy") {
-      const index = entregarHoy.value.findIndex((p) => p.id === pedidoId);
-      if (index !== -1) entregarHoy.value[index].actualizando = false;
-    } else if (lista === "hacerHoy") {
-      const index = hacerHoy.value.findIndex((p) => p.id === pedidoId);
-      if (index !== -1) hacerHoy.value[index].actualizando = false;
-    }
-
+    console.error("❌ Error en cierre diario:", err);
     notificationSystem.show({
       type: "error",
-      title: "Error",
-      message: err.response?.data?.error || "Error al actualizar el pedido",
-      timeout: 6000,
+      title: "Error en cierre diario",
+      message:
+        err.response?.data?.error || "Error al realizar el cierre diario",
+      timeout: 8000,
     });
   }
 };
 
-// Helper methods para pedidos - CORREGIDO
-const getEstadoText = (estado) => {
-  const estados = {
-    pendiente: "Pendiente",
-    listo: "Listo",
-    entregado: "Entregado",
-  };
-  return estados[estado] || estado;
-};
-
-const getRecetasText = (detalles) => {
-  return detalles
-    .map((detalle) => `${detalle.receta.nombre} (x${detalle.cantidad})`)
-    .join(", ");
-};
-
-const getDiasRestantes = (fechaEntrega) => {
-  const hoy = new Date();
-  const entrega = new Date(fechaEntrega);
-  const diffTime = entrega - hoy;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return "🎯 ¡Entrega hoy!";
-  if (diffDays === 1) return "📌 Mañana";
-  if (diffDays === 2) return "⏳ Pasado mañana";
-  if (diffDays < 0) return `⚠️ ${Math.abs(diffDays)} día(s) de retraso`;
-  return `⏳ En ${diffDays} días`;
-};
-
-const isHoy = (fechaEntrega) => {
-  const hoy = new Date().toDateString();
-  const entrega = new Date(fechaEntrega).toDateString();
-  return hoy === entrega;
-};
-
-// ----------------------
-// 🔹 Búsqueda
-// ----------------------
-const searchTerm = ref("");
-const filteredRecetas = computed(() => {
-  if (!searchTerm.value) return recetas.value;
-  return recetas.value.filter((r) =>
-    r.nombre.toLowerCase().includes(searchTerm.value.toLowerCase())
-  );
-});
-
-// ----------------------
-// 🔹 Fetch Datos
-// ----------------------
+// ---------------------- FETCH DATOS ----------------------
 const fetchStock = async () => {
   try {
-    loading.value = true;
     const response = await axios.get("/api/insumos/");
     stock.value = response.data.insumos
       .map((insumo) => ({
@@ -1118,18 +1081,14 @@ const fetchStock = async () => {
         return 0;
       });
   } catch (err) {
-    error.value = err.response?.data?.detail || "Error al cargar los insumos";
     if (err.response?.status === 401) {
       router.push("/login");
     }
-  } finally {
-    loading.value = false;
   }
 };
 
 const fetchRecetas = async () => {
   try {
-    loadingRecetas.value = true;
     const response = await axios.get("/api/recetas/");
 
     recetas.value = response.data.map((receta) => ({
@@ -1137,13 +1096,11 @@ const fetchRecetas = async () => {
       nombre: receta.nombre,
       rinde: receta.rinde,
       unidad_rinde: receta.unidad_rinde,
-      veces_hecha: receta.veces_hecha || 0, // Contador histórico
-      veces_hecha_hoy: receta.veces_hecha_hoy || 0, // ✅ NUEVO: Contador diario
+      veces_hecha: receta.veces_hecha || 0,
+      veces_hecha_hoy: receta.veces_hecha_hoy || 0,
     }));
   } catch (err) {
-    errorRecetas.value = "Error al cargar las recetas";
-  } finally {
-    loadingRecetas.value = false;
+    console.error("Error al cargar recetas:", err);
   }
 };
 
@@ -1171,16 +1128,11 @@ const fetchPedidos = async () => {
   }
 };
 
-// ----------------------
-// 🔹 Utilidades
-// ----------------------
+// ---------------------- UTILIDADES ----------------------
 const formatFecha = (fecha) => {
   if (!fecha) return "";
 
-  // Crear fecha en la zona horaria local
   const fechaLocal = new Date(fecha);
-
-  // Ajustar para compensar el offset de zona horaria
   const fechaAjustada = new Date(
     fechaLocal.getTime() + fechaLocal.getTimezoneOffset() * 60000
   );
@@ -1192,9 +1144,7 @@ const formatFecha = (fecha) => {
   });
 };
 
-// ----------------------
-// 🔹 Montaje Inicial
-// ----------------------
+// ---------------------- MONTAGE INICIAL ----------------------
 onMounted(() => {
   if (!localStorage.getItem("access_token")) {
     router.push("/login");
@@ -1208,47 +1158,6 @@ onMounted(() => {
     }
   });
 });
-
-// Método para confirmar entrega
-const confirmarEntrega = (task) => {
-  if (task.estado === "entregado" || task.confirmando) return;
-
-  // Prevenir múltiples clics
-  task.confirmando = true;
-
-  currentTask.value = task;
-  modalType.value = "entrega";
-  modalTitle.value = "Confirmar Entrega";
-  modalMessage.value = `¿Estás seguro que quieres marcar como ENTREGADO el pedido?`;
-  modalDetails.value = `Cliente: ${task.nombre}`;
-  modalAction.value = () => marcarComoEntregado(task);
-
-  showConfirmModal.value = true;
-};
-
-// Método para confirmar preparación
-const confirmarPreparacion = (task) => {
-  if (
-    task.estado === "listo" ||
-    task.estado === "entregado" ||
-    task.confirmando
-  )
-    return;
-
-  // Prevenir múltiples clics
-  task.confirmando = true;
-
-  currentTask.value = task;
-  modalType.value = "preparacion";
-  modalTitle.value = "Terminar pedido";
-  modalMessage.value = `¿Estás seguro que quieres terminar el pedido?`;
-  modalDetails.value = `Cliente: ${
-    task.nombre
-  }\nFecha de entrega: ${formatFecha(task.fecha_entrega)}`;
-  modalAction.value = () => empezarPreparacion(task);
-
-  showConfirmModal.value = true;
-};
 </script>
 
 <style scoped>
