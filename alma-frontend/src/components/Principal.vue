@@ -282,7 +282,16 @@
           <!-- Recetas -->
           <div class="card recetas">
             <div class="recetas-header">
-              <h3 class="card-title">📋 Recetas del Día</h3>
+              <div class="recetas-title-container">
+                <h3 class="card-title">📋 Recetas del Día</h3>
+                <button
+                  @click="confirmarCierreDiario"
+                  class="btn-cierre-diario"
+                  :disabled="totalRecetasHoy === 0"
+                >
+                  🏁 Cierre Diario
+                </button>
+              </div>
               <form autocomplete="off" class="search-form">
                 <input
                   autocomplete="off"
@@ -429,6 +438,7 @@
             :class="{
               danger: modalType === 'entrega',
               warning: modalType === 'preparacion',
+              cierre: modalType === 'cierre',
             }"
           >
             <i class="fas" :class="modalConfirmIcon"></i>
@@ -516,15 +526,24 @@ const modalAction = ref(null);
 const currentTask = ref(null);
 
 const modalIcon = computed(() => {
-  return modalType.value === "entrega" ? "fa-truck" : "fa-utensils";
+  if (modalType.value === "entrega") return "fa-truck";
+  if (modalType.value === "preparacion") return "fa-utensils";
+  if (modalType.value === "cierre") return "fa-flag-checkered";
+  return "fa-question";
 });
 
 const modalConfirmIcon = computed(() => {
-  return modalType.value === "entrega" ? "fa-check-circle" : "fa-play-circle";
+  if (modalType.value === "entrega") return "fa-check-circle";
+  if (modalType.value === "preparacion") return "fa-play-circle";
+  if (modalType.value === "cierre") return "fa-flag-checkered";
+  return "fa-check";
 });
 
 const modalConfirmText = computed(() => {
-  return modalType.value === "entrega" ? "Sí, Entregar" : "Sí, terminar pedido";
+  if (modalType.value === "entrega") return "Sí, Entregar";
+  if (modalType.value === "preparacion") return "Sí, terminar pedido";
+  if (modalType.value === "cierre") return "Sí, realizar cierre";
+  return "Confirmar";
 });
 
 const confirmAction = () => {
@@ -648,6 +667,77 @@ const finPaginaRecetas = computed(() => {
     ? filteredRecetas.value.length
     : endIndex;
 });
+
+// Método para confirmar cierre diario
+const confirmarCierreDiario = () => {
+  if (totalRecetasHoy.value === 0) {
+    notificationSystem.show({
+      type: "warning",
+      title: "Sin preparaciones hoy",
+      message: "No hay recetas preparadas hoy para cerrar",
+      timeout: 4000,
+    });
+    return;
+  }
+
+  currentTask.value = null;
+  modalType.value = "cierre";
+  modalTitle.value = "Cierre Diario";
+  modalMessage.value = `¿Estás seguro que quieres realizar el CIERRE DIARIO?`;
+  modalDetails.value = `Se reiniciará el contador de preparaciones de hoy para todas las recetas.\nTotal preparado hoy: ${totalRecetasHoy.value} recetas`;
+  modalAction.value = realizarCierreDiario;
+
+  showConfirmModal.value = true;
+};
+
+// Método para realizar el cierre diario
+const realizarCierreDiario = async () => {
+  try {
+    const response = await axios.post("/api/cierre-diario/");
+
+    if (response.data.cierre_realizado) {
+      // Actualizar las recetas localmente
+      await fetchRecetas();
+
+      notificationSystem.show({
+        type: "success",
+        title: "✅ Cierre diario completado",
+        message: response.data.mensaje,
+        timeout: 6000,
+      });
+
+      // Mostrar resumen si está disponible
+      if (
+        response.data.recetas_procesadas &&
+        response.data.recetas_procesadas.length > 0
+      ) {
+        setTimeout(() => {
+          notificationSystem.show({
+            type: "info",
+            title: "📊 Resumen del cierre",
+            message: `Se procesaron ${response.data.total_recetas_procesadas} recetas con ${response.data.total_preparaciones} preparaciones totales`,
+            timeout: 8000,
+          });
+        }, 1000);
+      }
+    } else {
+      notificationSystem.show({
+        type: "info",
+        title: "Cierre diario",
+        message: response.data.mensaje,
+        timeout: 4000,
+      });
+    }
+  } catch (err) {
+    notificationSystem.show({
+      type: "error",
+      title: "Error en cierre diario",
+      message:
+        err.response?.data?.error || "Error al realizar el cierre diario",
+      timeout: 6000,
+    });
+  }
+};
 
 const incrementarContador = async (receta) => {
   try {
@@ -2125,6 +2215,58 @@ const confirmarPreparacion = (task) => {
 
 .confirm-button.warning:hover {
   background-color: #e0a800;
+  transform: translateY(-2px);
+}
+
+/* Estilos para el botón de cierre diario */
+.recetas-title-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn-cierre-diario {
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.btn-cierre-diario:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-cierre-diario:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Estilo para el modal de cierre */
+.confirm-button.warning {
+  background-color: var(--color-warning);
+  color: #000;
+}
+
+.confirm-button.cierre {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.confirm-button.cierre:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
   transform: translateY(-2px);
 }
 

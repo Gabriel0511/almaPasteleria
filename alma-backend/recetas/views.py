@@ -543,3 +543,66 @@ class GenerarPDFRecetasView(APIView):
             return Response({
                 'error': f'Error al generar PDF: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+# -------------------------
+# 🔹 Cierre Diario
+# -------------------------
+class CierreDiarioView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            with transaction.atomic():
+                # Obtener fecha actual
+                hoy = timezone.now().date()
+                
+                # Verificar si ya se hizo cierre hoy
+                recetas_con_actividad = Receta.objects.filter(
+                    veces_hecha_hoy__gt=0
+                )
+                
+                if not recetas_con_actividad.exists():
+                    return Response({
+                        'mensaje': 'No hay recetas preparadas hoy para cerrar',
+                        'cierre_realizado': False
+                    }, status=status.HTTP_200_OK)
+                
+                # Realizar cierre diario
+                recetas_procesadas = []
+                total_preparaciones = 0
+                
+                for receta in recetas_con_actividad:
+                    # Crear registro en historial
+                    if receta.veces_hecha_hoy > 0:
+                        HistorialReceta.objects.create(
+                            receta=receta,
+                            cantidad_preparada=receta.veces_hecha_hoy,
+                            fecha_preparacion=timezone.now()
+                        )
+                        
+                        recetas_procesadas.append({
+                            'id': receta.id,
+                            'nombre': receta.nombre,
+                            'preparaciones': receta.veces_hecha_hoy
+                        })
+                        total_preparaciones += receta.veces_hecha_hoy
+                    
+                    # Reiniciar contador diario
+                    receta.veces_hecha_hoy = 0
+                    receta.ultima_actualizacion_diaria = hoy
+                    receta.save(update_fields=['veces_hecha_hoy', 'ultima_actualizacion_diaria'])
+                
+                return Response({
+                    'mensaje': f'Cierre diario realizado exitosamente',
+                    'cierre_realizado': True,
+                    'fecha_cierre': hoy.isoformat(),
+                    'total_recetas_procesadas': len(recetas_procesadas),
+                    'total_preparaciones': total_preparaciones,
+                    'recetas_procesadas': recetas_procesadas
+                }, status=status.HTTP_200_OK)
+                
+        except Exception as e:
+            print(f"❌ Error en CierreDiarioView: {str(e)}")
+            return Response({
+                'error': f'Error al realizar el cierre diario: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -208,3 +208,44 @@ class HistorialReceta(models.Model):
     
     class Meta:
         ordering = ['-fecha_preparacion'] 
+
+# Agrega este método a la clase Receta en models.py
+def realizar_cierre_diario(self):
+    """Realiza el cierre diario guardando el historial y reiniciando el contador"""
+    hoy = timezone.now().date()
+    
+    # Verificar si ya se hizo el cierre hoy
+    if self.ultima_actualizacion_diaria == hoy and self.veces_hecha_hoy == 0:
+        return False  # Ya se realizó el cierre hoy
+    
+    # Crear registro en historial si se preparó hoy
+    if self.veces_hecha_hoy > 0:
+        HistorialReceta.objects.create(
+            receta=self,
+            cantidad_preparada=self.veces_hecha_hoy,
+            fecha_preparacion=timezone.now()
+        )
+    
+    # Reiniciar contador diario
+    self.veces_hecha_hoy = 0
+    self.ultima_actualizacion_diaria = hoy
+    self.save(update_fields=['veces_hecha_hoy', 'ultima_actualizacion_diaria'])
+    
+    return True
+
+# Método estático para realizar cierre de todas las recetas
+@classmethod
+def cierre_diario_general(cls):
+    """Realiza el cierre diario para todas las recetas"""
+    recetas_con_cierre = []
+    hoy = timezone.now().date()
+    
+    for receta in cls.objects.all():
+        if receta.realizar_cierre_diario():
+            recetas_con_cierre.append({
+                'id': receta.id,
+                'nombre': receta.nombre,
+                'preparaciones_hoy': receta.veces_hecha_hoy
+            })
+    
+    return recetas_con_cierre
