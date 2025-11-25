@@ -78,7 +78,7 @@
             </div>
           </div>
 
-          <!-- Pestañas para las 4 tablas -->
+          <!-- Pestañas para las 5 tablas -->
           <div class="tabs-container">
             <div class="tabs-header">
               <button
@@ -297,7 +297,130 @@
                 </div>
               </div>
 
-              <!-- Pestaña 3: Recetas Hechas -->
+              <!-- Pestaña 3: Historial de Pérdidas -->
+              <div v-show="tabActiva === 'historial-perdidas'" class="tab-pane">
+                <!-- Tabla de Historial de Pérdidas -->
+                <div class="reportes-card">
+                  <div class="reportes-table-header">
+                    <h3 class="card-title">📉 Historial de Pérdidas</h3>
+                    <div class="reportes-fecha-info">
+                      <span v-if="filtros.fechaInicio && filtros.fechaFin">
+                        Mostrando pérdidas del {{ formatearFecha(filtros.fechaInicio) }} al {{ formatearFecha(filtros.fechaFin) }}
+                      </span>
+                      <span v-else>Mostrando todas las pérdidas registradas</span>
+                    </div>
+                    <!-- Botón Generar PDF para historial de pérdidas -->
+                    <div class="reportes-seccion-pdf" v-if="historialPerdidasFiltrado.length > 0">
+                      <button @click="generarPDFPerdidas" class="reportes-btn-generar-pdf">
+                        <i class="fas fa-file-pdf"></i>
+                        Generar PDF
+                      </button>
+
+                      <div v-if="generandoPDFPerdidas" class="reportes-estado-generando-pdf">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Generando PDF...
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Filtros específicos para pérdidas - SIN FILTRO DE INSUMO -->
+                  <div class="filtros-historial-perdidas">
+                    <div class="form-grid">
+                      <div class="form-group">
+                        <label>Categoría:</label>
+                        <select v-model="filtrosPerdidas.categoria" class="reportes-filtro-select">
+                          <option value="">Todas las categorías</option>
+                          <option v-for="categoria in categoriasDisponibles" :key="categoria" :value="categoria">
+                            {{ categoria }}
+                          </option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label>Motivo:</label>
+                        <select v-model="filtrosPerdidas.motivo" class="reportes-filtro-select">
+                          <option value="">Todos los motivos</option>
+                          <option value="deterioro">Deterioro</option>
+                          <option value="vencimiento">Vencimiento</option>
+                          <option value="rotura">Rotura</option>
+                          <option value="error">Error en registro</option>
+                          <option value="uso_interno">Uso interno</option>
+                          <option value="otro">Otro</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <button @click="limpiarFiltrosPerdidas" class="reportes-btn-agregar" style="background-color: #6c757d">
+                          <i class="fas fa-broom"></i> Limpiar
+                        </button>
+                      </div>
+                    </div>
+                    <div v-if="filtrosPerdidas.motivo || filtrosPerdidas.categoria" 
+                        class="filtros-activos-info">
+                      <small>
+                        Filtros activos: 
+                        <span v-if="filtrosPerdidas.categoria" class="filtro-activo">
+                          Categoría: {{ filtrosPerdidas.categoria }}
+                        </span>
+                        <span v-if="filtrosPerdidas.motivo" class="filtro-activo">
+                          Motivo: {{ formatMotivoPerdida(filtrosPerdidas.motivo) }}
+                        </span>
+                      </small>
+                    </div>
+                  </div>
+
+                  <div class="reportes-table-scroll-container">
+                    <table class="reportes-table-content">
+                      <thead>
+                        <tr>
+                          <th>Fecha</th>
+                          <th>Insumo</th>
+                          <th>Categoría</th>
+                          <th>Cantidad</th>
+                          <th>Motivo</th>
+                          <th>Observaciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="perdida in historialPerdidasFiltrado" :key="perdida.ids.join('-')">
+                          <td class="reportes-columna-fecha">{{ formatearFecha(perdida.fecha) }}</td>
+                          <td class="reportes-columna-insumo-nombre">
+                            <strong>{{ perdida.insumo_nombre }}</strong>
+                          </td>
+                          <td class="reportes-columna-categoria">
+                            {{ perdida.categoria || '-' }}
+                          </td>
+                          <td class="reportes-columna-stock-usado">
+                            {{ formatDecimal(perdida.cantidad) }} {{ perdida.unidad }}
+                          </td>
+                          <td class="reportes-columna-reposicion">
+                            <span class="reportes-badge" :class="perdida.motivo">
+                              {{ formatMotivoPerdida(perdida.motivo) }}
+                            </span>
+                          </td>
+                          <td class="reportes-columna-observaciones">
+                            {{ perdida.observaciones || '-' }}
+                            <small v-if="perdida.ids.length > 1" style="display: block; color: #666; margin-top: 4px;">
+                              (Agrupado de {{ perdida.ids.length }} registros)
+                            </small>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div v-if="loadingPerdidas" class="reportes-loading-state">
+                      <i class="fas fa-spinner fa-spin"></i>
+                      <p>Cargando historial de pérdidas...</p>
+                    </div>
+                    <div v-else-if="historialPerdidasFiltrado.length === 0" class="reportes-empty-state">
+                      <i class="fas fa-search"></i>
+                      <p>No se encontraron registros de pérdidas</p>
+                      <small v-if="filtrosPerdidas.motivo || filtrosPerdidas.categoria">
+                        Intenta con otros filtros
+                      </small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pestaña 4: Recetas Hechas -->
               <div v-show="tabActiva === 'recetas-hechas'" class="tab-pane">
                 <!-- Tabla de Recetas Hechas -->
                 <div class="reportes-card">
@@ -387,7 +510,7 @@
                 </div>
               </div>
 
-              <!-- Pestaña 4: Pedidos -->
+              <!-- Pestaña 5: Pedidos -->
               <div v-show="tabActiva === 'pedidos'" class="tab-pane">
                 <!-- Tabla de Pedidos -->
                 <div class="reportes-card">
@@ -524,6 +647,11 @@ const tabs = ref([
     nombre: "Lista de Compras",
     icono: "fas fa-shopping-cart",
   },
+  {
+    id: "historial-perdidas", // NUEVA PESTAÑA
+    nombre: "Historial de Pérdidas", 
+    icono: "fas fa-minus-circle",
+  },
   { id: "recetas-hechas", nombre: "Recetas Hechas", icono: "fas fa-utensils" },
   { id: "pedidos", nombre: "Pedidos", icono: "fas fa-clipboard-list" },
 ]);
@@ -540,6 +668,8 @@ const obtenerContador = (tabId) => {
       return reporteFiltrado.value.length;
     case "lista-compras":
       return listaComprasFiltrada.value.length;
+    case "historial-perdidas": // NUEVO CASO
+      return historialPerdidasFiltrado.value.length;
     case "recetas-hechas":
       return recetasHechasFiltradas.value.length;
     case "pedidos":
@@ -581,6 +711,15 @@ const filtros = ref({
   fechaInicio: "",
   fechaFin: "",
   proveedorId: "",
+});
+
+// Agregar nuevas variables de estado
+const historialPerdidas = ref([]);
+const loadingPerdidas = ref(false);
+const generandoPDFPerdidas = ref(false);
+const filtrosPerdidas = ref({
+  motivo: '',
+  categoria: ''
 });
 
 // ----------------------
@@ -642,6 +781,64 @@ const recetasHechasFiltradas = computed(() => {
 const insumosReponer = computed(() => {
   return reporteFiltrado.value.filter((item) => item.necesitaReposicion).length;
 });
+
+const categorias = computed(() => {
+  const categoriasUnicas = new Set();
+  insumos.value.forEach(insumo => {
+    if (insumo.categoria) {
+      categoriasUnicas.add(insumo.categoria);
+    }
+  });
+  return Array.from(categoriasUnicas).sort();
+});
+
+const historialPerdidasFiltrado = computed(() => {
+  let filtered = [...historialPerdidas.value];
+
+  // Aplicar filtro de fecha global
+  if (filtros.value.fechaInicio && filtros.value.fechaFin) {
+    filtered = filtered.filter((perdida) => {
+      const fechaPerdida = new Date(perdida.fecha);
+      const fechaInicio = new Date(filtros.value.fechaInicio);
+      const fechaFin = new Date(filtros.value.fechaFin);
+      return fechaPerdida >= fechaInicio && fechaPerdida <= fechaFin;
+    });
+  }
+
+  // Aplicar filtros específicos de pérdidas (solo motivo y categoría)
+  if (filtrosPerdidas.value.motivo) {
+    filtered = filtered.filter(
+      (perdida) => perdida.motivo === filtrosPerdidas.value.motivo
+    );
+  }
+
+  if (filtrosPerdidas.value.categoria) {
+    filtered = filtered.filter(
+      (perdida) => perdida.categoria === filtrosPerdidas.value.categoria
+    );
+  }
+
+  // Agrupar pérdidas por nombre de insumo, fecha y motivo
+  const grouped = {};
+  filtered.forEach(perdida => {
+    const key = `${perdida.insumo_nombre}-${perdida.fecha}-${perdida.motivo}`;
+    
+    if (!grouped[key]) {
+      grouped[key] = {
+        ...perdida,
+        cantidad: parseFloat(perdida.cantidad),
+        ids: [perdida.id]
+      };
+    } else {
+      grouped[key].cantidad += parseFloat(perdida.cantidad);
+      grouped[key].ids.push(perdida.id);
+    }
+  });
+
+  return Object.values(grouped);
+});
+
+
 
 // ----------------------
 // 🔹 Métodos
@@ -1005,6 +1202,106 @@ const fetchRecetasHoy = async () => {
   }
 };
 
+// Modificar fetchHistorialPerdidas para incluir categoría
+const fetchHistorialPerdidas = async () => {
+  try {
+    loadingPerdidas.value = true;
+    
+    const params = new URLSearchParams();
+    if (filtros.value.fechaInicio) {
+      params.append('fecha_inicio', filtros.value.fechaInicio);
+    }
+    if (filtros.value.fechaFin) {
+      params.append('fecha_fin', filtros.value.fechaFin);
+    }
+    // Quitamos el parámetro de insumo_id
+
+    console.log('🔍 Fetching TODAS las pérdidas...');
+    const response = await axios.get(`/api/perdidas/?${params.toString()}`);
+    console.log('📊 Todas las pérdidas recibidas:', response.data);
+    historialPerdidas.value = response.data;
+    
+  } catch (error) {
+    console.error("Error al cargar historial de pérdidas:", error);
+  } finally {
+    loadingPerdidas.value = false;
+  }
+};
+
+// Obtener categorías únicas de TODAS las pérdidas (no solo las filtradas)
+const categoriasDisponibles = computed(() => {
+  const categorias = new Set();
+  historialPerdidas.value.forEach(perdida => {
+    if (perdida.categoria) {
+      categorias.add(perdida.categoria);
+    }
+  });
+  return Array.from(categorias).sort();
+});
+
+
+watch(filtrosPerdidas, () => {
+}, { deep: true });
+
+const limpiarFiltrosPerdidas = async () => {
+  filtrosPerdidas.value = {
+    motivo: '',
+    categoria: ''
+  };
+  await fetchHistorialPerdidas();
+};
+
+const formatMotivoPerdida = (motivo) => {
+  const motivos = {
+    deterioro: 'Deterioro',
+    vencimiento: 'Vencimiento',
+    rotura: 'Rotura',
+    error: 'Error en registro',
+    uso_interno: 'Uso interno',
+    otro: 'Otro'
+  };
+  return motivos[motivo] || motivo;
+};
+
+const generarPDFPerdidas = async () => {
+  try {
+    generandoPDFPerdidas.value = true;
+
+    const params = {};
+    if (filtros.value.fechaInicio) params.fecha_inicio = filtros.value.fechaInicio;
+    if (filtros.value.fechaFin) params.fecha_fin = filtros.value.fechaFin;
+    if (filtrosPerdidas.value.insumo_id) params.insumo_id = filtrosPerdidas.value.insumo_id;
+    if (filtrosPerdidas.value.motivo) params.motivo = filtrosPerdidas.value.motivo;
+
+    const response = await axios.get("/api/perdidas/generar-pdf/", {
+      params: params,
+      responseType: "blob",
+    });
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    
+    let fileName = "historial_perdidas";
+    if (filtros.value.fechaInicio && filtros.value.fechaFin) {
+      fileName = `perdidas_${filtros.value.fechaInicio}_a_${filtros.value.fechaFin}`;
+    } else {
+      fileName = `perdidas_${new Date().toISOString().split("T")[0]}`;
+    }
+
+    link.setAttribute("download", `${fileName}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al generar PDF de pérdidas:", error);
+    alert("Error al generar el PDF. Por favor, intente nuevamente.");
+  } finally {
+    generandoPDFPerdidas.value = false;
+  }
+};
+
 // ----------------------
 // 🔹 Fetch Datos
 // ----------------------
@@ -1210,9 +1507,12 @@ onMounted(() => {
   Promise.all([
     fetchReportes(),
     fetchListaCompras(),
+    // Solo cargar pérdidas si es necesario
+    tabActiva.value === 'historial-perdidas' ? fetchHistorialPerdidas() : Promise.resolve(),
     fetchRecetasHechas(),
     fetchPedidos(),
     fetchProveedores(),
+    fetchInsumos(),
   ]).catch((error) => {
     console.error("Error cargando datos:", error);
     if (error.response?.status === 401) {
@@ -1220,6 +1520,18 @@ onMounted(() => {
     }
   });
 });
+
+// Agregar fetchInsumos si no existe
+const insumos = ref([]);
+const fetchInsumos = async () => {
+  try {
+    const response = await axios.get("/api/insumos/");
+    insumos.value = response.data.insumos || [];
+  } catch (error) {
+    console.error("Error al cargar insumos:", error);
+    insumos.value = [];
+  }
+};
 
 watch(
   () => filtros.value.fechaInicio,
@@ -1247,6 +1559,22 @@ watch(
     }
   }
 );
+
+// Agregar watchers para los filtros globales
+watch(
+  () => [filtros.value.fechaInicio, filtros.value.fechaFin],
+  () => {
+    if (tabActiva.value === 'historial-perdidas') {
+      fetchHistorialPerdidas();
+    }
+  }
+);
+
+watch(tabActiva, (newTab) => {
+  if (newTab === 'historial-perdidas' && historialPerdidas.value.length === 0) {
+    fetchHistorialPerdidas();
+  }
+});
 </script>
 
 <style scoped>
@@ -1794,6 +2122,83 @@ watch(
 .reportes-empty-state p {
   margin: 0;
   font-size: 1.1rem;
+}
+
+/* -------------------- Estilos específicos para la pestaña de pérdidas -------------------- */
+.filtros-historial-perdidas {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.filtros-historial-perdidas .form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  align-items: end;
+}
+
+/* Estilo para la nueva columna de categoría */
+.reportes-columna-categoria {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* Estilos para filtros activos */
+.filtros-activos-info {
+  margin-top: 10px;
+  padding: 10px;
+  background: #e9ecef;
+  border-radius: 6px;
+  border-left: 4px solid var(--color-primary);
+}
+
+.filtro-activo {
+  display: inline-block;
+  background: var(--color-primary);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin: 0 5px;
+  font-size: 0.8rem;
+}
+
+
+/* Estilos para los badges de motivos de pérdida */
+.reportes-badge.deterioro {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.reportes-badge.vencimiento {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.reportes-badge.rotura {
+  background: #e2e3e5;
+  color: #383d41;
+}
+
+.reportes-badge.error {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.reportes-badge.uso_interno {
+  background: #d4edda;
+  color: #155724;
+}
+
+.reportes-badge.otro {
+  background: #e2e3e5;
+  color: #383d41;
+}
+
+.reportes-columna-observaciones {
+  max-width: 250px;
+  word-wrap: break-word;
 }
 
 /* -------------------- MEJORAS RESPONSIVE -------------------- */
