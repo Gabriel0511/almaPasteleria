@@ -160,9 +160,8 @@ class IncrementarRecetaView(APIView):
                     detalle.insumo.stock_actual -= cantidad_necesaria
                     detalle.insumo.save()
 
-                receta.veces_hecha += 1
-                receta.veces_hecha_hoy += 1
-                receta.save()
+                # ✅ CAMBIO IMPORTANTE: Usar el método del modelo que crea el historial
+                receta.incrementar_contador_diario()
 
                 return Response({
                     'nuevo_contador': receta.veces_hecha,
@@ -215,11 +214,8 @@ class DecrementarRecetaView(APIView):
                         'unidad': insumo.unidad_medida.abreviatura
                     })
 
-                if receta.veces_hecha > 0:
-                    receta.veces_hecha -= 1
-                if receta.veces_hecha_hoy > 0:
-                    receta.veces_hecha_hoy -= 1
-                receta.save()
+                # ✅ CAMBIO IMPORTANTE: Usar el método del modelo que maneja el historial
+                receta.decrementar_contador_diario()
 
                 return Response({
                     'nuevo_contador': receta.veces_hecha,
@@ -308,16 +304,16 @@ class RecetasPorFechaView(APIView):
             
             historial_query = historial_query.order_by('-fecha_preparacion')
             
-            # Agrupar por receta y contar preparaciones
-            from django.db.models import Count, Sum
+            # Preparar datos para la respuesta
             recetas_data = []
             
             for historial in historial_query:
                 receta = historial.receta
                 recetas_data.append({
-                    'id': receta.id,
+                    'id': historial.id,
+                    'receta_id': receta.id,
                     'nombre': receta.nombre,
-                    'cantidad': historial.cantidad_preparada,  # Cantidad en esta preparación
+                    'cantidad': historial.cantidad_preparada,
                     'rinde': receta.rinde,
                     'unidad_rinde': receta.unidad_rinde,
                     'costo_total': float(receta.costo_total) if receta.costo_total else 0,
