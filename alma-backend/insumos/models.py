@@ -92,12 +92,45 @@ class Insumo(models.Model):
         verbose_name_plural = "Insumos"
         ordering = ['nombre']
 
+# --- PÉRDIDAS DE STOCK ---
+class Perdida(models.Model):
+    MOTIVOS_CHOICES = [
+        ('deterioro', 'Deterioro'),
+        ('vencimiento', 'Vencimiento'),
+        ('rotura', 'Rotura'),
+        ('error', 'Error en registro'),
+        ('uso_interno', 'Uso interno'),
+        ('otro', 'Otro'),
+    ]
+    
+    insumo = models.ForeignKey(Insumo, on_delete=models.CASCADE, related_name='perdidas')
+    cantidad = models.DecimalField(max_digits=10, decimal_places=3)
+    motivo = models.CharField(max_length=50, choices=MOTIVOS_CHOICES)
+    observaciones = models.TextField(blank=True, null=True)
+    fecha = models.DateField(default=timezone.now)
+    
+    class Meta:
+        verbose_name = "Pérdida de Stock"
+        verbose_name_plural = "Pérdidas de Stock"
+        ordering = ['-fecha']
+    
+    def __str__(self):
+        return f"{self.insumo.nombre} - {self.cantidad} - {self.get_motivo_display()}"
+    
+    def save(self, *args, **kwargs):
+        # Antes de guardar, actualizar el stock del insumo
+        if not self.pk:  # Solo si es un nuevo registro (no actualización)
+            self.insumo.stock_actual -= self.cantidad
+            self.insumo.save()
+        super().save(*args, **kwargs)
+
 class HistorialStock(models.Model):
     TIPOS_MOVIMIENTO = [
         ('RECETA', 'Preparación de Receta'),
         ('INGREDIENTE_EXTRA', 'Ingrediente Extra en Pedido'),
         ('AJUSTE', 'Ajuste Manual'),
         ('COMPRA', 'Compra/Reposición'),
+        ('PERDIDA', 'Pérdida'), 
     ]
     
     insumo = models.ForeignKey(Insumo, on_delete=models.CASCADE, related_name='historial')
@@ -111,6 +144,7 @@ class HistorialStock(models.Model):
     # Referencias opcionales
     receta = models.ForeignKey('recetas.Receta', on_delete=models.SET_NULL, null=True, blank=True)
     pedido = models.ForeignKey('pedidos.Pedido', on_delete=models.SET_NULL, null=True, blank=True)
+    perdida = models.ForeignKey('Perdida', on_delete=models.SET_NULL, null=True, blank=True)
     
     class Meta:
         ordering = ['-fecha']
