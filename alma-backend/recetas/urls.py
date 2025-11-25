@@ -8,7 +8,8 @@ from .views import (
     DecrementarRecetaView,
     RecetaInsumoPartialUpdateAPIView,
     RecetasHechasHoyView,
-    RecetasPorFechaView
+    RecetasPorFechaView,
+    GenerarPDFRecetasView
 )
 
 urlpatterns = [
@@ -23,4 +24,5 @@ urlpatterns = [
      name='receta-insumo-actualizar'),
     path('recetas-hechas-hoy/', RecetasHechasHoyView.as_view(), name='recetas-hechas-hoy'),
     path('recetas-por-fecha/', RecetasPorFechaView.as_view(), name='recetas-por-fecha'),
+    path('recetas-por-fecha/pdf/', GenerarPDFRecetasView.as_view(), name='recetas-por-fecha-pdf'),
 ]

@@ -32,7 +32,9 @@
                   id="fecha-inicio"
                   type="date"
                   v-model="filtros.fechaInicio"
+                  :max="fechaHoy"
                   class="reportes-filtro-input"
+                  @change="validarFechas"
                 />
               </div>
 
@@ -42,10 +44,12 @@
                   id="fecha-fin"
                   type="date"
                   v-model="filtros.fechaFin"
+                  :max="fechaHoy"
+                  :min="filtros.fechaInicio || ''"
                   class="reportes-filtro-input"
+                  @change="validarFechas"
                 />
               </div>
-
               <div class="reportes-filtro-group">
                 <label for="proveedor">Proveedor</label>
                 <select
@@ -500,6 +504,9 @@ import axios from "axios";
 import Sidebar from "./Sidebar.vue";
 import Header from "./Header.vue";
 
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+
 const router = useRouter();
 
 // Referencia al sidebar para controlarlo desde el header
@@ -642,7 +649,35 @@ const insumosReponer = computed(() => {
 // ----------------------
 // 🔹 Métodos
 // ----------------------
+const validarFechas = () => {
+  // Si hay fecha inicio y fecha fin, validar que fecha fin no sea anterior
+  if (filtros.value.fechaInicio && filtros.value.fechaFin) {
+    const fechaInicio = new Date(filtros.value.fechaInicio);
+    const fechaFin = new Date(filtros.value.fechaFin);
+
+    if (fechaFin < fechaInicio) {
+      // Si fecha fin es anterior, resetear fecha fin
+      alert("La fecha fin no puede ser anterior a la fecha inicio");
+      filtros.value.fechaFin = filtros.value.fechaInicio;
+      return;
+    }
+  }
+
+  // Aplicar filtros después de validar
+  aplicarFiltros();
+};
+
 const aplicarFiltros = () => {
+  // Si solo hay fecha inicio, establecer fecha fin igual a fecha inicio
+  if (filtros.value.fechaInicio && !filtros.value.fechaFin) {
+    filtros.value.fechaFin = filtros.value.fechaInicio;
+  }
+
+  // Si solo hay fecha fin, establecer fecha inicio igual a fecha fin
+  if (filtros.value.fechaFin && !filtros.value.fechaInicio) {
+    filtros.value.fechaInicio = filtros.value.fechaFin;
+  }
+
   // Recargar datos con los filtros aplicados
   fetchReportes();
   fetchListaCompras();
@@ -1183,6 +1218,24 @@ onMounted(() => {
     }
   });
 });
+
+watch(
+  () => filtros.value.fechaInicio,
+  (newFechaInicio) => {
+    if (newFechaInicio) {
+      validarFechas();
+    }
+  }
+);
+
+watch(
+  () => filtros.value.fechaFin,
+  (newFechaFin) => {
+    if (newFechaFin) {
+      validarFechas();
+    }
+  }
+);
 
 watch(
   () => [filtros.value.fechaInicio, filtros.value.fechaFin],

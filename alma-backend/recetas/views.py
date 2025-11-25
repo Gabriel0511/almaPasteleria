@@ -4,6 +4,17 @@ from rest_framework.views import APIView
 from django.db import transaction
 from decimal import Decimal
 from django.utils import timezone
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.units import inch
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib import colors
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+import io
+from datetime import datetime
 
 # Importar los modelos correctamente
 from .models import Receta, RecetaInsumo, HistorialReceta
@@ -343,4 +354,187 @@ class RecetasPorFechaView(APIView):
             print(f"❌ Error en RecetasPorFechaView: {str(e)}")
             return Response({
                 'error': f'Error interno del servidor: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class GenerarPDFRecetasView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            # Obtener parámetros de filtro
+            fecha_inicio_str = request.GET.get('fecha_inicio')
+            fecha_fin_str = request.GET.get('fecha_fin')
+            
+            # Crear buffer para el PDF
+            buffer = io.BytesIO()
+            
+            # Crear el documento PDF
+            doc = SimpleDocTemplate(
+                buffer,
+                pagesize=A4,
+                rightMargin=72,
+                leftMargin=72,
+                topMargin=72,
+                bottomMargin=72
+            )
+            
+            # Lista de elementos para el PDF
+            elements = []
+            
+            # Estilos
+            styles = getSampleStyleSheet()
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=16,
+                spaceAfter=30,
+                alignment=1,  # Centrado
+                textColor=colors.HexColor('#2c3e50')
+            )
+            
+            # Título
+            title_text = "Reporte de Recetas Preparadas"
+            elements.append(Paragraph(title_text, title_style))
+            
+            # Información de fechas
+            if fecha_inicio_str and fecha_fin_str:
+                fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+                fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+                fecha_text = f"Período: {fecha_inicio.strftime('%d/%m/%Y')} - {fecha_fin.strftime('%d/%m/%Y')}"
+            else:
+                fecha_text = "Período: Todas las fechas"
+            
+            date_style = ParagraphStyle(
+                'CustomDate',
+                parent=styles['Normal'],
+                fontSize=12,
+                spaceAfter=20,
+                alignment=1,
+                textColor=colors.HexColor('#7f8c8d')
+            )
+            elements.append(Paragraph(fecha_text, date_style))
+            
+            # Obtener datos usando la misma lógica que RecetasPorFechaView
+            historial_query = HistorialReceta.objects.select_related('receta')
+            
+            if fecha_inicio_str and fecha_fin_str:
+                fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+                fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+                historial_query = historial_query.filter(
+                    fecha_preparacion__date__range=[fecha_inicio, fecha_fin]
+                )
+            
+            # Agrupar por receta
+            from django.db.models import Count, Sum, Max
+            recetas_agrupadas = historial_query.values(
+                'receta_id',
+                'receta__nombre',
+                'receta__rinde',
+                'receta__unidad_rinde',
+                'receta__costo_total',
+                'receta__precio_venta'
+            ).annotate(
+                total_preparaciones=Sum('cantidad_preparada'),
+                ultima_preparacion=Max('fecha_preparacion')
+            ).order_by('-total_preparaciones')
+            
+            # Preparar datos para la tabla
+            if recetas_agrupadas:
+                # Encabezados de la tabla
+                data = [['Receta', 'Preparaciones', 'Costo Total', 'Precio Venta', 'Última Preparación']]
+                
+                for grupo in recetas_agrupadas:
+                    # Formatear datos
+                    nombre = grupo['receta__nombre']
+                    preparaciones = str(grupo['total_preparaciones'])
+                    costo_total = f"${grupo['receta__costo_total']:.2f}" if grupo['receta__costo_total'] else "$0.00"
+                    precio_venta = f"${grupo['receta__precio_venta']:.2f}" if grupo['receta__precio_venta'] else "$0.00"
+                    
+                    # Formatear fecha
+                    if grupo['ultima_preparacion']:
+                        ultima_prep = grupo['ultima_preparacion'].strftime('%d/%m/%Y %H:%M')
+                    else:
+                        ultima_prep = "N/A"
+                    
+                    data.append([nombre, preparaciones, costo_total, precio_venta, ultima_prep])
+                
+                # Crear tabla
+                table = Table(data, colWidths=[2.5*inch, 1*inch, 1*inch, 1*inch, 1.5*inch])
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#34495e')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 12),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#ecf0f1')),
+                    ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 10),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#bdc3c7'))
+                ]))
+                
+                elements.append(table)
+                
+                # Agregar resumen
+                elements.append(Spacer(1, 20))
+                total_recetas = len(recetas_agrupadas)
+                total_preparaciones = sum(grupo['total_preparaciones'] for grupo in recetas_agrupadas)
+                
+                summary_style = ParagraphStyle(
+                    'CustomSummary',
+                    parent=styles['Normal'],
+                    fontSize=11,
+                    spaceAfter=10,
+                    textColor=colors.HexColor('#2c3e50')
+                )
+                
+                elements.append(Paragraph(f"Total de recetas diferentes: {total_recetas}", summary_style))
+                elements.append(Paragraph(f"Total de preparaciones: {total_preparaciones}", summary_style))
+                
+            else:
+                # No hay datos
+                no_data_style = ParagraphStyle(
+                    'CustomNoData',
+                    parent=styles['Normal'],
+                    fontSize=12,
+                    spaceAfter=20,
+                    alignment=1,
+                    textColor=colors.HexColor('#e74c3c')
+                )
+                elements.append(Paragraph("No hay preparaciones en el período seleccionado", no_data_style))
+            
+            # Pie de página
+            elements.append(Spacer(1, 30))
+            footer_style = ParagraphStyle(
+                'CustomFooter',
+                parent=styles['Normal'],
+                fontSize=9,
+                alignment=1,
+                textColor=colors.HexColor('#95a5a6')
+            )
+            generated_date = datetime.now().strftime('%d/%m/%Y %H:%M')
+            elements.append(Paragraph(f"Generado el: {generated_date}", footer_style))
+            elements.append(Paragraph("Alma Pastelería - Sistema de Gestión", footer_style))
+            
+            # Construir PDF
+            doc.build(elements)
+            
+            # Preparar respuesta
+            buffer.seek(0)
+            response = HttpResponse(buffer, content_type='application/pdf')
+            
+            # Nombre del archivo
+            if fecha_inicio_str and fecha_fin_str:
+                filename = f"recetas_{fecha_inicio_str}_a_{fecha_fin_str}.pdf"
+            else:
+                filename = f"recetas_completas_{datetime.now().strftime('%Y%m%d')}.pdf"
+            
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            
+            return response
+            
+        except Exception as e:
+            print(f"❌ Error en GenerarPDFRecetasView: {str(e)}")
+            return Response({
+                'error': f'Error al generar PDF: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
