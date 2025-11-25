@@ -14,6 +14,7 @@ from .views import (
     IngredientesExtraRetrieveUpdateDestroyAPIView,
     EliminarDetallesPedidoView,
     PedidosEntregadosView,
+    GenerarPDFPedidosView
 )
 
 urlpatterns = [
@@ -39,4 +40,5 @@ urlpatterns = [
 
     # Pedidos entregados
     path('pedidos/entregados/', PedidosEntregadosView.as_view(), name='pedidos-entregados'),
+    path('pedidos/entregados/pdf/', GenerarPDFPedidosView.as_view(), name='pedidos-entregados-pdf'),
 ]

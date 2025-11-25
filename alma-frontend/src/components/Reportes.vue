@@ -928,8 +928,7 @@ const generarPDFPedidos = async () => {
   try {
     generandoPDFPedidos.value = true;
 
-    // Usar la misma endpoint con los mismos filtros
-    const response = await axios.get("/api/pedidos/entregados/", {
+    const response = await axios.get("/api/pedidos/entregados/pdf/", {
       params: {
         fecha_inicio: filtros.value.fechaInicio,
         fecha_fin: filtros.value.fechaFin,
@@ -941,10 +940,16 @@ const generarPDFPedidos = async () => {
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute(
-      "download",
-      `pedidos_entregados_${new Date().toISOString().split("T")[0]}.pdf`
-    );
+
+    // Nombre del archivo basado en las fechas de filtro
+    let fileName = "pedidos_entregados";
+    if (filtros.value.fechaInicio && filtros.value.fechaFin) {
+      fileName = `pedidos_${filtros.value.fechaInicio}_a_${filtros.value.fechaFin}`;
+    } else {
+      fileName = `pedidos_entregados_${new Date().toISOString().split("T")[0]}`;
+    }
+
+    link.setAttribute("download", `${fileName}.pdf`);
     document.body.appendChild(link);
     link.click();
     link.remove();

@@ -1,7 +1,6 @@
-# views.py - Versión corregida
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, generics
+from rest_framework import status, generics, permissions
 from django.utils import timezone
 from datetime import date, timedelta
 from django.shortcuts import get_object_or_404
@@ -9,6 +8,18 @@ from .models import Pedido, DetallePedido, Cliente, IngredientesExtra
 from .serializers import IngredientesExtraWriteSerializer, PedidoWriteSerializer, PedidoReadSerializer, DetallePedidoWriteSerializer, DetallePedidoReadSerializer, ClienteSerializer
 from recetas.models import Receta
 from insumos.models import Insumo
+from django.db.models import Count 
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.units import inch
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib import colors
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+import io
+from datetime import datetime
 
 class PedidosHoyView(APIView):
     def get(self, request):
@@ -258,3 +269,209 @@ class PedidosEntregadosView(APIView):
                 'fecha_fin': fecha_fin
             }
         })
+
+class GenerarPDFPedidosView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            # Obtener parámetros de filtro
+            fecha_inicio_str = request.GET.get('fecha_inicio')
+            fecha_fin_str = request.GET.get('fecha_fin')
+            
+            # Crear buffer para el PDF
+            buffer = io.BytesIO()
+            
+            # Crear el documento PDF
+            doc = SimpleDocTemplate(
+                buffer,
+                pagesize=A4,
+                rightMargin=72,
+                leftMargin=72,
+                topMargin=72,
+                bottomMargin=72
+            )
+            
+            # Lista de elementos para el PDF
+            elements = []
+            
+            # Estilos
+            styles = getSampleStyleSheet()
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=16,
+                spaceAfter=30,
+                alignment=1,  # Centrado
+                textColor=colors.HexColor('#2c3e50')
+            )
+            
+            # Título
+            title_text = "Reporte de Pedidos Entregados"
+            elements.append(Paragraph(title_text, title_style))
+            
+            # Información de fechas
+            if fecha_inicio_str and fecha_fin_str:
+                fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+                fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+                fecha_text = f"Período: {fecha_inicio.strftime('%d/%m/%Y')} - {fecha_fin.strftime('%d/%m/%Y')}"
+            else:
+                fecha_text = "Período: Todas las fechas"
+            
+            date_style = ParagraphStyle(
+                'CustomDate',
+                parent=styles['Normal'],
+                fontSize=12,
+                spaceAfter=20,
+                alignment=1,
+                textColor=colors.HexColor('#7f8c8d')
+            )
+            elements.append(Paragraph(fecha_text, date_style))
+            
+            # Obtener datos usando la misma lógica que PedidosEntregadosView
+            pedidos = Pedido.objects.filter(estado='entregado')\
+                           .prefetch_related('detalles__receta', 'detalles__ingredientes_extra')\
+                           .order_by('-fecha_entrega')
+            
+            # Aplicar filtros de fecha si se proporcionan
+            if fecha_inicio_str:
+                fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+                pedidos = pedidos.filter(fecha_entrega__gte=fecha_inicio)
+            
+            if fecha_fin_str:
+                fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+                pedidos = pedidos.filter(fecha_entrega__lte=fecha_fin)
+            
+            # Preparar datos para la tabla
+            if pedidos:
+                # Encabezados de la tabla
+                data = [['Pedido ID', 'Cliente', 'Recetas', 'Fecha Entrega', 'Total']]
+                
+                total_general = 0
+                
+                for pedido in pedidos:
+                    # Formatear datos
+                    pedido_id = f"#{pedido.id}"
+                    cliente = pedido.cliente.nombre if pedido.cliente else "Sin cliente"
+                    
+                    # Obtener recetas del pedido
+                    recetas_text = ""
+                    for detalle in pedido.detalles.all():
+                        receta_nombre = detalle.receta.nombre if detalle.receta else "Receta no disponible"
+                        cantidad = detalle.cantidad
+                        recetas_text += f"{receta_nombre} (x{cantidad}), "
+                    
+                    # Remover última coma y espacio
+                    recetas_text = recetas_text.rstrip(', ')
+                    
+                    # Limitar longitud del texto de recetas
+                    if len(recetas_text) > 50:
+                        recetas_text = recetas_text[:47] + "..."
+                    
+                    fecha_entrega = pedido.fecha_entrega.strftime('%d/%m/%Y') if pedido.fecha_entrega else "N/A"
+                    total = f"${pedido.total:.2f}" if pedido.total else "$0.00"
+                    
+                    data.append([pedido_id, cliente, recetas_text, fecha_entrega, total])
+                    
+                    # Sumar al total general
+                    if pedido.total:
+                        total_general += pedido.total
+                
+                # Crear tabla
+                table = Table(data, colWidths=[0.8*inch, 1.5*inch, 2.5*inch, 1*inch, 1*inch])
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#34495e')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('ALIGN', (2, 1), (2, -1), 'LEFT'),  # Alinear recetas a la izquierda
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 12),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#ecf0f1')),
+                    ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 9),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#bdc3c7'))
+                ]))
+                
+                elements.append(table)
+                
+                # Agregar resumen
+                elements.append(Spacer(1, 20))
+                
+                summary_style = ParagraphStyle(
+                    'CustomSummary',
+                    parent=styles['Normal'],
+                    fontSize=11,
+                    spaceAfter=10,
+                    textColor=colors.HexColor('#2c3e50')
+                )
+                
+                elements.append(Paragraph(f"Total de pedidos entregados: {len(pedidos)}", summary_style))
+                elements.append(Paragraph(f"Total general: ${total_general:.2f}", summary_style))
+                
+                # Agregar desglose por día si hay múltiples fechas
+                if fecha_inicio_str and fecha_fin_str:
+                    from django.db.models import Sum
+                    pedidos_por_dia = pedidos.values('fecha_entrega').annotate(
+                        total_dia=Sum('total'),
+                        cantidad=Count('id')
+                    ).order_by('fecha_entrega')
+                    
+                    if len(pedidos_por_dia) > 1:
+                        elements.append(Spacer(1, 15))
+                        elements.append(Paragraph("Desglose por día:", summary_style))
+                        
+                        for dia in pedidos_por_dia:
+                            fecha_dia = dia['fecha_entrega'].strftime('%d/%m/%Y')
+                            elements.append(Paragraph(
+                                f"  {fecha_dia}: {dia['cantidad']} pedidos - ${dia['total_dia']:.2f}", 
+                                summary_style
+                            ))
+                
+            else:
+                # No hay datos
+                no_data_style = ParagraphStyle(
+                    'CustomNoData',
+                    parent=styles['Normal'],
+                    fontSize=12,
+                    spaceAfter=20,
+                    alignment=1,
+                    textColor=colors.HexColor('#e74c3c')
+                )
+                elements.append(Paragraph("No hay pedidos entregados en el período seleccionado", no_data_style))
+            
+            # Pie de página
+            elements.append(Spacer(1, 30))
+            footer_style = ParagraphStyle(
+                'CustomFooter',
+                parent=styles['Normal'],
+                fontSize=9,
+                alignment=1,
+                textColor=colors.HexColor('#95a5a6')
+            )
+            generated_date = datetime.now().strftime('%d/%m/%Y %H:%M')
+            elements.append(Paragraph(f"Generado el: {generated_date}", footer_style))
+            elements.append(Paragraph("Alma Pastelería - Sistema de Gestión", footer_style))
+            
+            # Construir PDF
+            doc.build(elements)
+            
+            # Preparar respuesta
+            buffer.seek(0)
+            response = HttpResponse(buffer, content_type='application/pdf')
+            
+            # Nombre del archivo
+            if fecha_inicio_str and fecha_fin_str:
+                filename = f"pedidos_entregados_{fecha_inicio_str}_a_{fecha_fin_str}.pdf"
+            else:
+                filename = f"pedidos_entregados_{datetime.now().strftime('%Y%m%d')}.pdf"
+            
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            
+            return response
+            
+        except Exception as e:
+            print(f"❌ Error en GenerarPDFPedidosView: {str(e)}")
+            return Response({
+                'error': f'Error al generar PDF: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
