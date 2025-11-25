@@ -310,7 +310,8 @@
                         class="reportes-total-badge"
                         v-if="recetasHechasFiltradas.length > 0"
                       >
-                        Total: {{ recetasHechasFiltradas.length }} preparaciones
+                        Total: {{ recetasHechasFiltradas.length }} recetas
+                        preparadas
                       </div>
                     </div>
                     <!-- Botón Generar PDF para recetas hechas -->
@@ -340,20 +341,17 @@
                       <thead>
                         <tr>
                           <th>Receta</th>
-                          <th>Cantidad Preparada</th>
-                          <th>Preparadas Hoy</th>
+                          <th>Total Preparado</th>
                           <th>Rinde</th>
                           <th>Costo Total</th>
                           <th>Precio Venta</th>
-                          <th>Fecha Preparación</th>
+                          <th>Preparadas Hoy</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr
                           v-for="item in recetasHechasFiltradas"
-                          :key="
-                            'receta-' + item.id + '-' + item.fecha_preparacion
-                          "
+                          :key="'receta-' + item.id"
                         >
                           <td class="reportes-columna-receta-nombre">
                             {{ item.nombre }}
@@ -362,9 +360,6 @@
                             {{ item.cantidad }} vez{{
                               item.cantidad !== 1 ? "es" : ""
                             }}
-                          </td>
-                          <td class="reportes-columna-cantidad-hoy">
-                            {{ item.veces_hecha_hoy }} veces
                           </td>
                           <td class="reportes-columna-rinde">
                             {{ item.rinde }} {{ item.unidad_rinde }}
@@ -375,8 +370,8 @@
                           <td class="reportes-columna-precio">
                             ${{ formatDecimal(item.precio_venta) }}
                           </td>
-                          <td class="reportes-columna-fecha">
-                            {{ formatearFecha(item.fecha_preparacion) }}
+                          <td class="reportes-columna-cantidad-hoy">
+                            {{ item.veces_hecha_hoy }} veces
                           </td>
                         </tr>
                       </tbody>
@@ -1072,27 +1067,21 @@ const fetchRecetasHechas = async () => {
   try {
     loadingRecetas.value = true;
 
-    // Validar que no se estén filtrando fechas futuras
-    const hoy = new Date().toISOString().split("T")[0];
-    if (filtros.value.fechaInicio && filtros.value.fechaInicio > hoy) {
-      console.warn("⚠️ Fecha de inicio no puede ser futura");
-      recetasHechas.value = [];
-      return;
-    }
-    if (filtros.value.fechaFin && filtros.value.fechaFin > hoy) {
-      console.warn("⚠️ Fecha de fin no puede ser futura");
-      recetasHechas.value = [];
-      return;
-    }
-
     const params = {};
     if (filtros.value.fechaInicio)
       params.fecha_inicio = filtros.value.fechaInicio;
     if (filtros.value.fechaFin) params.fecha_fin = filtros.value.fechaFin;
 
+    console.log(
+      "📊 Haciendo petición a /api/recetas-por-fecha/ con params:",
+      params
+    );
+
     const response = await axios.get("/api/recetas-por-fecha/", {
       params: params,
     });
+
+    console.log("📊 Respuesta recibida:", response.data);
 
     if (!response.data) {
       throw new Error(
@@ -1107,19 +1096,18 @@ const fetchRecetasHechas = async () => {
       return;
     }
 
-    console.log("📊 Preparaciones del historial recibidas:", response.data);
-
     recetasHechas.value = response.data.recetas.map((item) => ({
       id: item.id,
       nombre: item.nombre,
-      cantidad: item.cantidad, // cantidad en esta preparación específica
+      cantidad: item.cantidad, // Total de preparaciones en el período
       rinde: item.rinde,
       unidad_rinde: item.unidad_rinde,
       costo_total: item.costo_total,
       precio_venta: item.precio_venta,
-      fecha_preparacion: item.fecha_preparacion, // fecha real de preparación
-      veces_hecha_hoy: item.veces_hecha_hoy, // contador diario
+      veces_hecha_hoy: item.veces_hecha_hoy, // contador diario actual
     }));
+
+    console.log("📊 Datos procesados:", recetasHechas.value);
   } catch (error) {
     console.error("Error al cargar preparaciones:", error);
     recetasHechas.value = [];

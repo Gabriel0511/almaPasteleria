@@ -231,48 +231,6 @@ class DecrementarRecetaView(APIView):
             return Response({'error': f'Error interno del servidor: {str(e)}'},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-class RecetasHechasHoyView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get(self, request):
-        try:
-            # Obtener fecha de hoy
-            fecha_hoy = timezone.now().date()
-            
-            # Filtrar recetas que se han preparado hoy (veces_hecha_hoy > 0)
-            recetas_hoy = Receta.objects.filter(
-                veces_hecha_hoy__gt=0
-            ).order_by('-id')
-            
-            # Preparar datos para la respuesta
-            recetas_data = []
-            for receta in recetas_hoy:
-                recetas_data.append({
-                    'id': receta.id,
-                    'nombre': receta.nombre,
-                    'cantidad': receta.veces_hecha_hoy,  # Cuántas veces se preparó hoy
-                    'fecha': fecha_hoy.isoformat(),
-                    'hora': 'Todo el día',  # O puedes usar la hora actual
-                    'estado': 'Completado',
-                    'empleado': 'Sistema',  # O puedes obtener el usuario del request
-                    'rinde': receta.rinde,
-                    'unidad_rinde': receta.unidad_rinde,
-                    'costo_total': float(receta.costo_total) if receta.costo_total else 0,
-                    'precio_venta': float(receta.precio_venta) if receta.precio_venta else 0
-                })
-            
-            return Response({
-                'fecha': fecha_hoy.isoformat(),
-                'total_recetas': len(recetas_data),
-                'recetas': recetas_data
-            })
-            
-        except Exception as e:
-            print(f"❌ Error en RecetasHechasHoyView: {str(e)}")
-            return Response({
-                'error': f'Error interno del servidor: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 class RecetasPorFechaView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
@@ -302,24 +260,32 @@ class RecetasPorFechaView(APIView):
                     fecha_preparacion__date__range=[fecha_inicio, fecha_fin]
                 )
             
-            historial_query = historial_query.order_by('-fecha_preparacion')
+            # Agrupar por receta y contar total de preparaciones
+            from django.db.models import Count, Sum
+            recetas_agrupadas = historial_query.values(
+                'receta_id',
+                'receta__nombre',
+                'receta__rinde',
+                'receta__unidad_rinde',
+                'receta__costo_total',
+                'receta__precio_venta',
+                'receta__veces_hecha_hoy'
+            ).annotate(
+                total_preparaciones=Sum('cantidad_preparada')
+            ).order_by('-receta__veces_hecha_hoy')
             
             # Preparar datos para la respuesta
             recetas_data = []
-            
-            for historial in historial_query:
-                receta = historial.receta
+            for grupo in recetas_agrupadas:
                 recetas_data.append({
-                    'id': historial.id,
-                    'receta_id': receta.id,
-                    'nombre': receta.nombre,
-                    'cantidad': historial.cantidad_preparada,
-                    'rinde': receta.rinde,
-                    'unidad_rinde': receta.unidad_rinde,
-                    'costo_total': float(receta.costo_total) if receta.costo_total else 0,
-                    'precio_venta': float(receta.precio_venta) if receta.precio_venta else 0,
-                    'fecha_preparacion': historial.fecha_preparacion.isoformat(),
-                    'veces_hecha_hoy': receta.veces_hecha_hoy  # contador diario
+                    'id': grupo['receta_id'],  # ID de la receta como identificador único
+                    'nombre': grupo['receta__nombre'],
+                    'cantidad': grupo['total_preparaciones'],  # Total de preparaciones en el período
+                    'rinde': grupo['receta__rinde'],
+                    'unidad_rinde': grupo['receta__unidad_rinde'],
+                    'costo_total': float(grupo['receta__costo_total']) if grupo['receta__costo_total'] else 0,
+                    'precio_venta': float(grupo['receta__precio_venta']) if grupo['receta__precio_venta'] else 0,
+                    'veces_hecha_hoy': grupo['receta__veces_hecha_hoy']  # contador diario actual
                 })
             
             return Response({
