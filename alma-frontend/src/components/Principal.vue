@@ -282,25 +282,31 @@
           <!-- Recetas -->
           <div class="card recetas">
             <div class="recetas-header">
-              <div class="recetas-title-container">
-                <h3 class="card-title">📋 Recetas del Día</h3>
-                <button
-                  @click="confirmarCierreDiario"
-                  class="btn-cierre-diario"
-                  :disabled="totalRecetasHoy === 0"
-                >
-                  🏁 Cierre Diario
-                </button>
+              <div class="recetas-title-section">
+                <div class="recetas-title-container">
+                  <h3 class="card-title">📋 Recetas del Día</h3>
+                  <button
+                    @click="confirmarCierreDiario"
+                    class="btn-cierre-diario"
+                    :disabled="totalRecetasHoy === 0"
+                    :class="{ 'btn-disabled': totalRecetasHoy === 0 }"
+                  >
+                    🏁 Cierre Diario
+                    <span v-if="totalRecetasHoy > 0" class="cierre-badge">
+                      {{ totalRecetasHoy }}
+                    </span>
+                  </button>
+                </div>
+                <form autocomplete="off" class="search-form">
+                  <input
+                    autocomplete="off"
+                    v-model="searchTerm"
+                    type="text"
+                    placeholder="🔍 Buscar receta..."
+                    class="search-input"
+                  />
+                </form>
               </div>
-              <form autocomplete="off" class="search-form">
-                <input
-                  autocomplete="off"
-                  v-model="searchTerm"
-                  type="text"
-                  placeholder="🔍 Buscar receta..."
-                  class="search-input"
-                />
-              </form>
             </div>
 
             <!-- Total del día -->
@@ -668,8 +674,13 @@ const finPaginaRecetas = computed(() => {
     : endIndex;
 });
 
-// Método para confirmar cierre diario
+// Método para confirmar cierre diario - VERSIÓN CORREGIDA
 const confirmarCierreDiario = () => {
+  console.log(
+    "🔹 confirmarCierreDiario llamado, totalRecetasHoy:",
+    totalRecetasHoy.value
+  );
+
   if (totalRecetasHoy.value === 0) {
     notificationSystem.show({
       type: "warning",
@@ -680,43 +691,52 @@ const confirmarCierreDiario = () => {
     return;
   }
 
-  currentTask.value = null;
+  currentTask.value = { tipo: "cierre" };
   modalType.value = "cierre";
   modalTitle.value = "Cierre Diario";
   modalMessage.value = `¿Estás seguro que quieres realizar el CIERRE DIARIO?`;
-  modalDetails.value = `Se reiniciará el contador de preparaciones de hoy para todas las recetas.\nTotal preparado hoy: ${totalRecetasHoy.value} recetas`;
+  modalDetails.value = `Esta acción reiniciará todos los contadores diarios a cero.\n\nTotal preparado hoy: ${totalRecetasHoy.value} recetas\n\n⚠️ Esta acción no se puede deshacer.`;
   modalAction.value = realizarCierreDiario;
 
   showConfirmModal.value = true;
 };
 
-// Método para realizar el cierre diario
+// Método para realizar el cierre diario - VERSIÓN CORREGIDA
 const realizarCierreDiario = async () => {
+  console.log("🔹 realizarCierreDiario ejecutándose...");
+
   try {
     const response = await axios.post("/api/cierre-diario/");
+    console.log("🔹 Respuesta del servidor:", response.data);
 
     if (response.data.cierre_realizado) {
       // Actualizar las recetas localmente
       await fetchRecetas();
 
+      // Mostrar notificación de éxito
       notificationSystem.show({
         type: "success",
         title: "✅ Cierre diario completado",
-        message: response.data.mensaje,
+        message: `Se reiniciaron los contadores de ${response.data.total_recetas_procesadas} recetas`,
         timeout: 6000,
       });
 
-      // Mostrar resumen si está disponible
+      // Mostrar resumen detallado
       if (
         response.data.recetas_procesadas &&
         response.data.recetas_procesadas.length > 0
       ) {
+        let mensajeResumen = `Preparaciones registradas:\n`;
+        response.data.recetas_procesadas.forEach((receta) => {
+          mensajeResumen += `• ${receta.nombre}: ${receta.preparaciones}\n`;
+        });
+
         setTimeout(() => {
           notificationSystem.show({
             type: "info",
             title: "📊 Resumen del cierre",
-            message: `Se procesaron ${response.data.total_recetas_procesadas} recetas con ${response.data.total_preparaciones} preparaciones totales`,
-            timeout: 8000,
+            message: mensajeResumen,
+            timeout: 10000,
           });
         }, 1000);
       }
@@ -729,12 +749,15 @@ const realizarCierreDiario = async () => {
       });
     }
   } catch (err) {
+    console.error("❌ Error en cierre diario:", err);
+    console.error("❌ Respuesta del error:", err.response);
+
     notificationSystem.show({
       type: "error",
       title: "Error en cierre diario",
       message:
         err.response?.data?.error || "Error al realizar el cierre diario",
-      timeout: 6000,
+      timeout: 8000,
     });
   }
 };
@@ -2218,7 +2241,16 @@ const confirmarPreparacion = (task) => {
   transform: translateY(-2px);
 }
 
-/* Estilos para el botón de cierre diario */
+/* Estilos para el botón de cierre diario - MEJORADO */
+.recetas-title-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
 .recetas-title-container {
   display: flex;
   align-items: center;
@@ -2227,47 +2259,64 @@ const confirmarPreparacion = (task) => {
 }
 
 .btn-cierre-diario {
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1.2rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 20px;
+  border-radius: 25px;
   cursor: pointer;
   font-weight: bold;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
+  position: relative;
 }
 
-.btn-cierre-diario:hover:not(:disabled) {
+.btn-cierre-diario:hover:not(.btn-disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.5);
 }
 
-.btn-cierre-diario:disabled {
+.btn-cierre-diario:active:not(.btn-disabled) {
+  transform: translateY(0);
+}
+
+.btn-cierre-diario.btn-disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+  background: #6c757d;
+}
+
+.cierre-badge {
+  background: rgba(255, 255, 255, 0.9);
+  color: #667eea;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  margin-left: 0.25rem;
 }
 
 /* Estilo para el modal de cierre */
-.confirm-button.warning {
-  background-color: var(--color-warning);
-  color: #000;
-}
-
 .confirm-button.cierre {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  border: none;
 }
 
 .confirm-button.cierre:hover {
   background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 /* Animación de entrada del modal */
