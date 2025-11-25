@@ -599,6 +599,65 @@
       @cancel="showConfirmModal = false"
       @confirm="eliminarInsumo"
     />
+    
+    <!-- Modal para reactivar insumo desactivado -->
+    <BaseModal
+      v-model:show="showReactivarModal"
+      title="Insumo Desactivado Encontrado"
+      size="medium"
+      @close="cancelarReactivacion"
+    >
+      <div class="reactivar-content">
+        <div class="warning-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <p>
+          Ya existe un insumo llamado <strong>"{{ insumoDesactivado?.nombre }}"</strong> 
+          pero está desactivado.
+        </p>
+        <p>¿Deseas reactivarlo con los datos ingresados?</p>
+        
+        <div class="insumo-info">
+          <div class="info-item">
+            <span class="label">Categoría:</span>
+            <span class="value">
+              {{ categorias.find(c => c.id === formInsumo.categoria_id)?.nombre || 'Sin categoría' }}
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="label">Unidad de medida:</span>
+            <span class="value">
+              {{ unidadesPermitidas.find(u => u.id === formInsumo.unidad_medida_id)?.nombre || 'Sin unidad' }}
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="label">Stock mínimo:</span>
+            <span class="value">{{ formInsumo.stock_minimo }}</span>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="reactivar-buttons">
+          <button 
+            class="btn-cancelar" 
+            @click="cancelarReactivacion"
+            :disabled="reactivando"
+          >
+            Cancelar
+          </button>
+          <button 
+            class="btn-reactivar" 
+            @click="reactivarInsumo"
+            :disabled="reactivando"
+          >
+            <i v-if="reactivando" class="fas fa-spinner fa-spin"></i>
+            {{ reactivando ? 'Reactivando...' : 'Reactivar Insumo' }}
+          </button>
+        </div>
+      </template>
+    </BaseModal>
+
   </div>
 </template>
 
@@ -632,6 +691,10 @@ const stockDesplegado = ref({});
 const busquedaInsumo = ref("");
 const insumosFiltrados = ref([]);
 const filtroActivo = ref(""); // 'critico', 'bajo', 'normal', 'total'
+// Variables para manejo de insumo desactivado
+const showReactivarModal = ref(false);
+const insumoDesactivado = ref(null);
+const reactivando = ref(false);
 
 // Variables de paginación
 const paginaActual = ref(1);
@@ -1161,9 +1224,47 @@ const guardarInsumo = async () => {
     }
 
     // -----------------------------
-    // ✔ CREACIÓN
+    // ✔ CREACIÓN - Manejo de insumo desactivado
     // -----------------------------
-    response = await axios.post("/api/insumos/crear/", datosParaEnviar);
+    try {
+      response = await axios.post("/api/insumos/crear/", datosParaEnviar);
+    } catch (error) {
+      // DEBUG: Mostrar toda la respuesta del error
+      console.log("🔍🔍🔍 DEBUG COMPLETO DEL ERROR:");
+      console.log("Status:", error.response?.status);
+      console.log("Data:", error.response?.data);
+      console.log("Error completo:", error);
+      
+      // Manejar el caso de insumo desactivado
+      if (error.response?.data?.error === 'insumo_desactivado') {
+        console.log("✅ BACKEND CORRECTO - Detectó insumo desactivado");
+        insumoDesactivado.value = error.response.data;
+        showReactivarModal.value = true;
+        return;
+      } 
+      // Manejar el caso de insumo activo (nombre duplicado)
+      else if (error.response?.data?.error && error.response.data.error.includes('Ya existe un insumo')) {
+        console.log("❌ BACKEND - Insumo activo con mismo nombre");
+        notificationSystem.show({
+          type: "error",
+          title: "Error",
+          message: error.response.data.error,
+          timeout: 4000,
+        });
+        return;
+      }
+      // Otros errores
+      else {
+        console.log("❌ ERROR DESCONOCIDO");
+        notificationSystem.show({
+          type: "error",
+          title: "Error",
+          message: error.response?.data?.error || "No se pudo guardar el insumo",
+          timeout: 4000,
+        });
+        return;
+      }
+    }
 
     console.log("📥 Respuesta del servidor:", response.data);
 
@@ -1202,22 +1303,77 @@ const guardarInsumo = async () => {
     }
 
   } catch (error) {
-    console.error("❌ ERROR COMPLETO:", error);
-
-    if (error.response) {
-      console.log("📥 ERROR response.data:", error.response.data);
-      console.log("📥 ERROR status:", error.response.status);
-    }
-
+    console.error("❌ ERROR COMPLETO NO MANEJADO:", error);
+    
+    // Este catch solo debería ejecutarse para errores no manejados
     notificationSystem.show({
       type: "error",
-      title: "Error",
-      message: "No se pudo guardar el insumo. Revisá la consola.",
+      title: "Error inesperado",
+      message: "Ocurrió un error inesperado al guardar el insumo",
       timeout: 4000,
     });
   }
 };
 
+const reactivarInsumo = async () => {
+  try {
+    reactivando.value = true;
+    
+    const response = await axios.post(
+      `/api/insumos/${insumoDesactivado.value.insumo_id}/reactivar/`,
+      {
+        nombre: formInsumo.value.nombre,
+        categoria_id: formInsumo.value.categoria_id,
+        unidad_medida_id: formInsumo.value.unidad_medida_id,
+        stock_minimo: formInsumo.value.stock_minimo,
+        stock_actual: 0
+      }
+    );
+
+    notificationSystem.show({
+      type: "success",
+      title: "Insumo reactivado",
+      message: "El insumo ha sido reactivado exitosamente",
+      timeout: 4000,
+    });
+
+    // Cerrar modales y actualizar datos
+    showReactivarModal.value = false;
+    showModalInsumo.value = false;
+    
+    await fetchStock();
+    await fetchInsumos();
+
+    // Opcional: Abrir modal de compra para el insumo reactivado
+    const insumoReactivado = stock.value.find(
+      i => i.id === insumoDesactivado.value.insumo_id
+    );
+    
+    if (insumoReactivado) {
+      setTimeout(() => {
+        reponerStockRapido(insumoReactivado);
+      }, 300);
+    }
+
+  } catch (error) {
+    console.error("Error al reactivar insumo:", error);
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: "No se pudo reactivar el insumo",
+      timeout: 4000,
+    });
+  } finally {
+    reactivando.value = false;
+    insumoDesactivado.value = null;
+  }
+};
+
+const cancelarReactivacion = () => {
+  showReactivarModal.value = false;
+  insumoDesactivado.value = null;
+  // Mantener el modal de insumo abierto para que el usuario pueda cambiar el nombre
+};
 
 const registrarCompra = async () => {
   try {
@@ -2338,6 +2494,92 @@ onUnmounted(() => {
 /* ----------------------------- UTILIDADES ----------------------------- */
 .cursor-pointer {
   cursor: pointer;
+}
+
+/* Estilos para el modal de reactivación */
+.reactivar-content {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.warning-icon {
+  font-size: 3rem;
+  color: #ffc107;
+  margin-bottom: 15px;
+}
+
+.insumo-info {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 15px 0;
+  text-align: left;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.info-item .label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.info-item .value {
+  color: #6c757d;
+}
+
+.reactivar-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.btn-reactivar {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-reactivar:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.btn-reactivar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-cancelar {
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-cancelar:hover:not(:disabled) {
+  background: #5a6268;
+  transform: translateY(-1px);
 }
 
 /* ----------------------------- RESPONSIVE ----------------------------- */
