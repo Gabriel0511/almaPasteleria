@@ -52,4 +52,8 @@ urlpatterns = [
     
     # Lista de compras simple (función basada en vista)
     path('reportes/lista-compras-simple/', views.lista_compras_simple, name='lista-compras-simple'),
+    
+    # Reactivar insumo desactivado
+    path('insumos/<int:id>/reactivar/', views.InsumoReactivarAPIView.as_view(), name='insumos-reactivar'),
+
 ]

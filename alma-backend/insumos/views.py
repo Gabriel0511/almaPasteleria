@@ -133,11 +133,28 @@ class InsumoCreateAPIView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         nombre = request.data.get('nombre', '').strip()
-        if Insumo.objects.filter(nombre__iexact=nombre).exists():
-            return Response(
-                {'error': 'Ya existe un insumo con este nombre'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        
+        # Buscar si existe un insumo con ese nombre (activo o inactivo)
+        insumo_existente = Insumo.objects.filter(nombre__iexact=nombre).first()
+        
+        if insumo_existente:
+            if insumo_existente.activo:
+                return Response(
+                    {'error': 'Ya existe un insumo activo con este nombre'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            else:
+                # Insumo existe pero está desactivado
+                return Response(
+                    {
+                        'error': 'insumo_desactivado',
+                        'message': 'Ya existe un insumo con este nombre pero está desactivado',
+                        'insumo_id': insumo_existente.id,
+                        'nombre': insumo_existente.nombre
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -592,6 +609,41 @@ class ListaComprasAPIView(APIView):
         
         else:
             return "Sin asignar"
+
+class InsumoReactivarAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, id):
+        try:
+            insumo = Insumo.objects.get(id=id)
+            if insumo.activo:
+                return Response(
+                    {'error': 'El insumo ya está activo'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Reactivar el insumo
+            insumo.activo = True
+            insumo.save()
+            
+            # Actualizar con los datos del formulario si se proporcionan
+            serializer = InsumoSerializer(insumo, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+            
+            return Response(
+                {
+                    'message': 'Insumo reactivado exitosamente',
+                    'insumo': InsumoSerializer(insumo).data
+                },
+                status=status.HTTP_200_OK
+            )
+            
+        except Insumo.DoesNotExist:
+            return Response(
+                {'error': 'Insumo no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 # Vista simple alternativa para lista de compras
 @api_view(['GET'])
