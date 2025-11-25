@@ -504,9 +504,6 @@ import axios from "axios";
 import Sidebar from "./Sidebar.vue";
 import Header from "./Header.vue";
 
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
-
 const router = useRouter();
 
 // Referencia al sidebar para controlarlo desde el header
