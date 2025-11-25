@@ -303,7 +303,7 @@ class RecetasPorFechaView(APIView):
                 )
             
             # Agrupar por receta y contar total de preparaciones
-            from django.db.models import Count, Sum
+            from django.db.models import Count, Sum, Max
             recetas_agrupadas = historial_query.values(
                 'receta_id',
                 'receta__nombre',
@@ -313,21 +313,23 @@ class RecetasPorFechaView(APIView):
                 'receta__precio_venta',
                 'receta__veces_hecha_hoy'
             ).annotate(
-                total_preparaciones=Sum('cantidad_preparada')
-            ).order_by('-receta__veces_hecha_hoy')
+                total_preparaciones=Sum('cantidad_preparada'),
+                ultima_preparacion=Max('fecha_preparacion')  # ✅ Fecha de la última preparación
+            ).order_by('-ultima_preparacion')  # Ordenar por la más reciente
             
             # Preparar datos para la respuesta
             recetas_data = []
             for grupo in recetas_agrupadas:
                 recetas_data.append({
-                    'id': grupo['receta_id'],  # ID de la receta como identificador único
+                    'id': grupo['receta_id'],
                     'nombre': grupo['receta__nombre'],
                     'cantidad': grupo['total_preparaciones'],  # Total de preparaciones en el período
                     'rinde': grupo['receta__rinde'],
                     'unidad_rinde': grupo['receta__unidad_rinde'],
                     'costo_total': float(grupo['receta__costo_total']) if grupo['receta__costo_total'] else 0,
                     'precio_venta': float(grupo['receta__precio_venta']) if grupo['receta__precio_venta'] else 0,
-                    'veces_hecha_hoy': grupo['receta__veces_hecha_hoy']  # contador diario actual
+                    'veces_hecha_hoy': grupo['receta__veces_hecha_hoy'],
+                    'ultima_preparacion': grupo['ultima_preparacion'].isoformat() if grupo['ultima_preparacion'] else None
                 })
             
             return Response({

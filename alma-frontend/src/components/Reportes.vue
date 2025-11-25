@@ -232,7 +232,7 @@
                           <th>Stock Actual</th>
                           <th>Stock Mínimo</th>
                           <th>Pedidos</th>
-                          <th>Total a Comprar</th>
+                          <th>Compra sugerida</th>
                           <th>Proveedor</th>
                         </tr>
                       </thead>
@@ -306,13 +306,6 @@
                         {{ formatearFecha(filtros.fechaFin) }}
                       </span>
                       <span v-else> Mostrando todas las preparaciones </span>
-                      <div
-                        class="reportes-total-badge"
-                        v-if="recetasHechasFiltradas.length > 0"
-                      >
-                        Total: {{ recetasHechasFiltradas.length }} recetas
-                        preparadas
-                      </div>
                     </div>
                     <!-- Botón Generar PDF para recetas hechas -->
                     <div
@@ -342,10 +335,9 @@
                         <tr>
                           <th>Receta</th>
                           <th>Total Preparado</th>
-                          <th>Rinde</th>
                           <th>Costo Total</th>
+                          <th>Fecha de preparación</th>
                           <th>Precio Venta</th>
-                          <th>Preparadas Hoy</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -357,21 +349,17 @@
                             {{ item.nombre }}
                           </td>
                           <td class="reportes-columna-cantidad">
-                            {{ item.cantidad }} vez{{
-                              item.cantidad !== 1 ? "es" : ""
-                            }}
-                          </td>
-                          <td class="reportes-columna-rinde">
-                            {{ item.rinde }} {{ item.unidad_rinde }}
+                            {{ item.cantidad }}
+                            {{ item.cantidad === 1 ? "vez" : "veces" }}
                           </td>
                           <td class="reportes-columna-costo">
                             ${{ formatDecimal(item.costo_total) }}
                           </td>
+                          <td class="reportes-columna-fecha">
+                            {{ formatearFecha(item.ultima_preparacion) }}
+                          </td>
                           <td class="reportes-columna-precio">
                             ${{ formatDecimal(item.precio_venta) }}
-                          </td>
-                          <td class="reportes-columna-cantidad-hoy">
-                            {{ item.veces_hecha_hoy }} veces
                           </td>
                         </tr>
                       </tbody>
@@ -1099,12 +1087,13 @@ const fetchRecetasHechas = async () => {
     recetasHechas.value = response.data.recetas.map((item) => ({
       id: item.id,
       nombre: item.nombre,
-      cantidad: item.cantidad, // Total de preparaciones en el período
+      cantidad: item.cantidad,
       rinde: item.rinde,
       unidad_rinde: item.unidad_rinde,
       costo_total: item.costo_total,
       precio_venta: item.precio_venta,
-      veces_hecha_hoy: item.veces_hecha_hoy, // contador diario actual
+      veces_hecha_hoy: item.veces_hecha_hoy,
+      ultima_preparacion: item.ultima_preparacion,
     }));
 
     console.log("📊 Datos procesados:", recetasHechas.value);
