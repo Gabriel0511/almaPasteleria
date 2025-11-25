@@ -283,7 +283,7 @@
           <div class="card recetas">
             <div class="recetas-header">
               <div class="recetas-title-section">
-                <div class="recetas-title-container">
+                <div class="recetas-main-title">
                   <h3 class="card-title">📋 Recetas del Día</h3>
                   <button
                     @click="confirmarCierreDiario"
@@ -1422,15 +1422,32 @@ const confirmarPreparacion = (task) => {
 .recetas-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-top: 0.5rem;
   margin-bottom: 1rem;
   padding-bottom: 0.75rem;
   border-bottom: 2px solid #e9ecef;
 }
 
+.recetas-title-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.recetas-main-title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
 .search-form {
   margin: 0;
+  align-self: flex-start;
 }
 
 .search-input {
@@ -2242,14 +2259,6 @@ const confirmarPreparacion = (task) => {
 }
 
 /* Estilos para el botón de cierre diario - MEJORADO */
-.recetas-title-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
 
 .recetas-title-container {
   display: flex;
@@ -2259,25 +2268,25 @@ const confirmarPreparacion = (task) => {
 }
 
 .btn-cierre-diario {
-  padding: 0.6rem 1.2rem;
+  padding: 0.5rem 1rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 25px;
+  border-radius: 20px;
   cursor: pointer;
   font-weight: bold;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
   position: relative;
 }
 
 .btn-cierre-diario:hover:not(.btn-disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.5);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .btn-cierre-diario:active:not(.btn-disabled) {
@@ -2400,11 +2409,6 @@ const confirmarPreparacion = (task) => {
     flex-direction: column;
     gap: 0.75rem;
     align-items: stretch;
-  }
-
-  .search-input {
-    width: 100%;
-    max-width: 100%;
   }
 
   /* -------------------- ITEMS DE RECETAS -------------------- */
