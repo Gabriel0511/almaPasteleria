@@ -300,12 +300,26 @@
         </div>
 
         <div class="form-group">
+          <label>Cantidad:</label>
+          <input
+            v-model="formInsumo.stockActual"
+            type="number"
+            step="0.001"
+            min="0"
+            required
+            class="form-input"
+            placeholder="0.000"
+            @input="validarCantidad"
+          />
+        </div>
+
+        <div class="form-group">
           <label>Unidad de Medida:</label>
           <select
             v-model="formInsumo.unidad_medida_id"
             required
             class="form-input"
-          >
+            >
             <option value="">Seleccione una unidad</option>
             <option
               v-for="unidad in unidadesPermitidas"
@@ -1395,6 +1409,7 @@ const editarInsumo = (insumo) => {
     stock_minimo: parsearNumero(insumo.stock_minimo),
     precio_unitario: parsearNumero(insumo.precio_unitario),
     proveedor_id: insumo.proveedor_id,
+    stockActual: parsearNumero(insumo.cantidad)
   };
   showModalInsumo.value = true;
 };
@@ -1462,6 +1477,8 @@ const guardarInsumo = async () => {
     // ✔ EDICIÓN
     // -----------------------------
     if (esEdicion.value) {
+      datosParaEnviar.stock_actual = formInsumo.value.stockActual;
+      
       response = await axios.patch(
         `/api/insumos/${formInsumo.value.id}/actualizar-parcial/`,
         datosParaEnviar
@@ -1805,6 +1822,7 @@ const resetFormInsumo = () => {
     stock_minimo: 0,
     precio_unitario: null,
     proveedor_id: null,
+    stockActual: 0
   };
 };
 
