@@ -4,6 +4,7 @@ from datetime import timedelta, date
 from insumos.models import Insumo, UnidadMedida
 from insumos.conversiones import convertir_unidad
 from decimal import Decimal
+import pytz  # Asegúrate de tener esto importado
 
 class Receta(models.Model):
     UNIDADES_RINDE = [
@@ -13,7 +14,7 @@ class Receta(models.Model):
 
     nombre = models.CharField(max_length=100)
     veces_hecha = models.PositiveIntegerField(default=0)  # Contador histórico total
-    veces_hecha_hoy = models.PositiveIntegerField(default=0)  # ✅ NUEVO: Contador diario
+    veces_hecha_hoy = models.PositiveIntegerField(default=0)  # Contador diario
     rinde = models.PositiveIntegerField()
     unidad_rinde = models.CharField(max_length=20, choices=UNIDADES_RINDE)
     costo_unitario = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -25,8 +26,8 @@ class Receta(models.Model):
     def __str__(self):
         return self.nombre
     
-    def verificar_reinicio_diario(self):
-        """Verifica y reinicia el contador diario si es un nuevo día"""
+    def verificar_reinicio_diario_original(self):
+        """Versión original simple - mantener para compatibilidad"""
         hoy = timezone.now().date()
         
         if self.ultima_actualizacion_diaria != hoy:
@@ -36,7 +37,40 @@ class Receta(models.Model):
             return True
         return False
     
-    # ✅ NUEVO MÉTODO: Incrementar contador diario
+    def verificar_reinicio_diario(self):
+        """Nueva versión con cierre automático y historial"""
+        try:
+            # Obtener hora actual en Argentina
+            tz_argentina = pytz.timezone('America/Argentina/Buenos_Aires')
+            ahora_argentina = timezone.now().astimezone(tz_argentina)
+            hoy_argentina = ahora_argentina.date()
+            
+            # Verificar si es un nuevo día
+            if self.ultima_actualizacion_diaria != hoy_argentina:
+                print(f"🔹 Reinicio automático para {self.nombre}: {self.veces_hecha_hoy} → 0")
+                
+                # Si había preparaciones, guardar en historial antes de reiniciar
+                if self.veces_hecha_hoy > 0:
+                    HistorialReceta.objects.create(
+                        receta=self,
+                        cantidad_preparada=self.veces_hecha_hoy,
+                        fecha_preparacion=timezone.now()
+                    )
+                    print(f"🔹 Historial creado para {self.nombre}: {self.veces_hecha_hoy} preparaciones")
+                
+                # Reiniciar contador
+                self.veces_hecha_hoy = 0
+                self.ultima_actualizacion_diaria = hoy_argentina
+                self.save(update_fields=['veces_hecha_hoy', 'ultima_actualizacion_diaria'])
+                return True
+            
+            return False
+            
+        except Exception as e:
+            print(f"❌ Error en verificar_reinicio_diario para {self.nombre}: {e}")
+            # Fallback a la versión original en caso de error
+            return self.verificar_reinicio_diario_original()
+    
     def incrementar_contador_diario(self):
         """Incrementa tanto el contador diario como el histórico"""
         # Verificar reinicio primero
@@ -76,6 +110,67 @@ class Receta(models.Model):
         self.veces_hecha_hoy = 0
         self.save(update_fields=['veces_hecha_hoy'])
     
+    def realizar_cierre_diario(self):
+        """Realiza el cierre diario guardando el historial y reiniciando el contador"""
+        hoy = timezone.now().date()
+        
+        # Verificar si ya se hizo el cierre hoy
+        if self.ultima_actualizacion_diaria == hoy and self.veces_hecha_hoy == 0:
+            return False  # Ya se realizó el cierre hoy
+        
+        # Crear registro en historial si se preparó hoy
+        if self.veces_hecha_hoy > 0:
+            HistorialReceta.objects.create(
+                receta=self,
+                cantidad_preparada=self.veces_hecha_hoy,
+                fecha_preparacion=timezone.now()
+            )
+        
+        # Reiniciar contador diario
+        self.veces_hecha_hoy = 0
+        self.ultima_actualizacion_diaria = hoy
+        self.save(update_fields=['veces_hecha_hoy', 'ultima_actualizacion_diaria'])
+        
+        return True
+
+    @classmethod
+    def verificar_cierre_automatico(cls):
+        """Método seguro para verificación de cierre automático"""
+        try:
+            print("🔹 Verificando cierre automático...")
+            recetas_con_actividad = cls.objects.filter(veces_hecha_hoy__gt=0)
+            print(f"🔹 Recetas con actividad: {recetas_con_actividad.count()}")
+            
+            recetas_procesadas = 0
+            for receta in recetas_con_actividad:
+                if receta.verificar_reinicio_diario():
+                    recetas_procesadas += 1
+            
+            print(f"🔹 Cierre automático completado: {recetas_procesadas} recetas procesadas")
+            return recetas_procesadas
+            
+        except Exception as e:
+            print(f"❌ Error en verificar_cierre_automatico: {e}")
+            import traceback
+            print(f"❌ Traceback: {traceback.format_exc()}")
+            return 0
+
+    @classmethod
+    def cierre_diario_general(cls):
+        """Realiza el cierre diario para todas las recetas"""
+        recetas_con_cierre = []
+        hoy = timezone.now().date()
+        
+        for receta in cls.objects.all():
+            if receta.realizar_cierre_diario():
+                recetas_con_cierre.append({
+                    'id': receta.id,
+                    'nombre': receta.nombre,
+                    'preparaciones_hoy': receta.veces_hecha_hoy
+                })
+        
+        return recetas_con_cierre
+
     def calcular_costo_total(self):
         """Calcula el costo total sumando el costo de todos los insumos"""
         costo_total = Decimal('0.00')
@@ -207,78 +302,4 @@ class HistorialReceta(models.Model):
         return f"{self.receta.nombre} - {self.fecha_preparacion.date()}"
     
     class Meta:
-        ordering = ['-fecha_preparacion'] 
-
-# Agrega este método a la clase Receta en models.py
-def realizar_cierre_diario(self):
-    """Realiza el cierre diario guardando el historial y reiniciando el contador"""
-    hoy = timezone.now().date()
-    
-    # Verificar si ya se hizo el cierre hoy
-    if self.ultima_actualizacion_diaria == hoy and self.veces_hecha_hoy == 0:
-        return False  # Ya se realizó el cierre hoy
-    
-    # Crear registro en historial si se preparó hoy
-    if self.veces_hecha_hoy > 0:
-        HistorialReceta.objects.create(
-            receta=self,
-            cantidad_preparada=self.veces_hecha_hoy,
-            fecha_preparacion=timezone.now()
-        )
-    
-    # Reiniciar contador diario
-    self.veces_hecha_hoy = 0
-    self.ultima_actualizacion_diaria = hoy
-    self.save(update_fields=['veces_hecha_hoy', 'ultima_actualizacion_diaria'])
-    
-    return True
-
-@classmethod
-def verificar_cierre_automatico(cls):
-    """Verifica y ejecuta cierre automático si es un nuevo día en Argentina"""
-    from django.utils import timezone
-    import pytz
-    
-    # Obtener hora actual en Argentina
-    tz_argentina = pytz.timezone('America/Argentina/Buenos_Aires')
-    ahora_argentina = timezone.now().astimezone(tz_argentina)
-    
-    # Verificar si es después de las 00:00
-    if ahora_argentina.hour == 0 and ahora_argentina.minute < 5:  # Ejecutar en los primeros 5 minutos
-        hoy_argentina = ahora_argentina.date()
-        
-        # Buscar recetas que no se hayan actualizado hoy
-        recetas_sin_actualizar = cls.objects.filter(
-            ultima_actualizacion_diaria__lt=hoy_argentina,
-            veces_hecha_hoy__gt=0
-        )
-        
-        if recetas_sin_actualizar.exists():
-            print(f"🔹 Ejecutando cierre automático para {hoy_argentina}")
-            recetas_procesadas = []
-            
-            for receta in recetas_sin_actualizar:
-                if receta.realizar_cierre_diario():
-                    recetas_procesadas.append(receta.nombre)
-            
-            print(f"🔹 Cierre automático completado: {len(recetas_procesadas)} recetas")
-            return len(recetas_procesadas)
-    
-    return 0
-
-# Método estático para realizar cierre de todas las recetas
-@classmethod
-def cierre_diario_general(cls):
-    """Realiza el cierre diario para todas las recetas"""
-    recetas_con_cierre = []
-    hoy = timezone.now().date()
-    
-    for receta in cls.objects.all():
-        if receta.realizar_cierre_diario():
-            recetas_con_cierre.append({
-                'id': receta.id,
-                'nombre': receta.nombre,
-                'preparaciones_hoy': receta.veces_hecha_hoy
-            })
-    
-    return recetas_con_cierre
+        ordering = ['-fecha_preparacion']

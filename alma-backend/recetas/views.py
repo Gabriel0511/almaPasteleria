@@ -31,22 +31,30 @@ class RecetaListCreateAPIView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         print("Datos recibidos:", self.request.data)
         instance = serializer.save()
-        # Forzar recálculo después de crear
         instance.actualizar_costos()
         instance.refresh_from_db()
     
     def get_queryset(self):
-        # VERIFICAR CIERRE AUTOMÁTICO ANTES DE DEVOLVER LAS RECETAS
-        from recetas.models import Receta
-        Receta.verificar_cierre_automatico()
+        try:
+            # ✅ VERIFICAR CIERRE AUTOMÁTICO DE FORMA SEGURA
+            from recetas.models import Receta
+            Receta.verificar_cierre_automatico()
+            
+        except Exception as e:
+            print(f"❌ Error en verificación automática: {e}")
+            # Continuar sin bloquear la respuesta
         
         queryset = Receta.objects.prefetch_related('insumos__insumo', 'insumos__unidad_medida').order_by('-creado_en')
         
+        # Verificación individual para cada receta
         for receta in queryset:
-            receta.verificar_reinicio_diario()
+            try:
+                receta.verificar_reinicio_diario()
+            except Exception as e:
+                print(f"❌ Error en verificar_reinicio_diario para {receta.nombre}: {e}")
+                continue
             
         return queryset
-
 
 class RecetaRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Receta.objects.all()
