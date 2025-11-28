@@ -14,6 +14,15 @@ from datetime import datetime, timedelta, date
 from decimal import Decimal
 import io
 from django.utils import timezone
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+import os
 
 # ==================== VISTAS PARA UNIDADES DE MEDIDA ====================
 class UnidadMedidaListAPIView(generics.ListAPIView):
@@ -787,3 +796,214 @@ def lista_compras_simple(request):
             {'error': f'Error al generar lista de compras: {str(e)}'},
             status=500
         )
+    
+class GenerarPDFReporteInsumosAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            # Obtener parámetros de filtro
+            fecha_inicio = request.GET.get('fecha_inicio')
+            fecha_fin = request.GET.get('fecha_fin')
+            proveedor_id = request.GET.get('proveedor_id')
+            
+            # Obtener datos del reporte usando la misma lógica que ReporteInsumosAPIView
+            reporte_view = ReporteInsumosAPIView()
+            response = reporte_view.get(request)
+            
+            if response.status_code != 200:
+                return response
+            
+            reporte_data = response.data
+            
+            # Crear el PDF
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=30, bottomMargin=30)
+            elements = []
+            
+            # Estilos
+            styles = getSampleStyleSheet()
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=16,
+                spaceAfter=30,
+                alignment=1,  # Centrado
+                textColor=colors.HexColor('#7B5A50')
+            )
+            
+            # Título
+            title_text = "Reporte de Insumos Utilizados"
+            if fecha_inicio and fecha_fin:
+                title_text += f" - Del {fecha_inicio} al {fecha_fin}"
+            
+            elements.append(Paragraph(title_text, title_style))
+            elements.append(Spacer(1, 20))
+            
+            # Preparar datos para la tabla
+            table_data = [['Insumo', 'Stock Usado', 'Stock Actual', 'Stock Mínimo', '¿Reponer?', 'Proveedor']]
+            
+            for item in reporte_data:
+                necesita_reposicion = "SÍ" if item['necesita_reposicion'] else "NO"
+                proveedor = item['proveedor']['nombre'] if item['proveedor'] else 'Sin proveedor'
+                
+                table_data.append([
+                    f"{item['nombre']} ({item['categoria']})",
+                    f"{item['stock_usado']:.3f} {item['unidad_medida']['abreviatura']}",
+                    f"{item['stock_actual']:.3f} {item['unidad_medida']['abreviatura']}",
+                    f"{item['stock_minimo']:.3f} {item['unidad_medida']['abreviatura']}",
+                    necesita_reposicion,
+                    proveedor
+                ])
+            
+            # Crear tabla
+            table = Table(table_data, colWidths=[2*inch, 1*inch, 1*inch, 1*inch, 0.8*inch, 1.5*inch])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#7B5A50')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ]))
+            
+            elements.append(table)
+            
+            # Construir PDF
+            doc.build(elements)
+            
+            # Preparar respuesta
+            buffer.seek(0)
+            response = HttpResponse(buffer, content_type='application/pdf')
+            
+            # Nombre del archivo
+            filename = f"reporte_insumos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            if fecha_inicio and fecha_fin:
+                filename = f"reporte_insumos_{fecha_inicio}_a_{fecha_fin}.pdf"
+            
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al generar PDF: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class GenerarPDFListaComprasAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            # Obtener parámetros de filtro
+            fecha_inicio = request.GET.get('fecha_inicio')
+            fecha_fin = request.GET.get('fecha_fin')
+            proveedor_id = request.GET.get('proveedor_id')
+            
+            # Obtener datos de lista de compras usando la misma lógica que ListaComprasAPIView
+            lista_compras_view = ListaComprasAPIView()
+            response = lista_compras_view.get(request)
+            
+            if response.status_code != 200:
+                return response
+            
+            lista_compras_data = response.data
+            
+            # Filtrar solo los que necesitan compra
+            items_comprar = [item for item in lista_compras_data if item['necesita_compra']]
+            
+            # Crear el PDF
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=30, bottomMargin=30)
+            elements = []
+            
+            # Estilos
+            styles = getSampleStyleSheet()
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=16,
+                spaceAfter=30,
+                alignment=1,
+                textColor=colors.HexColor('#7B5A50')
+            )
+            
+            # Título
+            title_text = "Lista de Compras - Próxima Semana"
+            if fecha_inicio and fecha_fin:
+                title_text += f" - Del {fecha_inicio} al {fecha_fin}"
+            
+            elements.append(Paragraph(title_text, title_style))
+            elements.append(Spacer(1, 20))
+            
+            # Preparar datos para la tabla
+            table_data = [['Insumo', 'Stock Actual', 'Stock Mínimo', 'Pedidos', 'Compra Sugerida', 'Proveedor', 'Día Compra']]
+            
+            for item in items_comprar:
+                table_data.append([
+                    f"{item['nombre']} ({item['categoria']})",
+                    f"{item['stock_actual']:.3f} {item['unidad_medida']['abreviatura']}",
+                    f"{item['stock_minimo']:.3f} {item['unidad_medida']['abreviatura']}",
+                    f"{item['pedidos']:.3f} {item['unidad_medida']['abreviatura']}",
+                    f"{item['total_comprar']:.3f} {item['unidad_medida']['abreviatura']}",
+                    item['proveedor']['nombre'] if item['proveedor'] else 'Sin proveedor',
+                    item['dia_compra']
+                ])
+            
+            # Crear tabla
+            table = Table(table_data, colWidths=[1.8*inch, 0.9*inch, 0.9*inch, 0.9*inch, 1.1*inch, 1.2*inch, 0.8*inch])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#28a745')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#d4edda')),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ]))
+            
+            elements.append(table)
+            
+            # Agregar resumen
+            elements.append(Spacer(1, 20))
+            total_insumos = len(items_comprar)
+            resumen_text = f"Total de insumos a comprar: {total_insumos}"
+            resumen_style = ParagraphStyle(
+                'Resumen',
+                parent=styles['Normal'],
+                fontSize=10,
+                alignment=1,
+                textColor=colors.HexColor('#28a745'),
+                spaceBefore=10
+            )
+            elements.append(Paragraph(resumen_text, resumen_style))
+            
+            # Construir PDF
+            doc.build(elements)
+            
+            # Preparar respuesta
+            buffer.seek(0)
+            response = HttpResponse(buffer, content_type='application/pdf')
+            
+            # Nombre del archivo
+            filename = f"lista_compras_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            if fecha_inicio and fecha_fin:
+                filename = f"lista_compras_{fecha_inicio}_a_{fecha_fin}.pdf"
+            
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al generar PDF: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
