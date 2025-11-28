@@ -36,6 +36,10 @@ class RecetaListCreateAPIView(generics.ListCreateAPIView):
         instance.refresh_from_db()
     
     def get_queryset(self):
+        # VERIFICAR CIERRE AUTOMÁTICO ANTES DE DEVOLVER LAS RECETAS
+        from recetas.models import Receta
+        Receta.verificar_cierre_automatico()
+        
         queryset = Receta.objects.prefetch_related('insumos__insumo', 'insumos__unidad_medida').order_by('-creado_en')
         
         for receta in queryset:
@@ -545,7 +549,7 @@ class GenerarPDFRecetasView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 # -------------------------
-# 🔹 Cierre Diario - VERSIÓN CORREGIDA
+# 🔹 Cierre Diario 
 # -------------------------
 class CierreDiarioView(APIView):
     permission_classes = [permissions.IsAuthenticated]

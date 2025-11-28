@@ -233,6 +233,39 @@ def realizar_cierre_diario(self):
     
     return True
 
+@classmethod
+def verificar_cierre_automatico(cls):
+    """Verifica y ejecuta cierre automático si es un nuevo día en Argentina"""
+    from django.utils import timezone
+    import pytz
+    
+    # Obtener hora actual en Argentina
+    tz_argentina = pytz.timezone('America/Argentina/Buenos_Aires')
+    ahora_argentina = timezone.now().astimezone(tz_argentina)
+    
+    # Verificar si es después de las 00:00
+    if ahora_argentina.hour == 0 and ahora_argentina.minute < 5:  # Ejecutar en los primeros 5 minutos
+        hoy_argentina = ahora_argentina.date()
+        
+        # Buscar recetas que no se hayan actualizado hoy
+        recetas_sin_actualizar = cls.objects.filter(
+            ultima_actualizacion_diaria__lt=hoy_argentina,
+            veces_hecha_hoy__gt=0
+        )
+        
+        if recetas_sin_actualizar.exists():
+            print(f"🔹 Ejecutando cierre automático para {hoy_argentina}")
+            recetas_procesadas = []
+            
+            for receta in recetas_sin_actualizar:
+                if receta.realizar_cierre_diario():
+                    recetas_procesadas.append(receta.nombre)
+            
+            print(f"🔹 Cierre automático completado: {len(recetas_procesadas)} recetas")
+            return len(recetas_procesadas)
+    
+    return 0
+
 # Método estático para realizar cierre de todas las recetas
 @classmethod
 def cierre_diario_general(cls):

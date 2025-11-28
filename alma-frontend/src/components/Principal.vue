@@ -297,6 +297,9 @@
                     </span>
                   </button>
                 </div>
+                <div class="cierre-info" v-if="ultimoCierre">
+                  <small>Último cierre: {{ formatFecha(ultimoCierre) }}</small>
+                </div>
                 <form autocomplete="off" class="search-form">
                   <input
                     autocomplete="off"
@@ -551,6 +554,7 @@ const recetas = ref([]);
 const searchTerm = ref("");
 const paginaActualRecetas = ref(1);
 const itemsPorPaginaRecetas = 8;
+const ultimoCierre = ref(null);
 
 const filteredRecetas = computed(() => {
   if (!searchTerm.value) return recetas.value;
@@ -616,6 +620,21 @@ const singularizeUnidad = (rinde, unidad) => {
     if (unidad === "porciones") return "porción";
   }
   return unidad;
+};
+
+const obtenerInfoCierre = async () => {
+  try {
+    // Puedes crear un endpoint para esto o usar la fecha de la última receta actualizada
+    if (recetas.value.length > 0) {
+      const fechas = recetas.value.map(
+        (r) => new Date(r.ultima_actualizacion_diaria)
+      );
+      const fechaMasReciente = new Date(Math.max(...fechas));
+      ultimoCierre.value = fechaMasReciente;
+    }
+  } catch (error) {
+    console.error("Error obteniendo info de cierre:", error);
+  }
 };
 
 // ---------------------- PEDIDOS ----------------------
@@ -1144,19 +1163,27 @@ const formatFecha = (fecha) => {
   });
 };
 
-// ---------------------- MONTAGE INICIAL ----------------------
+// ---------------------- MONTAJE INICIAL ----------------------
 onMounted(() => {
   if (!localStorage.getItem("access_token")) {
     router.push("/login");
     return;
   }
 
-  Promise.all([fetchStock(), fetchRecetas(), fetchPedidos()]).catch((error) => {
-    console.error("Error cargando datos:", error);
-    if (error.response?.status === 401) {
-      router.push("/login");
-    }
-  });
+  Promise.all([fetchStock(), fetchRecetas(), fetchPedidos()])
+    .then(() => {
+      obtenerInfoCierre();
+      console.log(
+        "🔹 Datos cargados - Total recetas hoy:",
+        totalRecetasHoy.value
+      );
+    })
+    .catch((error) => {
+      console.error("Error cargando datos:", error);
+      if (error.response?.status === 401) {
+        router.push("/login");
+      }
+    });
 });
 </script>
 
@@ -2240,6 +2267,17 @@ onMounted(() => {
 /* Animación de entrada del modal */
 .modal-overlay {
   animation: fadeIn 0.3s ease;
+}
+
+.cierre-info {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #e8f5e8;
+  border: 1px solid #c3e6cb;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: #155724;
+  text-align: center;
 }
 
 @keyframes fadeIn {
