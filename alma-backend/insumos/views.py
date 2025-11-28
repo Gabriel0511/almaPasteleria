@@ -559,15 +559,10 @@ class ListaComprasAPIView(APIView):
                 # Calcular pedidos para el período seleccionado
                 pedidos_periodo = self.calcular_pedidos_periodo(insumo, fecha_inicio_dt, fecha_fin_dt)
                 
-                # Calcular cantidad total a comprar
-                # (Stock mínimo - Stock actual) + Pedidos del período
                 stock_minimo = insumo.stock_minimo
                 stock_actual = insumo.stock_actual
                 total_comprar = max(Decimal('0.0'), (stock_minimo - stock_actual) + pedidos_periodo)
-                
-                # Determinar día de compra según el proveedor
-                dia_compra = self.determinar_dia_compra(insumo.proveedor)
-                
+                        
                 lista_compras_data.append({
                     'id': insumo.id,
                     'nombre': insumo.nombre,
@@ -583,7 +578,6 @@ class ListaComprasAPIView(APIView):
                         'id': insumo.proveedor.id if insumo.proveedor else None,
                         'nombre': insumo.proveedor.nombre if insumo.proveedor else 'Sin proveedor'
                     } if insumo.proveedor else None,
-                    'dia_compra': dia_compra,
                     'necesita_compra': total_comprar > 0
                 })
             
@@ -663,34 +657,6 @@ class ListaComprasAPIView(APIView):
             print(f"Error calculando pedidos para período: {e}")
             # En caso de error, usar una estimación conservadora
             return insumo.stock_minimo * Decimal('0.2')  # 20% del stock mínimo
-    
-    def determinar_dia_compra(self, proveedor):
-        """
-        Determina el día de compra según el proveedor
-        """
-        if not proveedor:
-            return "Sin asignar"
-        
-        proveedor_nombre = proveedor.nombre.lower()
-        
-        # Lunes - Verdulería: frutas y verduras
-        if any(palabra in proveedor_nombre for palabra in ['verduleria', 'fruta', 'verdura', 'fruteria']):
-            return "Lunes"
-        
-        # Martes - Tregar: crema, manteca, yogures
-        elif 'tregar' in proveedor_nombre:
-            return "Martes"
-        
-        # Jueves - La Serenísima: leche entera, leche de almendras, ricota, crema, queso Finlandia
-        elif any(palabra in proveedor_nombre for palabra in ['serenisima', 'lacteo', 'leche', 'lácteo', 'queso', 'ricota', 'crema']):
-            return "Jueves"
-        
-        # Viernes - Alcom: chocolate, harina, azúcar, garbanzos, granola
-        elif any(palabra in proveedor_nombre for palabra in ['alcom', 'almacen', 'harina', 'azucar', 'azúcar', 'chocolate', 'garbanzo', 'granola']):
-            return "Viernes"
-        
-        else:
-            return "Sin asignar"
 
 class InsumoReactivarAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -757,19 +723,6 @@ def lista_compras_simple(request):
             stock_actual = insumo.stock_actual
             total_comprar = max(Decimal('0.0'), (stock_minimo - stock_actual) + pedidos_proxima_semana)
             
-            # Determinar día de compra
-            dia_compra = "Sin asignar"
-            if insumo.proveedor:
-                proveedor_nombre = insumo.proveedor.nombre.lower()
-                if any(palabra in proveedor_nombre for palabra in ['verduleria', 'fruta', 'verdura']):
-                    dia_compra = "Lunes"
-                elif 'tregar' in proveedor_nombre:
-                    dia_compra = "Martes"
-                elif any(palabra in proveedor_nombre for palabra in ['serenisima', 'lacteo', 'leche']):
-                    dia_compra = "Jueves"
-                elif any(palabra in proveedor_nombre for palabra in ['alcom', 'almacen', 'harina', 'azucar']):
-                    dia_compra = "Viernes"
-            
             lista_compras_data.append({
                 'id': insumo.id,
                 'nombre': insumo.nombre,
@@ -785,7 +738,7 @@ def lista_compras_simple(request):
                     'id': insumo.proveedor.id if insumo.proveedor else None,
                     'nombre': insumo.proveedor.nombre if insumo.proveedor else 'Sin proveedor'
                 },
-                'dia_compra': dia_compra,
+                # ELIMINADO: 'dia_compra': dia_compra,
                 'necesita_compra': total_comprar > 0
             })
         
@@ -941,8 +894,8 @@ class GenerarPDFListaComprasAPIView(APIView):
             elements.append(Paragraph(title_text, title_style))
             elements.append(Spacer(1, 20))
             
-            # Preparar datos para la tabla
-            table_data = [['Insumo', 'Stock Actual', 'Stock Mínimo', 'Pedidos', 'Compra Sugerida', 'Proveedor', 'Día Compra']]
+            # Preparar datos para la tabla - SIN DÍA COMPRA
+            table_data = [['Insumo', 'Stock Actual', 'Stock Mínimo', 'Pedidos', 'Compra Sugerida', 'Proveedor']]
             
             for item in items_comprar:
                 table_data.append([
@@ -951,12 +904,11 @@ class GenerarPDFListaComprasAPIView(APIView):
                     f"{item['stock_minimo']:.3f} {item['unidad_medida']['abreviatura']}",
                     f"{item['pedidos']:.3f} {item['unidad_medida']['abreviatura']}",
                     f"{item['total_comprar']:.3f} {item['unidad_medida']['abreviatura']}",
-                    item['proveedor']['nombre'] if item['proveedor'] else 'Sin proveedor',
-                    item['dia_compra']
+                    item['proveedor']['nombre'] if item['proveedor'] else 'Sin proveedor'
                 ])
             
-            # Crear tabla
-            table = Table(table_data, colWidths=[1.8*inch, 0.9*inch, 0.9*inch, 0.9*inch, 1.1*inch, 1.2*inch, 0.8*inch])
+            # Crear tabla - AJUSTAR ANCHOS DE COLUMNAS SIN DÍA COMPRA
+            table = Table(table_data, colWidths=[2.2*inch, 1*inch, 1*inch, 1*inch, 1.2*inch, 1.5*inch])
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#28a745')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
