@@ -26,21 +26,30 @@ class PasswordResetRequestView(APIView):
         email = request.data.get('email')
         phone = request.data.get('phone')  # Formato: 5491123456789 (sin +)
         
-        if not User.objects.filter(email=email).exists():
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
             return Response(
                 {'error': 'Email no registrado'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
+        
         # Generar código
         reset_code = str(random.randint(100000, 999999))
         cache.set(f'reset_{email}', reset_code, timeout=900)
 
-        # Enviar WhatsApp directamente
+        # ✅ SOLUCIÓN: Solo devolver la URL, NO abrir WhatsApp
         whatsapp_url = f"https://wa.me/{phone}?text=Tu%20código%20es:%20{reset_code}"
-        webbrowser.open(whatsapp_url)  
-
-        return Response({'detail': 'Revisa tu WhatsApp'}, status=200)
+        
+        
+        # ✅ En desarrollo, puedes loguear la URL
+        print(f"[DEV] WhatsApp URL: {whatsapp_url}")
+        
+        return Response({
+            'detail': 'Código generado. Abre WhatsApp manualmente.',
+            'whatsapp_url': whatsapp_url,  # ✅ Devuelve la URL
+            'code': reset_code  # ✅ Solo para desarrollo, quitar en producción
+        }, status=200)
 
 class VerifyResetCodeView(APIView):
     permission_classes = [AllowAny]

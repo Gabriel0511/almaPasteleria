@@ -209,14 +209,35 @@ const sendWhatsAppCode = async () => {
     return;
   }
 
+  const phoneRegex = /^[0-9]{10,15}$/;
+  if (!phoneRegex.test(whatsappNumber.value.replace(/\D/g, ""))) {
+    errorMessage.value = "Por favor ingresa un número válido (solo números)";
+    return;
+  }
+
   try {
     const response = await axios.post("/api/auth/password-reset/", {
       email: recoveryEmail.value,
       phone: whatsappNumber.value,
     });
+
     codeSent.value = true;
     errorMessage.value = "";
-    console.log("En desarrollo:", response.data.whatsapp_url);
+
+    // ✅ Abrir WhatsApp solo si estamos en el navegador
+    if (response.data.whatsapp_url) {
+      console.log("URL de WhatsApp:", response.data.whatsapp_url);
+      // Descomenta esto para abrir automáticamente:
+      // window.open(response.data.whatsapp_url, '_blank');
+
+      // Para desarrollo, muestra el código en consola
+      if (response.data.code) {
+        console.log(
+          "🔑 Código de recuperación (solo desarrollo):",
+          response.data.code
+        );
+      }
+    }
   } catch (error) {
     errorMessage.value =
       error.response?.data?.error || "Error al enviar código";
