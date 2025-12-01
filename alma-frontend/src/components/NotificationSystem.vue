@@ -68,6 +68,7 @@ const showNotification = (notificationData) => {
     title: notificationData.title,
     message: notificationData.message,
     insuficientes: notificationData.insuficientes || [],
+    insumos_devueltos: notificationData.insumos_devueltos || [],
     icon: getIconForType(notificationData.type),
     timeout: notificationData.timeout || 5000,
   };
