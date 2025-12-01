@@ -396,8 +396,8 @@ const cargarNotificacionesRecetas = async () => {
       .map((receta) => ({
         id: `receta-no-rentable-${receta.id}`,
         type: "warning",
-        title: "Receta No Rentable",
-        message: `${receta.nombre} no es rentable (Costo: $${receta.costo_total} > Venta: $${receta.precio_venta})`,
+        title: `${receta.nombre} NO es rentable.`,
+        message: `Perdida de: $${receta.costo_total - receta.precio_venta}`,
         timestamp: new Date(),
         read: false,
         receta: receta,
