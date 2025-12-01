@@ -36,13 +36,6 @@
       <div v-if="showNotfMenu" class="dropdown-menu notification-menu">
         <div class="notification-header">
           <h3>Notificaciones</h3>
-          <button
-            v-if="unreadNotifications > 0"
-            @click="marcarTodasComoLeidas"
-            class="btn-marcar-todas"
-          >
-            Marcar todas como leídas
-          </button>
         </div>
 
         <div
@@ -98,13 +91,6 @@
               </div>
             </div>
 
-            <button
-              @click.stop="notification.read = true"
-              class="btn-mark-read"
-              title="Marcar como leída"
-            >
-              <i class="fas fa-check"></i>
-            </button>
           </div>
         </div>
       </div>
@@ -465,8 +451,6 @@ const cargarTodasLasNotificaciones = async () => {
 
 // AGREGAR: Método para manejar clic en notificación
 const handleNotificationClick = (notification) => {
-  // Marcar como leída
-  notification.read = true;
 
   // Navegar según el tipo
   if (notification.item) {
@@ -480,12 +464,6 @@ const handleNotificationClick = (notification) => {
   showNotfMenu.value = false;
 };
 
-// AGREGAR: Método para marcar todas como leídas
-const marcarTodasComoLeidas = () => {
-  todasLasNotificaciones.value.forEach((notif) => {
-    notif.read = true;
-  });
-};
 
 // AGREGAR watcher para recargar notificaciones al cambiar de ruta
 watch(
@@ -507,7 +485,7 @@ defineExpose({
 });
 // Utilidades
 const formatTime = (timestamp) => {
-  return new Date(timestamp).toLocaleTimeString();
+  return ""; 
 };
 
 const resetPasswordForm = () => {
@@ -977,19 +955,6 @@ onUnmounted(() => {
   color: var(--color-primary);
 }
 
-.btn-marcar-todas {
-  background: none;
-  border: none;
-  color: var(--color-primary);
-  cursor: pointer;
-  font-size: 0.8rem;
-  text-decoration: underline;
-}
-
-.btn-marcar-todas:hover {
-  color: #8b6b61;
-}
-
 /* Ícono de notificación */
 .notification-icon {
   margin-right: 12px;
@@ -1055,26 +1020,6 @@ onUnmounted(() => {
 
 .btn-action-small:hover {
   background: #8b6b61;
-}
-
-/* Botón marcar como leída */
-.btn-mark-read {
-  background: none;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 4px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  margin-left: 10px;
-}
-
-.notification-item:hover .btn-mark-read {
-  opacity: 1;
-}
-
-.btn-mark-read:hover {
-  color: var(--color-success);
 }
 
 /* Estados de notificación */
