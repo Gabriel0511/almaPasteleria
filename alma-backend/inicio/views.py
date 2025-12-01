@@ -1,13 +1,10 @@
+from django.conf import settings
 from django.http import JsonResponse
 from django.contrib.auth import update_session_auth_hash, get_user_model
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.cache import cache
-from django.core.mail import send_mail
 from django.template.loader import render_to_string
-from django.utils.html import strip_tags
-from django.conf import settings
 from django.utils import timezone
-
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -17,139 +14,134 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
 from .serializers import UsuarioSerializer, LoginSerializer
-
-import random, string, hashlib, time
+import resend
+import random
 from django.contrib.auth.hashers import make_password
+from django.core.cache import cache
+import logging
+
+logger = logging.getLogger(__name__)
+
 User = get_user_model()
 
-# ================================
-# 🔹 Reset de contraseña por WhatsApp
-# ================================
-# ================================
-# 🔹 Helper Functions
-# ================================
-def generate_secure_code():
-    """Genera un código seguro de 8 caracteres"""
-    # 6 dígitos + 2 letras para mayor seguridad
-    digits = ''.join(random.choices(string.digits, k=6))
-    letters = ''.join(random.choices(string.ascii_uppercase, k=2))
-    code = digits + letters
-    # Mezclar
-    code_list = list(code)
-    random.shuffle(code_list)
-    return ''.join(code_list)
+# Configurar Resend
+resend.api_key = settings.RESEND_API_KEY
 
 def send_reset_email(email, reset_code):
-    """Envía el email con el código de recuperación"""
+    """Enviar email usando Resend API"""
     try:
-        context = {
-            'reset_code': reset_code,
-            'year': timezone.now().year,
+        # Crear contenido HTML y texto plano
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Código de recuperación</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #8d6e69;">🔐 Recuperación de Contraseña</h2>
+                <p>Hola,</p>
+                <p>Has solicitado restablecer tu contraseña en <strong>Alma Pastelería</strong>.</p>
+                <div style="background-color: #f4f4f4; padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0;">
+                    <p style="font-size: 14px; color: #666;">Tu código de verificación es:</p>
+                    <h1 style="font-size: 32px; letter-spacing: 5px; color: #8d6e69; margin: 10px 0;">{reset_code}</h1>
+                    <p style="font-size: 12px; color: #999;">Este código expira en 15 minutos</p>
+                </div>
+                <p>Si no solicitaste este cambio, por favor ignora este mensaje.</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="font-size: 12px; color: #999;">© {timezone.now().year} Alma Pastelería. Todos los derechos reservados.</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        text_content = f"""
+        Recuperación de Contraseña - Alma Pastelería
+        
+        Tu código de verificación es: {reset_code}
+        
+        Este código expira en 15 minutos.
+        
+        Si no solicitaste este cambio, por favor ignora este mensaje.
+        
+        © {timezone.now().year} Alma Pastelería
+        """
+
+        # Enviar email con Resend
+        params = {
+            "from": settings.DEFAULT_FROM_EMAIL,
+            "to": email,
+            "subject": "🔐 Código de Recuperación - Alma Pastelería",
+            "html": html_content,
+            "text": text_content,
         }
-        
-        # Renderizar templates
-        html_message = render_to_string('emails/password_reset.html', context)
-        plain_message = render_to_string('emails/password_reset.txt', context)
-        
-        # Enviar email
-        send_mail(
-            subject='🔐 Restablecer Contraseña - Alma Pastelería',
-            message=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            html_message=html_message,
-            fail_silently=False,
-        )
-        
+
+        email_response = resend.Emails.send(params)
+        logger.info(f"Email enviado a {email}: {email_response}")
         return True
         
     except Exception as e:
-        print(f"Error enviando email: {str(e)}")
+        logger.error(f"Error enviando email con Resend: {str(e)}")
         return False
 
 # ================================
-# 🔹 Recuperación por Email
+# 🔹 Reset de contraseña por EMAIL
 # ================================
 class PasswordResetRequestView(APIView):
-    """
-    Solicitar restablecimiento de contraseña por email
-    """
     permission_classes = [AllowAny]
 
     def post(self, request):
-        email = request.data.get('email', '').strip().lower()
+        email = request.data.get('email')
         
         if not email:
             return Response(
-                {'error': 'El email es requerido'},
+                {'error': 'Email es requerido'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Verificar que el email existe (pero no revelar si no existe por seguridad)
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            # Por seguridad, siempre devolvemos éxito aunque el email no exista
-            return Response({
-                'detail': 'Si el email existe en nuestro sistema, recibirás un código de recuperación.'
-            }, status=status.HTTP_200_OK)
+            # Por seguridad, no revelamos si el email existe o no
+            return Response(
+                {'detail': 'Si el email está registrado, recibirás un código de recuperación.'},
+                status=status.HTTP_200_OK
+            )
+
+        # Generar código de 6 dígitos
+        reset_code = str(random.randint(100000, 999999))
         
-        # Verificar si ya hay un código activo (rate limiting)
-        last_request = cache.get(f'reset_cooldown_{email}')
-        if last_request:
-            remaining = 60 - (time.time() - last_request)
-            if remaining > 0:
-                return Response({
-                    'error': f'Espera {int(remaining)} segundos antes de solicitar otro código'
-                }, status=status.HTTP_429_TOO_MANY_REQUESTS)
-        
-        # Generar código seguro
-        reset_code = generate_secure_code()
-        
-        # Guardar en caché con timestamp y metadata
+        # Guardar en cache con email como clave
+        cache_key = f'password_reset_{email}'
         cache_data = {
             'code': reset_code,
-            'email': email,
-            'created_at': time.time(),
-            'attempts': 0,  # Contador de intentos fallidos
+            'attempts': 3,  # 3 intentos máximo
             'verified': False
         }
-        
-        # Guardar código por 15 minutos (900 segundos)
-        cache.set(f'password_reset_{email}', cache_data, timeout=900)
-        
-        # Guardar timestamp para rate limiting (60 segundos)
-        cache.set(f'reset_cooldown_{email}', time.time(), timeout=60)
-        
-        # Enviar email
+        cache.set(cache_key, cache_data, timeout=900)  # 15 minutos
+
+        # Enviar email usando Resend
         email_sent = send_reset_email(email, reset_code)
         
         if not email_sent:
-            return Response({
-                'error': 'Error al enviar el email de recuperación'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        # Registrar en logs (solo en desarrollo)
-        if settings.DEBUG:
-            print(f"[DEV] Código de recuperación para {email}: {reset_code}")
-        
+            return Response(
+                {'error': 'Error al enviar el email. Por favor intenta más tarde.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
         return Response({
-            'detail': 'Código de recuperación enviado por email',
-            'email': email,
-            'expires_in': 900,  # segundos
-            'cooldown': 60  # segundos para próximo envío
+            'detail': 'Código enviado. Revisa tu email (y spam).',
+            'email': email
         }, status=status.HTTP_200_OK)
 
 
 class VerifyResetCodeView(APIView):
-    """
-    Verificar el código de recuperación
-    """
     permission_classes = [AllowAny]
 
     def post(self, request):
-        email = request.data.get('email', '').strip().lower()
-        code = request.data.get('code', '').strip().upper()
+        email = request.data.get('email')
+        code = request.data.get('code')
         
         if not email or not code:
             return Response(
@@ -157,98 +149,80 @@ class VerifyResetCodeView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Obtener datos de caché
-        cache_data = cache.get(f'password_reset_{email}')
+        cache_key = f'password_reset_{email}'
+        cached_data = cache.get(cache_key)
         
-        if not cache_data:
+        if not cached_data:
             return Response(
-                {'error': 'Código expirado o no solicitado. Solicita un nuevo código.'},
+                {'error': 'Código expirado o no solicitado'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Incrementar contador de intentos
-        cache_data['attempts'] += 1
-        
-        # Verificar intentos máximos (3 intentos)
-        if cache_data['attempts'] > 3:
-            cache.delete(f'password_reset_{email}')
+        # Verificar intentos
+        if cached_data['attempts'] <= 0:
+            cache.delete(cache_key)
             return Response(
                 {'error': 'Demasiados intentos fallidos. Solicita un nuevo código.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         # Verificar código
-        if cache_data['code'] != code:
-            # Guardar intento fallido
-            cache.set(f'password_reset_{email}', cache_data, timeout=900)
-            remaining_attempts = 3 - cache_data['attempts']
+        if cached_data['code'] != code:
+            cached_data['attempts'] -= 1
+            cache.set(cache_key, cached_data, timeout=900)
             
             return Response({
-                'error': f'Código incorrecto. Te quedan {remaining_attempts} intentos.',
-                'attempts': cache_data['attempts'],
-                'remaining_attempts': remaining_attempts
+                'error': 'Código incorrecto',
+                'remaining_attempts': cached_data['attempts']
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Marcar como verificado
-        cache_data['verified'] = True
-        cache_data['verified_at'] = time.time()
-        cache.set(f'password_reset_{email}', cache_data, timeout=600)  # 10 minutos para cambiar contraseña
+        # Código correcto
+        cached_data['verified'] = True
+        cache.set(cache_key, cached_data, timeout=600)  # 10 minutos para cambiar contraseña
         
-        # Generar token único para cambio de contraseña
-        verification_token = hashlib.sha256(f"{email}{code}{time.time()}".encode()).hexdigest()[:32]
-        cache.set(f'reset_token_{verification_token}', email, timeout=600)
+        # Generar token JWT temporal
+        user = User.objects.get(email=email)
+        refresh = RefreshToken.for_user(user)
         
         return Response({
             'detail': 'Código verificado correctamente',
             'email': email,
-            'token': verification_token,  # Token para el siguiente paso
-            'expires_in': 600  # 10 minutos para cambiar contraseña
+            'token': str(refresh.access_token)  # Token temporal para reset
         }, status=status.HTTP_200_OK)
 
 
 class ResetPasswordView(APIView):
-    """
-    Cambiar la contraseña después de verificación
-    """
     permission_classes = [AllowAny]
 
     def post(self, request):
-        email = request.data.get('email', '').strip().lower()
-        token = request.data.get('token')
+        email = request.data.get('email')
         new_password = request.data.get('new_password')
+        token = request.data.get('token')
         
-        # Validaciones básicas
+        # Verificar que todos los campos están presentes
         if not email or not new_password:
             return Response(
                 {'error': 'Email y nueva contraseña son requeridos'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Verificar token (si se proporciona)
-        if token:
-            cached_email = cache.get(f'reset_token_{token}')
-            if not cached_email or cached_email != email:
-                return Response(
-                    {'error': 'Token inválido o expirado'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-        else:
-            # Verificación alternativa con código en caché
-            cache_data = cache.get(f'password_reset_{email}')
-            if not cache_data or not cache_data.get('verified'):
-                return Response(
-                    {'error': 'Debes verificar el código primero'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-        
-        # Validar fortaleza de contraseña
+        # Verificar longitud mínima de contraseña
         if len(new_password) < 8:
             return Response(
                 {'error': 'La contraseña debe tener al menos 8 caracteres'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Verificar que el usuario existe
+        # Verificar cache para email verificado
+        cache_key = f'password_reset_{email}'
+        cached_data = cache.get(cache_key)
+        
+        if not cached_data or not cached_data.get('verified'):
+            return Response(
+                {'error': 'Verificación requerida. Solicita un nuevo código.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
@@ -261,27 +235,18 @@ class ResetPasswordView(APIView):
         user.set_password(new_password)
         user.save()
         
-        # Limpiar caché
-        cache.delete(f'password_reset_{email}')
-        if token:
-            cache.delete(f'reset_token_{token}')
-        cache.delete(f'reset_cooldown_{email}')
+        # Limpiar cache
+        cache.delete(cache_key)
         
-        # Enviar email de confirmación
-        try:
-            send_mail(
-                subject='✅ Contraseña Actualizada - Alma Pastelería',
-                message=f'Hola,\n\nTu contraseña en Alma Pastelería ha sido actualizada exitosamente.\n\nSi no realizaste este cambio, contacta a soporte inmediatamente.\n\nSaludos,\nEquipo Alma Pastelería',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-            )
-        except:
-            pass  # No crítico si falla el email de confirmación
+        # Invalidar tokens existentes (opcional, mejora seguridad)
+        from rest_framework_simplejwt.tokens import RefreshToken
+        RefreshToken.for_user(user)
         
         return Response(
-            {'detail': 'Contraseña actualizada correctamente. Ya puedes iniciar sesión.'},
+            {'detail': 'Contraseña actualizada exitosamente'},
             status=status.HTTP_200_OK
         )
+
 
 
 # ================================

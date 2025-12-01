@@ -183,7 +183,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, computed } from "vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
 
@@ -273,13 +273,13 @@ const handleKeydown = (event) => {
 };
 
 // Métodos
-const formatCode = () => {
+formatCode = () => {
   // Convertir a mayúsculas
   recoveryCode.value = recoveryCode.value.toUpperCase();
 
-  // Limitar a 8 caracteres
-  if (recoveryCode.value.length > 8) {
-    recoveryCode.value = recoveryCode.value.substring(0, 8);
+  // Limitar a 6 caracteres (cambiar de 8 a 6)
+  if (recoveryCode.value.length > 6) {
+    recoveryCode.value = recoveryCode.value.substring(0, 6);
   }
 };
 
@@ -326,8 +326,8 @@ const sendResetCode = async () => {
 };
 
 const verifyCode = async () => {
-  if (!recoveryCode.value || recoveryCode.value.length !== 8) {
-    errorMessage.value = "Por favor ingresa un código válido de 8 dígitos";
+  if (!recoveryCode.value || recoveryCode.value.length !== 6) {
+    errorMessage.value = "Por favor ingresa un código válido de 6 dígitos";
     return;
   }
 
