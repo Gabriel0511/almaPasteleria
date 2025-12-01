@@ -273,7 +273,7 @@ const handleKeydown = (event) => {
 };
 
 // Métodos
-formatCode = () => {
+const formatCode = () => {
   // Convertir a mayúsculas
   recoveryCode.value = recoveryCode.value.toUpperCase();
 
