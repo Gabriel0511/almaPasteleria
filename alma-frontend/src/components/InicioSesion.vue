@@ -56,7 +56,7 @@
     </div>
   </div>
 
-  <!-- Modal de recuperación -->
+  <!-- Modal de recuperación actualizado -->
   <div
     v-if="showRecoveryModal"
     class="modal-overlay"
@@ -73,38 +73,66 @@
 
       <h3 class="modal-title">Recuperar Contraseña</h3>
 
-      <div v-if="!codeSent" class="modal-step">
+      <div v-if="recoveryStep === 'request'" class="modal-step">
+        <p class="modal-text">
+          Ingresa tu email y te enviaremos un código de recuperación.
+        </p>
         <input
           v-model="recoveryEmail"
           type="email"
           placeholder="Tu email"
           class="modal-input"
+          :disabled="isSendingCode"
         />
-        <input
-          v-model="whatsappNumber"
-          type="tel"
-          placeholder="Número de celular (sin 0 ni 15)"
-          class="modal-input"
-        />
-        <button @click="sendWhatsAppCode" class="modal-button">
-          Enviar Código
+        <button
+          @click="sendResetCode"
+          class="modal-button"
+          :disabled="isSendingCode"
+        >
+          <span v-if="isSendingCode">Enviando...</span>
+          <span v-else>Enviar Código</span>
         </button>
+        <p v-if="cooldown > 0" class="cooldown-text">
+          ⏳ Espera {{ cooldown }} segundos para solicitar otro código
+        </p>
       </div>
 
-      <div v-else-if="!verifiedCode" class="modal-step">
+      <div v-else-if="recoveryStep === 'verify'" class="modal-step">
         <p class="modal-text">
-          Ingresa el código de 6 dígitos enviado por WhatsApp
+          Ingresa el código de 8 dígitos que recibiste por email.
+          <br /><small>Revisa también tu carpeta de spam.</small>
         </p>
         <input
           v-model="recoveryCode"
-          maxlength="6"
+          maxlength="8"
           class="modal-input code-input"
-          placeholder="000000"
+          placeholder="XXXXXX"
+          :disabled="isVerifying"
+          @input="formatCode"
         />
-        <button @click="verifyCode" class="modal-button">Verificar</button>
+        <p v-if="remainingAttempts !== null" class="attempts-text">
+          Intentos restantes: {{ remainingAttempts }}
+        </p>
+        <button
+          @click="verifyCode"
+          class="modal-button"
+          :disabled="isVerifying"
+        >
+          <span v-if="isVerifying">Verificando...</span>
+          <span v-else>Verificar Código</span>
+        </button>
+        <button
+          @click="recoveryStep = 'request'"
+          class="modal-button secondary"
+        >
+          Solicitar nuevo código
+        </button>
       </div>
 
-      <div v-else class="modal-step">
+      <div v-else-if="recoveryStep === 'reset'" class="modal-step">
+        <p class="modal-text">
+          Crea tu nueva contraseña (mínimo 8 caracteres).
+        </p>
         <div class="password-input-container">
           <input
             :type="showNewPassword ? 'text' : 'password'"
@@ -116,15 +144,38 @@
             type="button"
             class="toggle-password"
             @click="toggleNewPasswordVisibility"
-            :aria-label="
-              showNewPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
-            "
           >
             <span class="eye-icon">{{ showNewPassword ? "🙈" : "👁️" }}</span>
           </button>
         </div>
-        <button @click="resetPassword" class="modal-button">
-          Cambiar Contraseña
+
+        <div class="password-strength" v-if="newPassword">
+          <div class="strength-bar" :class="passwordStrengthClass"></div>
+          <p class="strength-text">Fortaleza: {{ passwordStrengthText }}</p>
+        </div>
+
+        <button
+          @click="resetPassword"
+          class="modal-button"
+          :disabled="isResetting"
+        >
+          <span v-if="isResetting">Cambiando...</span>
+          <span v-else>Cambiar Contraseña</span>
+        </button>
+      </div>
+
+      <div
+        v-else-if="recoveryStep === 'success'"
+        class="modal-step success-step"
+      >
+        <div class="success-icon">✅</div>
+        <h4 class="success-title">¡Contraseña Cambiada!</h4>
+        <p class="success-text">
+          Tu contraseña ha sido actualizada exitosamente.
+          <br />Ya puedes iniciar sesión con tu nueva contraseña.
+        </p>
+        <button @click="toggleRecoveryModal" class="modal-button">
+          Cerrar
         </button>
       </div>
     </div>
@@ -144,13 +195,17 @@ const showRecoveryModal = ref(false);
 const showPassword = ref(false);
 const showNewPassword = ref(false);
 
-// Variables para recuperación
+// Variables específicas para recuperación por email
 const recoveryEmail = ref("");
-const whatsappNumber = ref("");
 const recoveryCode = ref("");
 const newPassword = ref("");
-const codeSent = ref(false);
-const verifiedCode = ref(false);
+const recoveryStep = ref("request"); // 'request', 'verify', 'reset', 'success'
+const isSendingCode = ref(false);
+const isVerifying = ref(false);
+const isResetting = ref(false);
+const cooldown = ref(0);
+const remainingAttempts = ref(null);
+const verificationToken = ref("");
 
 const handleSubmit = async () => {
   try {
@@ -185,8 +240,22 @@ const toggleNewPasswordVisibility = () => {
 const toggleRecoveryModal = () => {
   showRecoveryModal.value = !showRecoveryModal.value;
   if (!showRecoveryModal.value) {
-    resetForm();
+    resetRecoveryForm();
   }
+};
+
+const resetRecoveryForm = () => {
+  recoveryEmail.value = "";
+  recoveryCode.value = "";
+  newPassword.value = "";
+  verificationToken.value = "";
+  recoveryStep.value = "request";
+  isSendingCode.value = false;
+  isVerifying.value = false;
+  isResetting.value = false;
+  cooldown.value = 0;
+  remainingAttempts.value = null;
+  errorMessage.value = "";
 };
 
 // Función para cerrar el modal al hacer clic fuera
@@ -203,81 +272,109 @@ const handleKeydown = (event) => {
   }
 };
 
-const sendWhatsAppCode = async () => {
-  if (!recoveryEmail.value || !whatsappNumber.value) {
-    errorMessage.value = "Por favor completa todos los campos";
+// Métodos
+const formatCode = () => {
+  // Convertir a mayúsculas
+  recoveryCode.value = recoveryCode.value.toUpperCase();
+
+  // Limitar a 8 caracteres
+  if (recoveryCode.value.length > 8) {
+    recoveryCode.value = recoveryCode.value.substring(0, 8);
+  }
+};
+
+const sendResetCode = async () => {
+  if (!recoveryEmail.value) {
+    errorMessage.value = "Por favor ingresa tu email";
     return;
   }
 
-  const phoneRegex = /^[0-9]{10,15}$/;
-  if (!phoneRegex.test(whatsappNumber.value.replace(/\D/g, ""))) {
-    errorMessage.value = "Por favor ingresa un número válido (solo números)";
-    return;
-  }
+  isSendingCode.value = true;
+  errorMessage.value = "";
 
   try {
     const response = await axios.post("/api/auth/password-reset/", {
       email: recoveryEmail.value,
-      phone: whatsappNumber.value,
     });
 
-    codeSent.value = true;
-    errorMessage.value = "";
+    recoveryStep.value = "verify";
+    remainingAttempts.value = 3;
 
-    // ✅ Abrir WhatsApp solo si estamos en el navegador
-    if (response.data.whatsapp_url) {
-      console.log("URL de WhatsApp:", response.data.whatsapp_url);
-      // Descomenta esto para abrir automáticamente:
-      // window.open(response.data.whatsapp_url, '_blank');
-
-      // Para desarrollo, muestra el código en consola
-      if (response.data.code) {
-        console.log(
-          "🔑 Código de recuperación (solo desarrollo):",
-          response.data.code
-        );
-      }
+    // Si hay cooldown, iniciar contador
+    if (response.data.cooldown) {
+      cooldown.value = response.data.cooldown;
+      const timer = setInterval(() => {
+        cooldown.value--;
+        if (cooldown.value <= 0) {
+          clearInterval(timer);
+        }
+      }, 1000);
     }
+
+    alert("Código enviado. Revisa tu email (y spam).");
   } catch (error) {
-    errorMessage.value =
-      error.response?.data?.error || "Error al enviar código";
+    if (error.response?.status === 429) {
+      errorMessage.value = error.response.data.error;
+      cooldown.value = 60;
+    } else {
+      errorMessage.value =
+        error.response?.data?.error || "Error al enviar código";
+    }
+  } finally {
+    isSendingCode.value = false;
   }
 };
 
 const verifyCode = async () => {
-  if (!recoveryCode.value || recoveryCode.value.length !== 6) {
-    errorMessage.value = "Por favor ingresa un código válido de 6 dígitos";
+  if (!recoveryCode.value || recoveryCode.value.length !== 8) {
+    errorMessage.value = "Por favor ingresa un código válido de 8 dígitos";
     return;
   }
 
+  isVerifying.value = true;
+  errorMessage.value = "";
+
   try {
-    await axios.post("/api/auth/verify-reset-code/", {
+    const response = await axios.post("/api/auth/verify-reset-code/", {
       email: recoveryEmail.value,
       code: recoveryCode.value,
     });
-    verifiedCode.value = true;
-    errorMessage.value = "";
+
+    verificationToken.value = response.data.token;
+    recoveryStep.value = "reset";
+    remainingAttempts.value = null;
   } catch (error) {
+    if (error.response?.data?.remaining_attempts !== undefined) {
+      remainingAttempts.value = error.response.data.remaining_attempts;
+    }
     errorMessage.value = error.response?.data?.error || "Código inválido";
+  } finally {
+    isVerifying.value = false;
   }
 };
 
 const resetPassword = async () => {
+  if (!newPassword.value || newPassword.value.length < 8) {
+    errorMessage.value = "La contraseña debe tener al menos 8 caracteres";
+    return;
+  }
+
+  isResetting.value = true;
+  errorMessage.value = "";
+
   try {
     const response = await axios.post("/api/auth/reset-password/", {
       email: recoveryEmail.value,
+      token: verificationToken.value,
       new_password: newPassword.value,
-      token: recoveryCode.value,
     });
 
-    alert("Contraseña cambiada con éxito");
-    toggleRecoveryModal();
+    recoveryStep.value = "success";
   } catch (error) {
-    console.error("Error completo:", error);
     errorMessage.value =
-      error.response?.data?.error ||
-      error.response?.data?.detail ||
-      "Error al cambiar contraseña";
+      error.response?.data?.error || "Error al cambiar contraseña";
+  } finally {
+    isResetting.value = false;
   }
 };
 
@@ -290,6 +387,35 @@ const resetForm = () => {
   verifiedCode.value = false;
   errorMessage.value = "";
 };
+
+// Computed para fortaleza de contraseña
+const passwordStrength = computed(() => {
+  const pass = newPassword.value;
+  if (!pass) return 0;
+
+  let strength = 0;
+  if (pass.length >= 8) strength += 1;
+  if (/[A-Z]/.test(pass)) strength += 1;
+  if (/[0-9]/.test(pass)) strength += 1;
+  if (/[^A-Za-z0-9]/.test(pass)) strength += 1;
+
+  return strength;
+});
+
+const passwordStrengthClass = computed(() => {
+  const strength = passwordStrength.value;
+  if (strength === 0) return "strength-0";
+  if (strength === 1) return "strength-1";
+  if (strength === 2) return "strength-2";
+  if (strength === 3) return "strength-3";
+  return "strength-4";
+});
+
+const passwordStrengthText = computed(() => {
+  const strength = passwordStrength.value;
+  const texts = ["Muy débil", "Débil", "Regular", "Fuerte", "Muy fuerte"];
+  return texts[strength];
+});
 
 // Agregar y remover event listeners
 onMounted(() => {
@@ -565,6 +691,97 @@ onUnmounted(() => {
   padding-right: 45px;
 }
 
+/* Estilos adicionales para el modal de recuperación */
+
+.cooldown-text {
+  color: #ff9800;
+  font-size: 0.9rem;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.attempts-text {
+  color: #f44336;
+  font-size: 0.9rem;
+  margin: 5px 0;
+  text-align: center;
+}
+
+.code-input {
+  text-align: center;
+  letter-spacing: 2px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  font-family: monospace;
+}
+
+.password-strength {
+  margin: 15px 0;
+}
+
+.strength-bar {
+  height: 5px;
+  border-radius: 3px;
+  margin-bottom: 5px;
+  transition: width 0.3s, background-color 0.3s;
+}
+
+.strength-0 {
+  width: 25%;
+  background-color: #f44336;
+}
+.strength-1 {
+  width: 50%;
+  background-color: #ff9800;
+}
+.strength-2 {
+  width: 75%;
+  background-color: #ffeb3b;
+}
+.strength-3 {
+  width: 90%;
+  background-color: #4caf50;
+}
+.strength-4 {
+  width: 100%;
+  background-color: #2e7d32;
+}
+
+.strength-text {
+  font-size: 0.9rem;
+  color: #666;
+  text-align: center;
+}
+
+.secondary {
+  background-color: #6c757d;
+  margin-top: 10px;
+}
+
+.secondary:hover {
+  background-color: #5a6268;
+}
+
+.success-step {
+  text-align: center;
+}
+
+.success-icon {
+  font-size: 3rem;
+  margin-bottom: 20px;
+}
+
+.success-title {
+  color: #4caf50;
+  margin-bottom: 15px;
+}
+
+.success-text {
+  color: #666;
+  margin-bottom: 25px;
+  line-height: 1.5;
+}
+
 /* Animations */
 @keyframes fadeIn {
   from {
@@ -592,6 +809,11 @@ onUnmounted(() => {
 
   .login-button {
     max-width: 280px;
+  }
+
+  .code-input {
+    font-size: 1.1rem;
+    letter-spacing: 1px;
   }
 }
 
