@@ -806,7 +806,6 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             
             # Título principal
             title_text = "Reporte de Insumos Utilizados"
-            elements.append(Paragraph(title_text, title_style))
             
             # Subtítulo con fechas
             if fecha_inicio and fecha_fin:
