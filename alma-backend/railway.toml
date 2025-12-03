@@ -1,5 +1,9 @@
 [build]
-command = "pip install -r requirements.txt && python manage.py collectstatic --noinput"
+builder = "nixpacks"
+
+[build.nixpacks]
+phases.install = "pip install -r requirements.txt"
+phases.build = "python manage.py collectstatic --noinput"
 
 [start]
-command = "gunicorn mysite.wsgi --bind 0.0.0.0:$PORT"
+cmd = "gunicorn mysite.wsgi --bind 0.0.0.0:$PORT"
