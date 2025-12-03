@@ -10,12 +10,13 @@
     </button>
 
     <div class="header-left">
-      <br />
-      <div class="date-text">
-        <i class="fas fa-calendar-alt date-icon"></i>
-        <div class="date-content">
-          <div class="date-day">{{ dayOfWeek }}</div>
-          <div class="date-full">{{ formattedDate }}</div>
+       <div class="date-container">
+        <div class="date-text">
+          <i class="fas fa-calendar-alt date-icon"></i>
+          <div class="date-content">
+            <div class="date-day">{{ dayOfWeek }}</div>
+            <div class="date-full">{{ formattedDate }}</div>
+          </div>
         </div>
       </div>
       <div class="logo" @click="goToHome">
@@ -172,27 +173,50 @@ const notificacionesRecetas = ref([]);
 const notificacionesPedidos = ref([]);
 
 const isMobile = ref(false);
+const isSmallMobile = ref(false); 
 const emit = defineEmits(["toggle-sidebar"]);
 
 // MODIFICAR: Fecha actual sin "de" antes del año
 const currentDate = ref(new Date());
+
 const dayOfWeek = computed(() => {
+<<<<<<< HEAD
   return currentDate.value.toLocaleDateString("es-ES", {
     weekday: "long",
+=======
+  return currentDate.value.toLocaleDateString('es-ES', { 
+    weekday: 'long' // SIEMPRE "miércoles", NUNCA "mié"
+>>>>>>> d27766e (Responsive fecha.)
   });
 });
+
 const formattedDate = computed(() => {
+  if (isSmallMobile.value) {
+    // Formato DD/MM/YY para móviles pequeños
+    const day = String(currentDate.value.getDate()).padStart(2, '0');
+    const month = String(currentDate.value.getMonth() + 1).padStart(2, '0');
+    const year = String(currentDate.value.getFullYear()).slice(-2);
+    return `${day}/${month}/${year}`;
+  }
+  
+  // Formato largo para pantallas grandes
   const day = currentDate.value.getDate();
   const month = currentDate.value.toLocaleDateString("es-ES", {
     month: "long",
   });
   const year = currentDate.value.getFullYear();
+<<<<<<< HEAD
 
   return `${day} de ${month} ${year}`; // ← Quitamos el "de" antes del año
+=======
+  
+  return `${day} de ${month} ${year}`;
+>>>>>>> d27766e (Responsive fecha.)
 });
 
 const checkScreenSize = () => {
   isMobile.value = window.innerWidth <= 768;
+  isSmallMobile.value = window.innerWidth <= 480;
 };
 
 const toggleMobileSidebar = () => {
@@ -526,12 +550,22 @@ onUnmounted(() => {
   position: relative;
   top: 0;
   z-index: 100;
+  gap: 20px
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: 15px;
+  flex: 1; /* Permite que ocupe espacio disponible */
+  min-width: 0; /* Permite que se reduzca */
+}
+
+/* NUEVO: Contenedor para la fecha */
+.date-container {
+  display: flex;
+  align-items: center;
+  min-width: 0; /* Permite que se reduzca */
 }
 
 .date-text {
@@ -544,6 +578,12 @@ onUnmounted(() => {
   border: none;
   box-shadow: none;
   backdrop-filter: none;
+  min-width: 0; /* Permite que se reduzca */
+  flex-shrink: 1; /* Permite que se encoja */
+}
+.date-text:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
 }
 
 .date-icon {
@@ -556,27 +596,37 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   line-height: 1.2;
+  min-width: 0;
 }
 
 .date-day {
+<<<<<<< HEAD
   font-size: 1rem;
+=======
+  font-size: 0.85rem;
+>>>>>>> d27766e (Responsive fecha.)
   font-weight: 600;
   text-transform: capitalize;
   opacity: 0.9;
-  margin-bottom: 1px;
+  margin-bottom: 2px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .date-full {
-  font-size: 1.4rem;
+  font-size: 1.1rem;
   font-weight: 500;
   text-transform: capitalize;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .logo {
-  cursor: pointer; /* Hace que aparezca la manito al pasar el mouse */
+  cursor: pointer;
   transition: transform 0.3s ease;
+  flex-shrink: 0; /* Evita que el logo se reduzca */
 }
 
 .logo img {
@@ -1066,75 +1116,8 @@ onUnmounted(() => {
 }
 
 /* ----------------------------- RESPONSIVE ----------------------------- */
-@media (max-width: 768px) {
-  .header {
-    padding: 10px 15px 10px 60px !important;
-  }
 
-  .logo img {
-    height: 60px;
-  }
-
-  .header-right {
-    gap: 10px;
-  }
-
-  .user-email {
-    display: none;
-  }
-
-  .dropdown-menu {
-    min-width: 280px;
-    right: -10px;
-  }
-
-  .notification-menu {
-    right: 50px;
-  }
-
-  .modal-content {
-    margin: 20px;
-    padding: 15px;
-  }
-
-  .modal-buttons {
-    flex-direction: column;
-  }
-
-  .cancel-button,
-  .confirm-button {
-    width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
-  .header {
-    padding: 8px 10px 8px 50px !important;
-  }
-
-  .dropdown-menu {
-    min-width: 250px;
-    right: -15px;
-  }
-
-  .notification-menu {
-    right: 40px;
-  }
-
-  .notification-item {
-    padding: 12px 15px;
-  }
-
-  .user-menu {
-    min-width: 200px;
-  }
-
-  .menu-options li {
-    padding: 10px 15px;
-  }
-}
-
-/* Botón hamburguesa para móviles en el header */
+/* Botón hamburguesa para móviles */
 .hamburger-btn-mobile {
   display: none;
   background: none;
@@ -1152,34 +1135,69 @@ onUnmounted(() => {
   z-index: 1002;
 }
 
-/* Ajustar el header para móviles */
+/* ----------------------------- TABLETS Y MÓVILES (≤768px) ----------------------------- */
 @media (max-width: 768px) {
   .header {
-    padding: 10px 15px 10px 60px !important; /* Más padding izquierdo para el botón */
+    padding: 10px 15px 10px 50px !important;
     position: relative;
   }
 
   .hamburger-btn-mobile {
     display: block;
+    left: 10px;
+    padding: 6px;
   }
 
   .header-left {
-    justify-content: center;
+    justify-content: center; 
     width: 100%;
   }
 
+  .date-container {
+    position: absolute;
+    left: 55px; 
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+  }
+  
   .logo {
     position: relative;
     left: auto;
     transform: none;
+    margin-left: 120px; 
   }
 
   .logo img {
-    height: 60px;
+    height: 75px;
+  }
+
+  .header-right {
+    gap: 8px;
+  }
+
+  .user-email {
+    display: none;
+  }
+  
+  .date-text {
+    gap: 5px;
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+  
+  .date-icon {
+    font-size: 1.1rem;
+  }
+  
+  .date-full,.date-day {
+    font-size: 0.9rem;
   }
 }
 
+/* ----------------------------- MÓVILES PEQUEÑOS (≤480px) ----------------------------- */
 @media (max-width: 480px) {
+  /* HEADER */
   .header {
     padding: 8px 10px 8px 50px !important;
   }
@@ -1188,6 +1206,36 @@ onUnmounted(() => {
     left: 10px;
     font-size: 1.3rem;
     padding: 6px;
+  }
+
+  /* DROPDOWNS */
+  .dropdown-menu {
+    min-width: 250px;
+    right: -15px;
+  }
+
+  .notification-menu {
+    right: 40px;
+  }
+
+  .user-menu {
+    min-width: 200px;
+  }
+
+  /* NOTIFICACIONES */
+  .notification-item {
+    padding: 12px 15px;
+  }
+
+  /* MENÚ */
+  .menu-options li {
+    padding: 10px 15px;
+  }
+
+  /* FECHAS */
+  .date-day,
+  .date-full {
+    font-size: 0.9rem;
   }
 }
 </style>
