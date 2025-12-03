@@ -820,18 +820,6 @@ class GenerarPDFReporteInsumosAPIView(APIView):
                 )
                 elements.append(Paragraph(f"Período: {fecha_inicio} al {fecha_fin}", subtitle_style))
             
-            # Indicar filtro aplicado
-            if solo_con_stock_usado:
-                filter_note = ParagraphStyle(
-                    'FilterNote',
-                    parent=styles['Normal'],
-                    fontSize=10,
-                    alignment=1,
-                    textColor=colors.blue,
-                    spaceAfter=20
-                )
-                elements.append(Paragraph("(Mostrando solo insumos con stock usado > 0)", filter_note))
-            
             elements.append(Spacer(1, 20))
             
             # Si no hay datos después del filtro
