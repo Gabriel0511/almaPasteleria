@@ -1069,10 +1069,14 @@ const generarPDF = async () => {
     generandoPDF.value = true;
 
     // Construir parámetros de filtro para el PDF
-    const params = {};
+    const params = {
+      solo_con_stock_usado: true, // <-- NUEVO PARÁMETRO
+    };
+    
     if (filtros.value.fechaInicio)
       params.fecha_inicio = filtros.value.fechaInicio;
-    if (filtros.value.fechaFin) params.fecha_fin = filtros.value.fechaFin;
+    if (filtros.value.fechaFin) 
+      params.fecha_fin = filtros.value.fechaFin;
     if (filtros.value.proveedorId)
       params.proveedor_id = filtros.value.proveedorId;
 

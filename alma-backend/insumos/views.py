@@ -332,6 +332,7 @@ class ReporteInsumosAPIView(APIView):
             fecha_inicio = request.GET.get('fecha_inicio')
             fecha_fin = request.GET.get('fecha_fin')
             proveedor_id = request.GET.get('proveedor_id')
+            solo_con_stock_usado = request.GET.get('solo_con_stock_usado', 'false').lower() == 'true'
             
             # Validar fechas
             fecha_inicio_dt = None
@@ -378,6 +379,10 @@ class ReporteInsumosAPIView(APIView):
                 
                 # Stock total usado
                 stock_usado_total = stock_usado_recetas + stock_usado_ingredientes_extra
+
+                 # Si se solicita solo con stock usado y el total es 0, omitir
+                if solo_con_stock_usado and stock_usado_total == 0:
+                    continue
                 
                 reporte_data.append({
                     'id': insumo.id,
@@ -759,6 +764,7 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             fecha_inicio = request.GET.get('fecha_inicio')
             fecha_fin = request.GET.get('fecha_fin')
             proveedor_id = request.GET.get('proveedor_id')
+            solo_con_stock_usado = request.GET.get('solo_con_stock_usado', 'true').lower() == 'true'  # <-- NUEVO
             
             # Obtener datos del reporte usando la misma lógica que ReporteInsumosAPIView
             reporte_view = ReporteInsumosAPIView()
@@ -768,6 +774,10 @@ class GenerarPDFReporteInsumosAPIView(APIView):
                 return response
             
             reporte_data = response.data
+            
+            # Filtrar solo los insumos con stock usado > 0 si se solicita
+            if solo_con_stock_usado:
+                reporte_data = [item for item in reporte_data if item['stock_usado'] > 0]
             
             # Crear el PDF
             buffer = io.BytesIO()
@@ -790,8 +800,37 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             if fecha_inicio and fecha_fin:
                 title_text += f" - Del {fecha_inicio} al {fecha_fin}"
             
+            # Agregar subtítulo si se filtró por stock usado
+            if solo_con_stock_usado:
+                elements.append(Paragraph("(Solo insumos con stock usado)", 
+                                         ParagraphStyle('Subtitle', 
+                                                       parent=styles['Normal'], 
+                                                       fontSize=10, 
+                                                       alignment=1, 
+                                                       textColor=colors.grey)))
+            
             elements.append(Paragraph(title_text, title_style))
             elements.append(Spacer(1, 20))
+            
+            # Si no hay datos después del filtro
+            if not reporte_data:
+                no_data_style = ParagraphStyle(
+                    'NoData',
+                    parent=styles['Normal'],
+                    fontSize=12,
+                    alignment=1,
+                    textColor=colors.red,
+                    spaceAfter=20
+                )
+                elements.append(Paragraph("No hay insumos con stock usado en el período seleccionado", no_data_style))
+                
+                # Construir PDF vacío
+                doc.build(elements)
+                buffer.seek(0)
+                response = HttpResponse(buffer, content_type='application/pdf')
+                filename = f"reporte_insumos_sin_stock_usado_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                return response
             
             # Preparar datos para la tabla
             table_data = [['Insumo', 'Stock Usado', 'Stock Actual', 'Stock Mínimo', '¿Reponer?', 'Proveedor']]
@@ -799,6 +838,11 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             for item in reporte_data:
                 necesita_reposicion = "SÍ" if item['necesita_reposicion'] else "NO"
                 proveedor = item['proveedor']['nombre'] if item['proveedor'] else 'Sin proveedor'
+                
+                # Resaltar filas que necesitan reposición
+                row_style = []
+                if item['necesita_reposicion']:
+                    row_style = colors.HexColor('#f8d7da')  # Rojo claro para reposición
                 
                 table_data.append([
                     f"{item['nombre']} ({item['categoria']})",
@@ -811,7 +855,9 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             
             # Crear tabla
             table = Table(table_data, colWidths=[2*inch, 1*inch, 1*inch, 1*inch, 0.8*inch, 1.5*inch])
-            table.setStyle(TableStyle([
+            
+            # Estilos de la tabla
+            table_style = [
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#7B5A50')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
@@ -823,9 +869,34 @@ class GenerarPDFReporteInsumosAPIView(APIView):
                 ('FONTSIZE', (0, 1), (-1, -1), 8),
                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ]))
+            ]
+            
+            # Aplicar color a las filas que necesitan reposición
+            for i in range(1, len(table_data)):
+                if 'necesita_reposicion' in reporte_data[i-1] and reporte_data[i-1]['necesita_reposicion']:
+                    table_style.append(('BACKGROUND', (0, i), (-1, i), colors.HexColor('#f8d7da')))
+            
+            table.setStyle(TableStyle(table_style))
             
             elements.append(table)
+            
+            # Agregar resumen
+            elements.append(Spacer(1, 20))
+            
+            # Estadísticas
+            total_insumos = len(reporte_data)
+            insumos_reponer = len([item for item in reporte_data if item['necesita_reposicion']])
+            
+            resumen_text = f"Resumen: {total_insumos} insumos con stock usado | {insumos_reponer} necesitan reposición"
+            resumen_style = ParagraphStyle(
+                'Resumen',
+                parent=styles['Normal'],
+                fontSize=10,
+                alignment=1,
+                textColor=colors.HexColor('#7B5A50'),
+                spaceBefore=10
+            )
+            elements.append(Paragraph(resumen_text, resumen_style))
             
             # Construir PDF
             doc.build(elements)
