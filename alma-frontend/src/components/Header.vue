@@ -48,33 +48,35 @@
 
         <div v-else class="notification-list">
           <div
-            <div
-              v-for="notification in todasLasNotificaciones"
-              :key="notification.id"
-              class="notification-item"
-              :class="[notification.type, { unread: !notification.read }]"
-              @click="handleNotificationClick(notification)"
-            >
-              <div class="notification-content">
-                <div class="notification-title-row">
-                  <!-- Mover el icono aquí, al lado del título -->
-                  <div class="notification-icon">
-                    <i
-                      class="fas"
-                      :class="{
-                        'fa-exclamation-triangle': notification.type === 'critical',
-                        'fa-exclamation-circle': notification.type === 'warning',
-                        'fa-info-circle': notification.type === 'info',
-                        'fa-check-circle': notification.type === 'success',
-                      }"
-                    ></i>
-                  </div>
-                  <strong class="notification-title">{{ notification.title }}</strong>
-                  <span class="notification-time">
-                    {{ formatTime(notification.timestamp) }}
-                  </span>
+            v-for="notification in todasLasNotificaciones"
+            :key="notification.id"
+            class="notification-item"
+            :class="[notification.type, { unread: !notification.read }]"
+            @click="handleNotificationClick(notification)"
+          >
+            <div class="notification-content">
+              <div class="notification-title-row">
+                <!-- Mover el icono aquí, al lado del título -->
+                <div class="notification-icon">
+                  <i
+                    class="fas"
+                    :class="{
+                      'fa-exclamation-triangle':
+                        notification.type === 'critical',
+                      'fa-exclamation-circle': notification.type === 'warning',
+                      'fa-info-circle': notification.type === 'info',
+                      'fa-check-circle': notification.type === 'success',
+                    }"
+                  ></i>
                 </div>
-                <p class="notification-text">{{ notification.message }}</p>
+                <strong class="notification-title">{{
+                  notification.title
+                }}</strong>
+                <span class="notification-time">
+                  {{ formatTime(notification.timestamp) }}
+                </span>
+              </div>
+              <p class="notification-text">{{ notification.message }}</p>
 
               <!-- Acciones rápidas -->
               <div
@@ -89,7 +91,6 @@
                 </button>
               </div>
             </div>
-
           </div>
         </div>
       </div>
@@ -176,20 +177,19 @@ const emit = defineEmits(["toggle-sidebar"]);
 // MODIFICAR: Fecha actual sin "de" antes del año
 const currentDate = ref(new Date());
 const dayOfWeek = computed(() => {
-  return currentDate.value.toLocaleDateString('es-ES', { 
-    weekday: 'long' 
+  return currentDate.value.toLocaleDateString("es-ES", {
+    weekday: "long",
   });
 });
 const formattedDate = computed(() => {
   const day = currentDate.value.getDate();
-  const month = currentDate.value.toLocaleDateString('es-ES', { 
-    month: 'long' 
+  const month = currentDate.value.toLocaleDateString("es-ES", {
+    month: "long",
   });
   const year = currentDate.value.getFullYear();
-  
+
   return `${day} de ${month} ${year}`; // ← Quitamos el "de" antes del año
 });
-
 
 const checkScreenSize = () => {
   isMobile.value = window.innerWidth <= 768;
@@ -202,18 +202,18 @@ const toggleMobileSidebar = () => {
 onMounted(() => {
   checkScreenSize();
   window.addEventListener("resize", checkScreenSize);
-  
+
   // AGREGAR: Actualizar la fecha cada día
   const updateDate = () => {
     currentDate.value = new Date();
   };
-  
+
   // Actualizar a medianoche
   const now = new Date();
   const midnight = new Date(now);
   midnight.setHours(24, 0, 0, 0);
   const timeUntilMidnight = midnight - now;
-  
+
   setTimeout(() => {
     updateDate();
     // Actualizar cada 24 horas
@@ -450,7 +450,6 @@ const cargarTodasLasNotificaciones = async () => {
 
 // AGREGAR: Método para manejar clic en notificación
 const handleNotificationClick = (notification) => {
-
   // Navegar según el tipo
   if (notification.item) {
     router.push("/stock");
@@ -462,7 +461,6 @@ const handleNotificationClick = (notification) => {
 
   showNotfMenu.value = false;
 };
-
 
 // AGREGAR watcher para recargar notificaciones al cambiar de ruta
 watch(
@@ -484,7 +482,7 @@ defineExpose({
 });
 // Utilidades
 const formatTime = (timestamp) => {
-  return ""; 
+  return "";
 };
 
 const resetPasswordForm = () => {
@@ -561,7 +559,7 @@ onUnmounted(() => {
 }
 
 .date-day {
-  font-size: 1.0rem;
+  font-size: 1rem;
   font-weight: 600;
   text-transform: capitalize;
   opacity: 0.9;
@@ -575,7 +573,6 @@ onUnmounted(() => {
   text-transform: capitalize;
   white-space: nowrap;
 }
-
 
 .logo {
   cursor: pointer; /* Hace que aparezca la manito al pasar el mouse */
@@ -988,10 +985,10 @@ onUnmounted(() => {
 }
 
 .notification-title {
-  font-size: 1.0rem;
+  font-size: 1rem;
   margin: 0;
   color: var(--color-text);
-  flex: 1px
+  flex: 1px;
 }
 
 .notification-time {
