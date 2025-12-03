@@ -180,13 +180,8 @@ const emit = defineEmits(["toggle-sidebar"]);
 const currentDate = ref(new Date());
 
 const dayOfWeek = computed(() => {
-<<<<<<< HEAD
-  return currentDate.value.toLocaleDateString("es-ES", {
-    weekday: "long",
-=======
   return currentDate.value.toLocaleDateString('es-ES', { 
     weekday: 'long' // SIEMPRE "miércoles", NUNCA "mié"
->>>>>>> d27766e (Responsive fecha.)
   });
 });
 
@@ -205,13 +200,8 @@ const formattedDate = computed(() => {
     month: "long",
   });
   const year = currentDate.value.getFullYear();
-<<<<<<< HEAD
-
-  return `${day} de ${month} ${year}`; // ← Quitamos el "de" antes del año
-=======
   
   return `${day} de ${month} ${year}`;
->>>>>>> d27766e (Responsive fecha.)
 });
 
 const checkScreenSize = () => {
@@ -600,11 +590,7 @@ onUnmounted(() => {
 }
 
 .date-day {
-<<<<<<< HEAD
   font-size: 1rem;
-=======
-  font-size: 0.85rem;
->>>>>>> d27766e (Responsive fecha.)
   font-weight: 600;
   text-transform: capitalize;
   opacity: 0.9;
