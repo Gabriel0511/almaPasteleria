@@ -48,34 +48,33 @@
 
         <div v-else class="notification-list">
           <div
-            v-for="notification in todasLasNotificaciones"
-            :key="notification.id"
-            class="notification-item"
-            :class="[notification.type, { unread: !notification.read }]"
-            @click="handleNotificationClick(notification)"
-          >
-            <div class="notification-icon">
-              <i
-                class="fas"
-                :class="{
-                  'fa-exclamation-triangle': notification.type === 'critical',
-                  'fa-exclamation-circle': notification.type === 'warning',
-                  'fa-info-circle': notification.type === 'info',
-                  'fa-check-circle': notification.type === 'success',
-                }"
-              ></i>
-            </div>
-
-            <div class="notification-content">
-              <div class="notification-title-row">
-                <strong class="notification-title">{{
-                  notification.title
-                }}</strong>
-                <span class="notification-time">
-                  {{ formatTime(notification.timestamp) }}
-                </span>
-              </div>
-              <p class="notification-text">{{ notification.message }}</p>
+            <div
+              v-for="notification in todasLasNotificaciones"
+              :key="notification.id"
+              class="notification-item"
+              :class="[notification.type, { unread: !notification.read }]"
+              @click="handleNotificationClick(notification)"
+            >
+              <div class="notification-content">
+                <div class="notification-title-row">
+                  <!-- Mover el icono aquí, al lado del título -->
+                  <div class="notification-icon">
+                    <i
+                      class="fas"
+                      :class="{
+                        'fa-exclamation-triangle': notification.type === 'critical',
+                        'fa-exclamation-circle': notification.type === 'warning',
+                        'fa-info-circle': notification.type === 'info',
+                        'fa-check-circle': notification.type === 'success',
+                      }"
+                    ></i>
+                  </div>
+                  <strong class="notification-title">{{ notification.title }}</strong>
+                  <span class="notification-time">
+                    {{ formatTime(notification.timestamp) }}
+                  </span>
+                </div>
+                <p class="notification-text">{{ notification.message }}</p>
 
               <!-- Acciones rápidas -->
               <div
@@ -942,7 +941,7 @@ onUnmounted(() => {
 /* Encabezado de notificaciones */
 .notification-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   padding: 15px 20px;
   border-bottom: 1px solid #ddd;
@@ -951,15 +950,17 @@ onUnmounted(() => {
 
 .notification-header h3 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   color: var(--color-primary);
 }
 
 /* Ícono de notificación */
 .notification-icon {
-  margin-right: 12px;
+  margin-right: 0; /* Ya no necesita margen derecho */
   color: #6c757d;
-  font-size: 1rem;
+  font-size: 0.9rem; /* Tamaño similar al título */
+  display: flex;
+  align-items: center;
 }
 
 .notification-item.critical .notification-icon {
@@ -974,23 +975,29 @@ onUnmounted(() => {
   color: #3498db;
 }
 
+.notification-item.success .notification-icon {
+  color: #28a745; /* Agregar color para éxito */
+}
+
 /* Contenido de notificación mejorado */
 .notification-title-row {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: center; /* Centra verticalmente los elementos */
+  gap: 8px; /* Espacio entre icono, título y hora */
   margin-bottom: 5px;
 }
 
 .notification-title {
-  font-size: 0.9rem;
+  font-size: 1.0rem;
   margin: 0;
   color: var(--color-text);
+  flex: 1px
 }
 
 .notification-time {
   font-size: 0.7rem;
   color: #6c757d;
+  white-space: nowrap;
 }
 
 .notification-text {
