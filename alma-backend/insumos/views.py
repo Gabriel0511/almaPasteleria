@@ -805,18 +805,38 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             title_text = "<b>REPORTE DE INSUMOS UTILIZADOS</b>"  # Usar HTML para negrita
             elements.append(Paragraph(title_text, title_style))
             
-            # Subtítulo con fechas
+            # Subtítulo con fechas - FORMATO CAMBIADO A DD/MM/YYYY
             if fecha_inicio and fecha_fin:
-                subtitle_style = ParagraphStyle(
-                    'Subtitle',
-                    parent=styles['Normal'],
-                    fontSize=12,
-                    alignment=1,
-                    textColor=colors.grey,
-                    spaceAfter=15
-                )
-                subtitle_text = f"Período: {fecha_inicio} al {fecha_fin}"
-                elements.append(Paragraph(subtitle_text, subtitle_style))
+                # Convertir las fechas al formato DD/MM/YYYY
+                try:
+                    fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+                    fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d')
+                    
+                    fecha_inicio_formatted = fecha_inicio_dt.strftime('%d/%m/%Y')
+                    fecha_fin_formatted = fecha_fin_dt.strftime('%d/%m/%Y')
+                    
+                    subtitle_style = ParagraphStyle(
+                        'Subtitle',
+                        parent=styles['Normal'],
+                        fontSize=12,
+                        alignment=1,
+                        textColor=colors.grey,
+                        spaceAfter=15
+                    )
+                    subtitle_text = f"Período: {fecha_inicio_formatted} al {fecha_fin_formatted}"
+                    elements.append(Paragraph(subtitle_text, subtitle_style))
+                except ValueError:
+                    # Si hay error en el formato, usar el original
+                    subtitle_style = ParagraphStyle(
+                        'Subtitle',
+                        parent=styles['Normal'],
+                        fontSize=12,
+                        alignment=1,
+                        textColor=colors.grey,
+                        spaceAfter=15
+                    )
+                    subtitle_text = f"Período: {fecha_inicio} al {fecha_fin}"
+                    elements.append(Paragraph(subtitle_text, subtitle_style))
             
             # Espacio después del subtítulo
             elements.append(Spacer(1, 20))
@@ -833,7 +853,7 @@ class GenerarPDFReporteInsumosAPIView(APIView):
                 )
                 elements.append(Paragraph("No hay insumos con stock usado en el período seleccionado", no_data_style))
                 
-                # Agregar información de parámetros
+                # Agregar información de parámetros con formato DD/MM/YYYY
                 param_style = ParagraphStyle(
                     'ParamStyle',
                     parent=styles['Normal'],
@@ -841,15 +861,24 @@ class GenerarPDFReporteInsumosAPIView(APIView):
                     alignment=1,
                     textColor=colors.grey
                 )
+                
                 param_text = f"Filtro aplicado: solo_con_stock_usado={solo_con_stock_usado}"
                 if fecha_inicio and fecha_fin:
-                    param_text += f" | Período: {fecha_inicio} a {fecha_fin}"
+                    try:
+                        fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+                        fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d')
+                        fecha_inicio_formatted = fecha_inicio_dt.strftime('%d/%m/%Y')
+                        fecha_fin_formatted = fecha_fin_dt.strftime('%d/%m/%Y')
+                        param_text += f" | Período: {fecha_inicio_formatted} a {fecha_fin_formatted}"
+                    except ValueError:
+                        param_text += f" | Período: {fecha_inicio} a {fecha_fin}"
+                
                 elements.append(Paragraph(param_text, param_style))
                 
                 doc.build(elements)
                 buffer.seek(0)
                 response = HttpResponse(buffer, content_type='application/pdf')
-                filename = f"reporte_insumos_sin_stock_usado_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                filename = f"reporte_insumos_sin_stock_usado_{datetime.now().strftime('%d%m%Y_%H%M%S')}.pdf"
                 response['Content-Disposition'] = f'attachment; filename="{filename}"'
                 return response
             
@@ -914,7 +943,7 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             )
             elements.append(Paragraph(resumen_text, resumen_style))
             
-            # Fecha de generación
+            # Fecha de generación - FORMATO CAMBIADO A DD/MM/YYYY
             fecha_gen = ParagraphStyle(
                 'FechaGen',
                 parent=styles['Normal'],
@@ -923,7 +952,7 @@ class GenerarPDFReporteInsumosAPIView(APIView):
                 textColor=colors.grey,
                 spaceBefore=20
             )
-            fecha_text = f"Generado el: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            fecha_text = f"Generado el: {datetime.now().strftime('%d/%m/%Y %H:%M')}"  # Cambiado a DD/MM/YYYY
             elements.append(Paragraph(fecha_text, fecha_gen))
             
             # Construir PDF
@@ -933,10 +962,17 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             buffer.seek(0)
             response = HttpResponse(buffer, content_type='application/pdf')
             
-            # Nombre del archivo
-            filename = f"reporte_insumos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            # Nombre del archivo - FORMATO CAMBIADO A DDMMYYYY
+            filename = f"reporte_insumos_{datetime.now().strftime('%d%m%Y_%H%M%S')}.pdf"  # Cambiado a DDMMYYYY
             if fecha_inicio and fecha_fin:
-                filename = f"reporte_insumos_{fecha_inicio}_a_{fecha_fin}.pdf"
+                try:
+                    fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+                    fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d')
+                    fecha_inicio_formatted = fecha_inicio_dt.strftime('%d%m%Y')
+                    fecha_fin_formatted = fecha_fin_dt.strftime('%d%m%Y')
+                    filename = f"reporte_insumos_{fecha_inicio_formatted}_a_{fecha_fin_formatted}.pdf"
+                except ValueError:
+                    filename = f"reporte_insumos_{fecha_inicio}_a_{fecha_fin}.pdf"
             
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             return response
@@ -950,6 +986,46 @@ class GenerarPDFReporteInsumosAPIView(APIView):
                 {'error': error_msg},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    def obtener_datos_reporte_directo(self, fecha_inicio, fecha_fin, proveedor_id):
+        """
+        Método para obtener datos del reporte directamente
+        (Debes implementar esta función según tu lógica actual)
+        """
+        # Esta es una función de ejemplo - debes reemplazarla con tu lógica actual
+        try:
+            # Lógica para obtener datos del reporte
+            from .models import Insumo
+            
+            insumos = Insumo.objects.filter(activo=True)
+            if proveedor_id:
+                insumos = insumos.filter(proveedor_id=proveedor_id)
+            
+            reporte_data = []
+            for insumo in insumos:
+                # Aquí iría tu lógica actual para calcular stock usado
+                reporte_data.append({
+                    'id': insumo.id,
+                    'nombre': insumo.nombre,
+                    'categoria': insumo.categoria.nombre if insumo.categoria else 'Sin categoría',
+                    'stock_usado': float(insumo.stock_actual * 0.1),  # Ejemplo
+                    'stock_actual': float(insumo.stock_actual),
+                    'stock_minimo': float(insumo.stock_minimo),
+                    'unidad_medida': {
+                        'abreviatura': insumo.unidad_medida.abreviatura
+                    },
+                    'necesita_reposicion': insumo.necesita_reposicion,
+                    'proveedor': {
+                        'id': insumo.proveedor.id if insumo.proveedor else None,
+                        'nombre': insumo.proveedor.nombre if insumo.proveedor else 'Sin proveedor'
+                    } if insumo.proveedor else None
+                })
+            
+            return reporte_data
+            
+        except Exception as e:
+            print(f"Error obteniendo datos directos: {e}")
+            return []
 
 class GenerarPDFListaComprasAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -989,10 +1065,19 @@ class GenerarPDFListaComprasAPIView(APIView):
                 textColor=colors.HexColor('#7B5A50')
             )
             
-            # Título
+            # Título - CON FORMATO DD/MM/YYYY
             title_text = "Lista de Compras - Próxima Semana"
             if fecha_inicio and fecha_fin:
-                title_text += f" - Del {fecha_inicio} al {fecha_fin}"
+                try:
+                    fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+                    fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d')
+                    
+                    fecha_inicio_formatted = fecha_inicio_dt.strftime('%d/%m/%Y')
+                    fecha_fin_formatted = fecha_fin_dt.strftime('%d/%m/%Y')
+                    
+                    title_text += f" - Del {fecha_inicio_formatted} al {fecha_fin_formatted}"
+                except ValueError:
+                    title_text += f" - Del {fecha_inicio} al {fecha_fin}"
             
             elements.append(Paragraph(title_text, title_style))
             elements.append(Spacer(1, 20))
@@ -1042,6 +1127,18 @@ class GenerarPDFListaComprasAPIView(APIView):
             )
             elements.append(Paragraph(resumen_text, resumen_style))
             
+            # Fecha de generación - FORMATO CAMBIADO A DD/MM/YYYY
+            fecha_gen = ParagraphStyle(
+                'FechaGen',
+                parent=styles['Normal'],
+                fontSize=9,
+                alignment=1,
+                textColor=colors.grey,
+                spaceBefore=20
+            )
+            fecha_text = f"Generado el: {datetime.now().strftime('%d/%m/%Y %H:%M')}"  # Cambiado a DD/MM/YYYY
+            elements.append(Paragraph(fecha_text, fecha_gen))
+            
             # Construir PDF
             doc.build(elements)
             
@@ -1049,10 +1146,17 @@ class GenerarPDFListaComprasAPIView(APIView):
             buffer.seek(0)
             response = HttpResponse(buffer, content_type='application/pdf')
             
-            # Nombre del archivo
-            filename = f"lista_compras_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            # Nombre del archivo - FORMATO CAMBIADO A DDMMYYYY
+            filename = f"lista_compras_{datetime.now().strftime('%d%m%Y_%H%M%S')}.pdf"  # Cambiado a DDMMYYYY
             if fecha_inicio and fecha_fin:
-                filename = f"lista_compras_{fecha_inicio}_a_{fecha_fin}.pdf"
+                try:
+                    fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+                    fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d')
+                    fecha_inicio_formatted = fecha_inicio_dt.strftime('%d%m%Y')
+                    fecha_fin_formatted = fecha_fin_dt.strftime('%d%m%Y')
+                    filename = f"lista_compras_{fecha_inicio_formatted}_a_{fecha_fin_formatted}.pdf"
+                except ValueError:
+                    filename = f"lista_compras_{fecha_inicio}_a_{fecha_fin}.pdf"
             
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             return response
