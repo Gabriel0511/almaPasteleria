@@ -830,7 +830,7 @@ class GenerarPDFReporteInsumosAPIView(APIView):
                     textColor=colors.blue,
                     spaceAfter=20
                 )
-                elements.append(Paragraph("(Mostrando solo insumos con stock usado > 0)", filter_note))
+                elements.append(Paragraph("(Mostrando con stock usado > 0)", filter_note))
             
             elements.append(Spacer(1, 20))
             
