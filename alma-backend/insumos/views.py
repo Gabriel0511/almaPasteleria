@@ -809,6 +809,10 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             
             # Subtítulo con fechas
             if fecha_inicio and fecha_fin:
+                # Formatear fechas a DD/MM/YYYY
+                fecha_inicio_fmt = self.formatear_fecha_dd_mm_yyyy(fecha_inicio)
+                fecha_fin_fmt = self.formatear_fecha_dd_mm_yyyy(fecha_fin)
+                
                 subtitle_style = ParagraphStyle(
                     'Subtitle',
                     parent=styles['Normal'],
@@ -817,7 +821,7 @@ class GenerarPDFReporteInsumosAPIView(APIView):
                     textColor=colors.grey,
                     spaceAfter=10
                 )
-                elements.append(Paragraph(f"Período: {fecha_inicio} al {fecha_fin}", subtitle_style))
+                elements.append(Paragraph(f"Período: {fecha_inicio_fmt} al {fecha_fin_fmt}", subtitle_style))
             
             elements.append(Spacer(1, 20))
             
@@ -843,7 +847,9 @@ class GenerarPDFReporteInsumosAPIView(APIView):
                 )
                 param_text = f"Filtro aplicado: solo_con_stock_usado={solo_con_stock_usado}"
                 if fecha_inicio and fecha_fin:
-                    param_text += f" | Período: {fecha_inicio} a {fecha_fin}"
+                    fecha_inicio_fmt = self.formatear_fecha_dd_mm_yyyy(fecha_inicio)
+                    fecha_fin_fmt = self.formatear_fecha_dd_mm_yyyy(fecha_fin)
+                    param_text += f" | Período: {fecha_inicio_fmt} a {fecha_fin_fmt}"
                 elements.append(Paragraph(param_text, param_style))
                 
                 doc.build(elements)
@@ -935,7 +941,9 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             # Nombre del archivo
             filename = f"reporte_insumos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
             if fecha_inicio and fecha_fin:
-                filename = f"reporte_insumos_{fecha_inicio}_a_{fecha_fin}.pdf"
+                fecha_inicio_archivo = fecha_inicio.replace("-", "")
+                fecha_fin_archivo = fecha_fin.replace("-", "")
+                filename = f"reporte_insumos_{fecha_inicio_archivo}_a_{fecha_fin_archivo}.pdf"
             
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             return response
@@ -1061,6 +1069,23 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             print(f"ERROR en obtener_datos_reporte_directo: {str(e)}")
             print(traceback.format_exc())
             return []
+        
+    def formatear_fecha_dd_mm_yyyy(self, fecha_str):
+        """
+        Convierte fecha de formato YYYY-MM-DD a DD/MM/YYYY
+        """
+        try:
+            if isinstance(fecha_str, str):
+                # Intentar parsear como YYYY-MM-DD
+                fecha_obj = datetime.strptime(fecha_str, '%Y-%m-%d')
+                return fecha_obj.strftime('%d/%m/%Y')
+            elif hasattr(fecha_str, 'strftime'):  # Si ya es objeto datetime/date
+                return fecha_str.strftime('%d/%m/%Y')
+            else:
+                return str(fecha_str)  # Devolver como está si no se puede convertir
+        except (ValueError, AttributeError):
+            # Si hay error, devolver la fecha original
+            return str(fecha_str)
 
 class GenerarPDFListaComprasAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -1103,7 +1128,10 @@ class GenerarPDFListaComprasAPIView(APIView):
             # Título
             title_text = "Lista de Compras - Próxima Semana"
             if fecha_inicio and fecha_fin:
-                title_text += f" - Del {fecha_inicio} al {fecha_fin}"
+                # Formatear fechas
+                fecha_inicio_fmt = self.formatear_fecha_dd_mm_yyyy(fecha_inicio)
+                fecha_fin_fmt = self.formatear_fecha_dd_mm_yyyy(fecha_fin)
+                title_text += f" - Del {fecha_inicio_fmt} al {fecha_fin_fmt}"
             
             elements.append(Paragraph(title_text, title_style))
             elements.append(Spacer(1, 20))
@@ -1173,3 +1201,18 @@ class GenerarPDFListaComprasAPIView(APIView):
                 {'error': f'Error al generar PDF: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    def formatear_fecha_dd_mm_yyyy(self, fecha_str):
+        """
+        Convierte fecha de formato YYYY-MM-DD a DD/MM/YYYY
+        """
+        try:
+            if isinstance(fecha_str, str):
+                fecha_obj = datetime.strptime(fecha_str, '%Y-%m-%d')
+                return fecha_obj.strftime('%d/%m/%Y')
+            elif hasattr(fecha_str, 'strftime'):
+                return fecha_str.strftime('%d/%m/%Y')
+            else:
+                return str(fecha_str)
+        except (ValueError, AttributeError):
+            return str(fecha_str)
