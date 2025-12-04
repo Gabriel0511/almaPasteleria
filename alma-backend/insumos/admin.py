@@ -271,6 +271,11 @@ class UnidadMedidaAdmin(admin.ModelAdmin):
     insumos_count.short_description = 'Insumos Activos'
 
 # --- ADMIN CLASS PARA PÉRDIDAS ---
+colors = {
+    'decomiso': 'red',
+    'merma': 'orange',
+    'otro': 'gray'
+}
 @admin.register(Perdida)
 class PerdidaAdmin(admin.ModelAdmin):
     list_display = ['insumo', 'cantidad_display', 'motivo_display', 'fecha', 'observaciones_short']
@@ -282,35 +287,22 @@ class PerdidaAdmin(admin.ModelAdmin):
     fields = ['insumo', 'cantidad', 'motivo', 'observaciones', 'fecha']
     
     def cantidad_display(self, obj):
-        return format_html(
-            '<strong>{:.3f} {}</strong>',
-            obj.cantidad,
-            obj.insumo.unidad_medida.abreviatura
-        )
-    cantidad_display.short_description = 'Cantidad'
-    
+        unidad = getattr(obj.insumo.unidad_medida, 'abreviatura', '') or ''
+        return format_html('<strong>{:.3f} {}</strong>', obj.cantidad, unidad)
+
     def motivo_display(self, obj):
-        colors = {
-            'deterioro': 'orange',
-            'vencimiento': 'red',
-            'rotura': 'brown',
-            'error': 'purple',
-            'uso_interno': 'blue',
-            'otro': 'gray'
-        }
+        try:
+            display = obj.get_motivo_display()
+        except:
+            display = "Motivo desconocido"
         color = colors.get(obj.motivo, 'black')
-        return format_html(
-            '<span style="color: {}; font-weight: bold;">{}</span>',
-            color,
-            obj.get_motivo_display()
-        )
-    motivo_display.short_description = 'Motivo'
-    
+        return format_html('<span style="color:{}; font-weight:bold;">{}</span>', color, display)
+
     def observaciones_short(self, obj):
-        if obj.observaciones and len(obj.observaciones) > 30:
-            return f"{obj.observaciones[:30]}..."
-        return obj.observaciones or "-"
-    observaciones_short.short_description = 'Observaciones'
+        if not obj.observaciones:
+            return "-"
+        return obj.observaciones[:30] + "..." if len(obj.observaciones) > 30 else obj.observaciones
+
 
 # --- ADMIN CLASS PARA HISTORIAL DE STOCK ---
 @admin.register(HistorialStock)
