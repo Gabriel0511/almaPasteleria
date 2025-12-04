@@ -306,13 +306,14 @@
                     <div class="reportes-fecha-info">
                       <span v-if="filtros.fechaInicio && filtros.fechaFin">
                         Mostrando pérdidas del
-                        {{ formatearFecha(filtros.fechaInicio) }} al
-                        {{ formatearFecha(filtros.fechaFin) }}
+                        {{ formatearFechaCorta(filtros.fechaInicio) }} al
+                        {{ formatearFechaCorta(filtros.fechaFin) }}
                       </span>
-                      <span v-else
-                        >Mostrando todas las pérdidas registradas</span
-                      >
+                      <span v-else>
+                        Mostrando todas las pérdidas registradas
+                      </span>
                     </div>
+
                     <!-- Botón Generar PDF para historial de pérdidas -->
                     <div
                       class="reportes-seccion-pdf"
@@ -421,7 +422,7 @@
                           :key="perdida.ids.join('-')"
                         >
                           <td class="reportes-columna-fecha">
-                            {{ formatearFecha(perdida.fecha) }}
+                            {{ formatearFechaCorta(perdida.fecha) }}
                           </td>
                           <td class="reportes-columna-insumo-nombre">
                             <strong>{{ perdida.insumo_nombre }}</strong>
@@ -488,8 +489,8 @@
                     <div class="reportes-fecha-info">
                       <span v-if="filtros.fechaInicio && filtros.fechaFin">
                         Mostrando preparaciones del
-                        {{ formatearFecha(filtros.fechaInicio) }} al
-                        {{ formatearFecha(filtros.fechaFin) }}
+                        {{ formatearFechaCorta(filtros.fechaInicio) }} al
+                        {{ formatearFechaCorta(filtros.fechaFin) }}
                       </span>
                       <span v-else> Mostrando todas las preparaciones </span>
                     </div>
@@ -542,7 +543,7 @@
                             ${{ formatDecimal(item.costo_total) }}
                           </td>
                           <td class="reportes-columna-fecha">
-                            {{ formatearFecha(item.ultima_preparacion) }}
+                            {{ formatearFechaCorta(item.ultima_preparacion) }}
                           </td>
                           <td class="reportes-columna-precio">
                             ${{ formatDecimal(item.precio_venta) }}
@@ -578,8 +579,8 @@
                     <div class="reportes-fecha-info">
                       <span v-if="filtros.fechaInicio && filtros.fechaFin">
                         Mostrando pedidos del
-                        {{ formatearFecha(filtros.fechaInicio) }} al
-                        {{ formatearFecha(filtros.fechaFin) }}
+                        {{ formatearFechaCorta(filtros.fechaInicio) }} al
+                        {{ formatearFechaCorta(filtros.fechaFin) }}
                       </span>
                       <span v-else>
                         Mostrando todos los pedidos entregados
@@ -649,7 +650,7 @@
                             </div>
                           </td>
                           <td class="reportes-columna-fecha">
-                            {{ formatearFecha(item.fecha_entrega) }}
+                            {{ formatearFechaCorta(item.fecha_entrega) }}
                           </td>
                           <td class="reportes-columna-total">
                             ${{ formatDecimal(item.total) }}
@@ -961,41 +962,31 @@ const formatDecimal = (value) => {
   return num % 1 === 0 ? num.toString() : num.toFixed(3).replace(/\.?0+$/, "");
 };
 
-const formatearFecha = (fecha) => {
+const formatearFechaCorta = (fecha) => {
   if (!fecha) return "";
 
   try {
-    // Si la fecha ya es un string en formato YYYY-MM-DD
     if (typeof fecha === "string" && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
       const [year, month, day] = fecha.split("-");
-      const fechaUTC = new Date(Date.UTC(year, month - 1, day));
-
-      const opciones = {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        timeZone: "UTC",
-      };
-      return fechaUTC.toLocaleDateString("es-ES", opciones);
+      return `${day}/${month}/${year}`;
     }
 
-    // Si es una fecha ISO (con tiempo)
     const fechaObj = new Date(fecha);
     if (isNaN(fechaObj.getTime())) {
       return "Fecha inválida";
     }
 
-    const opciones = {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    };
-    return fechaObj.toLocaleDateString("es-ES", opciones);
+    const day = String(fechaObj.getDate()).padStart(2, '0');
+    const month = String(fechaObj.getMonth() + 1).padStart(2, '0');
+    const year = fechaObj.getFullYear();
+    
+    return `${day}/${month}/${year}`;
   } catch (error) {
-    console.error("Error formateando fecha:", error, fecha);
+    console.error("Error formateando fecha corta:", error, fecha);
     return "Fecha inválida";
   }
 };
+
 
 const getRecetasText = (detalles) => {
   if (!detalles || detalles.length === 0) {
@@ -1070,20 +1061,27 @@ const generarPDF = async () => {
 
     // Construir parámetros de filtro para el PDF
     const params = {
-      solo_con_stock_usado: true, // <-- NUEVO PARÁMETRO
+      solo_con_stock_usado: true,
     };
     
-    if (filtros.value.fechaInicio)
-      params.fecha_inicio = filtros.value.fechaInicio;
-    if (filtros.value.fechaFin) 
-      params.fecha_fin = filtros.value.fechaFin;
+    // Siempre enviar fechas, usar valores por defecto si no están definidos
+    const hoy = new Date().toISOString().split('T')[0];
+    const hace30Dias = new Date();
+    hace30Dias.setDate(hace30Dias.getDate() - 30);
+    const fecha30DiasAtras = hace30Dias.toISOString().split('T')[0];
+    
+    params.fecha_inicio = filtros.value.fechaInicio || fecha30DiasAtras;
+    params.fecha_fin = filtros.value.fechaFin || hoy;
+    
     if (filtros.value.proveedorId)
       params.proveedor_id = filtros.value.proveedorId;
+
+    console.log("📄 Parámetros enviados para PDF:", params);
 
     // Hacer la petición para generar el PDF
     const response = await axios.get("/api/reportes/generar-pdf/", {
       params: params,
-      responseType: "blob", // Importante para descargar archivos
+      responseType: "blob",
     });
 
     // Crear un enlace temporal para descargar el PDF
