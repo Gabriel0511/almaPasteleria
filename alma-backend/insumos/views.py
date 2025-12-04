@@ -766,149 +766,117 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             proveedor_id = request.GET.get('proveedor_id')
             solo_con_stock_usado = request.GET.get('solo_con_stock_usado', 'true').lower() == 'true'
             
-            # Usar la misma lógica que ReporteInsumosAPIView para obtener los datos
-            reporte_view = ReporteInsumosAPIView()
-            # Crear una request simulada con los parámetros
-            from django.test import RequestFactory
-            factory = RequestFactory()
-            mock_request = factory.get('/api/reportes/insumos/', {
-                'fecha_inicio': fecha_inicio,
-                'fecha_fin': fecha_fin,
-                'proveedor_id': proveedor_id
-            })
-            mock_request.user = request.user
+            print(f"DEBUG PDF - Parámetros recibidos:")
+            print(f"  - solo_con_stock_usado: {solo_con_stock_usado}")
+            print(f"  - fecha_inicio: {fecha_inicio}")
+            print(f"  - fecha_fin: {fecha_fin}")
+            print(f"  - proveedor_id: {proveedor_id}")
             
-            # Obtener los datos del reporte
-            response = reporte_view.get(mock_request)
+            # Obtener datos DIRECTAMENTE usando nuestra propia lógica
+            reporte_data = self.obtener_datos_reporte_directo(fecha_inicio, fecha_fin, proveedor_id)
             
-            if response.status_code != 200:
-                return response
+            print(f"DEBUG PDF - Datos obtenidos antes de filtrar: {len(reporte_data)} insumos")
             
-            reporte_data = response.data
+            # Mostrar stock usado de cada insumo para debug
+            for i, item in enumerate(reporte_data[:5]):  # Mostrar primeros 5
+                print(f"  Insumo {i+1}: {item['nombre']} - Stock usado: {item['stock_usado']}")
             
             # Filtrar solo los insumos con stock usado > 0 si se solicita
             if solo_con_stock_usado:
+                reporte_original = len(reporte_data)
                 reporte_data = [item for item in reporte_data if item['stock_usado'] > 0]
-            
-            # Si no hay datos después del filtro
-            if not reporte_data:
-                # Crear un PDF simple con mensaje de no datos
-                buffer = io.BytesIO()
-                doc = SimpleDocTemplate(buffer, pagesize=A4)
-                elements = []
-                
-                styles = getSampleStyleSheet()
-                title_style = ParagraphStyle(
-                    'CustomTitle',
-                    parent=styles['Heading1'],
-                    fontSize=16,
-                    alignment=1,
-                    textColor=colors.HexColor('#7B5A50')
-                )
-                
-                elements.append(Paragraph("REPORTE DE INSUMOS UTILIZADOS", title_style))
-                elements.append(Spacer(1, 20))
-                
-                if fecha_inicio and fecha_fin:
-                    try:
-                        fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d')
-                        fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d')
-                        fecha_inicio_formatted = fecha_inicio_dt.strftime('%d/%m/%Y')
-                        fecha_fin_formatted = fecha_fin_dt.strftime('%d/%m/%Y')
-                        elements.append(Paragraph(f"Período: {fecha_inicio_formatted} al {fecha_fin_formatted}", styles['Normal']))
-                    except ValueError:
-                        elements.append(Paragraph(f"Período: {fecha_inicio} al {fecha_fin}", styles['Normal']))
-                
-                elements.append(Spacer(1, 40))
-                elements.append(Paragraph("No hay insumos con stock usado en el período seleccionado", styles['Heading2']))
-                
-                doc.build(elements)
-                buffer.seek(0)
-                response = HttpResponse(buffer, content_type='application/pdf')
-                filename = f"reporte_insumos_sin_datos_{datetime.now().strftime('%d%m%Y')}.pdf"
-                response['Content-Disposition'] = f'attachment; filename="{filename}"'
-                return response
+                print(f"DEBUG PDF - Después de filtrar (stock_usado > 0): {len(reporte_data)} insumos")
+                print(f"DEBUG PDF - Se eliminaron: {reporte_original - len(reporte_data)} insumos con stock usado = 0")
             
             # Crear el PDF
             buffer = io.BytesIO()
-            doc = SimpleDocTemplate(
-                buffer, 
-                pagesize=A4, 
-                topMargin=20,
-                bottomMargin=20,
-                leftMargin=20,
-                rightMargin=20
-            )
+            doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=30, bottomMargin=30)
             elements = []
             
             # Estilos
             styles = getSampleStyleSheet()
-            
-            # Estilo para el título principal
             title_style = ParagraphStyle(
                 'CustomTitle',
                 parent=styles['Heading1'],
-                fontSize=18,
-                spaceAfter=20,
+                fontSize=16,
+                spaceAfter=10,
                 alignment=1,
-                textColor=colors.HexColor('#7B5A50'),
-                fontName='Helvetica-Bold'
+                textColor=colors.HexColor('#7B5A50')
             )
             
-            elements.append(Spacer(1, 10))
-            title_text = "<b>REPORTE DE INSUMOS UTILIZADOS</b>"
-            elements.append(Paragraph(title_text, title_style))
+            # Título principal
+            title_text = "Reporte de Insumos Utilizados"
             
             # Subtítulo con fechas - FORMATO DD/MM/YYYY
             if fecha_inicio and fecha_fin:
-                try:
-                    fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d')
-                    fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d')
-                    
-                    fecha_inicio_formatted = fecha_inicio_dt.strftime('%d/%m/%Y')
-                    fecha_fin_formatted = fecha_fin_dt.strftime('%d/%m/%Y')
-                    
-                    subtitle_style = ParagraphStyle(
-                        'Subtitle',
-                        parent=styles['Normal'],
-                        fontSize=12,
-                        alignment=1,
-                        textColor=colors.grey,
-                        spaceAfter=15
-                    )
-                    subtitle_text = f"Período: {fecha_inicio_formatted} al {fecha_fin_formatted}"
-                    elements.append(Paragraph(subtitle_text, subtitle_style))
-                except ValueError:
-                    subtitle_style = ParagraphStyle(
-                        'Subtitle',
-                        parent=styles['Normal'],
-                        fontSize=12,
-                        alignment=1,
-                        textColor=colors.grey,
-                        spaceAfter=15
-                    )
-                    subtitle_text = f"Período: {fecha_inicio} al {fecha_fin}"
-                    elements.append(Paragraph(subtitle_text, subtitle_style))
+                # Formatear fechas a DD/MM/YYYY
+                fecha_inicio_fmt = self.formatear_fecha_dd_mm_yyyy(fecha_inicio)
+                fecha_fin_fmt = self.formatear_fecha_dd_mm_yyyy(fecha_fin)
+                
+                subtitle_style = ParagraphStyle(
+                    'Subtitle',
+                    parent=styles['Normal'],
+                    fontSize=12,
+                    alignment=1,
+                    textColor=colors.grey,
+                    spaceAfter=10
+                )
+                elements.append(Paragraph(f"Período: {fecha_inicio_fmt} al {fecha_fin_fmt}", subtitle_style))
             
+            elements.append(Paragraph(title_text, title_style))
             elements.append(Spacer(1, 20))
+            
+            # Si no hay datos después del filtro
+            if not reporte_data:
+                no_data_style = ParagraphStyle(
+                    'NoData',
+                    parent=styles['Normal'],
+                    fontSize=12,
+                    alignment=1,
+                    textColor=colors.red,
+                    spaceAfter=20
+                )
+                elements.append(Paragraph("No hay insumos con stock usado en el período seleccionado", no_data_style))
+                
+                # Agregar información de parámetros
+                param_style = ParagraphStyle(
+                    'ParamStyle',
+                    parent=styles['Normal'],
+                    fontSize=10,
+                    alignment=1,
+                    textColor=colors.grey
+                )
+                param_text = f"Filtro aplicado: solo_con_stock_usado={solo_con_stock_usado}"
+                if fecha_inicio and fecha_fin:
+                    fecha_inicio_fmt = self.formatear_fecha_dd_mm_yyyy(fecha_inicio)
+                    fecha_fin_fmt = self.formatear_fecha_dd_mm_yyyy(fecha_fin)
+                    param_text += f" | Período: {fecha_inicio_fmt} a {fecha_fin_fmt}"
+                elements.append(Paragraph(param_text, param_style))
+                
+                doc.build(elements)
+                buffer.seek(0)
+                response = HttpResponse(buffer, content_type='application/pdf')
+                filename = f"reporte_insumos_sin_stock_usado_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                return response
             
             # Preparar datos para la tabla
             table_data = [['Insumo', 'Stock Usado', 'Stock Actual', 'Stock Mínimo', '¿Reponer?', 'Proveedor']]
             
             for item in reporte_data:
-                necesita_reposicion = "SÍ" if item.get('necesita_reposicion', False) else "NO"
-                proveedor = item.get('proveedor', {}).get('nombre', 'Sin proveedor') if item.get('proveedor') else 'Sin proveedor'
+                necesita_reposicion = "SÍ" if item['necesita_reposicion'] else "NO"
+                proveedor = item['proveedor']['nombre'] if item['proveedor'] else 'Sin proveedor'
                 
                 table_data.append([
-                    f"{item.get('nombre', '')} ({item.get('categoria', 'Sin categoría')})",
-                    f"{item.get('stock_usado', 0):.3f} {item.get('unidad_medida', {}).get('abreviatura', 'u')}",
-                    f"{item.get('stock_actual', 0):.3f} {item.get('unidad_medida', {}).get('abreviatura', 'u')}",
-                    f"{item.get('stock_minimo', 0):.3f} {item.get('unidad_medida', {}).get('abreviatura', 'u')}",
+                    f"{item['nombre']} ({item['categoria']})",
+                    f"{item['stock_usado']:.3f} {item['unidad_medida']['abreviatura']}",
+                    f"{item['stock_actual']:.3f} {item['unidad_medida']['abreviatura']}",
+                    f"{item['stock_minimo']:.3f} {item['unidad_medida']['abreviatura']}",
                     necesita_reposicion,
                     proveedor
                 ])
             
-            # Crear tabla con anchos ajustados
+            # Crear tabla
             table = Table(table_data, colWidths=[2.2*inch, 1*inch, 1*inch, 1*inch, 0.8*inch, 1.5*inch])
             
             # Estilos de la tabla
@@ -928,7 +896,7 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             
             # Aplicar color a las filas que necesitan reposición
             for i in range(1, len(table_data)):
-                if reporte_data[i-1].get('necesita_reposicion', False):
+                if reporte_data[i-1]['necesita_reposicion']:
                     table_style.append(('BACKGROUND', (0, i), (-1, i), colors.HexColor('#f8d7da')))
             
             table.setStyle(TableStyle(table_style))
@@ -936,17 +904,17 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             elements.append(table)
             
             # Agregar resumen
-            elements.append(Spacer(1, 20))
+            elements.append(Spacer(1, 30))
             
             # Estadísticas
             total_insumos = len(reporte_data)
-            insumos_reponer = len([item for item in reporte_data if item.get('necesita_reposicion', False)])
+            insumos_reponer = len([item for item in reporte_data if item['necesita_reposicion']])
             
-            resumen_text = f"<b>Resumen:</b> {total_insumos} insumos con stock usado | {insumos_reponer} necesitan reposición"
+            resumen_text = f"Resumen: {total_insumos} insumos con stock usado | {insumos_reponer} necesitan reposición"
             resumen_style = ParagraphStyle(
                 'Resumen',
                 parent=styles['Normal'],
-                fontSize=11,
+                fontSize=10,
                 alignment=1,
                 textColor=colors.HexColor('#7B5A50'),
                 spaceBefore=10
@@ -957,13 +925,13 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             fecha_gen = ParagraphStyle(
                 'FechaGen',
                 parent=styles['Normal'],
-                fontSize=9,
+                fontSize=8,
                 alignment=1,
                 textColor=colors.grey,
                 spaceBefore=20
             )
-            fecha_text = f"Generado el: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
-            elements.append(Paragraph(fecha_text, fecha_gen))
+            # Cambiado a DD/MM/YYYY
+            elements.append(Paragraph(f"Generado el: {datetime.now().strftime('%d/%m/%Y %H:%M')}", fecha_gen))
             
             # Construir PDF
             doc.build(elements)
@@ -972,17 +940,13 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             buffer.seek(0)
             response = HttpResponse(buffer, content_type='application/pdf')
             
-            # Nombre del archivo - FORMATO DDMMYYYY
-            filename = f"reporte_insumos_{datetime.now().strftime('%d%m%Y_%H%M%S')}.pdf"
+            # Nombre del archivo
+            filename = f"reporte_insumos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
             if fecha_inicio and fecha_fin:
-                try:
-                    fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d')
-                    fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d')
-                    fecha_inicio_formatted = fecha_inicio_dt.strftime('%d%m%Y')
-                    fecha_fin_formatted = fecha_fin_dt.strftime('%d%m%Y')
-                    filename = f"reporte_insumos_{fecha_inicio_formatted}_a_{fecha_fin_formatted}.pdf"
-                except ValueError:
-                    filename = f"reporte_insumos_{fecha_inicio}_a_{fecha_fin}.pdf"
+                # Mantener formato YYYYMMDD para el nombre del archivo (mejor para ordenar)
+                fecha_inicio_archivo = fecha_inicio.replace("-", "")
+                fecha_fin_archivo = fecha_fin.replace("-", "")
+                filename = f"reporte_insumos_{fecha_inicio_archivo}_a_{fecha_fin_archivo}.pdf"
             
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             return response
@@ -996,6 +960,136 @@ class GenerarPDFReporteInsumosAPIView(APIView):
                 {'error': error_msg},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    def obtener_datos_reporte_directo(self, fecha_inicio, fecha_fin, proveedor_id):
+        """
+        Obtiene los datos del reporte calculando directamente
+        """
+        try:
+            # Validar fechas
+            fecha_inicio_dt = None
+            fecha_fin_dt = None
+            
+            if fecha_inicio:
+                try:
+                    fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+                except ValueError:
+                    print(f"ERROR: Formato de fecha_inicio inválido: {fecha_inicio}")
+                    fecha_inicio_dt = None
+            
+            if fecha_fin:
+                try:
+                    fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+                except ValueError:
+                    print(f"ERROR: Formato de fecha_fin inválido: {fecha_fin}")
+                    fecha_fin_dt = None
+            
+            # Si solo una fecha está especificada, usar rango por defecto
+            if fecha_inicio_dt and not fecha_fin_dt:
+                fecha_fin_dt = fecha_inicio_dt + timedelta(days=30)
+            elif fecha_fin_dt and not fecha_inicio_dt:
+                fecha_inicio_dt = fecha_fin_dt - timedelta(days=30)
+            
+            print(f"DEBUG PDF - Fechas procesadas: {fecha_inicio_dt} a {fecha_fin_dt}")
+            
+            # Filtrar insumos activos
+            insumos = Insumo.objects.filter(activo=True)
+            
+            # Aplicar filtro por proveedor
+            if proveedor_id:
+                insumos = insumos.filter(proveedor_id=proveedor_id)
+                print(f"DEBUG PDF - Filtrado por proveedor_id: {proveedor_id}")
+            
+            print(f"DEBUG PDF - Total de insumos activos encontrados: {insumos.count()}")
+            
+            reporte_data = []
+            
+            # Usar métodos de ReporteInsumosAPIView para calcular stock usado
+            reporte_view = ReporteInsumosAPIView()
+            
+            for insumo in insumos:
+                try:
+                    # Calcular stock usado desde recetas
+                    stock_usado_recetas = reporte_view.calcular_stock_usado_recetas(
+                        insumo, fecha_inicio_dt, fecha_fin_dt
+                    )
+                    
+                    # Calcular stock usado desde ingredientes extra
+                    stock_usado_ingredientes_extra = reporte_view.calcular_stock_usado_ingredientes_extra(
+                        insumo, fecha_inicio_dt, fecha_fin_dt
+                    )
+                    
+                    # Stock total usado
+                    stock_usado_total = stock_usado_recetas + stock_usado_ingredientes_extra
+                    
+                    # Debug por insumo
+                    if stock_usado_total > 0:
+                        print(f"  ✓ {insumo.nombre}: stock_usado = {stock_usado_total}")
+                    else:
+                        print(f"  ✗ {insumo.nombre}: stock_usado = 0")
+                    
+                    reporte_data.append({
+                        'id': insumo.id,
+                        'nombre': insumo.nombre,
+                        'categoria': insumo.categoria.nombre if insumo.categoria else 'Sin categoría',
+                        'stock_usado': float(stock_usado_total),
+                        'stock_actual': float(insumo.stock_actual),
+                        'stock_minimo': float(insumo.stock_minimo),
+                        'unidad_medida': {
+                            'abreviatura': insumo.unidad_medida.abreviatura
+                        },
+                        'necesita_reposicion': insumo.necesita_reposicion,
+                        'proveedor': {
+                            'id': insumo.proveedor.id if insumo.proveedor else None,
+                            'nombre': insumo.proveedor.nombre if insumo.proveedor else 'Sin proveedor'
+                        } if insumo.proveedor else None
+                    })
+                    
+                except Exception as e:
+                    print(f"ERROR procesando insumo {insumo.id} ({insumo.nombre}): {str(e)}")
+                    # Agregar igual pero con stock usado 0 en caso de error
+                    reporte_data.append({
+                        'id': insumo.id,
+                        'nombre': insumo.nombre,
+                        'categoria': insumo.categoria.nombre if insumo.categoria else 'Sin categoría',
+                        'stock_usado': 0.0,
+                        'stock_actual': float(insumo.stock_actual),
+                        'stock_minimo': float(insumo.stock_minimo),
+                        'unidad_medida': {
+                            'abreviatura': insumo.unidad_medida.abreviatura
+                        },
+                        'necesita_reposicion': insumo.necesita_reposicion,
+                        'proveedor': {
+                            'id': insumo.proveedor.id if insumo.proveedor else None,
+                            'nombre': insumo.proveedor.nombre if insumo.proveedor else 'Sin proveedor'
+                        } if insumo.proveedor else None
+                    })
+            
+            return reporte_data
+            
+        except Exception as e:
+            import traceback
+            print(f"ERROR en obtener_datos_reporte_directo: {str(e)}")
+            print(traceback.format_exc())
+            return []
+        
+    def formatear_fecha_dd_mm_yyyy(self, fecha_str):
+        """
+        Convierte fecha de formato YYYY-MM-DD a DD/MM/YYYY
+        """
+        try:
+            if isinstance(fecha_str, str):
+                # Intentar parsear como YYYY-MM-DD
+                fecha_obj = datetime.strptime(fecha_str, '%Y-%m-%d')
+                return fecha_obj.strftime('%d/%m/%Y')
+            elif hasattr(fecha_str, 'strftime'):  # Si ya es objeto datetime/date
+                return fecha_str.strftime('%d/%m/%Y')
+            else:
+                return str(fecha_str)  # Devolver como está si no se puede convertir
+        except (ValueError, AttributeError):
+            # Si hay error, devolver la fecha original
+            return str(fecha_str)
+        
 class GenerarPDFListaComprasAPIView(APIView):
     permission_classes = [IsAuthenticated]
     
@@ -1037,16 +1131,10 @@ class GenerarPDFListaComprasAPIView(APIView):
             # Título - CON FORMATO DD/MM/YYYY
             title_text = "Lista de Compras - Próxima Semana"
             if fecha_inicio and fecha_fin:
-                try:
-                    fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d')
-                    fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d')
-                    
-                    fecha_inicio_formatted = fecha_inicio_dt.strftime('%d/%m/%Y')
-                    fecha_fin_formatted = fecha_fin_dt.strftime('%d/%m/%Y')
-                    
-                    title_text += f" - Del {fecha_inicio_formatted} al {fecha_fin_formatted}"
-                except ValueError:
-                    title_text += f" - Del {fecha_inicio} al {fecha_fin}"
+                # Formatear fechas a DD/MM/YYYY
+                fecha_inicio_fmt = self.formatear_fecha_dd_mm_yyyy(fecha_inicio)
+                fecha_fin_fmt = self.formatear_fecha_dd_mm_yyyy(fecha_fin)
+                title_text += f" - Del {fecha_inicio_fmt} al {fecha_fin_fmt}"
             
             elements.append(Paragraph(title_text, title_style))
             elements.append(Spacer(1, 20))
@@ -1096,7 +1184,7 @@ class GenerarPDFListaComprasAPIView(APIView):
             )
             elements.append(Paragraph(resumen_text, resumen_style))
             
-            # Fecha de generación - FORMATO CAMBIADO A DD/MM/YYYY
+            # Fecha de generación - FORMATO DD/MM/YYYY
             fecha_gen = ParagraphStyle(
                 'FechaGen',
                 parent=styles['Normal'],
@@ -1105,7 +1193,7 @@ class GenerarPDFListaComprasAPIView(APIView):
                 textColor=colors.grey,
                 spaceBefore=20
             )
-            fecha_text = f"Generado el: {datetime.now().strftime('%d/%m/%Y %H:%M')}"  # Cambiado a DD/MM/YYYY
+            fecha_text = f"Generado el: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
             elements.append(Paragraph(fecha_text, fecha_gen))
             
             # Construir PDF
@@ -1115,17 +1203,12 @@ class GenerarPDFListaComprasAPIView(APIView):
             buffer.seek(0)
             response = HttpResponse(buffer, content_type='application/pdf')
             
-            # Nombre del archivo - FORMATO CAMBIADO A DDMMYYYY
-            filename = f"lista_compras_{datetime.now().strftime('%d%m%Y_%H%M%S')}.pdf"  # Cambiado a DDMMYYYY
+            # Nombre del archivo
+            filename = f"lista_compras_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
             if fecha_inicio and fecha_fin:
-                try:
-                    fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d')
-                    fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d')
-                    fecha_inicio_formatted = fecha_inicio_dt.strftime('%d%m%Y')
-                    fecha_fin_formatted = fecha_fin_dt.strftime('%d%m%Y')
-                    filename = f"lista_compras_{fecha_inicio_formatted}_a_{fecha_fin_formatted}.pdf"
-                except ValueError:
-                    filename = f"lista_compras_{fecha_inicio}_a_{fecha_fin}.pdf"
+                fecha_inicio_archivo = fecha_inicio.replace("-", "")
+                fecha_fin_archivo = fecha_fin.replace("-", "")
+                filename = f"lista_compras_{fecha_inicio_archivo}_a_{fecha_fin_archivo}.pdf"
             
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             return response
@@ -1135,3 +1218,18 @@ class GenerarPDFListaComprasAPIView(APIView):
                 {'error': f'Error al generar PDF: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    def formatear_fecha_dd_mm_yyyy(self, fecha_str):
+        """
+        Convierte fecha de formato YYYY-MM-DD a DD/MM/YYYY
+        """
+        try:
+            if isinstance(fecha_str, str):
+                fecha_obj = datetime.strptime(fecha_str, '%Y-%m-%d')
+                return fecha_obj.strftime('%d/%m/%Y')
+            elif hasattr(fecha_str, 'strftime'):
+                return fecha_str.strftime('%d/%m/%Y')
+            else:
+                return str(fecha_str)
+        except (ValueError, AttributeError):
+            return str(fecha_str)
