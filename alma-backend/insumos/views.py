@@ -323,6 +323,7 @@ class PerdidaDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     queryset = Perdida.objects.all()
     serializer_class = PerdidaSerializer
+    lookup_field = 'id'
 
 # ==================== VISTAS PARA REPORTES ====================
 class ReporteInsumosAPIView(APIView):
