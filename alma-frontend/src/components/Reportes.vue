@@ -6,76 +6,9 @@
       <Header @toggle-sidebar="toggleSidebar" />
       <main class="main-content">
         <div class="reportes-container">
-          <!-- Encabezado y Filtros -->
+          <!-- Encabezado -->
           <div class="principal-content">
             <h1 class="reportes-card-title1">Reportes</h1>
-
-            <div
-              class="reportes-filtros-mobile-toggle"
-              v-if="isMobile"
-              @click="mostrarFiltros = !mostrarFiltros"
-            >
-              <i
-                class="fas"
-                :class="mostrarFiltros ? 'fa-chevron-up' : 'fa-filter'"
-              ></i>
-              {{ mostrarFiltros ? "Ocultar Filtros" : "Mostrar Filtros" }}
-            </div>
-
-            <div
-              class="reportes-filtros-derecha"
-              :class="{ 'reportes-filtros-visible': mostrarFiltros }"
-            >
-              <div class="reportes-filtro-group">
-                <label for="fecha-inicio">Fecha Inicio</label>
-                <input
-                  id="fecha-inicio"
-                  type="date"
-                  v-model="filtros.fechaInicio"
-                  :max="fechaHoy"
-                  class="reportes-filtro-input"
-                  @change="validarFechas"
-                />
-              </div>
-
-              <div class="reportes-filtro-group">
-                <label for="fecha-fin">Fecha Fin</label>
-                <input
-                  id="fecha-fin"
-                  type="date"
-                  v-model="filtros.fechaFin"
-                  :max="fechaHoy"
-                  :min="filtros.fechaInicio || ''"
-                  class="reportes-filtro-input"
-                  @change="validarFechas"
-                />
-              </div>
-              <div class="reportes-filtro-group">
-                <label for="proveedor">Proveedor</label>
-                <select
-                  id="proveedor"
-                  v-model="filtros.proveedorId"
-                  class="reportes-filtro-select"
-                >
-                  <option value="">Todos los proveedores</option>
-                  <option
-                    v-for="proveedor in proveedores"
-                    :key="proveedor.id"
-                    :value="proveedor.id"
-                  >
-                    {{ proveedor.nombre }}
-                  </option>
-                </select>
-              </div>
-              <button
-                @click="limpiarFiltros"
-                class="reportes-btn-agregar"
-                style="background-color: #6c757d"
-              >
-                <i class="fas fa-eraser"></i>
-                Limpiar
-              </button>
-            </div>
           </div>
 
           <!-- Pestañas para las 5 tablas -->
@@ -98,13 +31,146 @@
 
             <!-- Contenido de las pestañas -->
             <div class="tabs-content">
-              <!-- Pestaña 1: Reporte de Insumos -->
-              <div v-show="tabActiva === 'reporte-insumos'" class="tab-pane">
-                <!-- Tabla de Reportes -->
+              <!-- Pestaña 1: Insumos Usados -->
+              <div v-show="tabActiva === 'insumos-usados'" class="tab-pane">
+                <!-- FILTROS ESPECÍFICOS - Insumos Usados -->
+                <div class="filtros-pestaña">
+                  <div class="filtros-grid">
+                    <!-- Fecha Inicio -->
+                    <div class="filtro-group">
+                      <label for="fecha-inicio-insumos">Fecha Inicio</label>
+                      <input
+                        id="fecha-inicio-insumos"
+                        type="date"
+                        v-model="filtrosInsumosUsados.fechaInicio"
+                        :max="filtrosInsumosUsados.fechaFin || fechaHoy"
+                        class="filtro-input"
+                        @change="validarFechasInsumosUsados"
+                      />
+                      <div v-if="errorFechaInsumosUsados" class="error-message">
+                        {{ errorFechaInsumosUsados }}
+                      </div>
+                    </div>
+
+                    <!-- Fecha Fin -->
+                    <div class="filtro-group">
+                      <label for="fecha-fin-insumos">Fecha Fin</label>
+                      <input
+                        id="fecha-fin-insumos"
+                        type="date"
+                        v-model="filtrosInsumosUsados.fechaFin"
+                        :min="filtrosInsumosUsados.fechaInicio || ''"
+                        :max="fechaHoy"
+                        class="filtro-input"
+                        @change="validarFechasInsumosUsados"
+                      />
+                      <div v-if="errorFechaInsumosUsados" class="error-message">
+                        {{ errorFechaInsumosUsados }}
+                      </div>
+                    </div>
+
+                    <!-- Proveedor -->
+                    <div class="filtro-group">
+                      <label for="proveedor-insumos">Proveedor</label>
+                      <select
+                        id="proveedor-insumos"
+                        v-model="filtrosInsumosUsados.proveedorId"
+                        class="filtro-select"
+                      >
+                        <option value="">Todos los proveedores</option>
+                        <option
+                          v-for="proveedor in proveedores"
+                          :key="proveedor.id"
+                          :value="proveedor.id"
+                        >
+                          {{ proveedor.nombre }}
+                        </option>
+                      </select>
+                    </div>
+
+                    <!-- ¿Reponer? -->
+                    <div class="filtro-group">
+                      <label for="reponer-insumos">¿Reponer?</label>
+                      <select
+                        id="reponer-insumos"
+                        v-model="filtrosInsumosUsados.reponer"
+                        class="filtro-select"
+                      >
+                        <option value="">Todos</option>
+                        <option value="si">Sí</option>
+                        <option value="no">No</option>
+                      </select>
+                    </div>
+
+                    <!-- Buscador de insumos -->
+                    <div class="filtro-group buscador">
+                      <label>&nbsp;</label>
+                      <form autocomplete="off" class="search-form">
+                        <input
+                          autocomplete="off"
+                          v-model="filtrosInsumosUsados.searchTerm"
+                          type="text"
+                          placeholder="🔍 Buscar insumo..."
+                          class="search-input"
+                        />
+                      </form>
+                    </div>
+                  </div>
+
+                  <!-- Botón Limpiar Filtros (solo visible con filtros activos) -->
+                  <div
+                    v-if="filtrosActivosInsumosUsados"
+                    class="botones-filtros"
+                  >
+                    <button
+                      @click="limpiarFiltrosInsumosUsados"
+                      class="btn-limpiar-filtros"
+                    >
+                      <i class="fas fa-broom"></i>
+                      Limpiar Filtros
+                    </button>
+                  </div>
+
+                  <!-- Indicadores de Filtros Activos -->
+                  <div
+                    v-if="filtrosActivosInsumosUsados"
+                    class="filtros-activos-info"
+                  >
+                    <small>
+                      Filtros activos:
+                      <span
+                        v-if="filtroPeriodoInsumosUsados"
+                        class="filtro-activo"
+                      >
+                        {{ filtroPeriodoInsumosUsados }}
+                      </span>
+                      <span
+                        v-if="filtrosInsumosUsados.proveedorId"
+                        class="filtro-activo"
+                      >
+                        Proveedor: {{ nombreProveedorInsumosUsados }}
+                      </span>
+                      <span
+                        v-if="filtrosInsumosUsados.reponer"
+                        class="filtro-activo"
+                      >
+                        Reponer: {{ filtrosInsumosUsados.reponer === 'si' ? 'Sí' : 'No' }}
+                      </span>
+                      <span
+                        v-if="filtrosInsumosUsados.searchTerm"
+                        class="filtro-activo"
+                      >
+                        Búsqueda: "{{ filtrosInsumosUsados.searchTerm }}"
+                      </span>
+                    </small>
+                  </div>
+                </div>
+
+                <!-- Tabla de Insumos Usados -->
                 <div class="reportes-card">
                   <div class="reportes-table-header">
-                    <h3 class="card-title">Reporte de Insumos utilizados</h3>
-                    <!-- Botón Generar PDF para reportes -->
+                    <h3 class="card-title">📊 Insumos Utilizados</h3>
+                    <!-- Botón Generar PDF -->
                     <div
                       class="reportes-seccion-pdf"
                       v-if="reporteFiltrado.length > 0"
@@ -198,15 +264,658 @@
                 </div>
               </div>
 
-              <!-- Pestaña 2: Lista de Compras -->
+              <!-- Pestaña 2: Recetas Hechas -->
+              <div v-show="tabActiva === 'recetas-hechas'" class="tab-pane">
+                <!-- FILTROS ESPECÍFICOS - Recetas Hechas -->
+                <div class="filtros-pestaña">
+                  <div class="filtros-grid">
+                    <!-- Fecha Inicio -->
+                    <div class="filtro-group">
+                      <label for="fecha-inicio-recetas">Fecha Inicio</label>
+                      <input
+                        id="fecha-inicio-recetas"
+                        type="date"
+                        v-model="filtrosRecetasHechas.fechaInicio"
+                        :max="filtrosRecetasHechas.fechaFin || fechaHoy"
+                        class="filtro-input"
+                        @change="validarFechasRecetasHechas"
+                      />
+                      <div v-if="errorFechaRecetasHechas" class="error-message">
+                        {{ errorFechaRecetasHechas }}
+                      </div>
+                    </div>
+
+                    <!-- Fecha Fin -->
+                    <div class="filtro-group">
+                      <label for="fecha-fin-recetas">Fecha Fin</label>
+                      <input
+                        id="fecha-fin-recetas"
+                        type="date"
+                        v-model="filtrosRecetasHechas.fechaFin"
+                        :min="filtrosRecetasHechas.fechaInicio || ''"
+                        :max="fechaHoy"
+                        class="filtro-input"
+                        @change="validarFechasRecetasHechas"
+                      />
+                      <div v-if="errorFechaRecetasHechas" class="error-message">
+                        {{ errorFechaRecetasHechas }}
+                      </div>
+                    </div>
+
+                    <!-- Buscador de recetas -->
+                    <div class="filtro-group buscador">
+                      <label>&nbsp;</label>
+                      <form autocomplete="off" class="search-form">
+                        <input
+                          autocomplete="off"
+                          v-model="filtrosRecetasHechas.searchTerm"
+                          type="text"
+                          placeholder="🔍 Buscar receta..."
+                          class="search-input"
+                        />
+                      </form>
+                    </div>
+                  </div>
+
+                  <!-- Botón Limpiar Filtros -->
+                  <div
+                    v-if="filtrosActivosRecetasHechas"
+                    class="botones-filtros"
+                  >
+                    <button
+                      @click="limpiarFiltrosRecetasHechas"
+                      class="btn-limpiar-filtros"
+                    >
+                      <i class="fas fa-broom"></i>
+                      Limpiar Filtros
+                    </button>
+                  </div>
+
+                  <!-- Indicadores de Filtros Activos -->
+                  <div
+                    v-if="filtrosActivosRecetasHechas"
+                    class="filtros-activos-info"
+                  >
+                    <small>
+                      Filtros activos:
+                      <span
+                        v-if="filtroPeriodoRecetasHechas"
+                        class="filtro-activo"
+                      >
+                        {{ filtroPeriodoRecetasHechas }}
+                      </span>
+                      <span
+                        v-if="filtrosRecetasHechas.searchTerm"
+                        class="filtro-activo"
+                      >
+                        Búsqueda: "{{ filtrosRecetasHechas.searchTerm }}"
+                      </span>
+                    </small>
+                  </div>
+                </div>
+
+                <!-- Tabla de Recetas Hechas -->
+                <div class="reportes-card">
+                  <div class="reportes-table-header">
+                    <h3 class="card-title">🍽️ Recetas Hechas - Historial</h3>
+                    <!-- Botón Generar PDF -->
+                    <div
+                      class="reportes-seccion-pdf"
+                      v-if="recetasHechasFiltradas.length > 0"
+                    >
+                      <button
+                        @click="generarPDFRecetas"
+                        class="reportes-btn-generar-pdf"
+                      >
+                        <i class="fas fa-file-pdf"></i>
+                        Generar PDF
+                      </button>
+
+                      <div
+                        v-if="generandoPDFRecetas"
+                        class="reportes-estado-generando-pdf"
+                      >
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Generando PDF...
+                      </div>
+                    </div>
+                  </div>
+                  <div class="reportes-table-scroll-container">
+                    <table class="reportes-table-content">
+                      <thead>
+                        <tr>
+                          <th>Receta</th>
+                          <th>Total Preparado</th>
+                          <th>Costo Total</th>
+                          <th>Fecha de preparación</th>
+                          <th>Precio Venta</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          v-for="item in recetasHechasFiltradas"
+                          :key="'receta-' + item.id"
+                        >
+                          <td class="reportes-columna-receta-nombre">
+                            {{ item.nombre }}
+                          </td>
+                          <td class="reportes-columna-cantidad">
+                            {{ item.cantidad }}
+                            {{ item.cantidad === 1 ? "vez" : "veces" }}
+                          </td>
+                          <td class="reportes-columna-costo">
+                            ${{ formatDecimal(item.costo_total) }}
+                          </td>
+                          <td class="reportes-columna-fecha">
+                            {{ formatearFechaCorta(item.ultima_preparacion) }}
+                          </td>
+                          <td class="reportes-columna-precio">
+                            ${{ formatDecimal(item.precio_venta) }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div v-if="loadingRecetas" class="reportes-loading-state">
+                      <i class="fas fa-spinner fa-spin"></i>
+                      <p>Cargando preparaciones...</p>
+                    </div>
+                    <div
+                      v-else-if="recetasHechasFiltradas.length === 0"
+                      class="reportes-empty-state"
+                    >
+                      <i class="fas fa-utensils"></i>
+                      <p>No hay preparaciones en el período seleccionado</p>
+                      <small>
+                        Las preparaciones aparecerán aquí después de usar el
+                        botón "Preparar"
+                      </small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pestaña 3: Pedidos -->
+              <div v-show="tabActiva === 'pedidos'" class="tab-pane">
+                <!-- FILTROS ESPECÍFICOS - Pedidos -->
+                <div class="filtros-pestaña">
+                  <div class="filtros-grid">
+                    <!-- Fecha Inicio -->
+                    <div class="filtro-group">
+                      <label for="fecha-inicio-pedidos">Fecha Inicio</label>
+                      <input
+                        id="fecha-inicio-pedidos"
+                        type="date"
+                        v-model="filtrosPedidos.fechaInicio"
+                        :max="filtrosPedidos.fechaFin || fechaHoy"
+                        class="filtro-input"
+                        @change="validarFechasPedidos"
+                      />
+                      <div v-if="errorFechaPedidos" class="error-message">
+                        {{ errorFechaPedidos }}
+                      </div>
+                    </div>
+
+                    <!-- Fecha Fin -->
+                    <div class="filtro-group">
+                      <label for="fecha-fin-pedidos">Fecha Fin</label>
+                      <input
+                        id="fecha-fin-pedidos"
+                        type="date"
+                        v-model="filtrosPedidos.fechaFin"
+                        :min="filtrosPedidos.fechaInicio || ''"
+                        :max="fechaHoy"
+                        class="filtro-input"
+                        @change="validarFechasPedidos"
+                      />
+                      <div v-if="errorFechaPedidos" class="error-message">
+                        {{ errorFechaPedidos }}
+                      </div>
+                    </div>
+
+                    <!-- Cliente -->
+                    <div class="filtro-group">
+                      <label for="cliente-pedidos">Cliente</label>
+                      <select
+                        id="cliente-pedidos"
+                        v-model="filtrosPedidos.clienteId"
+                        class="filtro-select"
+                      >
+                        <option value="">Todos los clientes</option>
+                        <option
+                          v-for="cliente in clientes"
+                          :key="cliente.id"
+                          :value="cliente.id"
+                        >
+                          {{ cliente.nombre }}
+                        </option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Botón Limpiar Filtros -->
+                  <div v-if="filtrosActivosPedidos" class="botones-filtros">
+                    <button
+                      @click="limpiarFiltrosPedidos"
+                      class="btn-limpiar-filtros"
+                    >
+                      <i class="fas fa-broom"></i>
+                      Limpiar Filtros
+                    </button>
+                  </div>
+
+                  <!-- Indicadores de Filtros Activos -->
+                  <div
+                    v-if="filtrosActivosPedidos"
+                    class="filtros-activos-info"
+                  >
+                    <small>
+                      Filtros activos:
+                      <span
+                        v-if="filtroPeriodoPedidos"
+                        class="filtro-activo"
+                      >
+                        {{ filtroPeriodoPedidos }}
+                      </span>
+                      <span
+                        v-if="filtrosPedidos.clienteId"
+                        class="filtro-activo"
+                      >
+                        Cliente: {{ nombreClientePedidos }}
+                      </span>
+                    </small>
+                  </div>
+                </div>
+
+                <!-- Tabla de Pedidos -->
+                <div class="reportes-card">
+                  <div class="reportes-table-header">
+                    <h3 class="card-title">📦 Pedidos Entregados</h3>
+                    <!-- Botón Generar PDF -->
+                    <div
+                      class="reportes-seccion-pdf"
+                      v-if="pedidosFiltrados.length > 0"
+                    >
+                      <button
+                        @click="generarPDFPedidos"
+                        class="reportes-btn-generar-pdf"
+                      >
+                        <i class="fas fa-file-pdf"></i>
+                        Generar PDF
+                      </button>
+
+                      <div
+                        v-if="generandoPDFPedidos"
+                        class="reportes-estado-generando-pdf"
+                      >
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Generando PDF...
+                      </div>
+                    </div>
+                  </div>
+                  <div class="reportes-table-scroll-container">
+                    <table class="reportes-table-content">
+                      <thead>
+                        <tr>
+                          <th>Pedido ID</th>
+                          <th>Cliente</th>
+                          <th>Recetas</th>
+                          <th>Fecha Entrega</th>
+                          <th>Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          v-for="item in pedidosFiltrados"
+                          :key="'pedido-' + item.id"
+                          :class="{
+                            'reportes-fila-pedido-urgente':
+                              item.estado === 'pendiente',
+                          }"
+                        >
+                          <td class="reportes-columna-pedido-id">
+                            #{{ item.id }}
+                          </td>
+                          <td class="reportes-columna-cliente">
+                            {{ item.cliente }}
+                          </td>
+                          <td class="reportes-columna-recetas">
+                            <div class="recetas-pedido-detalle">
+                              {{ getRecetasText(item.detalles) }}
+                            </div>
+                            <!-- Mostrar ingredientes extra si existen -->
+                            <div
+                              v-if="hasIngredientesExtra(item.detalles)"
+                              class="ingredientes-extra-detalle"
+                            >
+                              <small>
+                                <strong>Ingredientes extra:</strong>
+                                {{ getIngredientesExtraText(item.detalles) }}
+                              </small>
+                            </div>
+                          </td>
+                          <td class="reportes-columna-fecha">
+                            {{ formatearFechaCorta(item.fecha_entrega) }}
+                          </td>
+                          <td class="reportes-columna-total">
+                            ${{ formatDecimal(item.total) }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div v-if="loadingPedidos" class="reportes-loading-state">
+                      <i class="fas fa-spinner fa-spin"></i>
+                      <p>Cargando pedidos...</p>
+                    </div>
+                    <div
+                      v-else-if="pedidosFiltrados.length === 0"
+                      class="reportes-empty-state"
+                    >
+                      <i class="fas fa-shopping-bag"></i>
+                      <p>No hay pedidos para la fecha seleccionada</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pestaña 4: Pérdidas de Insumos -->
+              <div v-show="tabActiva === 'perdidas-insumos'" class="tab-pane">
+                <!-- FILTROS ESPECÍFICOS - Pérdidas de Insumos -->
+                <div class="filtros-pestaña">
+                  <div class="filtros-grid">
+                    <!-- Fecha Inicio -->
+                    <div class="filtro-group">
+                      <label for="fecha-inicio-perdidas">Fecha Inicio</label>
+                      <input
+                        id="fecha-inicio-perdidas"
+                        type="date"
+                        v-model="filtrosPerdidas.fechaInicio"
+                        :max="filtrosPerdidas.fechaFin || fechaHoy"
+                        class="filtro-input"
+                        @change="validarFechasPerdidas"
+                      />
+                      <div v-if="errorFechaPerdidas" class="error-message">
+                        {{ errorFechaPerdidas }}
+                      </div>
+                    </div>
+
+                    <!-- Fecha Fin -->
+                    <div class="filtro-group">
+                      <label for="fecha-fin-perdidas">Fecha Fin</label>
+                      <input
+                        id="fecha-fin-perdidas"
+                        type="date"
+                        v-model="filtrosPerdidas.fechaFin"
+                        :min="filtrosPerdidas.fechaInicio || ''"
+                        :max="fechaHoy"
+                        class="filtro-input"
+                        @change="validarFechasPerdidas"
+                      />
+                      <div v-if="errorFechaPerdidas" class="error-message">
+                        {{ errorFechaPerdidas }}
+                      </div>
+                    </div>
+
+                    <!-- Categoría -->
+                    <div class="filtro-group">
+                      <label for="categoria-perdidas">Categoría</label>
+                      <select
+                        id="categoria-perdidas"
+                        v-model="filtrosPerdidas.categoria"
+                        class="filtro-select"
+                      >
+                        <option value="">Todas las categorías</option>
+                        <option
+                          v-for="categoria in categoriasDisponibles"
+                          :key="categoria"
+                          :value="categoria"
+                        >
+                          {{ categoria }}
+                        </option>
+                      </select>
+                    </div>
+
+                    <!-- Motivo -->
+                    <div class="filtro-group">
+                      <label for="motivo-perdidas">Motivo</label>
+                      <select
+                        id="motivo-perdidas"
+                        v-model="filtrosPerdidas.motivo"
+                        class="filtro-select"
+                      >
+                        <option value="">Todos los motivos</option>
+                        <option value="deterioro">Deterioro</option>
+                        <option value="vencimiento">Vencimiento</option>
+                        <option value="rotura">Rotura</option>
+                        <option value="error">Error en registro</option>
+                        <option value="uso_interno">Uso interno</option>
+                        <option value="otro">Otro</option>
+                      </select>
+                    </div>
+
+                    <!-- Buscador de insumos -->
+                    <div class="filtro-group buscador">
+                      <label>&nbsp;</label>
+                      <form autocomplete="off" class="search-form">
+                        <input
+                          autocomplete="off"
+                          v-model="filtrosPerdidas.searchTerm"
+                          type="text"
+                          placeholder="🔍 Buscar insumo..."
+                          class="search-input"
+                        />
+                      </form>
+                    </div>
+                  </div>
+
+                  <!-- Botón Limpiar Filtros -->
+                  <div v-if="filtrosActivosPerdidas" class="botones-filtros">
+                    <button
+                      @click="limpiarFiltrosPerdidas"
+                      class="btn-limpiar-filtros"
+                    >
+                      <i class="fas fa-broom"></i>
+                      Limpiar Filtros
+                    </button>
+                  </div>
+
+                  <!-- Indicadores de Filtros Activos -->
+                  <div
+                    v-if="filtrosActivosPerdidas"
+                    class="filtros-activos-info"
+                  >
+                    <small>
+                      Filtros activos:
+                      <span
+                        v-if="filtroPeriodoPerdidas"
+                        class="filtro-activo"
+                      >
+                        {{ filtroPeriodoPerdidas }}
+                      </span>
+                      <span
+                        v-if="filtrosPerdidas.categoria"
+                        class="filtro-activo"
+                      >
+                        Categoría: {{ filtrosPerdidas.categoria }}
+                      </span>
+                      <span
+                        v-if="filtrosPerdidas.motivo"
+                        class="filtro-activo"
+                      >
+                        Motivo: {{ formatMotivoPerdida(filtrosPerdidas.motivo) }}
+                      </span>
+                      <span
+                        v-if="filtrosPerdidas.searchTerm"
+                        class="filtro-activo"
+                      >
+                        Búsqueda: "{{ filtrosPerdidas.searchTerm }}"
+                      </span>
+                    </small>
+                  </div>
+                </div>
+
+                <!-- Tabla de Historial de Pérdidas -->
+                <div class="reportes-card">
+                  <div class="reportes-table-header">
+                    <h3 class="card-title">📉 Historial de Pérdidas</h3>
+                    <!-- Botón Generar PDF -->
+                    <div
+                      class="reportes-seccion-pdf"
+                      v-if="historialPerdidasFiltrado.length > 0"
+                    >
+                      <button
+                        @click="generarPDFPerdidas"
+                        class="reportes-btn-generar-pdf"
+                      >
+                        <i class="fas fa-file-pdf"></i>
+                        Generar PDF
+                      </button>
+
+                      <div
+                        v-if="generandoPDFPerdidas"
+                        class="reportes-estado-generando-pdf"
+                      >
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Generando PDF...
+                      </div>
+                    </div>
+                  </div>
+                  <div class="reportes-table-scroll-container">
+                    <table class="reportes-table-content">
+                      <thead>
+                        <tr>
+                          <th>Fecha</th>
+                          <th>Insumo</th>
+                          <th>Categoría</th>
+                          <th>Cantidad</th>
+                          <th>Motivo</th>
+                          <th>Observaciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          v-for="perdida in historialPerdidasFiltrado"
+                          :key="perdida.ids.join('-')"
+                        >
+                          <td class="reportes-columna-fecha">
+                            {{ formatearFechaCorta(perdida.fecha) }}
+                          </td>
+                          <td class="reportes-columna-insumo-nombre">
+                            <strong>{{ perdida.insumo_nombre }}</strong>
+                          </td>
+                          <td class="reportes-columna-categoria">
+                            {{ perdida.categoria || "-" }}
+                          </td>
+                          <td class="reportes-columna-stock-usado">
+                            {{ formatDecimal(perdida.cantidad) }}
+                            {{ perdida.unidad }}
+                          </td>
+                          <td class="reportes-columna-reposicion">
+                            <span
+                              class="reportes-badge"
+                              :class="perdida.motivo"
+                            >
+                              {{ formatMotivoPerdida(perdida.motivo) }}
+                            </span>
+                          </td>
+                          <td class="reportes-columna-observaciones">
+                            {{ perdida.observaciones || "-" }}
+                            <small
+                              v-if="perdida.ids.length > 1"
+                              style="
+                                display: block;
+                                color: #666;
+                                margin-top: 4px;
+                              "
+                            >
+                              (Agrupado de {{ perdida.ids.length }} registros)
+                            </small>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div v-if="loadingPerdidas" class="reportes-loading-state">
+                      <i class="fas fa-spinner fa-spin"></i>
+                      <p>Cargando historial de pérdidas...</p>
+                    </div>
+                    <div
+                      v-else-if="historialPerdidasFiltrado.length === 0"
+                      class="reportes-empty-state"
+                    >
+                      <i class="fas fa-search"></i>
+                      <p>No se encontraron registros de pérdidas</p>
+                      <small
+                        v-if="filtrosActivosPerdidas"
+                      >
+                        Intenta con otros filtros
+                      </small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pestaña 5: Lista de Compras -->
               <div v-show="tabActiva === 'lista-compras'" class="tab-pane">
+                <!-- FILTROS ESPECÍFICOS - Lista de Compras -->
+                <div class="filtros-pestaña">
+                  <div class="filtros-grid">
+                    <!-- Proveedor -->
+                    <div class="filtro-group">
+                      <label for="proveedor-compras">Proveedor</label>
+                      <select
+                        id="proveedor-compras"
+                        v-model="filtrosListaCompras.proveedorId"
+                        class="filtro-select"
+                      >
+                        <option value="">Todos los proveedores</option>
+                        <option
+                          v-for="proveedor in proveedores"
+                          :key="proveedor.id"
+                          :value="proveedor.id"
+                        >
+                          {{ proveedor.nombre }}
+                        </option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Botón Limpiar Filtros -->
+                  <div
+                    v-if="filtrosActivosListaCompras"
+                    class="botones-filtros"
+                  >
+                    <button
+                      @click="limpiarFiltrosListaCompras"
+                      class="btn-limpiar-filtros"
+                    >
+                      <i class="fas fa-broom"></i>
+                      Limpiar Filtros
+                    </button>
+                  </div>
+
+                  <!-- Indicadores de Filtros Activos -->
+                  <div
+                    v-if="filtrosActivosListaCompras"
+                    class="filtros-activos-info"
+                  >
+                    <small>
+                      Filtros activos:
+                      <span
+                        v-if="filtrosListaCompras.proveedorId"
+                        class="filtro-activo"
+                      >
+                        Proveedor: {{ nombreProveedorListaCompras }}
+                      </span>
+                    </small>
+                  </div>
+                </div>
+
                 <!-- Tabla de Lista de Compras -->
                 <div class="reportes-card">
                   <div class="reportes-table-header">
                     <h3 class="card-title">
                       📋 Lista de Compras - Próxima Semana
                     </h3>
-                    <!-- Botón Generar PDF para lista de compras -->
+                    <!-- Botón Generar PDF -->
                     <div
                       class="reportes-seccion-pdf"
                       v-if="listaComprasFiltrada.length > 0"
@@ -296,382 +1005,6 @@
                   </div>
                 </div>
               </div>
-
-              <!-- Pestaña 3: Historial de Pérdidas -->
-              <div v-show="tabActiva === 'historial-perdidas'" class="tab-pane">
-                <!-- Tabla de Historial de Pérdidas -->
-                <div class="reportes-card">
-                  <div class="reportes-table-header">
-                    <h3 class="card-title">📉 Historial de Pérdidas</h3>
-                    <div class="reportes-fecha-info">
-                      <span v-if="filtros.fechaInicio && filtros.fechaFin">
-                        Mostrando pérdidas del
-                        {{ formatearFechaCorta(filtros.fechaInicio) }} al
-                        {{ formatearFechaCorta(filtros.fechaFin) }}
-                      </span>
-                      <span v-else>
-                        Mostrando todas las pérdidas registradas
-                      </span>
-                    </div>
-
-                    <!-- Botón Generar PDF para historial de pérdidas -->
-                    <div
-                      class="reportes-seccion-pdf"
-                      v-if="historialPerdidasFiltrado.length > 0"
-                    >
-                      <button
-                        @click="generarPDFPerdidas"
-                        class="reportes-btn-generar-pdf"
-                      >
-                        <i class="fas fa-file-pdf"></i>
-                        Generar PDF
-                      </button>
-
-                      <div
-                        v-if="generandoPDFPerdidas"
-                        class="reportes-estado-generando-pdf"
-                      >
-                        <i class="fas fa-spinner fa-spin"></i>
-                        Generando PDF...
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Filtros específicos para pérdidas - SIN FILTRO DE INSUMO -->
-                  <div class="filtros-historial-perdidas">
-                    <div class="form-grid">
-                      <div class="form-group">
-                        <label>Categoría:</label>
-                        <select
-                          v-model="filtrosPerdidas.categoria"
-                          class="reportes-filtro-select"
-                        >
-                          <option value="">Todas las categorías</option>
-                          <option
-                            v-for="categoria in categoriasDisponibles"
-                            :key="categoria"
-                            :value="categoria"
-                          >
-                            {{ categoria }}
-                          </option>
-                        </select>
-                      </div>
-                      <div class="form-group">
-                        <label>Motivo:</label>
-                        <select
-                          v-model="filtrosPerdidas.motivo"
-                          class="reportes-filtro-select"
-                        >
-                          <option value="">Todos los motivos</option>
-                          <option value="deterioro">Deterioro</option>
-                          <option value="vencimiento">Vencimiento</option>
-                          <option value="rotura">Rotura</option>
-                          <option value="error">Error en registro</option>
-                          <option value="uso_interno">Uso interno</option>
-                          <option value="otro">Otro</option>
-                        </select>
-                      </div>
-                      <div class="form-group">
-                        <button
-                          @click="limpiarFiltrosPerdidas"
-                          class="reportes-btn-agregar"
-                          style="background-color: #6c757d"
-                        >
-                          <i class="fas fa-broom"></i> Limpiar
-                        </button>
-                      </div>
-                    </div>
-                    <div
-                      v-if="filtrosPerdidas.motivo || filtrosPerdidas.categoria"
-                      class="filtros-activos-info"
-                    >
-                      <small>
-                        Filtros activos:
-                        <span
-                          v-if="filtrosPerdidas.categoria"
-                          class="filtro-activo"
-                        >
-                          Categoría: {{ filtrosPerdidas.categoria }}
-                        </span>
-                        <span
-                          v-if="filtrosPerdidas.motivo"
-                          class="filtro-activo"
-                        >
-                          Motivo:
-                          {{ formatMotivoPerdida(filtrosPerdidas.motivo) }}
-                        </span>
-                      </small>
-                    </div>
-                  </div>
-
-                  <div class="reportes-table-scroll-container">
-                    <table class="reportes-table-content">
-                      <thead>
-                        <tr>
-                          <th>Fecha</th>
-                          <th>Insumo</th>
-                          <th>Categoría</th>
-                          <th>Cantidad</th>
-                          <th>Motivo</th>
-                          <th>Observaciones</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr
-                          v-for="perdida in historialPerdidasFiltrado"
-                          :key="perdida.ids.join('-')"
-                        >
-                          <td class="reportes-columna-fecha">
-                            {{ formatearFechaCorta(perdida.fecha) }}
-                          </td>
-                          <td class="reportes-columna-insumo-nombre">
-                            <strong>{{ perdida.insumo_nombre }}</strong>
-                          </td>
-                          <td class="reportes-columna-categoria">
-                            {{ perdida.categoria || "-" }}
-                          </td>
-                          <td class="reportes-columna-stock-usado">
-                            {{ formatDecimal(perdida.cantidad) }}
-                            {{ perdida.unidad }}
-                          </td>
-                          <td class="reportes-columna-reposicion">
-                            <span
-                              class="reportes-badge"
-                              :class="perdida.motivo"
-                            >
-                              {{ formatMotivoPerdida(perdida.motivo) }}
-                            </span>
-                          </td>
-                          <td class="reportes-columna-observaciones">
-                            {{ perdida.observaciones || "-" }}
-                            <small
-                              v-if="perdida.ids.length > 1"
-                              style="
-                                display: block;
-                                color: #666;
-                                margin-top: 4px;
-                              "
-                            >
-                              (Agrupado de {{ perdida.ids.length }} registros)
-                            </small>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                    <div v-if="loadingPerdidas" class="reportes-loading-state">
-                      <i class="fas fa-spinner fa-spin"></i>
-                      <p>Cargando historial de pérdidas...</p>
-                    </div>
-                    <div
-                      v-else-if="historialPerdidasFiltrado.length === 0"
-                      class="reportes-empty-state"
-                    >
-                      <i class="fas fa-search"></i>
-                      <p>No se encontraron registros de pérdidas</p>
-                      <small
-                        v-if="
-                          filtrosPerdidas.motivo || filtrosPerdidas.categoria
-                        "
-                      >
-                        Intenta con otros filtros
-                      </small>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Pestaña 4: Recetas Hechas -->
-              <div v-show="tabActiva === 'recetas-hechas'" class="tab-pane">
-                <!-- Tabla de Recetas Hechas -->
-                <div class="reportes-card">
-                  <div class="reportes-table-header">
-                    <h3 class="card-title">🍽️ Recetas Hechas - Historial</h3>
-                    <div class="reportes-fecha-info">
-                      <span v-if="filtros.fechaInicio && filtros.fechaFin">
-                        Mostrando preparaciones del
-                        {{ formatearFechaCorta(filtros.fechaInicio) }} al
-                        {{ formatearFechaCorta(filtros.fechaFin) }}
-                      </span>
-                      <span v-else> Mostrando todas las preparaciones </span>
-                    </div>
-                    <!-- Botón Generar PDF para recetas hechas -->
-                    <div
-                      class="reportes-seccion-pdf"
-                      v-if="recetasHechasFiltradas.length > 0"
-                    >
-                      <button
-                        @click="generarPDFRecetas"
-                        class="reportes-btn-generar-pdf"
-                      >
-                        <i class="fas fa-file-pdf"></i>
-                        Generar PDF
-                      </button>
-
-                      <div
-                        v-if="generandoPDFRecetas"
-                        class="reportes-estado-generando-pdf"
-                      >
-                        <i class="fas fa-spinner fa-spin"></i>
-                        Generando PDF...
-                      </div>
-                    </div>
-                  </div>
-                  <div class="reportes-table-scroll-container">
-                    <table class="reportes-table-content">
-                      <thead>
-                        <tr>
-                          <th>Receta</th>
-                          <th>Total Preparado</th>
-                          <th>Costo Total</th>
-                          <th>Fecha de preparación</th>
-                          <th>Precio Venta</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr
-                          v-for="item in recetasHechasFiltradas"
-                          :key="'receta-' + item.id"
-                        >
-                          <td class="reportes-columna-receta-nombre">
-                            {{ item.nombre }}
-                          </td>
-                          <td class="reportes-columna-cantidad">
-                            {{ item.cantidad }}
-                            {{ item.cantidad === 1 ? "vez" : "veces" }}
-                          </td>
-                          <td class="reportes-columna-costo">
-                            ${{ formatDecimal(item.costo_total) }}
-                          </td>
-                          <td class="reportes-columna-fecha">
-                            {{ formatearFechaCorta(item.ultima_preparacion) }}
-                          </td>
-                          <td class="reportes-columna-precio">
-                            ${{ formatDecimal(item.precio_venta) }}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                    <div v-if="loadingRecetas" class="reportes-loading-state">
-                      <i class="fas fa-spinner fa-spin"></i>
-                      <p>Cargando preparaciones...</p>
-                    </div>
-                    <div
-                      v-else-if="recetasHechasFiltradas.length === 0"
-                      class="reportes-empty-state"
-                    >
-                      <i class="fas fa-utensils"></i>
-                      <p>No hay preparaciones en el período seleccionado</p>
-                      <small>
-                        Las preparaciones aparecerán aquí después de usar el
-                        botón "Preparar"
-                      </small>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Pestaña 5: Pedidos -->
-              <div v-show="tabActiva === 'pedidos'" class="tab-pane">
-                <!-- Tabla de Pedidos -->
-                <div class="reportes-card">
-                  <div class="reportes-table-header">
-                    <h3 class="card-title">📦 Pedidos Entregados</h3>
-                    <div class="reportes-fecha-info">
-                      <span v-if="filtros.fechaInicio && filtros.fechaFin">
-                        Mostrando pedidos del
-                        {{ formatearFechaCorta(filtros.fechaInicio) }} al
-                        {{ formatearFechaCorta(filtros.fechaFin) }}
-                      </span>
-                      <span v-else>
-                        Mostrando todos los pedidos entregados
-                      </span>
-                    </div>
-                    <!-- Botón Generar PDF para pedidos -->
-                    <div
-                      class="reportes-seccion-pdf"
-                      v-if="pedidosFiltrados.length > 0"
-                    >
-                      <button
-                        @click="generarPDFPedidos"
-                        class="reportes-btn-generar-pdf"
-                      >
-                        <i class="fas fa-file-pdf"></i>
-                        Generar PDF
-                      </button>
-
-                      <div
-                        v-if="generandoPDFPedidos"
-                        class="reportes-estado-generando-pdf"
-                      >
-                        <i class="fas fa-spinner fa-spin"></i>
-                        Generando PDF...
-                      </div>
-                    </div>
-                  </div>
-                  <div class="reportes-table-scroll-container">
-                    <table class="reportes-table-content">
-                      <thead>
-                        <tr>
-                          <th>Pedido ID</th>
-                          <th>Cliente</th>
-                          <th>Recetas</th>
-                          <th>Fecha Entrega</th>
-                          <th>Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr
-                          v-for="item in pedidosFiltrados"
-                          :key="'pedido-' + item.id"
-                          :class="{
-                            'reportes-fila-pedido-urgente':
-                              item.estado === 'pendiente',
-                          }"
-                        >
-                          <td class="reportes-columna-pedido-id">
-                            #{{ item.id }}
-                          </td>
-                          <td class="reportes-columna-cliente">
-                            {{ item.cliente }}
-                          </td>
-                          <td class="reportes-columna-recetas">
-                            <div class="recetas-pedido-detalle">
-                              {{ getRecetasText(item.detalles) }}
-                            </div>
-                            <!-- Mostrar ingredientes extra si existen -->
-                            <div
-                              v-if="hasIngredientesExtra(item.detalles)"
-                              class="ingredientes-extra-detalle"
-                            >
-                              <small>
-                                <strong>Ingredientes extra:</strong>
-                                {{ getIngredientesExtraText(item.detalles) }}
-                              </small>
-                            </div>
-                          </td>
-                          <td class="reportes-columna-fecha">
-                            {{ formatearFechaCorta(item.fecha_entrega) }}
-                          </td>
-                          <td class="reportes-columna-total">
-                            ${{ formatDecimal(item.total) }}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                    <div v-if="loadingPedidos" class="reportes-loading-state">
-                      <i class="fas fa-spinner fa-spin"></i>
-                      <p>Cargando pedidos...</p>
-                    </div>
-                    <div
-                      v-else-if="pedidosFiltrados.length === 0"
-                      class="reportes-empty-state"
-                    >
-                      <i class="fas fa-shopping-bag"></i>
-                      <p>No hay pedidos para la fecha seleccionada</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -693,53 +1026,366 @@ const router = useRouter();
 const sidebarRef = ref(null);
 
 // Estado para controlar la pestaña activa
-const tabActiva = ref("reporte-insumos");
+const tabActiva = ref("insumos-usados");
 
-// Definición de las pestañas
+// ----------------------
+// 🔹 NUEVA ESTRUCTURA DE PESTAÑAS
+// ----------------------
 const tabs = ref([
   {
-    id: "reporte-insumos",
-    nombre: "Reporte de Insumos",
+    id: "insumos-usados",
+    nombre: "Insumos Usados",
     icono: "fas fa-boxes",
+  },
+  {
+    id: "recetas-hechas",
+    nombre: "Recetas Hechas",
+    icono: "fas fa-utensils",
+  },
+  { id: "pedidos", nombre: "Pedidos", icono: "fas fa-clipboard-list" },
+  {
+    id: "perdidas-insumos",
+    nombre: "Pérdidas de Insumos",
+    icono: "fas fa-minus-circle",
   },
   {
     id: "lista-compras",
     nombre: "Lista de Compras",
     icono: "fas fa-shopping-cart",
   },
-  {
-    id: "historial-perdidas", // NUEVA PESTAÑA
-    nombre: "Historial de Pérdidas",
-    icono: "fas fa-minus-circle",
-  },
-  { id: "recetas-hechas", nombre: "Recetas Hechas", icono: "fas fa-utensils" },
-  { id: "pedidos", nombre: "Pedidos", icono: "fas fa-clipboard-list" },
 ]);
 
-// Método para cambiar de pestaña
+// ----------------------
+// 🔹 NUEVOS FILTROS POR PESTAÑA
+// ----------------------
+// Filtros para Insumos Usados
+const filtrosInsumosUsados = ref({
+  fechaInicio: "",
+  fechaFin: "",
+  proveedorId: "",
+  reponer: "",
+  searchTerm: "",
+});
+
+// Filtros para Recetas Hechas
+const filtrosRecetasHechas = ref({
+  fechaInicio: "",
+  fechaFin: "",
+  searchTerm: "",
+});
+
+// Filtros para Pedidos
+const filtrosPedidos = ref({
+  fechaInicio: "",
+  fechaFin: "",
+  clienteId: "",
+});
+
+// Filtros para Pérdidas de Insumos
+const filtrosPerdidas = ref({
+  fechaInicio: "",
+  fechaFin: "",
+  categoria: "",
+  motivo: "",
+  searchTerm: "",
+});
+
+// Filtros para Lista de Compras
+const filtrosListaCompras = ref({
+  proveedorId: "",
+});
+
+// ----------------------
+// 🔹 ERRORES DE VALIDACIÓN DE FECHAS
+// ----------------------
+const errorFechaInsumosUsados = ref("");
+const errorFechaRecetasHechas = ref("");
+const errorFechaPedidos = ref("");
+const errorFechaPerdidas = ref("");
+
+// ----------------------
+// 🔹 COMPUTED PROPERTIES PARA FILTROS ACTIVOS
+// ----------------------
+// Insumos Usados
+const filtrosActivosInsumosUsados = computed(() => {
+  return (
+    filtrosInsumosUsados.value.fechaInicio ||
+    filtrosInsumosUsados.value.fechaFin ||
+    filtrosInsumosUsados.value.proveedorId ||
+    filtrosInsumosUsados.value.reponer ||
+    filtrosInsumosUsados.value.searchTerm
+  );
+});
+
+const filtroPeriodoInsumosUsados = computed(() => {
+  if (filtrosInsumosUsados.value.fechaInicio && filtrosInsumosUsados.value.fechaFin) {
+    return `Período: ${formatearFechaCorta(filtrosInsumosUsados.value.fechaInicio)} - ${formatearFechaCorta(filtrosInsumosUsados.value.fechaFin)}`;
+  }
+  return "";
+});
+
+const nombreProveedorInsumosUsados = computed(() => {
+  if (!filtrosInsumosUsados.value.proveedorId) return "";
+  const proveedor = proveedores.value.find(p => p.id === parseInt(filtrosInsumosUsados.value.proveedorId));
+  return proveedor ? proveedor.nombre : "Proveedor no encontrado";
+});
+
+// Recetas Hechas
+const filtrosActivosRecetasHechas = computed(() => {
+  return (
+    filtrosRecetasHechas.value.fechaInicio ||
+    filtrosRecetasHechas.value.fechaFin ||
+    filtrosRecetasHechas.value.searchTerm
+  );
+});
+
+const filtroPeriodoRecetasHechas = computed(() => {
+  if (filtrosRecetasHechas.value.fechaInicio && filtrosRecetasHechas.value.fechaFin) {
+    return `Período: ${formatearFechaCorta(filtrosRecetasHechas.value.fechaInicio)} - ${formatearFechaCorta(filtrosRecetasHechas.value.fechaFin)}`;
+  }
+  return "";
+});
+
+// Pedidos
+const filtrosActivosPedidos = computed(() => {
+  return (
+    filtrosPedidos.value.fechaInicio ||
+    filtrosPedidos.value.fechaFin ||
+    filtrosPedidos.value.clienteId
+  );
+});
+
+const filtroPeriodoPedidos = computed(() => {
+  if (filtrosPedidos.value.fechaInicio && filtrosPedidos.value.fechaFin) {
+    return `Período: ${formatearFechaCorta(filtrosPedidos.value.fechaInicio)} - ${formatearFechaCorta(filtrosPedidos.value.fechaFin)}`;
+  }
+  return "";
+});
+
+const nombreClientePedidos = computed(() => {
+  if (!filtrosPedidos.value.clienteId) return "";
+  const cliente = clientes.value.find(c => c.id === parseInt(filtrosPedidos.value.clienteId));
+  return cliente ? cliente.nombre : "Cliente no encontrado";
+});
+
+// Pérdidas de Insumos
+const filtrosActivosPerdidas = computed(() => {
+  return (
+    filtrosPerdidas.value.fechaInicio ||
+    filtrosPerdidas.value.fechaFin ||
+    filtrosPerdidas.value.categoria ||
+    filtrosPerdidas.value.motivo ||
+    filtrosPerdidas.value.searchTerm
+  );
+});
+
+const filtroPeriodoPerdidas = computed(() => {
+  if (filtrosPerdidas.value.fechaInicio && filtrosPerdidas.value.fechaFin) {
+    return `Período: ${formatearFechaCorta(filtrosPerdidas.value.fechaInicio)} - ${formatearFechaCorta(filtrosPerdidas.value.fechaFin)}`;
+  }
+  return "";
+});
+
+// Lista de Compras
+const filtrosActivosListaCompras = computed(() => {
+  return filtrosListaCompras.value.proveedorId;
+});
+
+const nombreProveedorListaCompras = computed(() => {
+  if (!filtrosListaCompras.value.proveedorId) return "";
+  const proveedor = proveedores.value.find(p => p.id === parseInt(filtrosListaCompras.value.proveedorId));
+  return proveedor ? proveedor.nombre : "Proveedor no encontrado";
+});
+
+// ----------------------
+// 🔹 MÉTODOS PARA CAMBIAR PESTAÑA
+// ----------------------
 const cambiarTab = (tabId) => {
   tabActiva.value = tabId;
 };
 
-// Método para obtener el contador de elementos por pestaña
 const obtenerContador = (tabId) => {
   switch (tabId) {
-    case "reporte-insumos":
+    case "insumos-usados":
       return reporteFiltrado.value.length;
-    case "lista-compras":
-      return listaComprasFiltrada.value.length;
-    case "historial-perdidas": // NUEVO CASO
-      return historialPerdidasFiltrado.value.length;
     case "recetas-hechas":
       return recetasHechasFiltradas.value.length;
     case "pedidos":
       return pedidosFiltrados.value.length;
+    case "perdidas-insumos":
+      return historialPerdidasFiltrado.value.length;
+    case "lista-compras":
+      return listaComprasFiltrada.value.length;
     default:
       return 0;
   }
 };
 
-// Método para alternar el sidebar desde el header
+// ----------------------
+// 🔹 MÉTODOS DE VALIDACIÓN DE FECHAS
+// ----------------------
+// Validación para Insumos Usados
+const validarFechasInsumosUsados = () => {
+  errorFechaInsumosUsados.value = "";
+  
+  const fechaInicio = filtrosInsumosUsados.value.fechaInicio;
+  const fechaFin = filtrosInsumosUsados.value.fechaFin;
+  
+  if (fechaInicio && fechaFin) {
+    const inicio = new Date(fechaInicio);
+    const fin = new Date(fechaFin);
+    
+    if (fin < inicio) {
+      errorFechaInsumosUsados.value = "La fecha fin no puede ser anterior a la fecha inicio";
+      return false;
+    }
+  }
+  
+  // Si hay fechas válidas, cargar datos
+  if (fechaInicio || fechaFin) {
+    fetchReportes();
+  }
+  
+  return true;
+};
+
+// Validación para Recetas Hechas
+const validarFechasRecetasHechas = () => {
+  errorFechaRecetasHechas.value = "";
+  
+  const fechaInicio = filtrosRecetasHechas.value.fechaInicio;
+  const fechaFin = filtrosRecetasHechas.value.fechaFin;
+  
+  if (fechaInicio && fechaFin) {
+    const inicio = new Date(fechaInicio);
+    const fin = new Date(fechaFin);
+    
+    if (fin < inicio) {
+      errorFechaRecetasHechas.value = "La fecha fin no puede ser anterior a la fecha inicio";
+      return false;
+    }
+  }
+  
+  // Si hay fechas válidas, cargar datos
+  if (fechaInicio || fechaFin) {
+    fetchRecetasHechas();
+  }
+  
+  return true;
+};
+
+// Validación para Pedidos
+const validarFechasPedidos = () => {
+  errorFechaPedidos.value = "";
+  
+  const fechaInicio = filtrosPedidos.value.fechaInicio;
+  const fechaFin = filtrosPedidos.value.fechaFin;
+  
+  if (fechaInicio && fechaFin) {
+    const inicio = new Date(fechaInicio);
+    const fin = new Date(fechaFin);
+    
+    if (fin < inicio) {
+      errorFechaPedidos.value = "La fecha fin no puede ser anterior a la fecha inicio";
+      return false;
+    }
+  }
+  
+  // Si hay fechas válidas, cargar datos
+  if (fechaInicio || fechaFin) {
+    fetchPedidos();
+  }
+  
+  return true;
+};
+
+// Validación para Pérdidas
+const validarFechasPerdidas = () => {
+  errorFechaPerdidas.value = "";
+  
+  const fechaInicio = filtrosPerdidas.value.fechaInicio;
+  const fechaFin = filtrosPerdidas.value.fechaFin;
+  
+  if (fechaInicio && fechaFin) {
+    const inicio = new Date(fechaInicio);
+    const fin = new Date(fechaFin);
+    
+    if (fin < inicio) {
+      errorFechaPerdidas.value = "La fecha fin no puede ser anterior a la fecha inicio";
+      return false;
+    }
+  }
+  
+  // Si hay fechas válidas, cargar datos
+  if (fechaInicio || fechaFin) {
+    fetchHistorialPerdidas();
+  }
+  
+  return true;
+};
+
+// ----------------------
+// 🔹 MÉTODOS PARA LIMPIAR FILTROS
+// ----------------------
+// Limpiar filtros de Insumos Usados
+const limpiarFiltrosInsumosUsados = () => {
+  filtrosInsumosUsados.value = {
+    fechaInicio: "",
+    fechaFin: "",
+    proveedorId: "",
+    reponer: "",
+    searchTerm: "",
+  };
+  errorFechaInsumosUsados.value = "";
+  fetchReportes();
+};
+
+// Limpiar filtros de Recetas Hechas
+const limpiarFiltrosRecetasHechas = () => {
+  filtrosRecetasHechas.value = {
+    fechaInicio: "",
+    fechaFin: "",
+    searchTerm: "",
+  };
+  errorFechaRecetasHechas.value = "";
+  fetchRecetasHechas();
+};
+
+// Limpiar filtros de Pedidos
+const limpiarFiltrosPedidos = () => {
+  filtrosPedidos.value = {
+    fechaInicio: "",
+    fechaFin: "",
+    clienteId: "",
+  };
+  errorFechaPedidos.value = "";
+  fetchPedidos();
+};
+
+// Limpiar filtros de Pérdidas
+const limpiarFiltrosPerdidas = () => {
+  filtrosPerdidas.value = {
+    fechaInicio: "",
+    fechaFin: "",
+    categoria: "",
+    motivo: "",
+    searchTerm: "",
+  };
+  errorFechaPerdidas.value = "";
+  fetchHistorialPerdidas();
+};
+
+// Limpiar filtros de Lista de Compras
+const limpiarFiltrosListaCompras = () => {
+  filtrosListaCompras.value = {
+    proveedorId: "",
+  };
+  fetchListaCompras();
+};
+
+// ----------------------
+// 🔹 MÉTODOS PARA EL SIDEBAR
+// ----------------------
 const toggleSidebar = () => {
   if (sidebarRef.value) {
     sidebarRef.value.toggleSidebar();
@@ -747,13 +1393,14 @@ const toggleSidebar = () => {
 };
 
 // ----------------------
-// 🔹 Estado y Datos
+// 🔹 ESTADO Y DATOS
 // ----------------------
 const reportes = ref([]);
 const listaCompras = ref([]);
 const recetasHechas = ref([]);
 const pedidos = ref([]);
 const proveedores = ref([]);
+const clientes = ref([]);
 const loading = ref(true);
 const loadingListaCompras = ref(false);
 const loadingRecetas = ref(false);
@@ -762,44 +1409,87 @@ const generandoPDF = ref(false);
 const generandoPDFListaCompras = ref(false);
 const generandoPDFRecetas = ref(false);
 const generandoPDFPedidos = ref(false);
+const generandoPDFPerdidas = ref(false);
 const mostrarFiltros = ref(false);
 const isMobile = ref(false);
 const fechaHoy = ref(new Date().toISOString().split("T")[0]);
 
-// Filtros
-const filtros = ref({
-  fechaInicio: "",
-  fechaFin: "",
-  proveedorId: "",
-});
-
-// Agregar nuevas variables de estado
+// Nueva variable de estado para pérdidas
 const historialPerdidas = ref([]);
 const loadingPerdidas = ref(false);
-const generandoPDFPerdidas = ref(false);
-const filtrosPerdidas = ref({
-  motivo: "",
-  categoria: "",
-});
 
 // ----------------------
-// 🔹 Computed Properties
+// 🔹 COMPUTED PROPERTIES PARA FILTRADO
 // ----------------------
+// Insumos Usados
+const reporteFiltrado = computed(() => {
+  let filtered = [...reportes.value];
+
+  // Filtrar por fechas (ya viene filtrado del backend)
+  
+  // Filtrar por proveedor
+  if (filtrosInsumosUsados.value.proveedorId) {
+    filtered = filtered.filter(
+      (item) => item.proveedorId === parseInt(filtrosInsumosUsados.value.proveedorId)
+    );
+  }
+
+  // Filtrar por reponer
+  if (filtrosInsumosUsados.value.reponer) {
+    if (filtrosInsumosUsados.value.reponer === "si") {
+      filtered = filtered.filter((item) => item.necesitaReposicion);
+    } else if (filtrosInsumosUsados.value.reponer === "no") {
+      filtered = filtered.filter((item) => !item.necesitaReposicion);
+    }
+  }
+
+  // Filtrar por término de búsqueda
+  if (filtrosInsumosUsados.value.searchTerm) {
+    const searchLower = filtrosInsumosUsados.value.searchTerm.toLowerCase();
+    filtered = filtered.filter((item) =>
+      item.nombre.toLowerCase().includes(searchLower) ||
+      item.categoria.toLowerCase().includes(searchLower)
+    );
+  }
+
+  // Filtrar solo insumos con stock usado > 0
+  filtered = filtered.filter((item) => item.stockUsado > 0);
+
+  return filtered;
+});
+
+// Recetas Hechas
+const recetasHechasFiltradas = computed(() => {
+  let filtered = [...recetasHechas.value];
+
+  // Filtrar por término de búsqueda
+  if (filtrosRecetasHechas.value.searchTerm) {
+    const searchLower = filtrosRecetasHechas.value.searchTerm.toLowerCase();
+    filtered = filtered.filter((item) =>
+      item.nombre.toLowerCase().includes(searchLower)
+    );
+  }
+
+  return filtered;
+});
+
+// Pedidos
 const pedidosFiltrados = computed(() => {
   // Filtrar solo pedidos entregados en el frontend
   const pedidosEntregados = pedidos.value.filter(
     (pedido) => pedido.estado === "entregado"
   );
 
-  // Aplicar filtro de fecha si existe
+  // Aplicar filtro de fecha (ya viene filtrado del backend)
   let pedidosFiltrados = pedidosEntregados;
-  if (filtros.value.fechaInicio && filtros.value.fechaFin) {
-    pedidosFiltrados = pedidosEntregados.filter((pedido) => {
-      const fechaEntrega = new Date(pedido.fecha_entrega);
-      const fechaInicio = new Date(filtros.value.fechaInicio);
-      const fechaFin = new Date(filtros.value.fechaFin);
 
-      return fechaEntrega >= fechaInicio && fechaEntrega <= fechaFin;
+  // Filtrar por cliente
+  if (filtrosPedidos.value.clienteId) {
+    pedidosFiltrados = pedidosFiltrados.filter((pedido) => {
+      // Suponiendo que pedido.cliente es un string con el nombre del cliente
+      // Si necesitas comparar por ID, necesitarías tener el ID del cliente en los datos del pedido
+      const clienteId = pedido.cliente_id || pedido.cliente?.id;
+      return clienteId === parseInt(filtrosPedidos.value.clienteId);
     });
   }
 
@@ -810,28 +1500,15 @@ const pedidosFiltrados = computed(() => {
     return fechaB - fechaA; // Orden descendente
   });
 });
-const reporteFiltrado = computed(() => {
-  let filtered = [...reportes.value];
 
-  // Filtrar por proveedor
-  if (filtros.value.proveedorId) {
-    filtered = filtered.filter(
-      (item) => item.proveedorId === parseInt(filtros.value.proveedorId)
-    );
-  }
-
-  filtered = filtered.filter((item) => item.stockUsado > 0);
-
-  return filtered;
-});
-
+// Lista de Compras
 const listaComprasFiltrada = computed(() => {
   let filtered = [...listaCompras.value];
 
   // Filtrar por proveedor
-  if (filtros.value.proveedorId) {
+  if (filtrosListaCompras.value.proveedorId) {
     filtered = filtered.filter(
-      (item) => item.proveedorId === parseInt(filtros.value.proveedorId)
+      (item) => item.proveedorId === parseInt(filtrosListaCompras.value.proveedorId)
     );
   }
 
@@ -839,47 +1516,29 @@ const listaComprasFiltrada = computed(() => {
   return filtered.filter((item) => item.totalComprar > 0);
 });
 
-const recetasHechasFiltradas = computed(() => {
-  return recetasHechas.value;
-});
-
-const insumosReponer = computed(() => {
-  return reporteFiltrado.value.filter((item) => item.necesitaReposicion).length;
-});
-
-const categorias = computed(() => {
-  const categoriasUnicas = new Set();
-  insumos.value.forEach((insumo) => {
-    if (insumo.categoria) {
-      categoriasUnicas.add(insumo.categoria);
-    }
-  });
-  return Array.from(categoriasUnicas).sort();
-});
-
+// Pérdidas de Insumos
 const historialPerdidasFiltrado = computed(() => {
   let filtered = [...historialPerdidas.value];
 
-  // Aplicar filtro de fecha global
-  if (filtros.value.fechaInicio && filtros.value.fechaFin) {
-    filtered = filtered.filter((perdida) => {
-      const fechaPerdida = new Date(perdida.fecha);
-      const fechaInicio = new Date(filtros.value.fechaInicio);
-      const fechaFin = new Date(filtros.value.fechaFin);
-      return fechaPerdida >= fechaInicio && fechaPerdida <= fechaFin;
-    });
+  // Aplicar filtro de categoría
+  if (filtrosPerdidas.value.categoria) {
+    filtered = filtered.filter(
+      (perdida) => perdida.categoria === filtrosPerdidas.value.categoria
+    );
   }
 
-  // Aplicar filtros específicos de pérdidas (solo motivo y categoría)
+  // Aplicar filtro de motivo
   if (filtrosPerdidas.value.motivo) {
     filtered = filtered.filter(
       (perdida) => perdida.motivo === filtrosPerdidas.value.motivo
     );
   }
 
-  if (filtrosPerdidas.value.categoria) {
-    filtered = filtered.filter(
-      (perdida) => perdida.categoria === filtrosPerdidas.value.categoria
+  // Filtrar por término de búsqueda
+  if (filtrosPerdidas.value.searchTerm) {
+    const searchLower = filtrosPerdidas.value.searchTerm.toLowerCase();
+    filtered = filtered.filter((perdida) =>
+      perdida.insumo_nombre.toLowerCase().includes(searchLower)
     );
   }
 
@@ -903,58 +1562,20 @@ const historialPerdidasFiltrado = computed(() => {
   return Object.values(grouped);
 });
 
-// ----------------------
-// 🔹 Métodos
-// ----------------------
-const validarFechas = () => {
-  // Si hay fecha inicio y fecha fin, validar que fecha fin no sea anterior
-  if (filtros.value.fechaInicio && filtros.value.fechaFin) {
-    const fechaInicio = new Date(filtros.value.fechaInicio);
-    const fechaFin = new Date(filtros.value.fechaFin);
-
-    if (fechaFin < fechaInicio) {
-      // Si fecha fin es anterior, resetear fecha fin
-      alert("La fecha fin no puede ser anterior a la fecha inicio");
-      filtros.value.fechaFin = filtros.value.fechaInicio;
-      return;
+// Obtener categorías únicas de TODAS las pérdidas
+const categoriasDisponibles = computed(() => {
+  const categorias = new Set();
+  historialPerdidas.value.forEach((perdida) => {
+    if (perdida.categoria) {
+      categorias.add(perdida.categoria);
     }
-  }
+  });
+  return Array.from(categorias).sort();
+});
 
-  // Aplicar filtros después de validar
-  aplicarFiltros();
-};
-
-const aplicarFiltros = () => {
-  // Si solo hay fecha inicio, establecer fecha fin igual a fecha inicio
-  if (filtros.value.fechaInicio && !filtros.value.fechaFin) {
-    filtros.value.fechaFin = filtros.value.fechaInicio;
-  }
-
-  // Si solo hay fecha fin, establecer fecha inicio igual a fecha fin
-  if (filtros.value.fechaFin && !filtros.value.fechaInicio) {
-    filtros.value.fechaInicio = filtros.value.fechaFin;
-  }
-
-  // Recargar datos con los filtros aplicados
-  fetchReportes();
-  fetchListaCompras();
-  fetchRecetasHechas();
-  fetchPedidos();
-};
-
-const limpiarFiltros = () => {
-  filtros.value = {
-    fechaInicio: "",
-    fechaFin: "",
-    proveedorId: "",
-  };
-
-  fetchReportes();
-  fetchListaCompras();
-  fetchRecetasHechas();
-  fetchPedidos();
-};
-
+// ----------------------
+// 🔹 MÉTODOS DE UTILIDAD
+// ----------------------
 const formatDecimal = (value) => {
   if (!value) return "0";
   // Eliminar ceros decimales innecesarios
@@ -987,6 +1608,17 @@ const formatearFechaCorta = (fecha) => {
   }
 };
 
+const formatMotivoPerdida = (motivo) => {
+  const motivos = {
+    deterioro: "Deterioro",
+    vencimiento: "Vencimiento",
+    rotura: "Rotura",
+    error: "Error en registro",
+    uso_interno: "Uso interno",
+    otro: "Otro",
+  };
+  return motivos[motivo] || motivo;
+};
 
 const getRecetasText = (detalles) => {
   if (!detalles || detalles.length === 0) {
@@ -1028,33 +1660,9 @@ const getIngredientesExtraText = (detalles) => {
   return ingredientesExtra.join(", ");
 };
 
-const getEstadoText = (estado) => {
-  const estados = {
-    pendiente: "Pendiente",
-    listo: "Listo",
-    entregado: "Entregado",
-  };
-  return estados[estado] || estado;
-};
-
-const getClaseEstadoPedido = (estado) => {
-  const clasesEstados = {
-    entregado: "success",
-    pendiente: "warning",
-    listo: "info",
-  };
-  return clasesEstados[estado] || "default";
-};
-
-const getClaseEstadoReceta = (estado) => {
-  const clasesEstados = {
-    Completado: "success",
-    "En proceso": "warning",
-    Cancelado: "alert",
-  };
-  return clasesEstados[estado] || "default";
-};
-
+// ----------------------
+// 🔹 MÉTODOS PARA GENERAR PDFs
+// ----------------------
 const generarPDF = async () => {
   try {
     generandoPDF.value = true;
@@ -1064,19 +1672,18 @@ const generarPDF = async () => {
       solo_con_stock_usado: true,
     };
     
-    // Siempre enviar fechas, usar valores por defecto si no están definidos
-    const hoy = new Date().toISOString().split('T')[0];
-    const hace30Dias = new Date();
-    hace30Dias.setDate(hace30Dias.getDate() - 30);
-    const fecha30DiasAtras = hace30Dias.toISOString().split('T')[0];
-    
-    params.fecha_inicio = filtros.value.fechaInicio || fecha30DiasAtras;
-    params.fecha_fin = filtros.value.fechaFin || hoy;
-    
-    if (filtros.value.proveedorId)
-      params.proveedor_id = filtros.value.proveedorId;
+    // Usar las fechas de los filtros específicos
+    if (filtrosInsumosUsados.value.fechaInicio) {
+      params.fecha_inicio = filtrosInsumosUsados.value.fechaInicio;
+    }
+    if (filtrosInsumosUsados.value.fechaFin) {
+      params.fecha_fin = filtrosInsumosUsados.value.fechaFin;
+    }
+    if (filtrosInsumosUsados.value.proveedorId) {
+      params.proveedor_id = filtrosInsumosUsados.value.proveedorId;
+    }
 
-    console.log("📄 Parámetros enviados para PDF:", params);
+    console.log("📄 Parámetros enviados para PDF Insumos Usados:", params);
 
     // Hacer la petición para generar el PDF
     const response = await axios.get("/api/reportes/generar-pdf/", {
@@ -1090,7 +1697,7 @@ const generarPDF = async () => {
     link.href = url;
     link.setAttribute(
       "download",
-      `reporte_insumos_${new Date().toISOString().split("T")[0]}.pdf`
+      `reporte_insumos_usados_${new Date().toISOString().split("T")[0]}.pdf`
     );
     document.body.appendChild(link);
     link.click();
@@ -1110,11 +1717,9 @@ const generarPDFListaCompras = async () => {
 
     // Construir parámetros de filtro para el PDF
     const params = {};
-    if (filtros.value.fechaInicio)
-      params.fecha_inicio = filtros.value.fechaInicio;
-    if (filtros.value.fechaFin) params.fecha_fin = filtros.value.fechaFin;
-    if (filtros.value.proveedorId)
-      params.proveedor_id = filtros.value.proveedorId;
+    if (filtrosListaCompras.value.proveedorId) {
+      params.proveedor_id = filtrosListaCompras.value.proveedorId;
+    }
 
     // Hacer la petición para generar el PDF de lista de compras
     const response = await axios.get(
@@ -1150,9 +1755,12 @@ const generarPDFRecetas = async () => {
     generandoPDFRecetas.value = true;
 
     const params = {};
-    if (filtros.value.fechaInicio)
-      params.fecha_inicio = filtros.value.fechaInicio;
-    if (filtros.value.fechaFin) params.fecha_fin = filtros.value.fechaFin;
+    if (filtrosRecetasHechas.value.fechaInicio) {
+      params.fecha_inicio = filtrosRecetasHechas.value.fechaInicio;
+    }
+    if (filtrosRecetasHechas.value.fechaFin) {
+      params.fecha_fin = filtrosRecetasHechas.value.fechaFin;
+    }
 
     const response = await axios.get("/api/recetas-por-fecha/pdf/", {
       params: params,
@@ -1166,8 +1774,8 @@ const generarPDFRecetas = async () => {
 
     // Nombre del archivo basado en las fechas de filtro
     let fileName = "recetas_hechas";
-    if (filtros.value.fechaInicio && filtros.value.fechaFin) {
-      fileName = `recetas_${filtros.value.fechaInicio}_a_${filtros.value.fechaFin}`;
+    if (filtrosRecetasHechas.value.fechaInicio && filtrosRecetasHechas.value.fechaFin) {
+      fileName = `recetas_${filtrosRecetasHechas.value.fechaInicio}_a_${filtrosRecetasHechas.value.fechaFin}`;
     } else {
       fileName = `recetas_${new Date().toISOString().split("T")[0]}`;
     }
@@ -1191,8 +1799,8 @@ const generarPDFPedidos = async () => {
 
     const response = await axios.get("/api/pedidos/entregados/pdf/", {
       params: {
-        fecha_inicio: filtros.value.fechaInicio,
-        fecha_fin: filtros.value.fechaFin,
+        fecha_inicio: filtrosPedidos.value.fechaInicio,
+        fecha_fin: filtrosPedidos.value.fechaFin,
       },
       responseType: "blob",
     });
@@ -1204,8 +1812,8 @@ const generarPDFPedidos = async () => {
 
     // Nombre del archivo basado en las fechas de filtro
     let fileName = "pedidos_entregados";
-    if (filtros.value.fechaInicio && filtros.value.fechaFin) {
-      fileName = `pedidos_${filtros.value.fechaInicio}_a_${filtros.value.fechaFin}`;
+    if (filtrosPedidos.value.fechaInicio && filtrosPedidos.value.fechaFin) {
+      fileName = `pedidos_${filtrosPedidos.value.fechaInicio}_a_${filtrosPedidos.value.fechaFin}`;
     } else {
       fileName = `pedidos_entregados_${new Date().toISOString().split("T")[0]}`;
     }
@@ -1223,119 +1831,20 @@ const generarPDFPedidos = async () => {
   }
 };
 
-const fetchRecetasHoy = async () => {
-  try {
-    loadingRecetas.value = true;
-
-    // Usar la fecha seleccionada en el filtro (por defecto hoy)
-    const fecha = fechaRecetas.value || new Date().toISOString().split("T")[0];
-
-    const response = await axios.get("/api/recetas-por-fecha/", {
-      params: { fecha: fecha },
-    });
-
-    if (!response.data) {
-      throw new Error("No se recibieron datos del servidor para recetas");
-    }
-
-    console.log("📊 Recetas del historial recibidas:", response.data);
-
-    // Mapear los datos de la respuesta
-    recetasHechas.value = response.data.recetas.map((item) => ({
-      id: item.id,
-      receta_id: item.receta_id,
-      nombre: item.nombre,
-      cantidad: item.cantidad,
-      fecha: item.fecha,
-      hora: item.hora,
-      estado: item.estado,
-      rinde: item.rinde,
-      unidad_rinde: item.unidad_rinde,
-      costo_total: item.costo_total,
-      precio_venta: item.precio_venta,
-    }));
-
-    console.log(
-      `📊 Recetas cargadas para ${fecha}: ${recetasHechas.value.length}`
-    );
-  } catch (error) {
-    console.error("Error al cargar recetas del historial:", error);
-    recetasHechas.value = [];
-  } finally {
-    loadingRecetas.value = false;
-  }
-};
-
-// Modificar fetchHistorialPerdidas para incluir categoría
-const fetchHistorialPerdidas = async () => {
-  try {
-    loadingPerdidas.value = true;
-
-    const params = new URLSearchParams();
-    if (filtros.value.fechaInicio) {
-      params.append("fecha_inicio", filtros.value.fechaInicio);
-    }
-    if (filtros.value.fechaFin) {
-      params.append("fecha_fin", filtros.value.fechaFin);
-    }
-    // Quitamos el parámetro de insumo_id
-
-    console.log("🔍 Fetching TODAS las pérdidas...");
-    const response = await axios.get(`/api/perdidas/?${params.toString()}`);
-    console.log("📊 Todas las pérdidas recibidas:", response.data);
-    historialPerdidas.value = response.data;
-  } catch (error) {
-    console.error("Error al cargar historial de pérdidas:", error);
-  } finally {
-    loadingPerdidas.value = false;
-  }
-};
-
-// Obtener categorías únicas de TODAS las pérdidas (no solo las filtradas)
-const categoriasDisponibles = computed(() => {
-  const categorias = new Set();
-  historialPerdidas.value.forEach((perdida) => {
-    if (perdida.categoria) {
-      categorias.add(perdida.categoria);
-    }
-  });
-  return Array.from(categorias).sort();
-});
-
-watch(filtrosPerdidas, () => {}, { deep: true });
-
-const limpiarFiltrosPerdidas = async () => {
-  filtrosPerdidas.value = {
-    motivo: "",
-    categoria: "",
-  };
-  await fetchHistorialPerdidas();
-};
-
-const formatMotivoPerdida = (motivo) => {
-  const motivos = {
-    deterioro: "Deterioro",
-    vencimiento: "Vencimiento",
-    rotura: "Rotura",
-    error: "Error en registro",
-    uso_interno: "Uso interno",
-    otro: "Otro",
-  };
-  return motivos[motivo] || motivo;
-};
-
 const generarPDFPerdidas = async () => {
   try {
     generandoPDFPerdidas.value = true;
 
     const params = {};
-    if (filtros.value.fechaInicio)
-      params.fecha_inicio = filtros.value.fechaInicio;
-    if (filtros.value.fechaFin) params.fecha_fin = filtros.value.fechaFin;
-    if (filtrosPerdidas.value.insumo_id)
-      params.insumo_id = filtrosPerdidas.value.insumo_id;
-    if (filtrosPerdidas.value.motivo)
+    if (filtrosPerdidas.value.fechaInicio) {
+      params.fecha_inicio = filtrosPerdidas.value.fechaInicio;
+    }
+    if (filtrosPerdidas.value.fechaFin) {
+      params.fecha_fin = filtrosPerdidas.value.fechaFin;
+    }
+    if (filtrosPerdidas.value.motivo) {
       params.motivo = filtrosPerdidas.value.motivo;
+    }
 
     const response = await axios.get("/api/perdidas/generar-pdf/", {
       params: params,
@@ -1347,8 +1856,8 @@ const generarPDFPerdidas = async () => {
     link.href = url;
 
     let fileName = "historial_perdidas";
-    if (filtros.value.fechaInicio && filtros.value.fechaFin) {
-      fileName = `perdidas_${filtros.value.fechaInicio}_a_${filtros.value.fechaFin}`;
+    if (filtrosPerdidas.value.fechaInicio && filtrosPerdidas.value.fechaFin) {
+      fileName = `perdidas_${filtrosPerdidas.value.fechaInicio}_a_${filtrosPerdidas.value.fechaFin}`;
     } else {
       fileName = `perdidas_${new Date().toISOString().split("T")[0]}`;
     }
@@ -1367,18 +1876,22 @@ const generarPDFPerdidas = async () => {
 };
 
 // ----------------------
-// 🔹 Fetch Datos
+// 🔹 FETCH DATOS
 // ----------------------
 const fetchReportes = async () => {
   try {
     loading.value = true;
 
     const params = {};
-    if (filtros.value.fechaInicio)
-      params.fecha_inicio = filtros.value.fechaInicio;
-    if (filtros.value.fechaFin) params.fecha_fin = filtros.value.fechaFin;
-    if (filtros.value.proveedorId)
-      params.proveedor_id = filtros.value.proveedorId;
+    if (filtrosInsumosUsados.value.fechaInicio) {
+      params.fecha_inicio = filtrosInsumosUsados.value.fechaInicio;
+    }
+    if (filtrosInsumosUsados.value.fechaFin) {
+      params.fecha_fin = filtrosInsumosUsados.value.fechaFin;
+    }
+    if (filtrosInsumosUsados.value.proveedorId) {
+      params.proveedor_id = filtrosInsumosUsados.value.proveedorId;
+    }
 
     const response = await axios.get("/api/reportes/insumos/", { params });
 
@@ -1391,7 +1904,7 @@ const fetchReportes = async () => {
       id: item.id,
       nombre: item.nombre,
       categoria: item.categoria,
-      stockUsado: item.stock_usado || 0, // ✅ CORREGIDO: stock_usado
+      stockUsado: item.stock_usado || 0,
       stockActual: item.stock_actual,
       stockMinimo: item.stock_minimo,
       unidad: item.unidad_medida?.abreviatura || "u",
@@ -1412,11 +1925,9 @@ const fetchListaCompras = async () => {
     loadingListaCompras.value = true;
 
     const params = {};
-    if (filtros.value.fechaInicio)
-      params.fecha_inicio = filtros.value.fechaInicio;
-    if (filtros.value.fechaFin) params.fecha_fin = filtros.value.fechaFin;
-    if (filtros.value.proveedorId)
-      params.proveedor_id = filtros.value.proveedorId;
+    if (filtrosListaCompras.value.proveedorId) {
+      params.proveedor_id = filtrosListaCompras.value.proveedorId;
+    }
 
     const response = await axios.get("/api/reportes/lista-compras/", {
       params,
@@ -1439,7 +1950,6 @@ const fetchListaCompras = async () => {
       unidad: item.unidad_medida?.abreviatura || "u",
       proveedor: item.proveedor?.nombre || "Sin proveedor",
       proveedorId: item.proveedor?.id || null,
-      diaCompra: item.dia_compra || "Sin asignar",
     }));
   } catch (error) {
     console.error("Error al cargar lista de compras:", error);
@@ -1454,9 +1964,12 @@ const fetchRecetasHechas = async () => {
     loadingRecetas.value = true;
 
     const params = {};
-    if (filtros.value.fechaInicio)
-      params.fecha_inicio = filtros.value.fechaInicio;
-    if (filtros.value.fechaFin) params.fecha_fin = filtros.value.fechaFin;
+    if (filtrosRecetasHechas.value.fechaInicio) {
+      params.fecha_inicio = filtrosRecetasHechas.value.fechaInicio;
+    }
+    if (filtrosRecetasHechas.value.fechaFin) {
+      params.fecha_fin = filtrosRecetasHechas.value.fechaFin;
+    }
 
     console.log(
       "📊 Haciendo petición a /api/recetas-por-fecha/ con params:",
@@ -1510,8 +2023,8 @@ const fetchPedidos = async () => {
     // Obtener todos los pedidos (no solo los entregados, para poder filtrar en frontend)
     const response = await axios.get("/api/pedidos/", {
       params: {
-        fecha_inicio: filtros.value.fechaInicio,
-        fecha_fin: filtros.value.fechaFin,
+        fecha_inicio: filtrosPedidos.value.fechaInicio,
+        fecha_fin: filtrosPedidos.value.fechaFin,
       },
     });
 
@@ -1524,6 +2037,7 @@ const fetchPedidos = async () => {
     pedidos.value = response.data.map((item) => ({
       id: item.id,
       cliente: item.cliente?.nombre || "Cliente no disponible",
+      cliente_id: item.cliente?.id || null,
       total: item.total || 0,
       fecha_entrega: item.fecha_entrega,
       fecha_pedido: item.fecha_pedido,
@@ -1538,6 +2052,29 @@ const fetchPedidos = async () => {
   }
 };
 
+const fetchHistorialPerdidas = async () => {
+  try {
+    loadingPerdidas.value = true;
+
+    const params = new URLSearchParams();
+    if (filtrosPerdidas.value.fechaInicio) {
+      params.append("fecha_inicio", filtrosPerdidas.value.fechaInicio);
+    }
+    if (filtrosPerdidas.value.fechaFin) {
+      params.append("fecha_fin", filtrosPerdidas.value.fechaFin);
+    }
+
+    console.log("🔍 Fetching TODAS las pérdidas...");
+    const response = await axios.get(`/api/perdidas/?${params.toString()}`);
+    console.log("📊 Todas las pérdidas recibidas:", response.data);
+    historialPerdidas.value = response.data;
+  } catch (error) {
+    console.error("Error al cargar historial de pérdidas:", error);
+  } finally {
+    loadingPerdidas.value = false;
+  }
+};
+
 const fetchProveedores = async () => {
   try {
     const response = await axios.get("/api/proveedores/");
@@ -1547,12 +2084,19 @@ const fetchProveedores = async () => {
   }
 };
 
+const fetchClientes = async () => {
+  try {
+    const response = await axios.get("/api/clientes/");
+    clientes.value = response.data;
+  } catch (error) {
+    console.error("Error al cargar clientes:", error);
+  }
+};
+
 // Detectar cambios de tamaño de pantalla
 onMounted(() => {
   checkMobile();
   window.addEventListener("resize", checkMobile);
-  // Mostrar filtros por defecto en desktop, ocultar en móvil
-  mostrarFiltros.value = !isMobile.value;
 });
 
 const checkMobile = () => {
@@ -1560,7 +2104,7 @@ const checkMobile = () => {
 };
 
 // ----------------------
-// 🔹 Montaje Inicial
+// 🔹 MONTAR COMPONENTE
 // ----------------------
 onMounted(() => {
   if (!localStorage.getItem("access_token")) {
@@ -1571,14 +2115,11 @@ onMounted(() => {
   Promise.all([
     fetchReportes(),
     fetchListaCompras(),
-    // Solo cargar pérdidas si es necesario
-    tabActiva.value === "historial-perdidas"
-      ? fetchHistorialPerdidas()
-      : Promise.resolve(),
     fetchRecetasHechas(),
     fetchPedidos(),
+    fetchHistorialPerdidas(),
     fetchProveedores(),
-    fetchInsumos(),
+    fetchClientes(),
   ]).catch((error) => {
     console.error("Error cargando datos:", error);
     if (error.response?.status === 401) {
@@ -1587,57 +2128,78 @@ onMounted(() => {
   });
 });
 
-// Agregar fetchInsumos si no existe
-const insumos = ref([]);
-const fetchInsumos = async () => {
-  try {
-    const response = await axios.get("/api/insumos/");
-    insumos.value = response.data.insumos || [];
-  } catch (error) {
-    console.error("Error al cargar insumos:", error);
-    insumos.value = [];
-  }
-};
-
+// ----------------------
+// 🔹 WATCHERS
+// ----------------------
+// Watchers para los filtros de búsqueda
 watch(
-  () => filtros.value.fechaInicio,
-  (newFechaInicio) => {
-    if (newFechaInicio) {
-      validarFechas();
-    }
-  }
-);
-
-watch(
-  () => filtros.value.fechaFin,
-  (newFechaFin) => {
-    if (newFechaFin) {
-      validarFechas();
-    }
-  }
-);
-
-watch(
-  () => [filtros.value.fechaInicio, filtros.value.fechaFin],
-  ([newFechaInicio, newFechaFin]) => {
-    if (newFechaInicio || newFechaFin) {
-      fetchRecetasHechas();
-    }
-  }
-);
-
-// Agregar watchers para los filtros globales
-watch(
-  () => [filtros.value.fechaInicio, filtros.value.fechaFin],
+  () => filtrosInsumosUsados.value.searchTerm,
   () => {
-    if (tabActiva.value === "historial-perdidas") {
-      fetchHistorialPerdidas();
-    }
+    // El filtrado se hace en el computed property
   }
 );
 
+watch(
+  () => filtrosRecetasHechas.value.searchTerm,
+  () => {
+    // El filtrado se hace en el computed property
+  }
+);
+
+watch(
+  () => filtrosPerdidas.value.searchTerm,
+  () => {
+    // El filtrado se hace en el computed property
+  }
+);
+
+// Watchers para los filtros de select
+watch(
+  () => filtrosInsumosUsados.value.proveedorId,
+  () => {
+    // El filtrado se hace en el computed property
+  }
+);
+
+watch(
+  () => filtrosInsumosUsados.value.reponer,
+  () => {
+    // El filtrado se hace en el computed property
+  }
+);
+
+watch(
+  () => filtrosPedidos.value.clienteId,
+  () => {
+    // El filtrado se hace en el computed property
+  }
+);
+
+watch(
+  () => filtrosPerdidas.value.categoria,
+  () => {
+    // El filtrado se hace en el computed property
+  }
+);
+
+watch(
+  () => filtrosPerdidas.value.motivo,
+  () => {
+    // El filtrado se hace en el computed property
+  }
+);
+
+watch(
+  () => filtrosListaCompras.value.proveedorId,
+  () => {
+    // El filtrado se hace en el computed property
+  }
+);
+
+// Watcher para cambiar de pestaña
 watch(tabActiva, (newTab) => {
-  if (newTab === "historial-perdidas" && historialPerdidas.value.length === 0) {
+  // Solo cargar datos si no están cargados
+  if (newTab === "perdidas-insumos" && historialPerdidas.value.length === 0) {
     fetchHistorialPerdidas();
   }
 });
@@ -1711,7 +2273,7 @@ watch(tabActiva, (newTab) => {
   }
 }
 
-/* Badge para contador en pestañas - ESPECÍFICO PARA REPORTES */
+/* Badge para contador en pestañas */
 .tab-button .badge-contador {
   background-color: var(--color-primary);
   color: white;
@@ -1722,137 +2284,146 @@ watch(tabActiva, (newTab) => {
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-/* -------------------- ESTILOS PARA ESTADÍSTICAS - ESPECÍFICOS REPORTES -------------------- */
-.reportes-estadisticas {
-  display: flex;
-  gap: 15px;
+/* -------------------- FILTROS POR PESTAÑA -------------------- */
+.filtros-pestaña {
   margin-bottom: 20px;
-  flex-wrap: wrap;
-  width: 100%;
-}
-
-.reportes-estadisticas .reportes-estadistica-badge {
-  flex: 1;
-  min-width: 200px;
-  justify-content: center;
-  padding: 12px 16px;
-  font-size: 0.9rem;
-  border-radius: 20px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* Nuevo estilo para el estado de loading en estadísticas */
-.reportes-estadistica-badge.loading {
-  background: linear-gradient(135deg, #6c757d, #868e96);
-  color: white;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.reportes-estadistica-badge.loading i {
-  font-size: 0.9rem;
-}
-
-.reportes-estadistica-badge.total {
-  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
-  color: white;
-}
-
-.reportes-estadistica-badge.critico {
-  background: linear-gradient(135deg, #dc3545, #c82333);
-  color: white;
-  animation: pulse 2s infinite;
-}
-
-.reportes-estadistica-badge.normal {
-  background: linear-gradient(135deg, #28a745, #20c997);
-  color: white;
-}
-
-/* TOGGLE FILTROS CELULAR - ESPECÍFICO PARA REPORTES */
-.reportes-filtros-mobile-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background-color: var(--color-primary);
-  color: white;
+  padding: 15px;
+  background: #f8f9fa;
   border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  justify-content: center;
-  margin-bottom: 15px;
-  width: 100%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.reportes-filtros-derecha {
-  display: flex;
+.filtros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 15px;
-  align-items: center;
-  flex-wrap: wrap;
-  width: 100%;
-  margin-bottom: 20px;
+  align-items: end;
 }
 
-.reportes-btn-agregar {
-  background-color: #28a745;
+.filtro-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.filtro-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 2px;
+}
+
+.filtro-input,
+.filtro-select {
+  padding: 10px 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 14px;
+  height: 42px;
+  transition: all 0.3s ease;
+  background: white;
+  width: 100%;
+}
+
+.filtro-input:focus,
+.filtro-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(123, 90, 80, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Estilo para el buscador (estilo Principal.vue) */
+.filtro-group.buscador {
+  grid-column: 1 / -1;
+}
+
+.search-form {
+  width: 100%;
+}
+
+.search-input {
+  padding: 10px 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 14px;
+  width: 100%;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(123, 90, 80, 0.1);
+  transform: translateY(-1px);
+}
+
+.search-input::placeholder {
+  color: #6c757d;
+  opacity: 0.7;
+}
+
+/* Botón Limpiar Filtros */
+.botones-filtros {
+  margin-top: 15px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-limpiar-filtros {
+  background-color: #6c757d;
   color: white;
   border: none;
   border-radius: 6px;
-  padding: 12px 16px;
+  padding: 10px 16px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 6px;
-  height: 44px;
-  margin-top: auto;
 }
 
-.reportes-btn-agregar:hover {
-  background-color: #218838;
+.btn-limpiar-filtros:hover {
+  background-color: #5a6268;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.reportes-btn-agregar:active {
+.btn-limpiar-filtros:active {
   transform: translateY(0);
 }
 
-/* Ocultar filtros en móvil cuando no están activos */
-@media (max-width: 768px) {
-  .reportes-filtros-derecha:not(.reportes-filtros-visible) {
-    display: none;
-  }
-
-  .reportes-filtros-derecha.reportes-filtros-visible {
-    display: flex;
-  }
-
-  .tabs-header {
-    flex-direction: column;
-  }
-
-  .tab-button {
-    min-width: unset;
-    border-radius: 0;
-    border-bottom: 1px solid #dee2e6;
-  }
-
-  .tab-button.active {
-    border-bottom: 3px solid var(--color-primary);
-  }
+/* Mensajes de error */
+.error-message {
+  color: #dc3545;
+  font-size: 0.75rem;
+  margin-top: 2px;
+  min-height: 16px;
 }
 
-/* -------------------- TABLA DE REPORTES - STICKY FUNCIONAL -------------------- */
+/* -------------------- INDICADORES DE FILTROS ACTIVOS -------------------- */
+.filtros-activos-info {
+  margin-top: 15px;
+  padding: 10px;
+  background: #e9ecef;
+  border-radius: 6px;
+  border-left: 4px solid var(--color-primary);
+}
+
+.filtro-activo {
+  display: inline-block;
+  background: var(--color-primary);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin: 0 5px;
+  font-size: 0.8rem;
+}
+
+/* -------------------- TABLA DE REPORTES -------------------- */
 .reportes-card {
   display: flex;
   flex-direction: column;
@@ -1875,19 +2446,14 @@ watch(tabActiva, (newTab) => {
   align-items: center;
 }
 
-.reportes-fecha-info {
-  font-size: 0.9rem;
-  color: #6c757d;
-}
-
-/* CONTENEDOR DE SCROLL PRINCIPAL - CLAVE PARA STICKY */
+/* CONTENEDOR DE SCROLL PRINCIPAL */
 .reportes-table-scroll-container {
   flex: 1;
   overflow: auto;
   position: relative;
-  min-height: 400px; /* Altura mínima */
-  max-height: 600px; /* Altura máxima */
-  height: auto; /* Se ajusta entre min y max */
+  min-height: 400px;
+  max-height: 600px;
+  height: auto;
 }
 
 /* TABLA PRINCIPAL */
@@ -1900,7 +2466,7 @@ watch(tabActiva, (newTab) => {
   position: relative;
 }
 
-/* THEAD STICKY - FUNCIONA PORQUE EL CONTENEDOR TIENE SCROLL */
+/* THEAD STICKY */
 .reportes-table-content thead {
   position: sticky;
   top: 0;
@@ -2046,80 +2612,6 @@ watch(tabActiva, (newTab) => {
   word-wrap: break-word;
 }
 
-/* Ajustar el contenedor de scroll para mejor visualización */
-.reportes-table-scroll-container {
-  flex: 1;
-  overflow: auto;
-  position: relative;
-  min-height: 400px;
-  max-height: 600px;
-  height: auto;
-}
-
-/* Badges específicos para reportes */
-.reportes-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-block;
-}
-
-.reportes-badge.alert {
-  background: linear-gradient(135deg, #dc3545, #c82333);
-  color: white;
-}
-
-.reportes-badge.success {
-  background: linear-gradient(135deg, #28a745, #20c997);
-  color: white;
-}
-
-.reportes-badge.warning {
-  background: linear-gradient(135deg, #ffc107, #e0a800);
-  color: #212529;
-}
-
-.reportes-badge.info {
-  background: linear-gradient(135deg, #17a2b8, #138496);
-  color: white;
-}
-
-.reportes-badge.default {
-  background: linear-gradient(135deg, #6c757d, #495057);
-  color: white;
-}
-
-/* Badges para días de compra */
-.reportes-badge-dia {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-block;
-  color: white;
-}
-
-.reportes-dia-lunes {
-  background: linear-gradient(135deg, #007bff, #0056b3);
-}
-
-.reportes-dia-martes {
-  background: linear-gradient(135deg, #6f42c1, #563d7c);
-}
-
-.reportes-dia-jueves {
-  background: linear-gradient(135deg, #e83e8c, #d91a72);
-}
-
-.reportes-dia-viernes {
-  background: linear-gradient(135deg, #fd7e14, #e55a00);
-}
-
-.reportes-dia-default {
-  background: linear-gradient(135deg, #6c757d, #495057);
-}
-
 /* -------------------- BOTÓN PDF -------------------- */
 .reportes-btn-generar-pdf {
   background: linear-gradient(135deg, #dc3545, #c82333);
@@ -2190,44 +2682,38 @@ watch(tabActiva, (newTab) => {
   font-size: 1.1rem;
 }
 
-/* -------------------- Estilos específicos para la pestaña de pérdidas -------------------- */
-.filtros-historial-perdidas {
-  margin-bottom: 20px;
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 8px;
-}
-
-.filtros-historial-perdidas .form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
-  align-items: end;
-}
-
-/* Estilo para la nueva columna de categoría */
-.reportes-columna-categoria {
-  font-size: 0.85rem;
-  color: #666;
-}
-
-/* Estilos para filtros activos */
-.filtros-activos-info {
-  margin-top: 10px;
-  padding: 10px;
-  background: #e9ecef;
-  border-radius: 6px;
-  border-left: 4px solid var(--color-primary);
-}
-
-.filtro-activo {
-  display: inline-block;
-  background: var(--color-primary);
-  color: white;
-  padding: 2px 8px;
+/* -------------------- Badges específicos para reportes -------------------- */
+.reportes-badge {
+  padding: 4px 8px;
   border-radius: 12px;
-  margin: 0 5px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.reportes-badge.alert {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+}
+
+.reportes-badge.success {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.reportes-badge.warning {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  color: #212529;
+}
+
+.reportes-badge.info {
+  background: linear-gradient(135deg, #17a2b8, #138496);
+  color: white;
+}
+
+.reportes-badge.default {
+  background: linear-gradient(135deg, #6c757d, #495057);
+  color: white;
 }
 
 /* Estilos para los badges de motivos de pérdida */
@@ -2266,29 +2752,33 @@ watch(tabActiva, (newTab) => {
   word-wrap: break-word;
 }
 
+/* -------------------- TÍTULO ESPECÍFICO PARA REPORTES -------------------- */
+.reportes-card-title1 {
+  color: var(--color-primary);
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(123, 90, 80, 0.1);
+}
+
 /* -------------------- MEJORAS RESPONSIVE -------------------- */
 @media (max-width: 768px) {
-  .reportes-estadisticas {
+  .tabs-header {
     flex-direction: column;
-    gap: 10px;
   }
 
-  .reportes-estadisticas .reportes-estadistica-badge {
+  .tab-button {
     min-width: unset;
+    border-radius: 0;
+    border-bottom: 1px solid #dee2e6;
   }
 
-  .reportes-filtros-derecha {
-    flex-direction: column;
-    align-items: stretch;
+  .tab-button.active {
+    border-bottom: 3px solid var(--color-primary);
   }
 
-  .reportes-filtro-group {
-    width: 100%;
-  }
-
-  .reportes-filtro-input,
-  .reportes-filtro-select {
-    width: 100%;
+  .filtros-grid {
+    grid-template-columns: 1fr;
   }
 
   .reportes-seccion-pdf {
@@ -2345,54 +2835,5 @@ watch(tabActiva, (newTab) => {
 
 .reportes-table-scroll-container::-webkit-scrollbar-thumb:hover {
   background: #6d4c41;
-}
-
-/* Animación de pulso para alertas */
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
-  }
-}
-
-/* Título específico para reportes */
-.reportes-card-title1 {
-  color: var(--color-primary);
-  font-size: 1.8rem;
-  font-weight: 600;
-  margin: 0;
-  text-shadow: 0 2px 4px rgba(123, 90, 80, 0.1);
-}
-
-/* Filtros específicos para reportes */
-.reportes-filtro-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.reportes-filtro-input,
-.reportes-filtro-select {
-  padding: 12px 16px;
-  border: 2px solid #e9ecef;
-  border-radius: 10px;
-  font-size: 14px;
-  height: 46px;
-  transition: all 0.3s ease;
-  background: white;
-  min-width: 200px;
-}
-
-.reportes-filtro-input:focus,
-.reportes-filtro-select:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(123, 90, 80, 0.1);
-  transform: translateY(-1px);
 }
 </style>
