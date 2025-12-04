@@ -347,6 +347,11 @@ html,
 }
 
 /* RECETAS */
+.card-title1.mobile-center {
+  text-align: center;
+  justify-content: center;
+}
+
 .card.recetas {
   grid-area: recetas;
   max-height: 85vh;
@@ -370,27 +375,6 @@ html,
   font-size: 14px;
   width: 250px;
   max-width: 100%;
-}
-
-.recetas-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  overflow-y: auto;
-  flex-grow: 1;
-}
-
-.recetas-list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-  transition: background-color 0.2s;
-}
-
-.recetas-list li:hover {
-  background-color: rgba(123, 90, 80, 0.05);
 }
 
 .contador {
@@ -723,19 +707,6 @@ html,
 }
 
 /* Estilos para Recetas.vue */
-.recetas-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-
-.botones-acciones {
-  display: flex;
-  gap: 10px;
-}
 
 .btn-nuevo-pedido {
   background-color: #b8e6b8;
@@ -753,12 +724,6 @@ html,
 
 .btn-nuevo-pedido:hover {
   background-color: #a1dca1;
-}
-
-.filtros-derecha {
-  display: flex;
-  gap: 15px;
-  align-items: center;
 }
 
 /* BOTONES agregar algo */

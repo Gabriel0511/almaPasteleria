@@ -5,41 +5,15 @@
     <div class="main-container">
       <Header @toggle-sidebar="toggleSidebar" />
       <main class="main-content">
-        <section class="principal-content">
-          <h3 class="card-title1" :class="{ 'mobile-center': isMobile }">
-            Gestión de Recetas
-          </h3>
-
-          <!-- Estadísticas de recetas -->
-          <div class="estadisticas-stock">
-            <div class="estadistica-item" v-if="notificacionesRecetasNoRentables.length > 0">
-              <span class="estadistica-badge bajo" :class="{ active: filtroActivo === 'no-rentable' }"
-                @click="aplicarFiltroNoRentables" title="Filtrar recetas no rentables">
-                <i class="fas fa-exclamation-circle"></i>
-                {{ notificacionesRecetasNoRentables.length }} no rentable(s)
-              </span>
-            </div>
-            <div class="estadistica-item">
-              <span class="estadistica-badge total">
-                <i class="fas fa-utensils"></i>
-                {{ recetasFiltradas.length }} receta(s)
-              </span>
-            </div>
-            <div class="estadistica-item" v-if="filtroActivo || searchTerm">
-              <span class="estadistica-badge limpiar-filtro" @click="limpiarFiltros">
-                <i class="fas fa-times"></i>
-                Limpiar filtros
-              </span>
-            </div>
-          </div>
-          
-          <!-- Filtros de recetas -->
-          <div class="filtros-derecha">
-            <div class="filtro-group">
-              <input type="text" v-model="searchTerm" placeholder="Buscar receta..." class="filtro-input" />
-            </div>
-          </div>
-        </section>
+        <PageHeader
+          title="Gestión de Recetas"
+          :stats="recetasStats"
+          :filters="recetasFilters"
+          :active-filter-type="filtroActivo"
+          @stat-click="handleStatClick"
+          @filter-change="handleFilterChange"
+          @clear-filters="limpiarFiltros"
+        />
 
         <!-- Card principal de recetas - ESTILO COMO STOCK -->
         <div class="card recetas-card">
@@ -53,17 +27,25 @@
           </div>
 
           <div v-else class="recetas-list">
-            <div v-for="receta in recetasPaginadas" :key="receta.id" class="receta-item" :class="{
-              'no-rentable': receta.precio_venta <= receta.costo_total,
-              expanded: recetaDesplegada[receta.id],
-            }">
+            <div
+              v-for="receta in recetasPaginadas"
+              :key="receta.id"
+              class="receta-item"
+              :class="{
+                'no-rentable': receta.precio_venta <= receta.costo_total,
+                expanded: recetaDesplegada[receta.id],
+              }"
+            >
               <!-- Contenedor principal compacto - ESTILO COMO STOCK -->
               <div class="receta-item-compact">
                 <!-- Indicador de estado -->
-                <div class="estado-indicador" :class="{
-                  critico: receta.precio_venta <= receta.costo_total,
-                  normal: receta.precio_venta > receta.costo_total,
-                }"></div>
+                <div
+                  class="estado-indicador"
+                  :class="{
+                    critico: receta.precio_venta <= receta.costo_total,
+                    normal: receta.precio_venta > receta.costo_total,
+                  }"
+                ></div>
 
                 <!-- Información principal -->
                 <div class="info-principal" @click="toggleReceta(receta.id)">
@@ -73,10 +55,14 @@
                       <span class="badge-cantidad">
                         {{ (receta.insumos || []).length }} insumos
                       </span>
-                      <span class="badge-rentabilidad" :class="receta.precio_venta > receta.costo_total
-                        ? 'rentable'
-                        : 'no-rentable'
-                        ">
+                      <span
+                        class="badge-rentabilidad"
+                        :class="
+                          receta.precio_venta > receta.costo_total
+                            ? 'rentable'
+                            : 'no-rentable'
+                        "
+                      >
                         {{
                           receta.precio_venta > receta.costo_total
                             ? "Rentable"
@@ -112,22 +98,35 @@
 
                 <!-- Acciones - DENTRO del contenedor compacto -->
                 <div class="acciones-container">
-                  <button class="btn-accion btn-gestionar" @click="agregarInsumosAReceta(receta)"
-                    title="Gestionar insumos">
+                  <button
+                    class="btn-accion btn-gestionar"
+                    @click="agregarInsumosAReceta(receta)"
+                    title="Gestionar insumos"
+                  >
                     <i class="fas fa-list"></i>
                   </button>
-                  <button class="btn-accion btn-editar" @click="editarReceta(receta)" title="Editar receta">
+                  <button
+                    class="btn-accion btn-editar"
+                    @click="editarReceta(receta)"
+                    title="Editar receta"
+                  >
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button class="btn-accion btn-eliminar" @click="confirmarEliminarReceta(receta)"
-                    title="Eliminar receta">
+                  <button
+                    class="btn-accion btn-eliminar"
+                    @click="confirmarEliminarReceta(receta)"
+                    title="Eliminar receta"
+                  >
                     <i class="fas fa-trash"></i>
                   </button>
                 </div>
               </div>
 
               <!-- Desplegable de detalles de la receta - DENTRO del mismo receta-item -->
-              <div v-if="recetaDesplegada[receta.id]" class="receta-detalles-desplegable">
+              <div
+                v-if="recetaDesplegada[receta.id]"
+                class="receta-detalles-desplegable"
+              >
                 <div class="detalles-content">
                   <!-- Información de rentabilidad -->
                   <div class="receta-rentabilidad-info">
@@ -150,10 +149,13 @@
                       </div>
                       <div class="rentabilidad-item">
                         <span class="rentabilidad-label">Ganancia:</span>
-                        <span class="rentabilidad-valor" :class="{
-                          positiva: receta.precio_venta > receta.costo_total,
-                          negativa: receta.precio_venta <= receta.costo_total,
-                        }">
+                        <span
+                          class="rentabilidad-valor"
+                          :class="{
+                            positiva: receta.precio_venta > receta.costo_total,
+                            negativa: receta.precio_venta <= receta.costo_total,
+                          }"
+                        >
                           ${{
                             formatDecimal(
                               receta.precio_venta - receta.costo_total
@@ -163,17 +165,20 @@
                       </div>
                       <div class="rentabilidad-item">
                         <span class="rentabilidad-label">Margen:</span>
-                        <span class="rentabilidad-valor" :class="{
-                          positiva: receta.precio_venta > receta.costo_total,
-                          negativa: receta.precio_venta <= receta.costo_total,
-                        }">
+                        <span
+                          class="rentabilidad-valor"
+                          :class="{
+                            positiva: receta.precio_venta > receta.costo_total,
+                            negativa: receta.precio_venta <= receta.costo_total,
+                          }"
+                        >
                           {{
                             receta.costo_total > 0
                               ? formatDecimal(
-                                ((receta.precio_venta - receta.costo_total) /
-                                  receta.costo_total) *
-                                100
-                              )
+                                  ((receta.precio_venta - receta.costo_total) /
+                                    receta.costo_total) *
+                                    100
+                                )
                               : "0.00"
                           }}%
                         </span>
@@ -189,13 +194,20 @@
                           (receta.insumos || []).length
                         }})
                       </h4>
-                      <button class="btn-agregar-insumo" @click="agregarInsumosAReceta(receta)">
+                      <button
+                        class="btn-agregar-insumo"
+                        @click="agregarInsumosAReceta(receta)"
+                      >
                         <i class="fas fa-plus"></i> Gestionar Insumos
                       </button>
                     </div>
 
                     <div class="insumos-list">
-                      <div v-for="insumo in receta.insumos || []" :key="insumo.id" class="insumo-item">
+                      <div
+                        v-for="insumo in receta.insumos || []"
+                        :key="insumo.id"
+                        class="insumo-item"
+                      >
                         <div class="insumo-info">
                           <span class="insumo-nombre">
                             {{ insumo.insumo.nombre }}
@@ -206,7 +218,10 @@
                           </span>
                         </div>
                         <div class="insumo-costo-container">
-                          <span class="insumo-costo" v-if="insumo.insumo.precio_unitario != null">
+                          <span
+                            class="insumo-costo"
+                            v-if="insumo.insumo.precio_unitario != null"
+                          >
                             ${{ formatDecimal(calcularCostoInsumo(insumo)) }}
                             <small style="font-size: 0.7rem; opacity: 0.7">
                               (${{
@@ -222,10 +237,16 @@
                           </span>
                         </div>
                       </div>
-                      <div v-if="(receta.insumos || []).length === 0" class="sin-insumos">
+                      <div
+                        v-if="(receta.insumos || []).length === 0"
+                        class="sin-insumos"
+                      >
                         <i class="fas fa-info-circle"></i>
                         <p>Esta receta no tiene insumos asignados</p>
-                        <button class="btn-agregar-insumo-small" @click="agregarInsumosAReceta(receta)">
+                        <button
+                          class="btn-agregar-insumo-small"
+                          @click="agregarInsumosAReceta(receta)"
+                        >
                           <i class="fas fa-plus"></i> Agregar Insumos
                         </button>
                       </div>
@@ -233,7 +254,10 @@
                   </div>
 
                   <!-- Alertas de rentabilidad -->
-                  <div v-if="receta.precio_venta <= receta.costo_total" class="receta-alerta alerta-no-rentable">
+                  <div
+                    v-if="receta.precio_venta <= receta.costo_total"
+                    class="receta-alerta alerta-no-rentable"
+                  >
                     <i class="fas fa-exclamation-circle"></i>
                     <span>
                       ¡Receta no rentable! El precio de venta no cubre los
@@ -252,20 +276,36 @@
               {{ recetasFiltradas.length }} receta(s)
             </div>
             <div class="pagination-buttons">
-              <button class="pagination-btn" :disabled="paginaActual === 1" @click="cambiarPagina(paginaActual - 1)">
+              <button
+                class="pagination-btn"
+                :disabled="paginaActual === 1"
+                @click="cambiarPagina(paginaActual - 1)"
+              >
                 <i class="fas fa-chevron-left"></i>
               </button>
 
               <div class="pagination-numbers">
-                <button v-for="pagina in paginasVisibles" :key="pagina" class="pagination-number"
-                  :class="{ active: pagina === paginaActual }" @click="cambiarPagina(pagina)">
+                <button
+                  v-for="pagina in paginasVisibles"
+                  :key="pagina"
+                  class="pagination-number"
+                  :class="{ active: pagina === paginaActual }"
+                  @click="cambiarPagina(pagina)"
+                >
                   {{ pagina }}
                 </button>
-                <span v-if="mostrarPuntosSuspensivos" class="pagination-ellipsis">...</span>
+                <span
+                  v-if="mostrarPuntosSuspensivos"
+                  class="pagination-ellipsis"
+                  >...</span
+                >
               </div>
 
-              <button class="pagination-btn" :disabled="paginaActual === totalPaginas"
-                @click="cambiarPagina(paginaActual + 1)">
+              <button
+                class="pagination-btn"
+                :disabled="paginaActual === totalPaginas"
+                @click="cambiarPagina(paginaActual + 1)"
+              >
                 <i class="fas fa-chevron-right"></i>
               </button>
             </div>
@@ -283,18 +323,33 @@
     <!-- MODALES REFACTORIZADOS -->
 
     <!-- Modal para Nueva/Editar Receta -->
-    <BaseModal v-model:show="showModalReceta" :title="esEdicion ? 'Editar Receta' : 'Nueva Receta'" size="medium"
-      @close="closeModal">
+    <BaseModal
+      v-model:show="showModalReceta"
+      :title="esEdicion ? 'Editar Receta' : 'Nueva Receta'"
+      size="medium"
+      @close="closeModal"
+    >
       <div class="form-grid">
         <div class="form-group">
           <label>Nombre:</label>
-          <input v-model="formReceta.nombre" type="text" required class="form-input"
-            placeholder="Nombre de la receta" />
+          <input
+            v-model="formReceta.nombre"
+            type="text"
+            required
+            class="form-input"
+            placeholder="Nombre de la receta"
+          />
         </div>
         <div class="form-group">
           <label>Rinde:</label>
-          <input v-model="formReceta.rinde" type="number" min="1" required class="form-input"
-            placeholder="Cantidad que rinde" />
+          <input
+            v-model="formReceta.rinde"
+            type="number"
+            min="1"
+            required
+            class="form-input"
+            placeholder="Cantidad que rinde"
+          />
         </div>
         <div class="form-group">
           <label>Unidad de Rinde:</label>
@@ -305,54 +360,100 @@
         </div>
         <div class="form-group">
           <label>Precio de Venta:</label>
-          <input v-model="formReceta.precio_venta" type="number" step="1" min="0" required class="form-input"
-            placeholder="Precio de venta" />
+          <input
+            v-model="formReceta.precio_venta"
+            type="number"
+            step="1"
+            min="0"
+            required
+            class="form-input"
+            placeholder="Precio de venta"
+          />
         </div>
       </div>
 
       <template #footer>
-        <ModalButtons :confirm-text="esEdicion ? 'Actualizar' : 'Guardar Receta'" @cancel="closeModal"
-          @confirm="guardarRecetaBasica" />
+        <ModalButtons
+          :confirm-text="esEdicion ? 'Actualizar' : 'Guardar Receta'"
+          @cancel="closeModal"
+          @confirm="guardarRecetaBasica"
+        />
       </template>
     </BaseModal>
 
     <!-- Modal para Agregar/Eliminar Insumos a Receta -->
-    <BaseModal v-model:show="showModalInsumos" :title="`Gestionar Insumos: ${recetaSeleccionada?.nombre || ''}`"
-      size="large" @close="showModalInsumos = false">
+    <BaseModal
+      v-model:show="showModalInsumos"
+      :title="`Gestionar Insumos: ${recetaSeleccionada?.nombre || ''}`"
+      size="large"
+      @close="showModalInsumos = false"
+    >
       <div class="insumos-section">
         <h4>Agregar Nuevo Insumo:</h4>
         <div class="form-grid">
           <div class="form-group">
             <label>Insumo:</label>
             <div class="select-with-button">
-              <select v-model="nuevoInsumo.insumo_id" required class="form-input" @change="actualizarUnidadNuevoInsumo">
+              <select
+                v-model="nuevoInsumo.insumo_id"
+                required
+                class="form-input"
+                @change="actualizarUnidadNuevoInsumo"
+              >
                 <option value="">Seleccione un insumo</option>
-                <option v-for="item in insumosDisponibles" :key="item.id" :value="item.id">
+                <option
+                  v-for="item in insumosDisponibles"
+                  :key="item.id"
+                  :value="item.id"
+                >
                   {{ item.nombre }}
                 </option>
               </select>
-              <button type="button" class="btn-agregar-nuevo" @click="showNuevoInsumoModal = true"
-                title="Agregar nuevo insumo">
+              <button
+                type="button"
+                class="btn-agregar-nuevo"
+                @click="showNuevoInsumoModal = true"
+                title="Agregar nuevo insumo"
+              >
                 <i class="fas fa-plus"></i>
               </button>
             </div>
           </div>
           <div class="form-group">
             <label>Cantidad:</label>
-            <input v-model="nuevoInsumo.cantidad" type="number" step="1" min="0" required class="form-input"
-              placeholder="0.000" />
+            <input
+              v-model="nuevoInsumo.cantidad"
+              type="number"
+              step="1"
+              min="0"
+              required
+              class="form-input"
+              placeholder="0.000"
+            />
           </div>
           <div class="form-group">
             <label>Unidad de Medida:</label>
-            <select v-model="nuevoInsumo.unidad_medida_id" required class="form-input">
+            <select
+              v-model="nuevoInsumo.unidad_medida_id"
+              required
+              class="form-input"
+            >
               <option value="">Seleccione una unidad</option>
-              <option v-for="unidad in unidadesMedida" :key="unidad.id" :value="unidad.id">
+              <option
+                v-for="unidad in unidadesMedida"
+                :key="unidad.id"
+                :value="unidad.id"
+              >
                 {{ unidad.nombre }} ({{ unidad.abreviatura }})
               </option>
             </select>
           </div>
           <div class="form-group">
-            <button class="btn-agregar-insumo-modal" @click="agregarInsumoAReceta" :disabled="!puedeAgregarInsumo">
+            <button
+              class="btn-agregar-insumo-modal"
+              @click="agregarInsumoAReceta"
+              :disabled="!puedeAgregarInsumo"
+            >
               <i class="fas fa-plus"></i> Agregar
             </button>
           </div>
@@ -363,7 +464,11 @@
         <h4>
           Insumos Actuales ({{ recetaSeleccionada?.insumos?.length || 0 }}):
         </h4>
-        <div v-for="insumo in recetaSeleccionada?.insumos || []" :key="insumo.id" class="insumo-existente-item">
+        <div
+          v-for="insumo in recetaSeleccionada?.insumos || []"
+          :key="insumo.id"
+          class="insumo-existente-item"
+        >
           <span v-if="!insumo.editando" class="insumo-info">
             {{ insumo.insumo.nombre }} - {{ formatDecimal(insumo.cantidad) }}
             {{ insumo.unidad_medida.abreviatura }}
@@ -375,14 +480,29 @@
             <div class="edit-form-grid">
               <div class="form-group">
                 <label>Cantidad:</label>
-                <input v-model.number="insumo.cantidadEdit" type="number" step="1" min="0" class="form-input-small"
-                  placeholder="0.000" @input="formatearCantidadInput($event, insumo)" />
+                <input
+                  v-model.number="insumo.cantidadEdit"
+                  type="number"
+                  step="1"
+                  min="0"
+                  class="form-input-small"
+                  placeholder="0.000"
+                  @input="formatearCantidadInput($event, insumo)"
+                />
               </div>
               <div class="form-group">
                 <label>Unidad:</label>
-                <select v-model="insumo.unidad_medida_id_edit" class="form-input-small" required>
+                <select
+                  v-model="insumo.unidad_medida_id_edit"
+                  class="form-input-small"
+                  required
+                >
                   <option value="">Seleccione...</option>
-                  <option v-for="unidad in unidadesMedida" :key="unidad.id" :value="unidad.id">
+                  <option
+                    v-for="unidad in unidadesMedida"
+                    :key="unidad.id"
+                    :value="unidad.id"
+                  >
                     {{ unidad.abreviatura }} ({{ unidad.nombre }})
                   </option>
                 </select>
@@ -390,20 +510,36 @@
             </div>
           </div>
           <div class="insumo-acciones">
-            <button v-if="!insumo.editando" class="btn-accion-small" @click="activarEdicionInsumo(insumo)"
-              title="Editar insumo">
+            <button
+              v-if="!insumo.editando"
+              class="btn-accion-small"
+              @click="activarEdicionInsumo(insumo)"
+              title="Editar insumo"
+            >
               <i class="fas fa-edit"></i>
             </button>
-            <button v-else class="btn-accion-small btn-confirmar" @click="guardarEdicionInsumo(insumo)"
-              title="Guardar cambios">
+            <button
+              v-else
+              class="btn-accion-small btn-confirmar"
+              @click="guardarEdicionInsumo(insumo)"
+              title="Guardar cambios"
+            >
               <i class="fas fa-check"></i>
             </button>
-            <button v-if="!insumo.editando" class="btn-accion-small btn-eliminar-modal"
-              @click="eliminarInsumoDeReceta(recetaSeleccionada, insumo)" title="Eliminar insumo">
+            <button
+              v-if="!insumo.editando"
+              class="btn-accion-small btn-eliminar-modal"
+              @click="eliminarInsumoDeReceta(recetaSeleccionada, insumo)"
+              title="Eliminar insumo"
+            >
               <i class="fas fa-trash"></i>
             </button>
-            <button v-else class="btn-accion-small btn-cancelar" @click="cancelarEdicionInsumo(insumo)"
-              title="Cancelar edición">
+            <button
+              v-else
+              class="btn-accion-small btn-cancelar"
+              @click="cancelarEdicionInsumo(insumo)"
+              title="Cancelar edición"
+            >
               <i class="fas fa-times"></i>
             </button>
           </div>
@@ -415,50 +551,94 @@
       </div>
 
       <template #footer>
-        <ModalButtons :show-cancel="false" confirm-text="Cerrar" @cancel="showModalInsumos = false"
-          @confirm="showModalInsumos = false" />
+        <ModalButtons
+          :show-cancel="false"
+          confirm-text="Cerrar"
+          @cancel="showModalInsumos = false"
+          @confirm="showModalInsumos = false"
+        />
       </template>
     </BaseModal>
 
     <!-- Modal para Nuevo Insumo -->
-    <BaseModal v-model:show="showNuevoInsumoModal" title="Nuevo Insumo" size="medium"
-      @close="showNuevoInsumoModal = false">
+    <BaseModal
+      v-model:show="showNuevoInsumoModal"
+      title="Nuevo Insumo"
+      size="medium"
+      @close="showNuevoInsumoModal = false"
+    >
       <div class="form-grid">
         <div class="form-group">
           <label>Nombre:</label>
-          <input v-model="formNuevoInsumo.nombre" type="text" required class="form-input"
-            placeholder="Nombre del insumo" />
+          <input
+            v-model="formNuevoInsumo.nombre"
+            type="text"
+            required
+            class="form-input"
+            placeholder="Nombre del insumo"
+          />
         </div>
         <div class="form-group">
           <label>Unidad de Medida:</label>
-          <select v-model="formNuevoInsumo.unidad_medida_id" required class="form-input">
+          <select
+            v-model="formNuevoInsumo.unidad_medida_id"
+            required
+            class="form-input"
+          >
             <option value="">Seleccione una unidad</option>
-            <option v-for="unidad in unidadesMedida" :key="unidad.id" :value="unidad.id">
+            <option
+              v-for="unidad in unidadesMedida"
+              :key="unidad.id"
+              :value="unidad.id"
+            >
               {{ unidad.nombre }} ({{ unidad.abreviatura }})
             </option>
           </select>
         </div>
         <div class="form-group">
           <label>Stock Mínimo:</label>
-          <input v-model="formNuevoInsumo.stock_minimo" type="number" step="1" min="0" required class="form-input"
-            placeholder="0.000" />
+          <input
+            v-model="formNuevoInsumo.stock_minimo"
+            type="number"
+            step="1"
+            min="0"
+            required
+            class="form-input"
+            placeholder="0.000"
+          />
         </div>
         <div class="form-group">
           <label>Precio Unitario:</label>
-          <input v-model="formNuevoInsumo.precio_unitario" type="number" step="1" min="0" class="form-input"
-            placeholder="0.00" />
+          <input
+            v-model="formNuevoInsumo.precio_unitario"
+            type="number"
+            step="1"
+            min="0"
+            class="form-input"
+            placeholder="0.00"
+          />
         </div>
       </div>
 
       <template #footer>
-        <ModalButtons confirm-text="Guardar" @cancel="showNuevoInsumoModal = false" @confirm="guardarNuevoInsumo" />
+        <ModalButtons
+          confirm-text="Guardar"
+          @cancel="showNuevoInsumoModal = false"
+          @confirm="guardarNuevoInsumo"
+        />
       </template>
     </BaseModal>
 
     <!-- Modal de confirmación para eliminar receta -->
-    <ConfirmModal :show="showConfirmModal" title="Confirmar Eliminación"
-      :message="`¿Está seguro de que desea eliminar la receta '${recetaAEliminar?.nombre}'?`" confirm-text="Eliminar"
-      @update:show="showConfirmModal = $event" @cancel="showConfirmModal = false" @confirm="eliminarReceta" />
+    <ConfirmModal
+      :show="showConfirmModal"
+      title="Confirmar Eliminación"
+      :message="`¿Está seguro de que desea eliminar la receta '${recetaAEliminar?.nombre}'?`"
+      confirm-text="Eliminar"
+      @update:show="showConfirmModal = $event"
+      @cancel="showConfirmModal = false"
+      @confirm="eliminarReceta"
+    />
   </div>
 </template>
 
@@ -470,13 +650,12 @@ import Header from "./Header.vue";
 import BaseModal from "./Modals/BaseModal.vue";
 import ModalButtons from "./Modals/ModalButtons.vue";
 import ConfirmModal from "./Modals/ConfirmModal.vue";
+import PageHeader from "../components/PageHeader.vue";
 import axios from "axios";
 
 const router = useRouter();
 const notificationSystem = inject("notifications");
 
-// Variables de estado
-const headerRef = ref(null);
 const recetas = ref([]);
 const insumosDisponibles = ref([]);
 const unidadesMedida = ref([]);
@@ -485,38 +664,77 @@ const loading = ref(true);
 const insumoEditando = ref(null);
 const recetaDesplegada = ref({});
 
-// Modales
 const showModalReceta = ref(false);
 const showModalInsumos = ref(false);
 const showConfirmModal = ref(false);
 const showNuevoInsumoModal = ref(false);
-
-// Agregar variable de estado para filtro activo
-const filtroActivo = ref('');
-
-// Variables de paginación
+const filtroActivo = ref("");
 const paginaActual = ref(1);
-const itemsPorPagina = ref(10); // 10 recetas por página
-
-// Referencia al sidebar para controlarlo desde el header
+const itemsPorPagina = ref(10);
 const sidebarRef = ref(null);
 
-// Método para alternar el sidebar desde el header
+// Stats para el header
+const recetasStats = computed(() => {
+  const stats = [];
+
+  // Estadística de no rentables
+  if (notificacionesRecetasNoRentables.value.length > 0) {
+    stats.push({
+      type: "bajo",
+      icon: "fas fa-exclamation-circle",
+      label: `${notificacionesRecetasNoRentables.value.length} no rentable(s)`,
+      tooltip: "Filtrar recetas no rentables",
+      value: notificacionesRecetasNoRentables.value.length,
+    });
+  }
+
+  // Total de recetas
+  stats.push({
+    type: "total",
+    icon: "fas fa-utensils",
+    label: `${recetasFiltradas.value.length} receta(s)`,
+    tooltip: "Total de recetas",
+  });
+
+  return stats;
+});
+
+// Filtros para el header
+const recetasFilters = computed(() => [
+  {
+    type: "text",
+    placeholder: "🔍 Buscar receta...",
+    value: searchTerm.value,
+    autocomplete: "off",
+  },
+]);
+
+// Handlers
+const handleStatClick = (stat) => {
+  if (stat.type === "bajo") {
+    aplicarFiltroNoRentables();
+  }
+};
+
+const handleFilterChange = ({ filter, value }) => {
+  if (filter.placeholder.includes("Buscar receta")) {
+    searchTerm.value = value;
+  }
+};
+
 const toggleSidebar = () => {
   if (sidebarRef.value) {
     sidebarRef.value.toggleSidebar();
   }
 };
 
-// Método para limpiar filtros
 const limpiarFiltros = () => {
-  filtroActivo.value = '';
-  searchTerm.value = '';
-  cerrarTodasLasRecetas(); // Cerrar recetas al limpiar filtros
+  filtroActivo.value = "";
+  searchTerm.value = "";
+  cerrarTodasLasRecetas();
   resetearPaginacion();
 };
 
-// Formularios
 const formReceta = ref({
   id: null,
   nombre: "",
@@ -535,14 +753,13 @@ const esEdicion = ref(false);
 const recetaAEliminar = ref(null);
 const recetaSeleccionada = ref(null);
 
-// Método para aplicar filtro de no rentables
 const aplicarFiltroNoRentables = () => {
-  filtroActivo.value = filtroActivo.value === 'no-rentable' ? '' : 'no-rentable';
-  cerrarTodasLasRecetas(); // Cerrar recetas al aplicar filtro
+  filtroActivo.value =
+    filtroActivo.value === "no-rentable" ? "" : "no-rentable";
+  cerrarTodasLasRecetas();
   resetearPaginacion();
 };
 
-// Computed properties para paginación
 const recetasPaginadas = computed(() => {
   const inicio = (paginaActual.value - 1) * itemsPorPagina.value;
   const fin = inicio + itemsPorPagina.value;
@@ -568,26 +785,21 @@ const paginasVisibles = computed(() => {
   const paginas = [];
 
   if (total <= 7) {
-    // Mostrar todas las páginas
     for (let i = 1; i <= total; i++) {
       paginas.push(i);
     }
   } else {
-    // Mostrar páginas con puntos suspensivos
     if (actual <= 4) {
-      // Primeras páginas
       for (let i = 1; i <= 5; i++) {
         paginas.push(i);
       }
       paginas.push(total);
     } else if (actual >= total - 3) {
-      // Últimas páginas
       paginas.push(1);
       for (let i = total - 4; i <= total; i++) {
         paginas.push(i);
       }
     } else {
-      // Páginas intermedias
       paginas.push(1);
       for (let i = actual - 1; i <= actual + 1; i++) {
         paginas.push(i);
@@ -607,16 +819,15 @@ const mostrarPuntosSuspensivos = computed(() => {
   );
 });
 
-// Actualizar recetasFiltradas para incluir este filtro
 const recetasFiltradas = computed(() => {
   let filtered = recetas.value;
 
-  // Filtrar por no rentables si está activo
-  if (filtroActivo.value === 'no-rentable') {
-    filtered = filtered.filter(receta => receta.precio_venta <= receta.costo_total);
+  if (filtroActivo.value === "no-rentable") {
+    filtered = filtered.filter(
+      (receta) => receta.precio_venta <= receta.costo_total
+    );
   }
 
-  // Filtrar por término de búsqueda
   if (searchTerm.value) {
     const term = searchTerm.value.toLowerCase();
     filtered = filtered.filter((item) =>
@@ -624,7 +835,6 @@ const recetasFiltradas = computed(() => {
     );
   }
 
-  // Ordenar: no rentables primero, luego alfabéticamente
   return filtered.sort((a, b) => {
     const aNoRentable = a.precio_venta <= a.costo_total;
     const bNoRentable = b.precio_venta <= b.costo_total;
@@ -656,24 +866,17 @@ const notificacionesLeidas = ref(new Set());
 const notificacionesRecetasNoRentables = computed(() => {
   return recetas.value
     .filter((receta) => {
-      // Validación más robusta de rentabilidad
       const costoTotal = parseFloat(receta.costo_total) || 0;
       const precioVenta = parseFloat(receta.precio_venta) || 0;
-      const esNoRentable = precioVenta <= costoTotal;
-
-      return esNoRentable;
+      return precioVenta <= costoTotal;
     })
-    .filter((notif) => !notif.leida); // Solo mostrar no leídas
+    .filter((notif) => !notif.leida);
 });
 
-// Métodos de paginación
 const cambiarPagina = (pagina) => {
   if (pagina >= 1 && pagina <= totalPaginas.value) {
-    // CERRAR TODAS LAS RECETAS ANTES DE CAMBIAR DE PÁGINA
     cerrarTodasLasRecetas();
-    
     paginaActual.value = pagina;
-    // Scroll suave hacia arriba
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 };
@@ -683,20 +886,16 @@ const resetearPaginacion = () => {
   paginaActual.value = 1;
 };
 
-// Método para toggle del desplegable - SOLO UNA RECETA ABIERTA
 const toggleReceta = (recetaId) => {
   const estaAbierta = recetaDesplegada.value[recetaId];
-  
-  // Si ya está abierta, cerrarla
+
   if (estaAbierta) {
     recetaDesplegada.value = { [recetaId]: false };
   } else {
-    // Cerrar todas y abrir solo esta
     recetaDesplegada.value = { [recetaId]: true };
   }
 };
 
-// Método para cerrar todas las recetas desplegadas
 const cerrarTodasLasRecetas = () => {
   recetaDesplegada.value = {};
 };
@@ -708,7 +907,6 @@ const logout = async () => {
       await axios.post("/api/auth/logout/", { refresh: refreshToken });
     }
   } catch (err) {
-    console.error("Error al cerrar sesión:", err.response?.data || err);
   } finally {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
@@ -733,36 +931,26 @@ const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => {
   if (unidadOrigen === unidadDestino) return cantidad;
 
   const conversiones = {
-    // Peso
     kg: { g: 1000, mg: 1000000 },
     g: { kg: 0.001, mg: 1000 },
     mg: { kg: 0.000001, g: 0.001 },
-
-    // Volumen
     l: { ml: 1000, cl: 100 },
     ml: { l: 0.001, cl: 0.1 },
     cl: { l: 0.01, ml: 10 },
-
-    // Unidades (1:1 por defecto)
     unidad: { u: 1, pz: 1 },
     u: { unidad: 1, pz: 1 },
     pz: { unidad: 1, u: 1 },
-
-    // Agregar más conversiones si es necesario
     docena: { unidad: 12, u: 12 },
     doc: { unidad: 12, u: 12 },
   };
 
-  // Normalizar unidades
   unidadOrigen = unidadOrigen.toLowerCase();
   unidadDestino = unidadDestino.toLowerCase();
 
-  // Buscar conversión directa
   if (conversiones[unidadOrigen] && conversiones[unidadOrigen][unidadDestino]) {
     return cantidad * conversiones[unidadOrigen][unidadDestino];
   }
 
-  // Buscar conversión inversa
   if (
     conversiones[unidadDestino] &&
     conversiones[unidadDestino][unidadOrigen]
@@ -770,66 +958,16 @@ const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => {
     return cantidad / conversiones[unidadDestino][unidadOrigen];
   }
 
-  // Si no encuentra conversión, mostrar advertencia y devolver cantidad original
-  console.warn(
-    `No se encontró conversión de ${unidadOrigen} a ${unidadDestino}`
-  );
   return cantidad;
 };
 
-const marcarTodasComoLeidas = () => {
-  notificacionesRecetasNoRentables.value.forEach((notif) => {
-    marcarNotificacionLeida(notif.id);
-  });
-
-  // Mostrar confirmación
-  notificationSystem.show({
-    type: "success",
-    title: "Notificaciones marcadas",
-    message:
-      "Todas las notificaciones de recetas no rentables fueron marcadas como leídas",
-    timeout: 3000,
-  });
-};
-
-// AGREGAR: Método para marcar notificación como leída
-const marcarNotificacionLeida = (notificacionId) => {
-  notificacionesLeidas.value.add(notificacionId);
-
-  // Persistir en localStorage
-  const leidasGuardadas = JSON.parse(
-    localStorage.getItem("notificacionesLeidas") || "[]"
-  );
-  leidasGuardadas.push(notificacionId);
-  localStorage.setItem(
-    "notificacionesLeidas",
-    JSON.stringify([...new Set(leidasGuardadas)])
-  );
-
-  // Actualizar contador en header
-  actualizarNotificacionesRecetas();
-};
-
-// AGREGAR: Cargar notificaciones leídas al inicializar
-const cargarNotificacionesLeidas = () => {
-  const leidasGuardadas = JSON.parse(
-    localStorage.getItem("notificacionesLeidas") || "[]"
-  );
-  notificacionesLeidas.value = new Set(leidasGuardadas);
-};
-
 const calcularCostoInsumo = (insumoReceta) => {
-  // Validar que el objeto insumoReceta y sus propiedades existan
   if (
     !insumoReceta ||
     !insumoReceta.insumo ||
     insumoReceta.insumo.precio_unitario === null ||
     insumoReceta.insumo.precio_unitario === undefined
   ) {
-    console.log(
-      "❌ Datos insuficientes para calcular costo - precio_unitario:",
-      insumoReceta?.insumo?.precio_unitario
-    );
     return 0;
   }
 
@@ -841,55 +979,29 @@ const calcularCostoInsumo = (insumoReceta) => {
       insumoReceta.cantidad.toString().replace(",", ".")
     );
 
-    // Si no hay información de unidades, cálculo directo
     if (!insumoReceta.insumo.unidad_medida || !insumoReceta.unidad_medida) {
-      const costoDirecto = precioUnitario * cantidad;
-      console.log(`📊 Cálculo directo: ${costoDirecto}`);
-      return costoDirecto;
+      return precioUnitario * cantidad;
     }
 
     const unidadInsumo =
       insumoReceta.insumo.unidad_medida.abreviatura.toLowerCase();
     const unidadReceta = insumoReceta.unidad_medida.abreviatura.toLowerCase();
 
-    // Si las unidades son iguales, cálculo directo
     if (unidadInsumo === unidadReceta) {
-      const costoDirecto = precioUnitario * cantidad;
-      console.log(`📊 Cálculo mismo unidad: ${costoDirecto}`);
-      return costoDirecto;
+      return precioUnitario * cantidad;
     }
 
-    // Convertir a la unidad del insumo
     const cantidadConvertida = convertirUnidad(
       cantidad,
       unidadReceta,
       unidadInsumo
     );
-
-    console.log(
-      `🔄 Cantidad convertida: ${cantidad} ${unidadReceta} → ${cantidadConvertida} ${unidadInsumo}`
-    );
-
     const costo = precioUnitario * cantidadConvertida;
-    console.log(`📊 Costo final: ${costo}`);
 
     return isNaN(costo) ? 0 : costo;
   } catch (error) {
-    console.error(
-      "❌ Error al calcular costo del insumo:",
-      error,
-      insumoReceta
-    );
     return 0;
   }
-};
-
-const resetFilters = () => {
-  searchTerm.value = "";
-};
-
-const getInsumosSeguros = (receta) => {
-  return receta?.insumos || [];
 };
 
 const showNuevaRecetaModal = () => {
@@ -935,8 +1047,6 @@ const actualizarUnidadNuevoInsumo = () => {
 
   if (insumo && insumo.unidad_medida) {
     nuevoInsumo.value.unidad_medida_id = insumo.unidad_medida.id;
-
-    // CAMBIO: Siempre establecer cantidad en 1
     nuevoInsumo.value.cantidad = 1;
   } else {
     nuevoInsumo.value.unidad_medida_id = "";
@@ -955,7 +1065,6 @@ const agregarInsumoAReceta = async () => {
       return;
     }
 
-    // Validar que la cantidad sea positiva
     if (nuevoInsumo.value.cantidad <= 0) {
       notificationSystem.show({
         type: "error",
@@ -966,21 +1075,17 @@ const agregarInsumoAReceta = async () => {
       return;
     }
 
-    // Estructura simple con IDs numéricos
     const insumoData = {
       insumo: parseInt(nuevoInsumo.value.insumo_id),
       unidad_medida: parseInt(nuevoInsumo.value.unidad_medida_id),
       cantidad: parseFloat(nuevoInsumo.value.cantidad),
     };
 
-    console.log("Enviando datos:", insumoData);
-
     const response = await axios.post(
       `/api/recetas/${recetaSeleccionada.value.id}/insumos/`,
       insumoData
     );
 
-    // Agregar el nuevo insumo a la lista local
     const nuevoInsumoObj = {
       ...response.data,
       editando: false,
@@ -997,7 +1102,6 @@ const agregarInsumoAReceta = async () => {
     }
     recetaSeleccionada.value.insumos.push(nuevoInsumoObj);
 
-    // Recalcular costos
     await recalcularCostosReceta();
     await onInsumosModificados(recetaSeleccionada.value);
 
@@ -1010,13 +1114,9 @@ const agregarInsumoAReceta = async () => {
 
     resetNuevoInsumo();
   } catch (error) {
-    console.error("Error al agregar insumo:", error);
-
     let errorMessage = "Error al agregar el insumo a la receta";
 
     if (error.response?.data) {
-      console.error("Detalles del error:", error.response.data);
-
       if (typeof error.response.data === "object") {
         const errors = [];
         for (const key in error.response.data) {
@@ -1041,18 +1141,15 @@ const agregarInsumoAReceta = async () => {
   }
 };
 
-// Modificar eliminarInsumoDeReceta para actualizar en tiempo real
 const eliminarInsumoDeReceta = async (receta, insumo) => {
   try {
     await axios.delete(`/api/recetas/${receta.id}/insumos/${insumo.id}/`);
 
-    // ACTUALIZACIÓN EN TIEMPO REAL: Eliminar de la lista local
     const insumoIndex = receta.insumos.findIndex((i) => i.id === insumo.id);
     if (insumoIndex !== -1) {
       receta.insumos.splice(insumoIndex, 1);
     }
 
-    // AGREGAR: Notificar cambios en insumos
     await onInsumosModificados(receta);
 
     notificationSystem.show({
@@ -1062,7 +1159,6 @@ const eliminarInsumoDeReceta = async (receta, insumo) => {
       timeout: 4000,
     });
   } catch (error) {
-    console.error("Error al eliminar insumo:", error);
     notificationSystem.show({
       type: "error",
       title: "Error",
@@ -1084,7 +1180,6 @@ const guardarRecetaBasica = async () => {
       return;
     }
 
-    // Preparar datos básicos de la receta
     const datosParaEnviar = {
       nombre: formReceta.value.nombre,
       rinde: formReceta.value.rinde,
@@ -1095,7 +1190,7 @@ const guardarRecetaBasica = async () => {
     };
 
     let response;
-    let esNuevaReceta = !esEdicion.value; // Guardar este valor ANTES de hacer cualquier cosa
+    let esNuevaReceta = !esEdicion.value;
 
     if (esEdicion.value) {
       response = await axios.put(
@@ -1103,7 +1198,6 @@ const guardarRecetaBasica = async () => {
         datosParaEnviar
       );
 
-      // ✅ NOTIFICACIÓN PARA EDICIÓN
       notificationSystem.show({
         type: "success",
         title: "Receta actualizada",
@@ -1113,7 +1207,6 @@ const guardarRecetaBasica = async () => {
     } else {
       response = await axios.post("/api/recetas/", datosParaEnviar);
 
-      // ✅ NOTIFICACIÓN PARA CREACIÓN
       notificationSystem.show({
         type: "success",
         title: "Receta creada",
@@ -1122,21 +1215,14 @@ const guardarRecetaBasica = async () => {
       });
     }
 
-    // ✅ CORREGIDO: Esperar a que fetchRecetas termine completamente
     await fetchRecetas();
-
-    // ✅ CORREGIDO: Cerrar el modal inmediatamente después de guardar
     closeModal();
 
-    // Verificar rentabilidad y mostrar notificación
     const recetaGuardada = response.data;
     verificarRentabilidadYNotificar(recetaGuardada);
 
-    // ✅ SOLO para NUEVAS recetas abrir modal de insumos - DE FORMA SEPARADA Y CONTROLADA
     if (esNuevaReceta && response.data.id) {
-      // Pequeña pausa para asegurar que el modal se cerró completamente
       setTimeout(() => {
-        // Verificar nuevamente que no es edición (por si acaso)
         if (!esEdicion.value) {
           const nuevaReceta = {
             id: response.data.id,
@@ -1145,19 +1231,14 @@ const guardarRecetaBasica = async () => {
             unidad_rinde: response.data.unidad_rinde,
             precio_venta: response.data.precio_venta,
             costo_total: response.data.costo_total || 0,
-            insumos: response.data.insumos || []
+            insumos: response.data.insumos || [],
           };
           agregarInsumosAReceta(nuevaReceta);
         }
       }, 100);
     }
-
   } catch (error) {
-    console.error("Error al guardar receta:", error);
-
     if (error.response?.status === 400) {
-      console.error("Datos de error:", error.response.data);
-
       let errorMessage = "Error de validación";
       if (error.response.data) {
         if (typeof error.response.data === "object") {
@@ -1196,7 +1277,6 @@ const eliminarReceta = async () => {
   try {
     await axios.delete(`/api/recetas/${recetaAEliminar.value.id}/`);
 
-    // Actualizar la lista local inmediatamente sin recargar toda la data
     const index = recetas.value.findIndex(
       (item) => item.id === recetaAEliminar.value.id
     );
@@ -1205,8 +1285,6 @@ const eliminarReceta = async () => {
     }
 
     showConfirmModal.value = false;
-
-    // AGREGAR: Actualizar notificaciones después de eliminar
     actualizarNotificacionesRecetas();
 
     notificationSystem.show({
@@ -1216,8 +1294,6 @@ const eliminarReceta = async () => {
       timeout: 4000,
     });
   } catch (error) {
-    console.error("Error al eliminar receta:", error);
-
     notificationSystem.show({
       type: "error",
       title: "Error",
@@ -1227,7 +1303,6 @@ const eliminarReceta = async () => {
   }
 };
 
-// Agregar este método para guardar el nuevo insumo
 const guardarNuevoInsumo = async () => {
   try {
     if (!formNuevoInsumo.value.nombre) {
@@ -1256,16 +1331,13 @@ const guardarNuevoInsumo = async () => {
       precio_unitario: formNuevoInsumo.value.precio_unitario
         ? parseFloat(formNuevoInsumo.value.precio_unitario)
         : null,
-      stock_actual: 0, // Empezar con stock 0
+      stock_actual: 0,
       activo: true,
     };
 
     const response = await axios.post("/api/insumos/crear/", datosParaEnviar);
 
-    // Actualizar la lista de insumos disponibles
     await fetchInsumosDisponibles();
-
-    // Seleccionar automáticamente el nuevo insumo
     nuevoInsumo.value.insumo_id = response.data.id;
 
     showNuevoInsumoModal.value = false;
@@ -1278,8 +1350,6 @@ const guardarNuevoInsumo = async () => {
       timeout: 4000,
     });
   } catch (error) {
-    console.error("Error al guardar insumo:", error);
-
     let errorMessage = "Error al crear el insumo";
     if (error.response?.data) {
       if (typeof error.response.data === "object") {
@@ -1306,16 +1376,11 @@ const activarEdicionInsumo = (insumo) => {
   }
 
   insumo.editando = true;
-
-  // Usar punto decimal en lugar de coma
   insumo.cantidadEdit = parseFloat(
     insumo.cantidad.toString().replace(",", ".")
   );
-
-  // Guardar el ID del insumo también (necesario para la actualización)
   insumo.insumo_id_edit = insumo.insumo.id;
   insumo.unidad_medida_id_edit = insumo.unidad_medida.id;
-
   insumoEditando.value = insumo;
 };
 
@@ -1339,7 +1404,6 @@ const guardarEdicionInsumo = async (insumo) => {
       return;
     }
 
-    // Validar que la unidad de medida sea válida
     if (!insumo.unidad_medida_id_edit) {
       notificationSystem.show({
         type: "error",
@@ -1350,15 +1414,6 @@ const guardarEdicionInsumo = async (insumo) => {
       return;
     }
 
-    // Estructura correcta que espera el backend
-    const datosActualizacion = {
-      insumo: insumo.insumo.id, // Incluir el insumo (requerido)
-      cantidad: parseFloat(insumo.cantidadEdit),
-      unidad_medida: parseInt(insumo.unidad_medida_id_edit), // Nombre correcto del campo
-    };
-
-    console.log("Enviando datos de actualización:", datosActualizacion);
-
     const response = await axios.patch(
       `/api/recetas/${recetaSeleccionada.value.id}/insumos/${insumo.id}/actualizar/`,
       {
@@ -1367,12 +1422,8 @@ const guardarEdicionInsumo = async (insumo) => {
       }
     );
 
-    console.log("Respuesta del servidor:", response.data);
-
-    // Actualizar los datos locales en tiempo real
     insumo.cantidad = parseFloat(insumo.cantidadEdit);
 
-    // Buscar y asignar la nueva unidad de medida
     const nuevaUnidad = unidadesMedida.value.find(
       (u) => u.id === parseInt(insumo.unidad_medida_id_edit)
     );
@@ -1380,14 +1431,12 @@ const guardarEdicionInsumo = async (insumo) => {
       insumo.unidad_medida = nuevaUnidad;
     }
 
-    // Desactivar modo edición
     insumo.editando = false;
     delete insumo.cantidadEdit;
     delete insumo.insumo_id_edit;
     delete insumo.unidad_medida_id_edit;
     insumoEditando.value = null;
 
-    // Recalcular costos de la receta
     await recalcularCostosReceta();
     await onInsumosModificados(recetaSeleccionada.value);
 
@@ -1398,19 +1447,14 @@ const guardarEdicionInsumo = async (insumo) => {
       timeout: 4000,
     });
   } catch (error) {
-    console.error("Error al actualizar insumo:", error);
-
     let errorMessage = "Error al actualizar el insumo";
     if (error.response?.data) {
-      console.error("Detalles del error:", error.response.data);
-
       if (typeof error.response.data === "object") {
         const errors = [];
         for (const key in error.response.data) {
           if (Array.isArray(error.response.data[key])) {
             errors.push(...error.response.data[key]);
           } else if (typeof error.response.data[key] === "object") {
-            // Si es un objeto anidado, extraer sus valores
             for (const subKey in error.response.data[key]) {
               if (Array.isArray(error.response.data[key][subKey])) {
                 errors.push(...error.response.data[key][subKey]);
@@ -1437,26 +1481,20 @@ const guardarEdicionInsumo = async (insumo) => {
   }
 };
 
-// Agrega esta función para manejar el formato de números
 const formatearCantidadInput = (event, insumo) => {
   const input = event.target;
   let value = input.value;
-
-  // Reemplazar coma por punto
   value = value.replace(",", ".");
 
-  // Validar que sea un número válido
   if (!isNaN(value) && value !== "") {
     insumo.cantidadEdit = parseFloat(value);
   }
 };
 
-// Método para recalcular costos en tiempo real
 const recalcularCostosReceta = async () => {
   if (!recetaSeleccionada.value) return;
 
   try {
-    // Recalcular costo total de la receta
     let costoTotal = 0;
 
     if (recetaSeleccionada.value.insumos) {
@@ -1465,27 +1503,20 @@ const recalcularCostosReceta = async () => {
       });
     }
 
-    // Actualizar localmente
     recetaSeleccionada.value.costo_total = costoTotal;
 
-    // También actualizar en la lista principal de recetas
     const recetaIndex = recetas.value.findIndex(
       (r) => r.id === recetaSeleccionada.value.id
     );
     if (recetaIndex !== -1) {
       recetas.value[recetaIndex].costo_total = costoTotal;
 
-      // También actualizar el costo unitario si el rinde es mayor a 0
       if (recetas.value[recetaIndex].rinde > 0) {
         recetas.value[recetaIndex].costo_unitario =
           costoTotal / recetas.value[recetaIndex].rinde;
       }
     }
-
-    console.log("Costos recalculados:", costoTotal);
-  } catch (error) {
-    console.error("Error al recalcular costos:", error);
-  }
+  } catch (error) {}
 };
 
 const closeModal = () => {
@@ -1515,7 +1546,6 @@ const resetNuevoInsumo = () => {
   };
 };
 
-// Agregar método para resetear el formulario de nuevo insumo
 const resetFormNuevoInsumo = () => {
   formNuevoInsumo.value = {
     nombre: "",
@@ -1525,21 +1555,12 @@ const resetFormNuevoInsumo = () => {
   };
 };
 
-// Funciones para cargar datos
 const fetchRecetas = async () => {
   try {
     loading.value = true;
     const response = await axios.get("/api/recetas/");
 
     recetas.value = response.data.map((receta) => {
-      console.log(`🔍 Receta "${receta.nombre}":`, {
-        costo_total_backend: receta.costo_total,
-        precio_venta: receta.precio_venta,
-        insumos_count: receta.insumos?.length || 0,
-        rentable: receta.precio_venta > receta.costo_total,
-      });
-
-      // Si insumos es undefined, inicializarlo como array vacío
       if (!receta.insumos) {
         receta.insumos = [];
       }
@@ -1554,7 +1575,6 @@ const fetchRecetas = async () => {
 
     loading.value = false;
   } catch (err) {
-    console.error("Error en fetchRecetas:", err);
     loading.value = false;
     if (err.response?.status === 401) {
       logout();
@@ -1566,35 +1586,21 @@ const fetchInsumosDisponibles = async () => {
   try {
     const response = await axios.get("/api/insumos/");
     insumosDisponibles.value = response.data.insumos;
-  } catch (err) {
-    console.error("Error en fetchInsumosDisponibles:", err);
-  }
+  } catch (err) {}
 };
 
 const fetchUnidadesMedida = async () => {
   try {
     const response = await axios.get("/api/unidades-medida/");
     unidadesMedida.value = response.data;
-  } catch (err) {
-    console.error("Error en fetchUnidadesMedida:", err);
-  }
+  } catch (err) {}
 };
 
-// AGREGAR: Método para actualizar notificaciones en el Header
 const actualizarNotificacionesRecetas = () => {
-  if (headerRef.value && headerRef.value.actualizarNotificaciones) {
-    headerRef.value.actualizarNotificaciones();
-  }
-
-  // Forzar recálculo de notificaciones locales
-  setTimeout(() => {
-    // Esto activará el computed property nuevamente
-  }, 100);
+  setTimeout(() => {}, 100);
 };
 
-// Método para emitir notificación cuando se crea/edita una receta no rentable
 const verificarRentabilidadYNotificar = (receta) => {
-  // Validación más precisa
   const costoTotal = parseFloat(receta.costo_total) || 0;
   const precioVenta = parseFloat(receta.precio_venta) || 0;
   const margen = precioVenta - costoTotal;
@@ -1602,7 +1608,6 @@ const verificarRentabilidadYNotificar = (receta) => {
   if (margen <= 0) {
     const notificacionId = `receta-no-rentable-${receta.id}`;
 
-    // Solo mostrar si no está marcada como leída
     if (!notificacionesLeidas.value.has(notificacionId)) {
       notificationSystem.show({
         type: "warning",
@@ -1612,10 +1617,8 @@ const verificarRentabilidadYNotificar = (receta) => {
       });
     }
 
-    // Actualizar notificaciones en el header
     actualizarNotificacionesRecetas();
   } else if (margen > 0 && margen < costoTotal * 0.1) {
-    // Notificación para márgenes bajos (menos del 10%)
     notificationSystem.show({
       type: "info",
       title: "Margen Bajo",
@@ -1627,7 +1630,6 @@ const verificarRentabilidadYNotificar = (receta) => {
   }
 };
 
-// AGREGAR: Método para limpiar notificaciones de recetas eliminadas
 const limpiarNotificacionesObsoletas = () => {
   const leidasGuardadas = JSON.parse(
     localStorage.getItem("notificacionesLeidas") || "[]"
@@ -1636,7 +1638,6 @@ const limpiarNotificacionesObsoletas = () => {
     (r) => `receta-no-rentable-${r.id}`
   );
 
-  // Mantener solo las notificaciones de recetas que aún existen
   const leidasFiltradas = leidasGuardadas.filter((id) =>
     idsRecetasActuales.some((recetaId) => id === recetaId)
   );
@@ -1645,47 +1646,44 @@ const limpiarNotificacionesObsoletas = () => {
   notificacionesLeidas.value = new Set(leidasFiltradas);
 };
 
+const cargarNotificacionesLeidas = () => {
+  const leidasGuardadas = JSON.parse(
+    localStorage.getItem("notificacionesLeidas") || "[]"
+  );
+  notificacionesLeidas.value = new Set(leidasGuardadas);
+};
+
 const onInsumosModificados = async (receta) => {
-  // Recalcular costos
   await recalcularCostosReceta();
 
-  // Verificar si la rentabilidad cambió
   const recetaActualizada = recetas.value.find((r) => r.id === receta.id);
   if (recetaActualizada) {
     verificarRentabilidadYNotificar(recetaActualizada);
   }
 };
 
-// Cargar datos al montar el componente
 onMounted(() => {
   if (!localStorage.getItem("access_token")) {
     router.push("/login");
     return;
   }
 
-  // Cargar notificaciones leídas primero
   cargarNotificacionesLeidas();
 
-  // Cargar datos
   Promise.all([
     fetchRecetas(),
     fetchInsumosDisponibles(),
     fetchUnidadesMedida(),
   ])
     .then(() => {
-      // Limpiar notificaciones obsoletas
       limpiarNotificacionesObsoletas();
-
-      // Actualizar notificaciones
       actualizarNotificacionesRecetas();
 
-      // Verificar rentabilidad de todas las recetas
       recetas.value.forEach((receta) => {
         verificarRentabilidadYNotificar(receta);
       });
     })
     .catch((error) => {
-      console.error("Error cargando datos:", error);
       loading.value = false;
       if (error.response?.status === 401) {
         logout();
@@ -1697,7 +1695,6 @@ onMounted(() => {
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
 
-/* ----------------------------- CARD DE RECETAS - MISMO ESTILO QUE STOCK ----------------------------- */
 .recetas-card {
   max-height: calc(100vh - 220px);
   overflow-y: auto;
@@ -1737,7 +1734,6 @@ onMounted(() => {
   border-left: 4px solid #28a745;
 }
 
-/* Contenedor compacto - MISMO ESTILO QUE STOCK */
 .receta-item-compact {
   display: flex;
   align-items: center;
@@ -1745,7 +1741,6 @@ onMounted(() => {
   gap: 12px;
 }
 
-/* Indicador de estado - MISMO ESTILO QUE STOCK */
 .estado-indicador {
   width: 8px;
   height: 8px;
@@ -1763,7 +1758,6 @@ onMounted(() => {
   box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
 }
 
-/* Información principal - MISMO ESTILO QUE STOCK */
 .info-principal {
   flex: 1;
   min-width: 0;
@@ -1851,7 +1845,6 @@ onMounted(() => {
   font-weight: 600;
 }
 
-/* Acciones - MISMO ESTILO QUE STOCK */
 .acciones-container {
   display: flex;
   gap: 6px;
@@ -1907,7 +1900,6 @@ onMounted(() => {
   box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
 }
 
-/* ----------------------------- DESPLEGABLE DE DETALLES - MEJORADO ----------------------------- */
 .receta-detalles-desplegable {
   background: #f8f9fa;
   border-top: 1px solid #e9ecef;
@@ -1919,7 +1911,6 @@ onMounted(() => {
     opacity: 0;
     max-height: 0;
   }
-
   to {
     opacity: 1;
     max-height: 1000px;
@@ -1930,7 +1921,6 @@ onMounted(() => {
   padding: 16px;
 }
 
-/* Información de rentabilidad */
 .receta-rentabilidad-info h4 {
   margin: 0 0 12px 0;
   font-size: 1rem;
@@ -1977,7 +1967,6 @@ onMounted(() => {
   color: #dc3545;
 }
 
-/* ----------------------------- SECCIÓN DE INSUMOS - MEJORADA ----------------------------- */
 .receta-insumos-section {
   margin-bottom: 16px;
 }
@@ -2084,7 +2073,6 @@ onMounted(() => {
   border-radius: 4px;
 }
 
-/* Nuevos estilos específicos para el modal de insumos */
 .insumos-section {
   margin-bottom: 30px;
   padding: 20px;
@@ -2286,22 +2274,6 @@ onMounted(() => {
   background: #f8f9fa;
 }
 
-.sin-insumos {
-  text-align: center;
-  padding: 30px;
-  color: #6c757d;
-  font-style: italic;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border: 1px dashed #dee2e6;
-}
-
-.sin-insumos i {
-  margin-right: 8px;
-  color: var(--color-primary);
-}
-
-/* ----------------------------- ALERTAS DE RECETA ----------------------------- */
 .receta-alerta {
   padding: 12px 16px;
   border-radius: 8px;
@@ -2319,8 +2291,6 @@ onMounted(() => {
   border: 1px solid #f5c6cb;
 }
 
-/* ----------------------------- BOTÓN FLOTANTE NUEVA RECETA - MISMO ESTILO QUE STOCK ----------------------------- */
-/* Estilos para el nuevo botón flotante */
 .btn-nueva-receta-flotante {
   position: fixed;
   bottom: 30px;
@@ -2347,7 +2317,6 @@ onMounted(() => {
   color: #212529;
 }
 
-/* ----------------------------- ESTADOS DE CARGA Y VACÍO - MISMO ESTILO QUE STOCK ----------------------------- */
 .loading-state {
   text-align: center;
   padding: 60px;
@@ -2423,257 +2392,6 @@ onMounted(() => {
   box-shadow: 0 2px 6px rgba(123, 90, 80, 0.3);
 }
 
-/* ==============================
-   RESPONSIVE DESIGN - CONSISTENTE CON STOCK
-   ============================== */
-
-/* Tablets */
-@media (max-width: 1024px) {
-  .recetas-card {
-    padding: 15px;
-  }
-}
-
-/* Tablets pequeñas y móviles grandes */
-@media (max-width: 768px) {
-  .recetas-card {
-    padding: 12px;
-  }
-
-  .receta-item-compact {
-    padding: 10px 12px;
-    gap: 10px;
-  }
-
-  .info-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-  }
-
-  .badges-container {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .info-detalles {
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .detalle-grupo {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-
-  .detalles-content {
-    padding: 12px;
-  }
-
-  .receta-rentabilidad-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .insumos-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .btn-agregar-insumo {
-    align-self: flex-start;
-  }
-
-  .insumo-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .insumo-costo-container {
-    align-self: flex-end;
-  }
-
-  .btn-nueva-receta-flotante {
-    bottom: 20px;
-    right: 20px;
-    padding: 14px 20px;
-    font-size: 0.9rem;
-  }
-}
-
-/* Móviles pequeños */
-@media (max-width: 480px) {
-  .recetas-card {
-    padding: 8px;
-  }
-
-  .receta-item-compact {
-    padding: 8px 10px;
-    gap: 8px;
-  }
-
-  .receta-nombre {
-    font-size: 0.9rem;
-  }
-
-  .badge-cantidad,
-  .badge-rentabilidad {
-    font-size: 0.65rem;
-    padding: 2px 6px;
-  }
-
-  .detalle-item {
-    font-size: 0.75rem;
-  }
-
-  .acciones-container {
-    gap: 4px;
-  }
-
-  .btn-accion {
-    width: 28px;
-    height: 28px;
-    padding: 6px;
-  }
-
-  .btn-nueva-receta-flotante {
-    bottom: 15px;
-    right: 15px;
-    padding: 12px 18px;
-    font-size: 0.8rem;
-  }
-
-  .btn-nueva-receta-flotante span {
-    display: none;
-  }
-}
-
-/* Pantallas muy pequeñas */
-@media (max-width: 360px) {
-  .receta-item-compact {
-    padding: 6px 8px;
-    gap: 6px;
-  }
-
-  .receta-nombre {
-    font-size: 0.8rem;
-  }
-
-  .acciones-container {
-    gap: 2px;
-  }
-
-  .btn-accion {
-    width: 26px;
-    height: 26px;
-    padding: 5px;
-  }
-
-  .btn-accion i {
-    font-size: 0.8rem;
-  }
-}
-
-/* Mejoras de usabilidad táctil */
-@media (hover: none) and (pointer: coarse) {
-  .receta-item:hover {
-    transform: none;
-  }
-
-  .btn-accion {
-    min-height: 44px;
-    min-width: 44px;
-  }
-
-  .btn-nueva-receta-flotante {
-    min-height: 44px;
-  }
-}
-
-/* Utilidades */
-.ml-2 {
-  margin-left: 8px;
-}
-
-.cursor-pointer {
-  cursor: pointer;
-}
-
-.animacion-pulsante {
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
-  }
-
-  70% {
-    box-shadow: 0 0 0 6px rgba(255, 193, 7, 0);
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
-  }
-}
-
-
-/* Estilos para los badges de estadísticas */
-.estadisticas-stock {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 20px;
-  align-items: center;
-}
-
-.estadistica-item {
-  display: flex;
-}
-
-.estadistica-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
-  user-select: none;
-}
-
-.estadistica-badge:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.estadistica-badge.active {
-  border: 2px solid currentColor;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  transform: translateY(-2px);
-}
-
-.estadistica-badge.bajo {
-  background: linear-gradient(135deg, #ffc107, #e0a800);
-  color: #212529;
-}
-
-.estadistica-badge.total {
-  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
-  color: white;
-}
-
-.estadistica-badge.limpiar-filtro {
-  background: linear-gradient(135deg, #17a2b8, #138496);
-  color: white;
-}
-
-/* Estilos de paginación (copiar del Stock.vue) */
 .pagination-controls {
   display: flex;
   justify-content: center;
@@ -2769,5 +2487,133 @@ onMounted(() => {
   padding: 0 8px;
   color: #6c757d;
   font-weight: 500;
+}
+
+/* ----------------------------- MODALES (mantener los estilos de modales) ----------------------------- */
+
+/* Agregar estos estilos al global.css */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Responsive para recetas específicas */
+@media (max-width: 767px) {
+  .recetas-card {
+    padding: 12px;
+  }
+
+  .receta-item-compact {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .info-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .badges-container {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .info-detalles {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .detalle-grupo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .detalles-content {
+    padding: 12px;
+  }
+
+  .receta-rentabilidad-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .insumos-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .btn-agregar-insumo {
+    align-self: flex-start;
+  }
+
+  .insumo-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .insumo-costo-container {
+    align-self: flex-end;
+  }
+
+  .btn-nueva-receta-flotante {
+    bottom: 20px;
+    right: 20px;
+    padding: 14px 20px;
+    font-size: 0.9rem;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .recetas-card {
+    padding: 8px;
+  }
+
+  .receta-item-compact {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .receta-nombre {
+    font-size: 0.9rem;
+  }
+
+  .badge-cantidad,
+  .badge-rentabilidad {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+  }
+
+  .detalle-item {
+    font-size: 0.75rem;
+  }
+
+  .acciones-container {
+    gap: 4px;
+  }
+
+  .btn-accion {
+    width: 28px;
+    height: 28px;
+    padding: 6px;
+  }
+
+  .btn-nueva-receta-flotante {
+    bottom: 15px;
+    right: 15px;
+    padding: 12px 18px;
+    font-size: 0.8rem;
+  }
+
+  .btn-nueva-receta-flotante span {
+    display: none;
+  }
 }
 </style>

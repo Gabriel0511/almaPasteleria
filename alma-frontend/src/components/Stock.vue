@@ -5,94 +5,17 @@
     <div class="main-container">
       <Header @toggle-sidebar="toggleSidebar" />
       <main class="main-content">
-        <section class="principal-content">
-          <h3 class="card-title1" :class="{ 'mobile-center': isMobile }">
-            Gestión de Insumos 
-            <span class="total-counter-small">({{ estadisticasStock.total }} Total)</span>
-          </h3>
-
-          <!-- Estadísticas de stock con badges -->
-          <div class="estadisticas-stock">
-            <div class="estadistica-item" v-if="estadisticasStock.critico > 0">
-              <span
-                class="estadistica-badge critico"
-                :class="{ active: filtroActivo === 'critico' }"
-                @click="aplicarFiltro('critico')"
-              >
-                <i class="fas fa-exclamation-triangle"></i>
-                {{ estadisticasStock.critico }} crítico
-              </span>
-            </div>
-            <div class="estadistica-item" v-if="estadisticasStock.bajo > 0">
-              <span
-                class="estadistica-badge bajo"
-                :class="{ active: filtroActivo === 'bajo' }"
-                @click="aplicarFiltro('bajo')"
-              >
-                <i class="fas fa-exclamation-circle"></i>
-                {{ estadisticasStock.bajo }} bajo
-              </span>
-            </div>
-            <div class="estadistica-item">
-              <span
-                class="estadistica-badge normal"
-                :class="{ active: filtroActivo === 'normal' }"
-                @click="aplicarFiltro('normal')"
-              >
-                <i class="fas fa-check-circle"></i>
-                {{ estadisticasStock.normal }} normal
-              </span>
-            </div>
-            <!-- Botón para limpiar filtros -->
-            <div
-              class="estadistica-item"
-              v-if="filtroActivo || categoriaSeleccionada || searchTerm"
-            >
-              <span
-                class="estadistica-badge limpiar-filtro"
-                @click="limpiarFiltros"
-              >
-                <i class="fas fa-times"></i>
-                Limpiar filtros
-              </span>
-            </div>
-          </div>
-          <!-- Filtros de stock -->
-          <div class="filtros-derecha">
-            <div class="filtro-group">
-              <input
-                type="text"
-                v-model="searchTerm"
-                placeholder="Buscar insumo..."
-                class="filtro-input"
-              />
-            </div>
-
-            <div class="filtro-group">
-              <select v-model="categoriaSeleccionada" class="filtro-select">
-                <option value="">Todas las categorías</option>
-                <option v-for="cat in categoriasStock" :key="cat" :value="cat">
-                  {{ cat }}
-                </option>
-              </select>
-            </div>
-
-            <!-- Filtro por proveedor -->
-            <div class="filtro-group">
-              <select v-model="proveedorSeleccionado" class="filtro-select">
-                <option value="">Todos los proveedores</option>
-                <option
-                  v-for="prov in proveedoresStock"
-                  :key="prov"
-                  :value="prov"
-                >
-                  {{ prov }}
-                </option>
-              </select>
-            </div>
-
-          </div>
-        </section>
+        <PageHeader
+          title="Gestión de Insumos"
+          :show-total="true"
+          :total="estadisticasStock.total"
+          :stats="stockStats"
+          :filters="stockFilters"
+          :active-filter-type="filtroActivo"
+          @stat-click="handleStockStatClick"
+          @filter-change="handleStockFilterChange"
+          @clear-filters="limpiarFiltrosStock"
+        />
 
         <!-- Card principal de stock -->
         <div class="card stock-card">
@@ -159,8 +82,11 @@
                         <span class="valor"
                           >{{ formatDecimal(item.stock_minimo) }}
                           {{ item.unidad }}
-                          <span style="margin-left: 10px;"><b>Precio por {{ item.unidad }}:</b> ${{ item.precio_unitario }}</span>
-                        
+                          <span style="margin-left: 10px"
+                            ><b>Precio por {{ item.unidad }}:</b> ${{
+                              item.precio_unitario
+                            }}</span
+                          >
                         </span>
                       </div>
                     </div>
@@ -319,7 +245,7 @@
             v-model="formInsumo.unidad_medida_id"
             required
             class="form-input"
-            >
+          >
             <option value="">Seleccione una unidad</option>
             <option
               v-for="unidad in unidadesPermitidas"
@@ -622,7 +548,7 @@
       @cancel="showConfirmModal = false"
       @confirm="eliminarInsumo"
     />
-    
+
     <!-- Modal para Registrar Pérdida -->
     <BaseModal
       v-model:show="showRegistrarPerdidaModal"
@@ -675,8 +601,9 @@
               :key="insumo.id"
               :value="insumo.id"
             >
-              {{ insumo.nombre }} 
-              (Stock: {{ formatDecimal(insumo.stock_actual) }} {{ insumo.unidad_medida?.abreviatura }})
+              {{ insumo.nombre }}
+              (Stock: {{ formatDecimal(insumo.stock_actual) }}
+              {{ insumo.unidad_medida?.abreviatura }})
             </option>
           </select>
         </div>
@@ -697,11 +624,7 @@
 
         <div class="form-group">
           <label>Motivo:</label>
-          <select
-            v-model="formPerdida.motivo"
-            required
-            class="form-input"
-          >
+          <select v-model="formPerdida.motivo" required class="form-input">
             <option value="">Seleccione un motivo</option>
             <option value="deterioro">Deterioro</option>
             <option value="vencimiento">Vencimiento</option>
@@ -744,22 +667,30 @@
           <i class="fas fa-exclamation-triangle"></i>
         </div>
         <p>
-          Ya existe un insumo llamado <strong>"{{ insumoDesactivado?.nombre }}"</strong> 
+          Ya existe un insumo llamado
+          <strong>"{{ insumoDesactivado?.nombre }}"</strong>
           pero está desactivado.
         </p>
         <p>¿Deseas reactivarlo con los datos ingresados?</p>
-        
+
         <div class="insumo-info">
           <div class="info-item">
             <span class="label">Categoría:</span>
             <span class="value">
-              {{ categorias.find(c => c.id === formInsumo.categoria_id)?.nombre || 'Sin categoría' }}
+              {{
+                categorias.find((c) => c.id === formInsumo.categoria_id)
+                  ?.nombre || "Sin categoría"
+              }}
             </span>
           </div>
           <div class="info-item">
             <span class="label">Unidad de medida:</span>
             <span class="value">
-              {{ unidadesPermitidas.find(u => u.id === formInsumo.unidad_medida_id)?.nombre || 'Sin unidad' }}
+              {{
+                unidadesPermitidas.find(
+                  (u) => u.id === formInsumo.unidad_medida_id
+                )?.nombre || "Sin unidad"
+              }}
             </span>
           </div>
           <div class="info-item">
@@ -771,25 +702,24 @@
 
       <template #footer>
         <div class="reactivar-buttons">
-          <button 
-            class="btn-cancelar" 
+          <button
+            class="btn-cancelar"
             @click="cancelarReactivacion"
             :disabled="reactivando"
           >
             Cancelar
           </button>
-          <button 
-            class="btn-reactivar" 
+          <button
+            class="btn-reactivar"
             @click="reactivarInsumo"
             :disabled="reactivando"
           >
             <i v-if="reactivando" class="fas fa-spinner fa-spin"></i>
-            {{ reactivando ? 'Reactivando...' : 'Reactivar Insumo' }}
+            {{ reactivando ? "Reactivando..." : "Reactivar Insumo" }}
           </button>
         </div>
       </template>
     </BaseModal>
-
   </div>
 </template>
 
@@ -802,6 +732,7 @@ import Header from "./Header.vue";
 import BaseModal from "./Modals/BaseModal.vue";
 import ModalButtons from "./Modals/ModalButtons.vue";
 import ConfirmModal from "./Modals/ConfirmModal.vue";
+import PageHeader from "./PageHeader.vue";
 import axios from "axios";
 
 const router = useRouter();
@@ -832,10 +763,8 @@ const formPerdida = ref({
   insumo_id: "",
   cantidad: 0,
   motivo: "",
-  observaciones: ""
+  observaciones: "",
 });
-
-
 
 // Variables para manejo de insumo desactivado
 const showReactivarModal = ref(false);
@@ -902,7 +831,6 @@ const toggleSidebar = () => {
   }
 };
 
-
 // Método para registrar pérdida rápida
 const registrarPerdidaRapida = (item) => {
   esPerdidaRapida.value = true;
@@ -944,7 +872,7 @@ const registrarPerdida = async () => {
       cantidad: parseFloat(formPerdida.value.cantidad),
       motivo: formPerdida.value.motivo,
       observaciones: formPerdida.value.observaciones,
-      fecha: new Date().toISOString().split('T')[0] // Fecha actual
+      fecha: new Date().toISOString().split("T")[0], // Fecha actual
     };
 
     // Enviar al backend
@@ -964,10 +892,9 @@ const registrarPerdida = async () => {
       message: "La pérdida se registró correctamente",
       timeout: 4000,
     });
-
   } catch (error) {
     console.error("Error al registrar pérdida:", error);
-    
+
     let mensajeError = "No se pudo registrar la pérdida";
     if (error.response?.data?.error) {
       mensajeError = error.response.data.error;
@@ -1005,30 +932,114 @@ const resetFormPerdida = () => {
     insumo_id: "",
     cantidad: 0,
     motivo: "",
-    observaciones: ""
+    observaciones: "",
   };
 };
-
-// Métodos de formato
-const formatFecha = (fecha) => {
-  if (!fecha) return '-';
-  return new Date(fecha).toLocaleDateString('es-ES');
-};
-
-const formatMotivo = (motivo) => {
-  const motivos = {
-    deterioro: 'Deterioro',
-    vencimiento: 'Vencimiento',
-    rotura: 'Rotura',
-    error: 'Error en registro',
-    uso_interno: 'Uso interno',
-    otro: 'Otro'
-  };
-  return motivos[motivo] || motivo;
-};
-
 // Computed properties
+
+// Computed properties para el PageHeader
+const categoriasStock = computed(() => {
+  const categoriasUnicas = [
+    ...new Set(stock.value.map((item) => item.categoria)),
+  ];
+  return categoriasUnicas.filter((cat) => cat && cat !== "Sin categoría");
+});
+
+// Agregar proveedores únicos del stock
+const proveedoresStock = computed(() => {
+  const proveedoresUnicos = [
+    ...new Set(stock.value.map((item) => item.proveedor)),
+  ];
+  return proveedoresUnicos.filter((prov) => prov && prov !== "Sin Proveedor");
+});
+
+const stockStats = computed(() => {
+  const { critico, bajo, normal, total } = estadisticasStock.value;
+
+  return [
+    {
+      type: "critico",
+      label: `${critico} Crítico`,
+      compactLabel: `${critico} Crítico`,
+      icon: "fas fa-exclamation-triangle",
+      tooltip: "Ver insumos con stock crítico",
+      value: critico,
+    },
+    {
+      type: "bajo",
+      label: `${bajo} Bajo`,
+      compactLabel: `${bajo} Bajo`,
+      icon: "fas fa-exclamation-circle",
+      tooltip: "Ver insumos con stock bajo",
+      value: bajo,
+    },
+    {
+      type: "normal",
+      label: `${normal} Normal`,
+      compactLabel: `${normal} Normal`,
+      icon: "fas fa-check-circle",
+      tooltip: "Ver insumos con stock normal",
+      value: normal,
+    },
+    {
+      type: "total",
+      label: `${total} Total`,
+      compactLabel: `${total} Total`,
+      icon: "fas fa-boxes",
+      tooltip: "Ver todos los insumos",
+      value: total,
+    },
+  ];
+});
+
+const stockFilters = computed(() => [
+  {
+    type: "text",
+    placeholder: "Buscar insumo...",
+    value: searchTerm.value,
+    autocomplete: "off",
+  },
+  {
+    type: "select",
+    placeholder: "Categoría",
+    value: categoriaSeleccionada.value,
+    defaultOption: "Todas las categorías",
+    options: categoriasStock.value.map((cat) => ({ label: cat, value: cat })),
+  },
+  {
+    type: "select",
+    placeholder: "Proveedor",
+    value: proveedorSeleccionado.value,
+    defaultOption: "Todos los proveedores",
+    options: proveedoresStock.value.map((prov) => ({
+      label: prov,
+      value: prov,
+    })),
+  },
+]);
+
+// Métodos para manejar eventos del PageHeader
+const handleStockStatClick = (stat) => {
+  aplicarFiltro(stat.type);
+};
+
+const handleStockFilterChange = ({ filter, value }) => {
+  if (filter.placeholder?.includes("Buscar")) {
+    searchTerm.value = value;
+  } else if (filter.placeholder?.includes("Categoría")) {
+    categoriaSeleccionada.value = value;
+  } else if (filter.placeholder?.includes("Proveedor")) {
+    proveedorSeleccionado.value = value;
+  }
+  resetearPaginacion();
+};
+
+const limpiarFiltrosStock = () => {
+  limpiarFiltros();
+};
+
 // Computed properties para paginación
+
 const stockPaginado = computed(() => {
   const inicio = (paginaActual.value - 1) * itemsPorPagina.value;
   const fin = inicio + itemsPorPagina.value;
@@ -1090,22 +1101,6 @@ const mostrarPuntosSuspensivos = computed(() => {
     totalPaginas.value > 7 &&
     paginaActual.value > 4 &&
     paginaActual.value < totalPaginas.value - 3
-  );
-});
-
-const insumosBajoStock = computed(() => {
-  return stock.value.filter((item) => item.bajoStock).length;
-});
-
-const categoriasStock = computed(() => {
-  const categorias = stock.value.map((item) => item.categoria);
-  return [...new Set(categorias)];
-});
-
-const proveedoresStock = computed(() => {
-  const proveedoresUnicos = stock.value.map((item) => item.proveedor);
-  return [...new Set(proveedoresUnicos)].filter(
-    (proveedor) => proveedor && proveedor !== "Sin Proveedor"
   );
 });
 
@@ -1409,7 +1404,7 @@ const editarInsumo = (insumo) => {
     stock_minimo: parsearNumero(insumo.stock_minimo),
     precio_unitario: parsearNumero(insumo.precio_unitario),
     proveedor_id: insumo.proveedor_id,
-    stockActual: parsearNumero(insumo.cantidad)
+    stockActual: parsearNumero(insumo.cantidad),
   };
   showModalInsumo.value = true;
 };
@@ -1478,7 +1473,7 @@ const guardarInsumo = async () => {
     // -----------------------------
     if (esEdicion.value) {
       datosParaEnviar.stock_actual = formInsumo.value.stockActual;
-      
+
       response = await axios.patch(
         `/api/insumos/${formInsumo.value.id}/actualizar-parcial/`,
         datosParaEnviar
@@ -1508,16 +1503,19 @@ const guardarInsumo = async () => {
       console.log("Status:", error.response?.status);
       console.log("Data:", error.response?.data);
       console.log("Error completo:", error);
-      
+
       // Manejar el caso de insumo desactivado
-      if (error.response?.data?.error === 'insumo_desactivado') {
+      if (error.response?.data?.error === "insumo_desactivado") {
         console.log("✅ BACKEND CORRECTO - Detectó insumo desactivado");
         insumoDesactivado.value = error.response.data;
         showReactivarModal.value = true;
         return;
-      } 
+      }
       // Manejar el caso de insumo activo (nombre duplicado)
-      else if (error.response?.data?.error && error.response.data.error.includes('Ya existe un insumo')) {
+      else if (
+        error.response?.data?.error &&
+        error.response.data.error.includes("Ya existe un insumo")
+      ) {
         console.log("❌ BACKEND - Insumo activo con mismo nombre");
         notificationSystem.show({
           type: "error",
@@ -1533,7 +1531,8 @@ const guardarInsumo = async () => {
         notificationSystem.show({
           type: "error",
           title: "Error",
-          message: error.response?.data?.error || "No se pudo guardar el insumo",
+          message:
+            error.response?.data?.error || "No se pudo guardar el insumo",
           timeout: 4000,
         });
         return;
@@ -1559,12 +1558,12 @@ const guardarInsumo = async () => {
     let nuevoInsumoCompleto = null;
 
     if (nuevoID) {
-      nuevoInsumoCompleto = stock.value.find(i => i.id === nuevoID);
+      nuevoInsumoCompleto = stock.value.find((i) => i.id === nuevoID);
     }
 
     if (!nuevoInsumoCompleto) {
       nuevoInsumoCompleto = stock.value.find(
-        i => i.nombre?.toLowerCase() === nombreNuevo.toLowerCase()
+        (i) => i.nombre?.toLowerCase() === nombreNuevo.toLowerCase()
       );
     }
 
@@ -1575,10 +1574,9 @@ const guardarInsumo = async () => {
         reponerStockRapido(nuevoInsumoCompleto);
       }, 300);
     }
-
   } catch (error) {
     console.error("❌ ERROR COMPLETO NO MANEJADO:", error);
-    
+
     // Este catch solo debería ejecutarse para errores no manejados
     notificationSystem.show({
       type: "error",
@@ -1592,7 +1590,7 @@ const guardarInsumo = async () => {
 const reactivarInsumo = async () => {
   try {
     reactivando.value = true;
-    
+
     const response = await axios.post(
       `/api/insumos/${insumoDesactivado.value.insumo_id}/reactivar/`,
       {
@@ -1600,7 +1598,7 @@ const reactivarInsumo = async () => {
         categoria_id: formInsumo.value.categoria_id,
         unidad_medida_id: formInsumo.value.unidad_medida_id,
         stock_minimo: formInsumo.value.stock_minimo,
-        stock_actual: 0
+        stock_actual: 0,
       }
     );
 
@@ -1614,21 +1612,20 @@ const reactivarInsumo = async () => {
     // Cerrar modales y actualizar datos
     showReactivarModal.value = false;
     showModalInsumo.value = false;
-    
+
     await fetchStock();
     await fetchInsumos();
 
     // Opcional: Abrir modal de compra para el insumo reactivado
     const insumoReactivado = stock.value.find(
-      i => i.id === insumoDesactivado.value.insumo_id
+      (i) => i.id === insumoDesactivado.value.insumo_id
     );
-    
+
     if (insumoReactivado) {
       setTimeout(() => {
         reponerStockRapido(insumoReactivado);
       }, 300);
     }
-
   } catch (error) {
     console.error("Error al reactivar insumo:", error);
     notificationSystem.show({
@@ -1822,7 +1819,7 @@ const resetFormInsumo = () => {
     stock_minimo: 0,
     precio_unitario: null,
     proveedor_id: null,
-    stockActual: 0
+    stockActual: 0,
   };
 };
 
@@ -2539,95 +2536,6 @@ onUnmounted(() => {
 }
 
 /* ----------------------------- ESTADÍSTICAS STOCK ----------------------------- */
-.estadisticas-stock {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 20px;
-  align-items: center;
-}
-
-.estadistica-item {
-  display: flex;
-}
-
-.estadistica-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 9px;
-  border-radius: 20px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
-  user-select: none;
-  white-space: nowrap;
-}
-
-.estadistica-badge:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.estadistica-badge.active {
-  border: 2px solid currentColor;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  transform: translateY(-2px);
-}
-
-.estadistica-badge.critico {
-  background: linear-gradient(135deg, #f8b1b7, #eb7f75);
-  color: #721c24;
-}
-
-.estadistica-badge.bajo {
-  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-  color: #856404;
-}
-
-.estadistica-badge.normal {
-  background: linear-gradient(135deg, #d4edda, #a8e6a3);
-  color: #155724;
-}
-
-.estadistica-badge.limpiar-filtro {
-  background: linear-gradient(135deg, #d1ecf1, #a6e3e9);
-  color: #0c5460;
-}
-
-/* Mejoras de usabilidad táctil */
-@media (hover: none) and (pointer: coarse) {
-  .estadistica-badge {
-    padding: 12px 16px;
-    min-height: 44px;
-  }
-}
-
-/* Responsive para estadísticas */
-@media (max-width: 768px) {
-  .estadisticas-stock {
-    gap: 8px;
-    justify-content: center;
-  }
-
-  .estadistica-badge {
-    padding: 6px 10px;
-    font-size: 0.8rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .estadisticas-stock {
-    gap: 6px;
-  }
-
-  .estadistica-badge {
-    padding: 5px 8px;
-    font-size: 0.75rem;
-  }
-}
 
 /* Estilos para la paginación */
 .pagination-controls {
@@ -2946,14 +2854,6 @@ onUnmounted(() => {
   .empty-state p {
     font-size: 1rem;
   }
-  .estadisticas-stock {
-    gap: 8px;
-  }
-
-  .estadistica-badge {
-    padding: 6px 10px;
-    font-size: 0.8rem;
-  }
 
   .pagination-controls {
     flex-direction: column;
@@ -3022,15 +2922,6 @@ onUnmounted(() => {
 
   .btn-nueva-compra-flotante span {
     display: none;
-  }
-
-  .estadisticas-stock {
-    justify-content: center;
-  }
-
-  .estadistica-badge {
-    padding: 5px 8px;
-    font-size: 0.75rem;
   }
 
   .pagination-numbers {

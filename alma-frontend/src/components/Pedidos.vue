@@ -5,81 +5,18 @@
     <div class="main-container">
       <Header @toggle-sidebar="toggleSidebar" />
       <main class="main-content">
-        <section class="principal-content">
-          <h3 class="card-title1" :class="{ 'mobile-center': isMobile }">
-            Gestión de Pedidos
-          </h3>
-
-          <!-- Estadísticas de pedidos -->
-          <div class="estadisticas-stock">
-            <div
-              class="estadistica-item"
-              v-if="estadisticasPedidos.atrasados > 0"
-            >
-              <span class="estadistica-badge critico">
-                <i class="fas fa-exclamation-triangle"></i>
-                {{ estadisticasPedidos.atrasados }} atrasado(s)
-              </span>
-            </div>
-            <div
-              class="estadistica-item"
-              v-if="estadisticasPedidos.paraHoy > 0"
-            >
-              <span class="estadistica-badge bajo">
-                <i class="fas fa-bolt"></i>
-                {{ estadisticasPedidos.paraHoy }} hoy
-              </span>
-            </div>
-            <div
-              class="estadistica-item"
-              v-if="estadisticasPedidos.paraManana > 0"
-            >
-              <span class="estadistica-badge total">
-                <i class="fas fa-clock"></i>
-                {{ estadisticasPedidos.paraManana }} mañana
-              </span>
-            </div>
-            <div class="estadistica-item">
-              <span class="estadistica-badge total">
-                <i class="fas fa-clipboard-list"></i>
-                {{ estadisticasPedidos.totalActivos }} activo(s)
-              </span>
-            </div>
-          </div>
-
-          <!-- Filtros de pedidos -->
-          <div class="filtros-derecha">
-            <div class="filtro-group">
-              <input
-                type="text"
-                v-model="searchTerm"
-                placeholder="Buscar cliente..."
-                class="filtro-input"
-              />
-            </div>
-
-            <div class="filtro-group">
-              <select v-model="estadoSeleccionado" class="filtro-select">
-                <option value="">Todos los estados</option>
-                <option
-                  v-for="estado in estadosPedido"
-                  :key="estado"
-                  :value="estado"
-                >
-                  {{ estado }}
-                </option>
-              </select>
-            </div>
-
-            <div class="filtro-group">
-              <input
-                type="date"
-                v-model="fechaSeleccionada"
-                class="filtro-input"
-              />
-            </div>
-          </div>
-        </section>
+        <PageHeader
+          title="Gestión de Pedidos"
+          :show-total="true"
+          :total="estadisticasPedidos.totalActivos"
+          :stats="pedidosStats"
+          :filters="pedidosFilters"
+          :show-clear-button="true"
+          :active-filter-type="estadoSeleccionado"
+          @stat-click="handlePedidoStatClick"
+          @filter-change="handlePedidoFilterChange"
+          @clear-filters="limpiarFiltrosPedidos"
+        />
 
         <!-- Card principal de pedidos - ESTILO COMO STOCK -->
         <div class="card pedidos-card">
@@ -997,6 +934,7 @@ import Header from "./Header.vue";
 import BaseModal from "./Modals/BaseModal.vue";
 import ModalButtons from "./Modals/ModalButtons.vue";
 import ConfirmModal from "./Modals/ConfirmModal.vue";
+import PageHeader from "./PageHeader.vue";
 import axios from "axios";
 
 const router = useRouter();
@@ -2137,6 +2075,123 @@ const marcarComoEntregado = async (pedido) => {
       timeout: 6000,
     });
   }
+};
+
+// Computed properties para el PageHeader
+const pedidosStats = computed(() => {
+  const { atrasados, paraHoy, paraManana, totalActivos } =
+    estadisticasPedidos.value;
+
+  return [
+    {
+      type: "critico",
+      label: `${atrasados} Atrasado(s)`,
+      compactLabel: `${atrasados} Atrasado(s)`,
+      icon: "fas fa-exclamation-triangle",
+      tooltip: "Ver pedidos atrasados",
+      value: atrasados,
+    },
+    {
+      type: "bajo",
+      label: `${paraHoy} Hoy`,
+      compactLabel: `${paraHoy} Hoy`,
+      icon: "fas fa-bolt",
+      tooltip: "Ver pedidos para hoy",
+      value: paraHoy,
+    },
+    {
+      type: "normal",
+      label: `${paraManana} Mañana`,
+      compactLabel: `${paraManana} Mañana`,
+      icon: "fas fa-clock",
+      tooltip: "Ver pedidos para mañana",
+      value: paraManana,
+    },
+    {
+      type: "total",
+      label: `${totalActivos} Activo(s)`,
+      compactLabel: `${totalActivos} Activo(s)`,
+      icon: "fas fa-clipboard-list",
+      tooltip: "Ver todos los pedidos activos",
+      value: totalActivos,
+    },
+  ];
+});
+
+const pedidosFilters = computed(() => [
+  {
+    type: "text",
+    placeholder: "Buscar cliente...",
+    value: searchTerm.value,
+    autocomplete: "off",
+  },
+  {
+    type: "select",
+    placeholder: "Estado",
+    value: estadoSeleccionado.value,
+    defaultOption: "Todos los estados",
+    options: estadosPedido.value.map((estado) => ({
+      label: estado.charAt(0).toUpperCase() + estado.slice(1),
+      value: estado,
+    })),
+  },
+  {
+    type: "date",
+    placeholder: "Fecha de entrega",
+    value: fechaSeleccionada.value,
+  },
+]);
+
+// Métodos para manejar eventos del PageHeader
+const handlePedidoStatClick = (stat) => {
+  // Aquí puedes manejar el click en las estadísticas
+  // Por ejemplo, filtrar por tipo de estadística
+  switch (stat.type) {
+    case "critico":
+      // Mostrar solo pedidos atrasados
+      estadoSeleccionado.value = "";
+      fechaSeleccionada.value = "";
+      searchTerm.value = "";
+      break;
+    case "bajo":
+      // Mostrar solo pedidos para hoy
+      const hoy = new Date().toISOString().split("T")[0];
+      estadoSeleccionado.value = "";
+      fechaSeleccionada.value = hoy;
+      searchTerm.value = "";
+      break;
+    case "normal":
+      // Mostrar solo pedidos para mañana
+      const manana = new Date();
+      manana.setDate(manana.getDate() + 1);
+      const mananaStr = manana.toISOString().split("T")[0];
+      estadoSeleccionado.value = "";
+      fechaSeleccionada.value = mananaStr;
+      searchTerm.value = "";
+      break;
+    case "total":
+      // Mostrar todos los pedidos activos
+      estadoSeleccionado.value = "";
+      fechaSeleccionada.value = "";
+      searchTerm.value = "";
+      break;
+  }
+};
+
+const handlePedidoFilterChange = ({ filter, value }) => {
+  if (filter.placeholder?.includes("Buscar cliente")) {
+    searchTerm.value = value;
+  } else if (filter.placeholder?.includes("Estado")) {
+    estadoSeleccionado.value = value;
+  } else if (filter.type === "date") {
+    fechaSeleccionada.value = value;
+  }
+};
+
+const limpiarFiltrosPedidos = () => {
+  estadoSeleccionado.value = "";
+  fechaSeleccionada.value = "";
+  searchTerm.value = "";
 };
 
 // Método para obtener estadísticas rápidas
