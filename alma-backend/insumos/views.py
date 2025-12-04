@@ -775,7 +775,10 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             # Obtener datos DIRECTAMENTE usando nuestra propia lógica
             reporte_data = self.obtener_datos_reporte_directo(fecha_inicio, fecha_fin, proveedor_id)
             
-            print(f"DEBUG PDF - Datos obtenidos antes de filtrar: {len(reporte_data)} insumos")
+            print(f"🚨 DEBUG - Datos obtenidos: {len(reporte_data)} insumos")
+            
+            if not reporte_data:
+                print("🚨 DEBUG - No se obtuvieron datos del reporte")
             
             # Mostrar stock usado de cada insumo para debug
             for i, item in enumerate(reporte_data[:5]):  # Mostrar primeros 5
@@ -984,8 +987,11 @@ class GenerarPDFReporteInsumosAPIView(APIView):
                     print(f"ERROR: Formato de fecha_fin inválido: {fecha_fin}")
                     fecha_fin_dt = None
             
-            # Si solo una fecha está especificada, usar rango por defecto
-            if fecha_inicio_dt and not fecha_fin_dt:
+            # Si no hay fechas, usar un rango por defecto (últimos 30 días)
+            if not fecha_inicio_dt and not fecha_fin_dt:
+                fecha_fin_dt = datetime.now().date()
+                fecha_inicio_dt = fecha_fin_dt - timedelta(days=30)
+            elif fecha_inicio_dt and not fecha_fin_dt:
                 fecha_fin_dt = fecha_inicio_dt + timedelta(days=30)
             elif fecha_fin_dt and not fecha_inicio_dt:
                 fecha_inicio_dt = fecha_fin_dt - timedelta(days=30)
@@ -1009,7 +1015,7 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             
             for insumo in insumos:
                 try:
-                    # Calcular stock usado desde recetas
+                    # Calcular stock usado desde recetas - Pasar fechas válidas
                     stock_usado_recetas = reporte_view.calcular_stock_usado_recetas(
                         insumo, fecha_inicio_dt, fecha_fin_dt
                     )
@@ -1047,6 +1053,8 @@ class GenerarPDFReporteInsumosAPIView(APIView):
                     
                 except Exception as e:
                     print(f"ERROR procesando insumo {insumo.id} ({insumo.nombre}): {str(e)}")
+                    import traceback
+                    traceback.print_exc()
                     # Agregar igual pero con stock usado 0 en caso de error
                     reporte_data.append({
                         'id': insumo.id,

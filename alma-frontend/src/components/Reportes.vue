@@ -1070,20 +1070,27 @@ const generarPDF = async () => {
 
     // Construir parámetros de filtro para el PDF
     const params = {
-      solo_con_stock_usado: true, // <-- NUEVO PARÁMETRO
+      solo_con_stock_usado: true,
     };
     
-    if (filtros.value.fechaInicio)
-      params.fecha_inicio = filtros.value.fechaInicio;
-    if (filtros.value.fechaFin) 
-      params.fecha_fin = filtros.value.fechaFin;
+    // Siempre enviar fechas, usar valores por defecto si no están definidos
+    const hoy = new Date().toISOString().split('T')[0];
+    const hace30Dias = new Date();
+    hace30Dias.setDate(hace30Dias.getDate() - 30);
+    const fecha30DiasAtras = hace30Dias.toISOString().split('T')[0];
+    
+    params.fecha_inicio = filtros.value.fechaInicio || fecha30DiasAtras;
+    params.fecha_fin = filtros.value.fechaFin || hoy;
+    
     if (filtros.value.proveedorId)
       params.proveedor_id = filtros.value.proveedorId;
+
+    console.log("📄 Parámetros enviados para PDF:", params);
 
     // Hacer la petición para generar el PDF
     const response = await axios.get("/api/reportes/generar-pdf/", {
       params: params,
-      responseType: "blob", // Importante para descargar archivos
+      responseType: "blob",
     });
 
     // Crear un enlace temporal para descargar el PDF
