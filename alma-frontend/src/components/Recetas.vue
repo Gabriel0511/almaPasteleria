@@ -7,6 +7,8 @@
       <main class="main-content">
         <PageHeader
           title="Gestión de Recetas"
+          :show-total="true"
+          :total="totalRecetas"
           :stats="recetasStats"
           :filters="recetasFilters"
           :active-filter-type="filtroActivo"
@@ -688,15 +690,11 @@ const recetasStats = computed(() => {
     });
   }
 
-  // Total de recetas
-  stats.push({
-    type: "total",
-    icon: "fas fa-utensils",
-    label: `${recetasFiltradas.value.length} receta(s)`,
-    tooltip: "Total de recetas",
-  });
-
   return stats;
+});
+
+const totalRecetas = computed(() => {
+  return recetasFiltradas.value.length;
 });
 
 // Filtros para el header

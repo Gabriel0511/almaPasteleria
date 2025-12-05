@@ -477,13 +477,6 @@ html,
 }
 
 /* ----------------------------- FILTROS ----------------------------- */
-.filtros-derecha {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
 
 .filtro-group {
   display: flex;
@@ -529,11 +522,6 @@ html,
     gap: 15px;
   }
 
-  .filtros-derecha {
-    width: 100%;
-    justify-content: space-between;
-  }
-
   .estadisticas-stock {
     justify-content: center;
     width: 100%;
@@ -559,13 +547,6 @@ html,
 
   .select-with-button .btn-agregar {
     align-self: flex-start;
-  }
-
-  .filtros-derecha {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    width: 100%;
   }
 
   .filtro-group {

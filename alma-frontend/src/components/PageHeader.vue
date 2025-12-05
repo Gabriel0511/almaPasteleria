@@ -221,7 +221,7 @@ onUnmounted(() => {
 
 .filtros-estadisticas-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-around;
   align-items: center;
   gap: 20px;
   width: 100%;
@@ -246,7 +246,7 @@ onUnmounted(() => {
   gap: 6px;
   padding: 8px 12px;
   border-radius: 20px;
-  font-size: 0.85rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -323,7 +323,7 @@ onUnmounted(() => {
   height: 46px;
   transition: all 0.3s ease;
   background: white;
-  min-width: 200px;
+  min-width: 250px;
 }
 
 .filtro-input:focus,

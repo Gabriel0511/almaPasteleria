@@ -10,10 +10,10 @@
     <!-- Sidebar -->
     <aside
       class="sidebar"
-      :class="{ 
-        'sidebar-open': sidebarOpen, 
+      :class="{
+        'sidebar-open': sidebarOpen,
         'sidebar-mobile': isMobile,
-        'sidebar-hidden': isMobile && !sidebarOpen
+        'sidebar-hidden': isMobile && !sidebarOpen,
       }"
     >
       <button
@@ -25,8 +25,12 @@
         <i :class="item.icon"></i>
         <span>{{ item.text }}</span>
       </button>
-      <div class="footer-icon">
-        <i class="fas fa-clipboard-check"></i>
+      <div class="footer-logo">
+        <img
+          src="/logoSidebar.png"
+          alt="A&C Consulting Logo"
+          class="logo-img"
+        />
       </div>
     </aside>
   </div>
@@ -97,7 +101,7 @@ onUnmounted(() => {
 defineExpose({
   toggleSidebar,
   openSidebar,
-  closeSidebar
+  closeSidebar,
 });
 
 defineEmits(["navigate"]);
@@ -180,17 +184,40 @@ defineEmits(["navigate"]);
   margin-bottom: 5px;
 }
 
-.footer-icon {
+/* Estilos para el logo */
+.footer-logo {
   margin-top: auto;
-  margin-bottom: 10px;
-  color: white;
-  font-size: 22px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.logo-img {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  transition: opacity 0.3s;
+}
+
+.logo-img:hover {
+  opacity: 0.8;
 }
 
 /* ========== RESPONSIVE ========== */
 @media (max-width: 768px) {
   .sidebar:not(.sidebar-mobile) {
     display: none;
+  }
+
+  .footer-logo {
+    margin-bottom: 30px;
+  }
+
+  .logo-img {
+    width: 80px;
+    height: 80px;
   }
 }
 
