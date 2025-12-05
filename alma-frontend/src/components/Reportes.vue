@@ -4,12 +4,8 @@
 
     <div class="main-container">
       <Header @toggle-sidebar="toggleSidebar" />
-      <main class="main-content">
+      <main class="main-content-repo">
         <div class="reportes-container">
-          <!-- Encabezado -->
-          <div class="principal-content">
-            <h1 class="reportes-card-title1">Reportes</h1>
-          </div>
 
           <!-- Pestañas para las 5 tablas -->
           <div class="tabs-container">
@@ -61,6 +57,7 @@
                         v-model="filtrosInsumosUsados.fechaFin"
                         :min="filtrosInsumosUsados.fechaInicio || ''"
                         :max="fechaHoy"
+                        :disabled="fechaFinDisabledInsumosUsados"
                         class="filtro-input"
                         @change="validarFechasInsumosUsados"
                       />
@@ -117,11 +114,40 @@
                     </div>
                   </div>
 
-                  <!-- Botón Limpiar Filtros (solo visible con filtros activos) -->
+                  <!-- Indicadores de Filtros Activos con Botón Limpiar -->
                   <div
                     v-if="filtrosActivosInsumosUsados"
-                    class="botones-filtros"
+                    class="filtros-activos-info"
                   >
+                    <div class="filtros-activos-content">
+                      <small>
+                        Filtros activos:
+                        <span
+                          v-if="filtroPeriodoInsumosUsados"
+                          class="filtro-activo"
+                        >
+                          {{ filtroPeriodoInsumosUsados }}
+                        </span>
+                        <span
+                          v-if="filtrosInsumosUsados.proveedorId"
+                          class="filtro-activo"
+                        >
+                          Proveedor: {{ nombreProveedorInsumosUsados }}
+                        </span>
+                        <span
+                          v-if="filtrosInsumosUsados.reponer"
+                          class="filtro-activo"
+                        >
+                          Reponer: {{ filtrosInsumosUsados.reponer === 'si' ? 'Sí' : 'No' }}
+                        </span>
+                        <span
+                          v-if="filtrosInsumosUsados.searchTerm"
+                          class="filtro-activo"
+                        >
+                          Búsqueda: "{{ filtrosInsumosUsados.searchTerm }}"
+                        </span>
+                      </small>
+                    </div>
                     <button
                       @click="limpiarFiltrosInsumosUsados"
                       class="btn-limpiar-filtros"
@@ -129,40 +155,6 @@
                       <i class="fas fa-broom"></i>
                       Limpiar Filtros
                     </button>
-                  </div>
-
-                  <!-- Indicadores de Filtros Activos -->
-                  <div
-                    v-if="filtrosActivosInsumosUsados"
-                    class="filtros-activos-info"
-                  >
-                    <small>
-                      Filtros activos:
-                      <span
-                        v-if="filtroPeriodoInsumosUsados"
-                        class="filtro-activo"
-                      >
-                        {{ filtroPeriodoInsumosUsados }}
-                      </span>
-                      <span
-                        v-if="filtrosInsumosUsados.proveedorId"
-                        class="filtro-activo"
-                      >
-                        Proveedor: {{ nombreProveedorInsumosUsados }}
-                      </span>
-                      <span
-                        v-if="filtrosInsumosUsados.reponer"
-                        class="filtro-activo"
-                      >
-                        Reponer: {{ filtrosInsumosUsados.reponer === 'si' ? 'Sí' : 'No' }}
-                      </span>
-                      <span
-                        v-if="filtrosInsumosUsados.searchTerm"
-                        class="filtro-activo"
-                      >
-                        Búsqueda: "{{ filtrosInsumosUsados.searchTerm }}"
-                      </span>
-                    </small>
                   </div>
                 </div>
 
@@ -294,6 +286,7 @@
                         v-model="filtrosRecetasHechas.fechaFin"
                         :min="filtrosRecetasHechas.fechaInicio || ''"
                         :max="fechaHoy"
+                        :disabled="fechaFinDisabledRecetasHechas"
                         class="filtro-input"
                         @change="validarFechasRecetasHechas"
                       />
@@ -317,11 +310,28 @@
                     </div>
                   </div>
 
-                  <!-- Botón Limpiar Filtros -->
+                  <!-- Indicadores de Filtros Activos con Botón Limpiar -->
                   <div
                     v-if="filtrosActivosRecetasHechas"
-                    class="botones-filtros"
+                    class="filtros-activos-info"
                   >
+                    <div class="filtros-activos-content">
+                      <small>
+                        Filtros activos:
+                        <span
+                          v-if="filtroPeriodoRecetasHechas"
+                          class="filtro-activo"
+                        >
+                          {{ filtroPeriodoRecetasHechas }}
+                        </span>
+                        <span
+                          v-if="filtrosRecetasHechas.searchTerm"
+                          class="filtro-activo"
+                        >
+                          Búsqueda: "{{ filtrosRecetasHechas.searchTerm }}"
+                        </span>
+                      </small>
+                    </div>
                     <button
                       @click="limpiarFiltrosRecetasHechas"
                       class="btn-limpiar-filtros"
@@ -329,28 +339,6 @@
                       <i class="fas fa-broom"></i>
                       Limpiar Filtros
                     </button>
-                  </div>
-
-                  <!-- Indicadores de Filtros Activos -->
-                  <div
-                    v-if="filtrosActivosRecetasHechas"
-                    class="filtros-activos-info"
-                  >
-                    <small>
-                      Filtros activos:
-                      <span
-                        v-if="filtroPeriodoRecetasHechas"
-                        class="filtro-activo"
-                      >
-                        {{ filtroPeriodoRecetasHechas }}
-                      </span>
-                      <span
-                        v-if="filtrosRecetasHechas.searchTerm"
-                        class="filtro-activo"
-                      >
-                        Búsqueda: "{{ filtrosRecetasHechas.searchTerm }}"
-                      </span>
-                    </small>
                   </div>
                 </div>
 
@@ -464,6 +452,7 @@
                         v-model="filtrosPedidos.fechaFin"
                         :min="filtrosPedidos.fechaInicio || ''"
                         :max="fechaHoy"
+                        :disabled="fechaFinDisabledPedidos"
                         class="filtro-input"
                         @change="validarFechasPedidos"
                       />
@@ -492,8 +481,28 @@
                     </div>
                   </div>
 
-                  <!-- Botón Limpiar Filtros -->
-                  <div v-if="filtrosActivosPedidos" class="botones-filtros">
+                  <!-- Indicadores de Filtros Activos con Botón Limpiar -->
+                  <div
+                    v-if="filtrosActivosPedidos"
+                    class="filtros-activos-info"
+                  >
+                    <div class="filtros-activos-content">
+                      <small>
+                        Filtros activos:
+                        <span
+                          v-if="filtroPeriodoPedidos"
+                          class="filtro-activo"
+                        >
+                          {{ filtroPeriodoPedidos }}
+                        </span>
+                        <span
+                          v-if="filtrosPedidos.clienteId"
+                          class="filtro-activo"
+                        >
+                          Cliente: {{ nombreClientePedidos }}
+                        </span>
+                      </small>
+                    </div>
                     <button
                       @click="limpiarFiltrosPedidos"
                       class="btn-limpiar-filtros"
@@ -501,28 +510,6 @@
                       <i class="fas fa-broom"></i>
                       Limpiar Filtros
                     </button>
-                  </div>
-
-                  <!-- Indicadores de Filtros Activos -->
-                  <div
-                    v-if="filtrosActivosPedidos"
-                    class="filtros-activos-info"
-                  >
-                    <small>
-                      Filtros activos:
-                      <span
-                        v-if="filtroPeriodoPedidos"
-                        class="filtro-activo"
-                      >
-                        {{ filtroPeriodoPedidos }}
-                      </span>
-                      <span
-                        v-if="filtrosPedidos.clienteId"
-                        class="filtro-activo"
-                      >
-                        Cliente: {{ nombreClientePedidos }}
-                      </span>
-                    </small>
                   </div>
                 </div>
 
@@ -647,6 +634,7 @@
                         v-model="filtrosPerdidas.fechaFin"
                         :min="filtrosPerdidas.fechaInicio || ''"
                         :max="fechaHoy"
+                        :disabled="fechaFinDisabledPerdidas"
                         class="filtro-input"
                         @change="validarFechasPerdidas"
                       />
@@ -707,8 +695,40 @@
                     </div>
                   </div>
 
-                  <!-- Botón Limpiar Filtros -->
-                  <div v-if="filtrosActivosPerdidas" class="botones-filtros">
+                  <!-- Indicadores de Filtros Activos con Botón Limpiar -->
+                  <div
+                    v-if="filtrosActivosPerdidas"
+                    class="filtros-activos-info"
+                  >
+                    <div class="filtros-activos-content">
+                      <small>
+                        Filtros activos:
+                        <span
+                          v-if="filtroPeriodoPerdidas"
+                          class="filtro-activo"
+                        >
+                          {{ filtroPeriodoPerdidas }}
+                        </span>
+                        <span
+                          v-if="filtrosPerdidas.categoria"
+                          class="filtro-activo"
+                        >
+                          Categoría: {{ filtrosPerdidas.categoria }}
+                        </span>
+                        <span
+                          v-if="filtrosPerdidas.motivo"
+                          class="filtro-activo"
+                        >
+                          Motivo: {{ formatMotivoPerdida(filtrosPerdidas.motivo) }}
+                        </span>
+                        <span
+                          v-if="filtrosPerdidas.searchTerm"
+                          class="filtro-activo"
+                        >
+                          Búsqueda: "{{ filtrosPerdidas.searchTerm }}"
+                        </span>
+                      </small>
+                    </div>
                     <button
                       @click="limpiarFiltrosPerdidas"
                       class="btn-limpiar-filtros"
@@ -716,40 +736,6 @@
                       <i class="fas fa-broom"></i>
                       Limpiar Filtros
                     </button>
-                  </div>
-
-                  <!-- Indicadores de Filtros Activos -->
-                  <div
-                    v-if="filtrosActivosPerdidas"
-                    class="filtros-activos-info"
-                  >
-                    <small>
-                      Filtros activos:
-                      <span
-                        v-if="filtroPeriodoPerdidas"
-                        class="filtro-activo"
-                      >
-                        {{ filtroPeriodoPerdidas }}
-                      </span>
-                      <span
-                        v-if="filtrosPerdidas.categoria"
-                        class="filtro-activo"
-                      >
-                        Categoría: {{ filtrosPerdidas.categoria }}
-                      </span>
-                      <span
-                        v-if="filtrosPerdidas.motivo"
-                        class="filtro-activo"
-                      >
-                        Motivo: {{ formatMotivoPerdida(filtrosPerdidas.motivo) }}
-                      </span>
-                      <span
-                        v-if="filtrosPerdidas.searchTerm"
-                        class="filtro-activo"
-                      >
-                        Búsqueda: "{{ filtrosPerdidas.searchTerm }}"
-                      </span>
-                    </small>
                   </div>
                 </div>
 
@@ -878,11 +864,22 @@
                     </div>
                   </div>
 
-                  <!-- Botón Limpiar Filtros -->
+                  <!-- Indicadores de Filtros Activos con Botón Limpiar -->
                   <div
                     v-if="filtrosActivosListaCompras"
-                    class="botones-filtros"
+                    class="filtros-activos-info"
                   >
+                    <div class="filtros-activos-content">
+                      <small>
+                        Filtros activos:
+                        <span
+                          v-if="filtrosListaCompras.proveedorId"
+                          class="filtro-activo"
+                        >
+                          Proveedor: {{ nombreProveedorListaCompras }}
+                        </span>
+                      </small>
+                    </div>
                     <button
                       @click="limpiarFiltrosListaCompras"
                       class="btn-limpiar-filtros"
@@ -890,22 +887,6 @@
                       <i class="fas fa-broom"></i>
                       Limpiar Filtros
                     </button>
-                  </div>
-
-                  <!-- Indicadores de Filtros Activos -->
-                  <div
-                    v-if="filtrosActivosListaCompras"
-                    class="filtros-activos-info"
-                  >
-                    <small>
-                      Filtros activos:
-                      <span
-                        v-if="filtrosListaCompras.proveedorId"
-                        class="filtro-activo"
-                      >
-                        Proveedor: {{ nombreProveedorListaCompras }}
-                      </span>
-                    </small>
                   </div>
                 </div>
 
@@ -1104,6 +1085,14 @@ const errorFechaPedidos = ref("");
 const errorFechaPerdidas = ref("");
 
 // ----------------------
+// 🔹 PROPIEDADES COMPUTADAS PARA DISABLED DE FECHA FIN
+// ----------------------
+const fechaFinDisabledInsumosUsados = computed(() => !filtrosInsumosUsados.value.fechaInicio);
+const fechaFinDisabledRecetasHechas = computed(() => !filtrosRecetasHechas.value.fechaInicio);
+const fechaFinDisabledPedidos = computed(() => !filtrosPedidos.value.fechaInicio);
+const fechaFinDisabledPerdidas = computed(() => !filtrosPerdidas.value.fechaInicio);
+
+// ----------------------
 // 🔹 COMPUTED PROPERTIES PARA FILTROS ACTIVOS
 // ----------------------
 // Insumos Usados
@@ -1220,6 +1209,61 @@ const obtenerContador = (tabId) => {
       return 0;
   }
 };
+
+// ----------------------
+// 🔹 WATCHERS PARA AUTOCOMPLETAR FECHA FIN
+// ----------------------
+// Watcher para Insumos Usados
+watch(() => filtrosInsumosUsados.value.fechaInicio, (nuevaFechaInicio) => {
+  if (nuevaFechaInicio && !filtrosInsumosUsados.value.fechaFin) {
+    // Autocompletar Fecha Fin con fecha actual
+    filtrosInsumosUsados.value.fechaFin = fechaHoy.value;
+    // Llamar a validación y carga de datos
+    validarFechasInsumosUsados();
+  } else if (!nuevaFechaInicio) {
+    // Limpiar Fecha Fin si se borra Fecha Inicio
+    filtrosInsumosUsados.value.fechaFin = "";
+  }
+});
+
+// Watcher para Recetas Hechas
+watch(() => filtrosRecetasHechas.value.fechaInicio, (nuevaFechaInicio) => {
+  if (nuevaFechaInicio && !filtrosRecetasHechas.value.fechaFin) {
+    // Autocompletar Fecha Fin con fecha actual
+    filtrosRecetasHechas.value.fechaFin = fechaHoy.value;
+    // Llamar a validación y carga de datos
+    validarFechasRecetasHechas();
+  } else if (!nuevaFechaInicio) {
+    // Limpiar Fecha Fin si se borra Fecha Inicio
+    filtrosRecetasHechas.value.fechaFin = "";
+  }
+});
+
+// Watcher para Pedidos
+watch(() => filtrosPedidos.value.fechaInicio, (nuevaFechaInicio) => {
+  if (nuevaFechaInicio && !filtrosPedidos.value.fechaFin) {
+    // Autocompletar Fecha Fin con fecha actual
+    filtrosPedidos.value.fechaFin = fechaHoy.value;
+    // Llamar a validación y carga de datos
+    validarFechasPedidos();
+  } else if (!nuevaFechaInicio) {
+    // Limpiar Fecha Fin si se borra Fecha Inicio
+    filtrosPedidos.value.fechaFin = "";
+  }
+});
+
+// Watcher para Pérdidas
+watch(() => filtrosPerdidas.value.fechaInicio, (nuevaFechaInicio) => {
+  if (nuevaFechaInicio && !filtrosPerdidas.value.fechaFin) {
+    // Autocompletar Fecha Fin con fecha actual
+    filtrosPerdidas.value.fechaFin = fechaHoy.value;
+    // Llamar a validación y carga de datos
+    validarFechasPerdidas();
+  } else if (!nuevaFechaInicio) {
+    // Limpiar Fecha Fin si se borra Fecha Inicio
+    filtrosPerdidas.value.fechaFin = "";
+  }
+});
 
 // ----------------------
 // 🔹 MÉTODOS DE VALIDACIÓN DE FECHAS
@@ -2325,6 +2369,12 @@ watch(tabActiva, (newTab) => {
   width: 100%;
 }
 
+.filtro-input:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .filtro-input:focus,
 .filtro-select:focus {
   outline: none;
@@ -2364,26 +2414,52 @@ watch(tabActiva, (newTab) => {
   opacity: 0.7;
 }
 
-/* Botón Limpiar Filtros */
-.botones-filtros {
+/* MODIFICACIÓN ÚNICA: Contenedor unificado para filtros activos y botón limpiar */
+.filtros-activos-info {
   margin-top: 15px;
+  padding: 10px 15px;
+  background: #e9ecef;
+  border-radius: 6px;
+  border-left: 4px solid var(--color-primary);
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
+.filtros-activos-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.filtro-activo {
+  display: inline-block;
+  background: var(--color-primary);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin: 0 5px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+/* Botón Limpiar Filtros - Integrado en la misma línea */
 .btn-limpiar-filtros {
   background-color: #6c757d;
   color: white;
   border: none;
   border-radius: 6px;
-  padding: 10px 16px;
+  padding: 8px 14px;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-limpiar-filtros:hover {
@@ -2402,25 +2478,6 @@ watch(tabActiva, (newTab) => {
   font-size: 0.75rem;
   margin-top: 2px;
   min-height: 16px;
-}
-
-/* -------------------- INDICADORES DE FILTROS ACTIVOS -------------------- */
-.filtros-activos-info {
-  margin-top: 15px;
-  padding: 10px;
-  background: #e9ecef;
-  border-radius: 6px;
-  border-left: 4px solid var(--color-primary);
-}
-
-.filtro-activo {
-  display: inline-block;
-  background: var(--color-primary);
-  color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  margin: 0 5px;
-  font-size: 0.8rem;
 }
 
 /* -------------------- TABLA DE REPORTES -------------------- */
@@ -2761,10 +2818,26 @@ watch(tabActiva, (newTab) => {
   text-shadow: 0 2px 4px rgba(123, 90, 80, 0.1);
 }
 
+.main-content-repo {
+  flex: 1;
+  padding: 15px;
+  padding-top: 0%;
+  padding-left: 135px;
+  position: relative;
+  z-index: 1;
+  transition: margin-left 0.3s ease;
+}
+
 /* -------------------- MEJORAS RESPONSIVE -------------------- */
 @media (max-width: 768px) {
   .tabs-header {
     flex-direction: column;
+  }
+
+  .main-content-repo {
+    margin-left: 0;
+    padding: 70px 10px 10px 10px;
+    padding-top: 0%;
   }
 
   .tab-button {
@@ -2779,6 +2852,16 @@ watch(tabActiva, (newTab) => {
 
   .filtros-grid {
     grid-template-columns: 1fr;
+  }
+
+  .filtros-activos-info {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  
+  .btn-limpiar-filtros {
+    align-self: flex-end;
   }
 
   .reportes-seccion-pdf {
