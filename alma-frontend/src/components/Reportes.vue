@@ -1106,9 +1106,12 @@ const filtrosActivosInsumosUsados = computed(() => {
   );
 });
 
+// Insumos Usados
 const filtroPeriodoInsumosUsados = computed(() => {
   if (filtrosInsumosUsados.value.fechaInicio && filtrosInsumosUsados.value.fechaFin) {
     return `Período: ${formatearFechaCorta(filtrosInsumosUsados.value.fechaInicio)} - ${formatearFechaCorta(filtrosInsumosUsados.value.fechaFin)}`;
+  } else if (filtrosInsumosUsados.value.fechaInicio) {
+    return `Fecha: ${formatearFechaCorta(filtrosInsumosUsados.value.fechaInicio)}`;
   }
   return "";
 });
@@ -1128,9 +1131,12 @@ const filtrosActivosRecetasHechas = computed(() => {
   );
 });
 
+// Recetas Hechas
 const filtroPeriodoRecetasHechas = computed(() => {
   if (filtrosRecetasHechas.value.fechaInicio && filtrosRecetasHechas.value.fechaFin) {
     return `Período: ${formatearFechaCorta(filtrosRecetasHechas.value.fechaInicio)} - ${formatearFechaCorta(filtrosRecetasHechas.value.fechaFin)}`;
+  } else if (filtrosRecetasHechas.value.fechaInicio) {
+    return `Fecha: ${formatearFechaCorta(filtrosRecetasHechas.value.fechaInicio)}`;
   }
   return "";
 });
@@ -1144,9 +1150,12 @@ const filtrosActivosPedidos = computed(() => {
   );
 });
 
+// Pedidos
 const filtroPeriodoPedidos = computed(() => {
   if (filtrosPedidos.value.fechaInicio && filtrosPedidos.value.fechaFin) {
     return `Período: ${formatearFechaCorta(filtrosPedidos.value.fechaInicio)} - ${formatearFechaCorta(filtrosPedidos.value.fechaFin)}`;
+  } else if (filtrosPedidos.value.fechaInicio) {
+    return `Fecha: ${formatearFechaCorta(filtrosPedidos.value.fechaInicio)}`;
   }
   return "";
 });
@@ -1168,9 +1177,12 @@ const filtrosActivosPerdidas = computed(() => {
   );
 });
 
+// Pérdidas de Insumos
 const filtroPeriodoPerdidas = computed(() => {
   if (filtrosPerdidas.value.fechaInicio && filtrosPerdidas.value.fechaFin) {
     return `Período: ${formatearFechaCorta(filtrosPerdidas.value.fechaInicio)} - ${formatearFechaCorta(filtrosPerdidas.value.fechaFin)}`;
+  } else if (filtrosPerdidas.value.fechaInicio) {
+    return `Fecha: ${formatearFechaCorta(filtrosPerdidas.value.fechaInicio)}`;
   }
   return "";
 });
