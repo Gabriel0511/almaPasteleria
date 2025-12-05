@@ -1223,14 +1223,12 @@ const obtenerContador = (tabId) => {
 };
 
 // ----------------------
-// 🔹 WATCHERS PARA AUTOCOMPLETAR FECHA FIN
+// 🔹 WATCHERS PARA AUTOCOMPLETAR FECHA FIN - MODIFICADOS
 // ----------------------
-// Watcher para Insumos Usados
+// Watcher para Insumos Usados - NO autocompletar fecha fin
 watch(() => filtrosInsumosUsados.value.fechaInicio, (nuevaFechaInicio) => {
-  if (nuevaFechaInicio && !filtrosInsumosUsados.value.fechaFin) {
-    // Autocompletar Fecha Fin con fecha actual
-    filtrosInsumosUsados.value.fechaFin = fechaHoy.value;
-    // Llamar a validación y carga de datos
+  if (nuevaFechaInicio) {
+    // Solo validar, NO autocompletar fecha fin
     validarFechasInsumosUsados();
   } else if (!nuevaFechaInicio) {
     // Limpiar Fecha Fin si se borra Fecha Inicio
@@ -1238,12 +1236,10 @@ watch(() => filtrosInsumosUsados.value.fechaInicio, (nuevaFechaInicio) => {
   }
 });
 
-// Watcher para Recetas Hechas
+// Watcher para Recetas Hechas - NO autocompletar fecha fin
 watch(() => filtrosRecetasHechas.value.fechaInicio, (nuevaFechaInicio) => {
-  if (nuevaFechaInicio && !filtrosRecetasHechas.value.fechaFin) {
-    // Autocompletar Fecha Fin con fecha actual
-    filtrosRecetasHechas.value.fechaFin = fechaHoy.value;
-    // Llamar a validación y carga de datos
+  if (nuevaFechaInicio) {
+    // Solo validar, NO autocompletar fecha fin
     validarFechasRecetasHechas();
   } else if (!nuevaFechaInicio) {
     // Limpiar Fecha Fin si se borra Fecha Inicio
@@ -1251,12 +1247,10 @@ watch(() => filtrosRecetasHechas.value.fechaInicio, (nuevaFechaInicio) => {
   }
 });
 
-// Watcher para Pedidos
+// Watcher para Pedidos - NO autocompletar fecha fin
 watch(() => filtrosPedidos.value.fechaInicio, (nuevaFechaInicio) => {
-  if (nuevaFechaInicio && !filtrosPedidos.value.fechaFin) {
-    // Autocompletar Fecha Fin con fecha actual
-    filtrosPedidos.value.fechaFin = fechaHoy.value;
-    // Llamar a validación y carga de datos
+  if (nuevaFechaInicio) {
+    // Solo validar, NO autocompletar fecha fin
     validarFechasPedidos();
   } else if (!nuevaFechaInicio) {
     // Limpiar Fecha Fin si se borra Fecha Inicio
@@ -1264,12 +1258,10 @@ watch(() => filtrosPedidos.value.fechaInicio, (nuevaFechaInicio) => {
   }
 });
 
-// Watcher para Pérdidas
+// Watcher para Pérdidas - NO autocompletar fecha fin
 watch(() => filtrosPerdidas.value.fechaInicio, (nuevaFechaInicio) => {
-  if (nuevaFechaInicio && !filtrosPerdidas.value.fechaFin) {
-    // Autocompletar Fecha Fin con fecha actual
-    filtrosPerdidas.value.fechaFin = fechaHoy.value;
-    // Llamar a validación y carga de datos
+  if (nuevaFechaInicio) {
+    // Solo validar, NO autocompletar fecha fin
     validarFechasPerdidas();
   } else if (!nuevaFechaInicio) {
     // Limpiar Fecha Fin si se borra Fecha Inicio
@@ -1278,7 +1270,7 @@ watch(() => filtrosPerdidas.value.fechaInicio, (nuevaFechaInicio) => {
 });
 
 // ----------------------
-// 🔹 MÉTODOS DE VALIDACIÓN DE FECHAS
+// 🔹 MÉTODOS DE VALIDACIÓN DE FECHAS - MODIFICADOS
 // ----------------------
 // Validación para Insumos Usados
 const validarFechasInsumosUsados = () => {
@@ -1287,6 +1279,7 @@ const validarFechasInsumosUsados = () => {
   const fechaInicio = filtrosInsumosUsados.value.fechaInicio;
   const fechaFin = filtrosInsumosUsados.value.fechaFin;
   
+  // Solo validar si AMBAS fechas están presentes
   if (fechaInicio && fechaFin) {
     const inicio = new Date(fechaInicio);
     const fin = new Date(fechaFin);
@@ -1297,7 +1290,7 @@ const validarFechasInsumosUsados = () => {
     }
   }
   
-  // Si hay fechas válidas, cargar datos
+  // Si hay al menos una fecha válida, cargar datos
   if (fechaInicio || fechaFin) {
     fetchReportes();
   }
@@ -1312,6 +1305,7 @@ const validarFechasRecetasHechas = () => {
   const fechaInicio = filtrosRecetasHechas.value.fechaInicio;
   const fechaFin = filtrosRecetasHechas.value.fechaFin;
   
+  // Solo validar si AMBAS fechas están presentes
   if (fechaInicio && fechaFin) {
     const inicio = new Date(fechaInicio);
     const fin = new Date(fechaFin);
@@ -1322,7 +1316,7 @@ const validarFechasRecetasHechas = () => {
     }
   }
   
-  // Si hay fechas válidas, cargar datos
+  // Si hay al menos una fecha válida, cargar datos
   if (fechaInicio || fechaFin) {
     fetchRecetasHechas();
   }
@@ -1337,6 +1331,7 @@ const validarFechasPedidos = () => {
   const fechaInicio = filtrosPedidos.value.fechaInicio;
   const fechaFin = filtrosPedidos.value.fechaFin;
   
+  // Solo validar si AMBAS fechas están presentes
   if (fechaInicio && fechaFin) {
     const inicio = new Date(fechaInicio);
     const fin = new Date(fechaFin);
@@ -1347,7 +1342,7 @@ const validarFechasPedidos = () => {
     }
   }
   
-  // Si hay fechas válidas, cargar datos
+  // Si hay al menos una fecha válida, cargar datos
   if (fechaInicio || fechaFin) {
     fetchPedidos();
   }
@@ -1362,6 +1357,7 @@ const validarFechasPerdidas = () => {
   const fechaInicio = filtrosPerdidas.value.fechaInicio;
   const fechaFin = filtrosPerdidas.value.fechaFin;
   
+  // Solo validar si AMBAS fechas están presentes
   if (fechaInicio && fechaFin) {
     const inicio = new Date(fechaInicio);
     const fin = new Date(fechaFin);
@@ -1372,7 +1368,7 @@ const validarFechasPerdidas = () => {
     }
   }
   
-  // Si hay fechas válidas, cargar datos
+  // Si hay al menos una fecha válida, cargar datos
   if (fechaInicio || fechaFin) {
     fetchHistorialPerdidas();
   }
@@ -1932,22 +1928,33 @@ const generarPDFPerdidas = async () => {
 };
 
 // ----------------------
-// 🔹 FETCH DATOS
+// 🔹 FETCH DATOS - MODIFICADOS
 // ----------------------
 const fetchReportes = async () => {
   try {
     loading.value = true;
 
     const params = {};
+    
+    // Solo enviar fecha_inicio si tiene valor
     if (filtrosInsumosUsados.value.fechaInicio) {
       params.fecha_inicio = filtrosInsumosUsados.value.fechaInicio;
     }
+    
+    // Solo enviar fecha_fin si tiene valor
     if (filtrosInsumosUsados.value.fechaFin) {
       params.fecha_fin = filtrosInsumosUsados.value.fechaFin;
+    } else if (filtrosInsumosUsados.value.fechaInicio) {
+      // Si solo hay fecha_inicio, usar la misma fecha como fecha_fin
+      // para mostrar solo datos de esa fecha específica
+      params.fecha_fin = filtrosInsumosUsados.value.fechaInicio;
     }
+    
     if (filtrosInsumosUsados.value.proveedorId) {
       params.proveedor_id = filtrosInsumosUsados.value.proveedorId;
     }
+
+    console.log("📊 Parámetros enviados para Insumos Usados:", params);
 
     const response = await axios.get("/api/reportes/insumos/", { params });
 
@@ -1976,61 +1983,27 @@ const fetchReportes = async () => {
   }
 };
 
-const fetchListaCompras = async () => {
-  try {
-    loadingListaCompras.value = true;
-
-    const params = {};
-    if (filtrosListaCompras.value.proveedorId) {
-      params.proveedor_id = filtrosListaCompras.value.proveedorId;
-    }
-
-    const response = await axios.get("/api/reportes/lista-compras/", {
-      params,
-    });
-
-    if (!response.data) {
-      throw new Error(
-        "No se recibieron datos del servidor para lista de compras"
-      );
-    }
-
-    listaCompras.value = response.data.map((item) => ({
-      id: item.id,
-      nombre: item.nombre,
-      categoria: item.categoria,
-      stockActual: item.stock_actual,
-      stockMinimo: item.stock_minimo,
-      pedidos: item.pedidos || 0,
-      totalComprar: item.total_comprar || 0,
-      unidad: item.unidad_medida?.abreviatura || "u",
-      proveedor: item.proveedor?.nombre || "Sin proveedor",
-      proveedorId: item.proveedor?.id || null,
-    }));
-  } catch (error) {
-    console.error("Error al cargar lista de compras:", error);
-    listaCompras.value = [];
-  } finally {
-    loadingListaCompras.value = false;
-  }
-};
-
 const fetchRecetasHechas = async () => {
   try {
     loadingRecetas.value = true;
 
     const params = {};
+    
+    // Solo enviar fecha_inicio si tiene valor
     if (filtrosRecetasHechas.value.fechaInicio) {
       params.fecha_inicio = filtrosRecetasHechas.value.fechaInicio;
     }
+    
+    // Solo enviar fecha_fin si tiene valor
     if (filtrosRecetasHechas.value.fechaFin) {
       params.fecha_fin = filtrosRecetasHechas.value.fechaFin;
+    } else if (filtrosRecetasHechas.value.fechaInicio) {
+      // Si solo hay fecha_inicio, usar la misma fecha como fecha_fin
+      // para mostrar solo datos de esa fecha específica
+      params.fecha_fin = filtrosRecetasHechas.value.fechaInicio;
     }
 
-    console.log(
-      "📊 Haciendo petición a /api/recetas-por-fecha/ con params:",
-      params
-    );
+    console.log("📊 Haciendo petición a /api/recetas-por-fecha/ con params:", params);
 
     const response = await axios.get("/api/recetas-por-fecha/", {
       params: params,
@@ -2076,12 +2049,27 @@ const fetchPedidos = async () => {
   try {
     loadingPedidos.value = true;
 
+    const params = {};
+    
+    // Solo enviar fecha_inicio si tiene valor
+    if (filtrosPedidos.value.fechaInicio) {
+      params.fecha_inicio = filtrosPedidos.value.fechaInicio;
+    }
+    
+    // Solo enviar fecha_fin si tiene valor
+    if (filtrosPedidos.value.fechaFin) {
+      params.fecha_fin = filtrosPedidos.value.fechaFin;
+    } else if (filtrosPedidos.value.fechaInicio) {
+      // Si solo hay fecha_inicio, usar la misma fecha como fecha_fin
+      // para mostrar solo datos de esa fecha específica
+      params.fecha_fin = filtrosPedidos.value.fechaInicio;
+    }
+
+    console.log("📦 Parámetros enviados para Pedidos:", params);
+
     // Obtener todos los pedidos (no solo los entregados, para poder filtrar en frontend)
     const response = await axios.get("/api/pedidos/", {
-      params: {
-        fecha_inicio: filtrosPedidos.value.fechaInicio,
-        fecha_fin: filtrosPedidos.value.fechaFin,
-      },
+      params: params,
     });
 
     if (!response.data) {
@@ -2113,16 +2101,24 @@ const fetchHistorialPerdidas = async () => {
     loadingPerdidas.value = true;
 
     const params = new URLSearchParams();
+    
+    // Solo enviar fecha_inicio si tiene valor
     if (filtrosPerdidas.value.fechaInicio) {
       params.append("fecha_inicio", filtrosPerdidas.value.fechaInicio);
     }
+    
+    // Solo enviar fecha_fin si tiene valor
     if (filtrosPerdidas.value.fechaFin) {
       params.append("fecha_fin", filtrosPerdidas.value.fechaFin);
+    } else if (filtrosPerdidas.value.fechaInicio) {
+      // Si solo hay fecha_inicio, usar la misma fecha como fecha_fin
+      // para mostrar solo datos de esa fecha específica
+      params.append("fecha_fin", filtrosPerdidas.value.fechaInicio);
     }
 
-    console.log("🔍 Fetching TODAS las pérdidas...");
+    console.log("🔍 Fetching pérdidas con parámetros:", params.toString());
     const response = await axios.get(`/api/perdidas/?${params.toString()}`);
-    console.log("📊 Todas las pérdidas recibidas:", response.data);
+    console.log("📊 Pérdidas recibidas:", response.data);
     historialPerdidas.value = response.data;
   } catch (error) {
     console.error("Error al cargar historial de pérdidas:", error);
@@ -2149,6 +2145,48 @@ const fetchClientes = async () => {
   }
 };
 
+// ----------------------
+// 🔹 AGREGANDO LA FUNCIÓN FALTANTE
+// ----------------------
+const fetchListaCompras = async () => {
+  try {
+    loadingListaCompras.value = true;
+    
+    const params = {};
+    if (filtrosListaCompras.value.proveedorId) {
+      params.proveedor_id = filtrosListaCompras.value.proveedorId;
+    }
+    
+    console.log("🛒 Parámetros enviados para Lista de Compras:", params);
+    
+    const response = await axios.get("/api/reportes/lista-compras/", { 
+      params: params 
+    });
+    
+    if (!response.data) {
+      throw new Error("No se recibieron datos del servidor para lista de compras");
+    }
+    
+    listaCompras.value = response.data.map((item) => ({
+      id: item.id,
+      nombre: item.nombre,
+      categoria: item.categoria,
+      stockActual: item.stock_actual,
+      stockMinimo: item.stock_minimo,
+      pedidos: item.pedidos || 0,
+      totalComprar: item.total_comprar || 0,
+      unidad: item.unidad_medida?.abreviatura || "u",
+      proveedor: item.proveedor?.nombre || "Sin proveedor",
+      proveedorId: item.proveedor?.id || null,
+    }));
+  } catch (error) {
+    console.error("Error al cargar lista de compras:", error);
+    listaCompras.value = [];
+  } finally {
+    loadingListaCompras.value = false;
+  }
+};
+
 // Detectar cambios de tamaño de pantalla
 onMounted(() => {
   checkMobile();
@@ -2170,7 +2208,7 @@ onMounted(() => {
 
   Promise.all([
     fetchReportes(),
-    fetchListaCompras(),
+    fetchListaCompras(), // Esta función ahora está definida
     fetchRecetasHechas(),
     fetchPedidos(),
     fetchHistorialPerdidas(),
@@ -2185,7 +2223,7 @@ onMounted(() => {
 });
 
 // ----------------------
-// 🔹 WATCHERS
+// 🔹 WATCHERS ORIGINALES (MANTENIENDO TODOS LOS QUE YA FUNCIONABAN)
 // ----------------------
 // Watchers para los filtros de búsqueda
 watch(
