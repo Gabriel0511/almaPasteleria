@@ -343,32 +343,69 @@ class RecetasPorFechaView(APIView):
                 historial_query = historial_query.filter(
                     fecha_preparacion__range=[fecha_inicio_utc, fecha_fin_utc]
                 )
+            elif fecha_inicio_str:
+                # Si solo hay fecha inicio, buscar solo ese día
+                fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+                
+                fecha_inicio_utc = tz_argentina.localize(
+                    datetime.combine(fecha_inicio, datetime.min.time())
+                ).astimezone(pytz.UTC)
+                
+                fecha_fin_utc = tz_argentina.localize(
+                    datetime.combine(fecha_inicio, datetime.min.time())
+                ).replace(hour=23, minute=59, second=59).astimezone(pytz.UTC)
+                
+                historial_query = historial_query.filter(
+                    fecha_preparacion__range=[fecha_inicio_utc, fecha_fin_utc]
+                )
             
-            # Agrupar por receta y contar total de preparaciones
-            from django.db.models import Count, Sum, Max
-            recetas_agrupadas = historial_query.values(
+            # 🔹 AGREGAR: Obtener preparaciones de HOY si no hay filtro de fecha
+            if not fecha_inicio_str and not fecha_fin_str:
+                # Obtener las preparaciones de hoy desde el historial
+                hoy = timezone.now().date()
+                hoy_inicio_utc = tz_argentina.localize(
+                    datetime.combine(hoy, datetime.min.time())
+                ).astimezone(pytz.UTC)
+                hoy_fin_utc = tz_argentina.localize(
+                    datetime.combine(hoy, datetime.min.time())
+                ).replace(hour=23, minute=59, second=59).astimezone(pytz.UTC)
+                
+                historial_query = historial_query.filter(
+                    fecha_preparacion__range=[hoy_inicio_utc, hoy_fin_utc]
+                )
+            
+            # 🔹 CAMBIO IMPORTANTE: Agrupar por receta Y por fecha
+            from django.db.models import Count, Sum, DateField
+            from django.db.models.functions import TruncDate
+            
+            # Agrupar por receta y fecha de preparación (en hora Argentina)
+            recetas_agrupadas = historial_query.annotate(
+                fecha_preparacion_arg=TruncDate('fecha_preparacion', tzinfo=tz_argentina)
+            ).values(
                 'receta_id',
                 'receta__nombre',
                 'receta__rinde',
                 'receta__unidad_rinde',
                 'receta__costo_total',
                 'receta__precio_venta',
-                'receta__veces_hecha_hoy'
+                'fecha_preparacion_arg'  # ✅ Fecha agrupada
             ).annotate(
-                total_preparaciones=Sum('cantidad_preparada'),
-                ultima_preparacion=Max('fecha_preparacion')
-            ).order_by('-ultima_preparacion')
+                total_preparaciones=Sum('cantidad_preparada')
+            ).order_by('-fecha_preparacion_arg', 'receta__nombre')
             
             # Preparar datos para la respuesta
             recetas_data = []
             for grupo in recetas_agrupadas:
-                # Convertir UTC a hora Argentina
-                ultima_prep_utc = grupo['ultima_preparacion']
-                if ultima_prep_utc:
-                    ultima_prep_arg = ultima_prep_utc.astimezone(tz_argentina)
-                    fecha_arg_str = ultima_prep_arg.strftime('%d/%m/%Y')
+                # Formatear fecha en formato Argentina
+                fecha_prep = grupo['fecha_preparacion_arg']
+                if fecha_prep:
+                    fecha_arg_str = fecha_prep.strftime('%d/%m/%Y')
                 else:
                     fecha_arg_str = None
+                
+                # Calcular costo total para esa cantidad de preparaciones
+                costo_por_preparacion = grupo['receta__costo_total'] or Decimal('0')
+                costo_total_dia = costo_por_preparacion * Decimal(str(grupo['total_preparaciones']))
                 
                 recetas_data.append({
                     'id': grupo['receta_id'],
@@ -376,16 +413,17 @@ class RecetasPorFechaView(APIView):
                     'cantidad': grupo['total_preparaciones'],
                     'rinde': grupo['receta__rinde'],
                     'unidad_rinde': grupo['receta__unidad_rinde'],
-                    'costo_total': float(grupo['receta__costo_total']) if grupo['receta__costo_total'] else 0,
+                    'costo_total': float(costo_total_dia),
                     'precio_venta': float(grupo['receta__precio_venta']) if grupo['receta__precio_venta'] else 0,
-                    'veces_hecha_hoy': grupo['receta__veces_hecha_hoy'],
-                    'ultima_preparacion': fecha_arg_str  # ✅ Fecha en Argentina
+                    'fecha_preparacion': fecha_arg_str,  # ✅ Fecha específica de ese día
+                    'fecha_preparacion_original': fecha_prep.isoformat() if fecha_prep else None
                 })
             
             return Response({
                 'fecha_inicio': fecha_inicio_str,
                 'fecha_fin': fecha_fin_str,
-                'total_preparaciones': len(recetas_data),
+                'total_preparaciones': sum(g['total_preparaciones'] for g in recetas_agrupadas),
+                'total_dias': len(set(g['fecha_preparacion_arg'] for g in recetas_agrupadas if g['fecha_preparacion_arg'])),
                 'recetas': recetas_data
             })
             
@@ -427,7 +465,7 @@ class GenerarPDFRecetasView(APIView):
                 parent=styles['Heading1'],
                 fontSize=16,
                 spaceAfter=30,
-                alignment=1,  # Centrado
+                alignment=1,
                 textColor=colors.HexColor('#2c3e50')
             )
             
@@ -454,51 +492,64 @@ class GenerarPDFRecetasView(APIView):
             elements.append(Paragraph(fecha_text, date_style))
             
             # Obtener datos usando la misma lógica que RecetasPorFechaView
+            tz_argentina = pytz.timezone('America/Argentina/Buenos_Aires')
             historial_query = HistorialReceta.objects.select_related('receta')
             
             if fecha_inicio_str and fecha_fin_str:
                 fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
                 fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+                
+                # Convertir a UTC para la consulta
+                fecha_inicio_utc = tz_argentina.localize(
+                    datetime.combine(fecha_inicio, datetime.min.time())
+                ).astimezone(pytz.UTC)
+                
+                fecha_fin_utc = tz_argentina.localize(
+                    datetime.combine(fecha_fin, datetime.min.time())
+                ).replace(hour=23, minute=59, second=59).astimezone(pytz.UTC)
+                
                 historial_query = historial_query.filter(
-                    fecha_preparacion__date__range=[fecha_inicio, fecha_fin]
+                    fecha_preparacion__range=[fecha_inicio_utc, fecha_fin_utc]
                 )
             
-            # Agrupar por receta
-            from django.db.models import Count, Sum, Max
-            recetas_agrupadas = historial_query.values(
+            # 🔹 Agrupar por receta Y fecha
+            from django.db.models import Sum
+            from django.db.models.functions import TruncDate
+            
+            recetas_agrupadas = historial_query.annotate(
+                fecha_preparacion_arg=TruncDate('fecha_preparacion', tzinfo=tz_argentina)
+            ).values(
                 'receta_id',
                 'receta__nombre',
-                'receta__rinde',
-                'receta__unidad_rinde',
                 'receta__costo_total',
-                'receta__precio_venta'
+                'receta__precio_venta',
+                'fecha_preparacion_arg'
             ).annotate(
-                total_preparaciones=Sum('cantidad_preparada'),
-                ultima_preparacion=Max('fecha_preparacion')
-            ).order_by('-total_preparaciones')
+                total_preparaciones=Sum('cantidad_preparada')
+            ).order_by('-fecha_preparacion_arg', 'receta__nombre')
             
             # Preparar datos para la tabla
             if recetas_agrupadas:
                 # Encabezados de la tabla
-                data = [['Receta', 'Preparaciones', 'Costo Total', 'Precio Venta', 'Última Preparación']]
+                data = [['Fecha', 'Receta', 'Preparaciones', 'Costo Total', 'Precio Venta']]
                 
                 for grupo in recetas_agrupadas:
                     # Formatear datos
+                    fecha = grupo['fecha_preparacion_arg'].strftime('%d/%m/%Y') if grupo['fecha_preparacion_arg'] else "N/A"
                     nombre = grupo['receta__nombre']
                     preparaciones = str(grupo['total_preparaciones'])
-                    costo_total = f"${grupo['receta__costo_total']:.2f}" if grupo['receta__costo_total'] else "$0.00"
+                    
+                    # Calcular costo total para esa cantidad
+                    costo_por_preparacion = grupo['receta__costo_total'] or Decimal('0')
+                    costo_total_dia = costo_por_preparacion * Decimal(str(grupo['total_preparaciones']))
+                    
+                    costo_total = f"${costo_total_dia:.2f}"
                     precio_venta = f"${grupo['receta__precio_venta']:.2f}" if grupo['receta__precio_venta'] else "$0.00"
                     
-                    # Formatear fecha
-                    if grupo['ultima_preparacion']:
-                        ultima_prep = grupo['ultima_preparacion'].strftime('%d/%m/%Y %H:%M')
-                    else:
-                        ultima_prep = "N/A"
-                    
-                    data.append([nombre, preparaciones, costo_total, precio_venta, ultima_prep])
+                    data.append([fecha, nombre, preparaciones, costo_total, precio_venta])
                 
                 # Crear tabla
-                table = Table(data, colWidths=[2.5*inch, 1*inch, 1*inch, 1*inch, 1.5*inch])
+                table = Table(data, colWidths=[1.2*inch, 2.5*inch, 1*inch, 1*inch, 1*inch])
                 table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#34495e')),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -516,8 +567,10 @@ class GenerarPDFRecetasView(APIView):
                 
                 # Agregar resumen
                 elements.append(Spacer(1, 20))
-                total_recetas = len(recetas_agrupadas)
-                total_preparaciones = sum(grupo['total_preparaciones'] for grupo in recetas_agrupadas)
+                
+                total_dias = len(set(g['fecha_preparacion_arg'] for g in recetas_agrupadas))
+                total_preparaciones = sum(g['total_preparaciones'] for g in recetas_agrupadas)
+                total_recetas_diferentes = len(set(g['receta_id'] for g in recetas_agrupadas))
                 
                 summary_style = ParagraphStyle(
                     'CustomSummary',
@@ -527,7 +580,8 @@ class GenerarPDFRecetasView(APIView):
                     textColor=colors.HexColor('#2c3e50')
                 )
                 
-                elements.append(Paragraph(f"Total de recetas diferentes: {total_recetas}", summary_style))
+                elements.append(Paragraph(f"Total de días con preparaciones: {total_dias}", summary_style))
+                elements.append(Paragraph(f"Total de recetas diferentes: {total_recetas_diferentes}", summary_style))
                 elements.append(Paragraph(f"Total de preparaciones: {total_preparaciones}", summary_style))
                 
             else:

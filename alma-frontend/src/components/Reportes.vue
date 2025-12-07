@@ -374,20 +374,31 @@
                     <table class="reportes-table-content">
                       <thead>
                         <tr>
+                          <th>Fecha</th>
                           <th>Receta</th>
                           <th>Total Preparado</th>
                           <th>Costo Total</th>
-                          <th>Fecha de preparación</th>
                           <th>Precio Venta</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr
                           v-for="item in recetasHechasFiltradas"
-                          :key="'receta-' + item.id"
+                          :key="
+                            'receta-' + item.id + '-' + item.fecha_preparacion
+                          "
                         >
+                          <td class="reportes-columna-fecha">
+                            {{ item.fecha_preparacion || "Sin fecha" }}
+                          </td>
                           <td class="reportes-columna-receta-nombre">
                             {{ item.nombre }}
+                            <span
+                              v-if="item.rinde"
+                              class="reportes-categoria-insumo"
+                            >
+                              (Rinde: {{ item.rinde }} {{ item.unidad_rinde }})
+                            </span>
                           </td>
                           <td class="reportes-columna-cantidad">
                             {{ item.cantidad }}
@@ -395,9 +406,6 @@
                           </td>
                           <td class="reportes-columna-costo">
                             ${{ formatDecimal(item.costo_total) }}
-                          </td>
-                          <td class="reportes-columna-fecha">
-                            {{ formatearFechaCorta(item.ultima_preparacion) }}
                           </td>
                           <td class="reportes-columna-precio">
                             ${{ formatDecimal(item.precio_venta) }}
@@ -1570,7 +1578,23 @@ const recetasHechasFiltradas = computed(() => {
     );
   }
 
-  return filtered;
+  // Ordenar por fecha (más reciente primero) y luego por nombre
+  return filtered.sort((a, b) => {
+    // Primero por fecha
+    const fechaA = a.fecha_preparacion_original
+      ? new Date(a.fecha_preparacion_original)
+      : new Date(0);
+    const fechaB = b.fecha_preparacion_original
+      ? new Date(b.fecha_preparacion_original)
+      : new Date(0);
+
+    if (fechaB.getTime() !== fechaA.getTime()) {
+      return fechaB.getTime() - fechaA.getTime(); // Descendente
+    }
+
+    // Si misma fecha, ordenar por nombre
+    return a.nombre.localeCompare(b.nombre);
+  });
 });
 
 // Pedidos
@@ -1880,6 +1904,8 @@ const generarPDFRecetas = async () => {
       filtrosRecetasHechas.value.fechaFin
     ) {
       fileName = `recetas_${filtrosRecetasHechas.value.fechaInicio}_a_${filtrosRecetasHechas.value.fechaFin}`;
+    } else if (filtrosRecetasHechas.value.fechaInicio) {
+      fileName = `recetas_${filtrosRecetasHechas.value.fechaInicio}`;
     } else {
       fileName = `recetas_${new Date().toISOString().split("T")[0]}`;
     }
@@ -2049,11 +2075,9 @@ const fetchRecetasHechas = async () => {
     // Solo enviar fecha_fin si tiene valor
     if (filtrosRecetasHechas.value.fechaFin) {
       params.fecha_fin = filtrosRecetasHechas.value.fechaFin;
-    } else if (filtrosRecetasHechas.value.fechaInicio) {
-      // Si solo hay fecha_inicio, usar la misma fecha como fecha_fin
-      // para mostrar solo datos de esa fecha específica
-      params.fecha_fin = filtrosRecetasHechas.value.fechaInicio;
     }
+    // 🔹 NOTA: Ya no autocompletamos fecha_fin igual a fecha_inicio
+    // Dejamos que el backend maneje la lógica
 
     console.log(
       "📊 Haciendo petición a /api/recetas-por-fecha/ con params:",
@@ -2087,8 +2111,8 @@ const fetchRecetasHechas = async () => {
       unidad_rinde: item.unidad_rinde,
       costo_total: item.costo_total,
       precio_venta: item.precio_venta,
-      veces_hecha_hoy: item.veces_hecha_hoy,
-      ultima_preparacion: item.ultima_preparacion,
+      fecha_preparacion: item.fecha_preparacion, // ✅ Fecha específica
+      fecha_preparacion_original: item.fecha_preparacion_original,
     }));
 
     console.log("📊 Datos procesados:", recetasHechas.value);
