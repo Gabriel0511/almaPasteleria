@@ -13,13 +13,11 @@ class Command(BaseCommand):
             tz_argentina = pytz.timezone('America/Argentina/Buenos_Aires')
             ahora_argentina = timezone.now().astimezone(tz_argentina)
             
-            # Verificar si es hora de hacer el cierre (ejecutar cerca de las 00:00)
-            self.stdout.write(f"🔹 Verificando cierre automático - Hora Argentina: {ahora_argentina}")
-            
             # Obtener la fecha de ayer (para cerrar el día anterior)
             ayer_argentina = ahora_argentina - timedelta(days=1)
             fecha_cierre = ayer_argentina.date()
             
+            self.stdout.write(f"🔹 Verificando cierre automático - Hora Argentina: {ahora_argentina}")
             self.stdout.write(f"🔹 Cerrando recetas del día: {fecha_cierre}")
             
             # Obtener recetas con actividad del día anterior
@@ -34,18 +32,21 @@ class Command(BaseCommand):
             with transaction.atomic():
                 for receta in recetas_con_actividad:
                     if receta.veces_hecha_hoy > 0:
-                        # Crear fecha de preparación como ayer a las 23:59
-                        fecha_preparacion = datetime.combine(
+                        # Crear fecha de preparación como ayer a las 23:59 EN UTC
+                        fecha_preparacion_arg = datetime.combine(
                             fecha_cierre, 
                             datetime.min.time()
                         ).replace(hour=23, minute=59, second=59)
-                        fecha_preparacion = tz_argentina.localize(fecha_preparacion)
+                        fecha_preparacion_arg = tz_argentina.localize(fecha_preparacion_arg)
                         
-                        # Crear historial
+                        # Convertir a UTC para almacenar en BD
+                        fecha_preparacion_utc = fecha_preparacion_arg.astimezone(pytz.UTC)
+                        
+                        # Crear historial con fecha UTC
                         HistorialReceta.objects.create(
                             receta=receta,
                             cantidad_preparada=receta.veces_hecha_hoy,
-                            fecha_preparacion=fecha_preparacion
+                            fecha_preparacion=fecha_preparacion_utc  # ✅ Guardar en UTC
                         )
                         
                         total_preparaciones += receta.veces_hecha_hoy
@@ -60,6 +61,7 @@ class Command(BaseCommand):
             )
             self.stdout.write(f'   📊 Total preparaciones: {total_preparaciones}')
             self.stdout.write(f'   📅 Fecha cerrada: {fecha_cierre}')
+            self.stdout.write(f'   ⏰ Fechas guardadas en UTC: {fecha_preparacion_utc}')
                 
         except Exception as e:
             self.stderr.write(f'❌ Error en cierre automático: {str(e)}')

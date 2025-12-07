@@ -15,6 +15,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import io
 from datetime import datetime
+import pytz
 
 # Importar los modelos correctamente
 from .models import Receta, RecetaInsumo, HistorialReceta
@@ -22,6 +23,14 @@ from .serializers import RecetaSerializer, RecetaInsumoSerializer, RecetaInsumoC
 from insumos.models import Insumo
 from insumos.conversiones import convertir_unidad
 
+# FUNCION PARA MOSTRAR FECHAS REALES
+
+def convertir_a_hora_local(fecha_utc):
+    """Convierte fecha UTC a hora Argentina"""
+    tz_argentina = pytz.timezone('America/Argentina/Buenos_Aires')
+    if fecha_utc and fecha_utc.tzinfo is None:
+        fecha_utc = pytz.UTC.localize(fecha_utc)
+    return fecha_utc.astimezone(tz_argentina)
 
 class RecetaListCreateAPIView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -310,24 +319,29 @@ class RecetasPorFechaView(APIView):
             fecha_inicio_str = request.GET.get('fecha_inicio')
             fecha_fin_str = request.GET.get('fecha_fin')
             
+            tz_argentina = pytz.timezone('America/Argentina/Buenos_Aires')
+            
             # Usar el historial en lugar de las recetas directamente
             historial_query = HistorialReceta.objects.select_related('receta')
             
             # Aplicar filtro por fecha si se proporciona
             if fecha_inicio_str and fecha_fin_str:
-                fecha_inicio = timezone.datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
-                fecha_fin = timezone.datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+                # Convertir a fecha Argentina
+                fecha_inicio_arg = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+                fecha_fin_arg = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
                 
-                # Validar que las fechas no sean futuras
-                hoy = timezone.now().date()
-                if fecha_inicio > hoy or fecha_fin > hoy:
-                    return Response({
-                        'error': 'No se pueden filtrar fechas futuras'
-                    }, status=status.HTTP_400_BAD_REQUEST)
+                # Convertir a UTC para la consulta
+                fecha_inicio_utc = tz_argentina.localize(
+                    datetime.combine(fecha_inicio_arg, datetime.min.time())
+                ).astimezone(pytz.UTC)
                 
-                # Filtrar por fecha de preparación
+                fecha_fin_utc = tz_argentina.localize(
+                    datetime.combine(fecha_fin_arg, datetime.min.time())
+                ).replace(hour=23, minute=59, second=59).astimezone(pytz.UTC)
+                
+                # Filtrar por fecha de preparación en UTC
                 historial_query = historial_query.filter(
-                    fecha_preparacion__date__range=[fecha_inicio, fecha_fin]
+                    fecha_preparacion__range=[fecha_inicio_utc, fecha_fin_utc]
                 )
             
             # Agrupar por receta y contar total de preparaciones
@@ -342,22 +356,30 @@ class RecetasPorFechaView(APIView):
                 'receta__veces_hecha_hoy'
             ).annotate(
                 total_preparaciones=Sum('cantidad_preparada'),
-                ultima_preparacion=Max('fecha_preparacion')  # ✅ Fecha de la última preparación
-            ).order_by('-ultima_preparacion')  # Ordenar por la más reciente
+                ultima_preparacion=Max('fecha_preparacion')
+            ).order_by('-ultima_preparacion')
             
             # Preparar datos para la respuesta
             recetas_data = []
             for grupo in recetas_agrupadas:
+                # Convertir UTC a hora Argentina
+                ultima_prep_utc = grupo['ultima_preparacion']
+                if ultima_prep_utc:
+                    ultima_prep_arg = ultima_prep_utc.astimezone(tz_argentina)
+                    fecha_arg_str = ultima_prep_arg.strftime('%d/%m/%Y')
+                else:
+                    fecha_arg_str = None
+                
                 recetas_data.append({
                     'id': grupo['receta_id'],
                     'nombre': grupo['receta__nombre'],
-                    'cantidad': grupo['total_preparaciones'],  # Total de preparaciones en el período
+                    'cantidad': grupo['total_preparaciones'],
                     'rinde': grupo['receta__rinde'],
                     'unidad_rinde': grupo['receta__unidad_rinde'],
                     'costo_total': float(grupo['receta__costo_total']) if grupo['receta__costo_total'] else 0,
                     'precio_venta': float(grupo['receta__precio_venta']) if grupo['receta__precio_venta'] else 0,
                     'veces_hecha_hoy': grupo['receta__veces_hecha_hoy'],
-                    'ultima_preparacion': grupo['ultima_preparacion'].isoformat() if grupo['ultima_preparacion'] else None
+                    'ultima_preparacion': fecha_arg_str  # ✅ Fecha en Argentina
                 })
             
             return Response({

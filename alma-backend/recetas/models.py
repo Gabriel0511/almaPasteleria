@@ -51,20 +51,23 @@ class Receta(models.Model):
                 
                 # Si había preparaciones, guardar en historial antes de reiniciar
                 if self.veces_hecha_hoy > 0:
-                    # Crear fecha a las 23:59 del día anterior
+                    # Crear fecha a las 23:59 del día anterior EN UTC
                     fecha_anterior = self.ultima_actualizacion_diaria
-                    fecha_preparacion = datetime.combine(
+                    fecha_preparacion_arg = datetime.combine(
                         fecha_anterior, 
                         datetime.min.time()
                     ).replace(hour=23, minute=59, second=59)
-                    fecha_preparacion = tz_argentina.localize(fecha_preparacion)
+                    fecha_preparacion_arg = tz_argentina.localize(fecha_preparacion_arg)
+                    
+                    # Convertir a UTC
+                    fecha_preparacion_utc = fecha_preparacion_arg.astimezone(pytz.UTC)
                     
                     HistorialReceta.objects.create(
                         receta=self,
                         cantidad_preparada=self.veces_hecha_hoy,
-                        fecha_preparacion=fecha_preparacion  # ✅ Fecha personalizada
+                        fecha_preparacion=fecha_preparacion_utc  # ✅ Guardar en UTC
                     )
-                    print(f"🔹 Historial creado para {self.nombre}: {self.veces_hecha_hoy} preparaciones para {fecha_anterior}")
+                    print(f"🔹 Historial creado para {self.nombre}: {self.veces_hecha_hoy} preparaciones para {fecha_anterior} (UTC: {fecha_preparacion_utc})")
                 
                 # Reiniciar contador
                 self.veces_hecha_hoy = 0
