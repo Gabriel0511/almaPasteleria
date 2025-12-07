@@ -1329,9 +1329,9 @@ class GenerarPDFPerdidasAPIView(APIView):
                 fecha = perdida.get('fecha', '')
                 insumo_nombre = perdida.get('insumo_nombre', '')
                 categoria = perdida.get('categoria', '')
-                motivo = perdida.get('motivo', '')
+                motivo_val = perdida.get('motivo', '')
                 
-                key = f"{insumo_nombre}-{fecha}-{motivo}"
+                key = f"{insumo_nombre}-{fecha}-{motivo_val}"
                 
                 if key not in perdidas_agrupadas:
                     perdidas_agrupadas[key] = {
@@ -1340,8 +1340,8 @@ class GenerarPDFPerdidasAPIView(APIView):
                         'categoria': categoria,
                         'cantidad': float(perdida.get('cantidad', 0)),
                         'unidad': perdida.get('unidad', ''),
-                        'motivo': motivo,
-                        'motivo_display': self.format_motivo_display(motivo),
+                        'motivo': motivo_val,
+                        'motivo_display': self.format_motivo_display(motivo_val),
                         'observaciones': perdida.get('observaciones', ''),
                         'count': 1
                     }
@@ -1353,6 +1353,9 @@ class GenerarPDFPerdidasAPIView(APIView):
             for item in perdidas_agrupadas.values():
                 fecha_formateada = self.formatear_fecha_dd_mm_yyyy(item['fecha'])
                 
+                # Formatear cantidad con 2 decimales y coma como separador
+                cantidad_formateada = self.formatear_cantidad_con_comas(item['cantidad'])
+                
                 # Texto para observaciones (incluir contador si hay múltiples registros)
                 observaciones = item['observaciones']
                 if item['count'] > 1:
@@ -1362,7 +1365,7 @@ class GenerarPDFPerdidasAPIView(APIView):
                     fecha_formateada,
                     item['insumo_nombre'],
                     item['categoria'] or "-",
-                    f"{item['cantidad']:.3f} {item['unidad']}",
+                    f"{cantidad_formateada} {item['unidad']}",
                     item['motivo_display'],
                     observaciones or "-"
                 ])
@@ -1394,21 +1397,15 @@ class GenerarPDFPerdidasAPIView(APIView):
             # Agregar resumen
             elements.append(Spacer(1, 30))
             
-            # Estadísticas
+            # Estadísticas (sin desglose por motivo)
             total_perdidas = len(perdidas_agrupadas)
             total_cantidad = sum(item['cantidad'] for item in perdidas_agrupadas.values())
             total_registros = sum(item['count'] for item in perdidas_agrupadas.values())
             
-            # Resumen por motivo
-            motivos_dict = {}
-            for item in perdidas_agrupadas.values():
-                motivo = item['motivo_display']
-                if motivo not in motivos_dict:
-                    motivos_dict[motivo] = item['cantidad']
-                else:
-                    motivos_dict[motivo] += item['cantidad']
+            # Formatear cantidad total con coma
+            total_cantidad_formateada = self.formatear_cantidad_con_comas(total_cantidad)
             
-            resumen_text = f"Resumen: {total_perdidas} tipos de pérdidas ({total_registros} registros) | Total cantidad perdida: {total_cantidad:.3f}"
+            resumen_text = f"Resumen: {total_perdidas} tipos de pérdidas ({total_registros} registros) | Total cantidad perdida: {total_cantidad_formateada}"
             resumen_style = ParagraphStyle(
                 'Resumen',
                 parent=styles['Normal'],
@@ -1418,23 +1415,6 @@ class GenerarPDFPerdidasAPIView(APIView):
                 spaceBefore=10
             )
             elements.append(Paragraph(resumen_text, resumen_style))
-            
-            # Desglose por motivo
-            if motivos_dict:
-                elements.append(Spacer(1, 10))
-                motivos_text = "Desglose por motivo: "
-                motivos_list = [f"{motivo}: {cantidad:.3f}" for motivo, cantidad in motivos_dict.items()]
-                motivos_text += " | ".join(motivos_list)
-                
-                motivos_style = ParagraphStyle(
-                    'Motivos',
-                    parent=styles['Normal'],
-                    fontSize=9,
-                    alignment=1,
-                    textColor=colors.darkred,
-                    spaceBefore=5
-                )
-                elements.append(Paragraph(motivos_text, motivos_style))
             
             # Fecha de generación - FORMATO DD/MM/YYYY
             fecha_gen = ParagraphStyle(
@@ -1530,6 +1510,15 @@ class GenerarPDFPerdidasAPIView(APIView):
                 return str(fecha_str)
         except (ValueError, AttributeError):
             return str(fecha_str)
+    
+    def formatear_cantidad_con_comas(self, cantidad):
+        """
+        Formatea una cantidad con 2 decimales usando coma como separador decimal
+        """
+        # Formatear con 2 decimales
+        cantidad_formateada = f"{cantidad:.2f}"
+        # Reemplazar punto por coma
+        return cantidad_formateada.replace('.', ',')
     
     def format_motivo_display(self, motivo):
         """
