@@ -565,9 +565,15 @@ class CierreDiarioView(APIView):
     def post(self, request):
         try:
             with transaction.atomic():
-                # Obtener fecha actual
-                hoy = timezone.now().date()
-                print(f"🔹 Iniciando cierre diario para {hoy}")
+                # Obtener fecha de ayer (cerrar el día anterior)
+                ahora = timezone.now()
+                if ahora.hour < 5:  # Antes de las 5 AM, cerrar el día anterior
+                    ayer = ahora - timezone.timedelta(days=1)
+                    fecha_cierre = ayer.date()
+                else:
+                    fecha_cierre = ahora.date()
+                
+                print(f"🔹 Iniciando cierre diario para {fecha_cierre}")
                 
                 # Obtener todas las recetas con actividad hoy
                 recetas_con_actividad = Receta.objects.filter(veces_hecha_hoy__gt=0)
@@ -589,12 +595,18 @@ class CierreDiarioView(APIView):
                     
                     # Crear registro en historial si se preparó hoy
                     if receta.veces_hecha_hoy > 0:
+                        # Crear fecha de preparación como el día anterior a medianoche
+                        fecha_preparacion = timezone.datetime.combine(
+                            fecha_cierre, 
+                            timezone.datetime.min.time()
+                        ).replace(hour=23, minute=59, second=59)
+                        
                         historial = HistorialReceta.objects.create(
                             receta=receta,
                             cantidad_preparada=receta.veces_hecha_hoy,
-                            fecha_preparacion=timezone.now()
+                            fecha_preparacion=fecha_preparacion  # ✅ Usar fecha correcta
                         )
-                        print(f"🔹 Historial creado: {historial.id}")
+                        print(f"🔹 Historial creado: {historial.id} con fecha {fecha_cierre}")
                         
                         recetas_procesadas.append({
                             'id': receta.id,
@@ -608,17 +620,17 @@ class CierreDiarioView(APIView):
                     
                     # Reiniciar contador diario
                     receta.veces_hecha_hoy = 0
-                    receta.ultima_actualizacion_diaria = hoy
+                    receta.ultima_actualizacion_diaria = fecha_cierre
                     receta.save(update_fields=['veces_hecha_hoy', 'ultima_actualizacion_diaria'])
                     
                     print(f"🔹 Receta {receta.nombre} reiniciada: {valor_anterior} → 0")
                 
-                print(f"🔹 Cierre diario completado. Total: {total_preparaciones} preparaciones")
+                print(f"🔹 Cierre diario completado. Total: {total_preparaciones} preparaciones para {fecha_cierre}")
                 
                 return Response({
-                    'mensaje': f'Cierre diario realizado exitosamente',
+                    'mensaje': f'Cierre diario realizado exitosamente para {fecha_cierre}',
                     'cierre_realizado': True,
-                    'fecha_cierre': hoy.isoformat(),
+                    'fecha_cierre': fecha_cierre.isoformat(),
                     'total_recetas_procesadas': len(recetas_procesadas),
                     'total_preparaciones': total_preparaciones,
                     'recetas_procesadas': recetas_procesadas

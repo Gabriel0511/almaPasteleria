@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-from datetime import timedelta, date
+from datetime import datetime, timedelta, date
 from insumos.models import Insumo, UnidadMedida
 from insumos.conversiones import convertir_unidad
 from decimal import Decimal
@@ -38,7 +38,7 @@ class Receta(models.Model):
         return False
     
     def verificar_reinicio_diario(self):
-        """Nueva versión con cierre automático y historial"""
+        """Nueva versión con cierre automático e historial"""
         try:
             # Obtener hora actual en Argentina
             tz_argentina = pytz.timezone('America/Argentina/Buenos_Aires')
@@ -135,25 +135,41 @@ class Receta(models.Model):
 
     @classmethod
     def verificar_cierre_automatico(cls):
-        """Método seguro para verificación de cierre automático"""
-        try:
-            print("🔹 Verificando cierre automático...")
+        """Verifica y ejecuta cierre automático si es necesario"""
+        tz_argentina = pytz.timezone('America/Argentina/Buenos_Aires')
+        ahora = timezone.now().astimezone(tz_argentina)
+        
+        # Solo verificar entre las 00:00 y 00:05
+        if ahora.hour == 0 and ahora.minute <= 5:
+            fecha_cierre = (ahora - timedelta(days=1)).date()
+            
             recetas_con_actividad = cls.objects.filter(veces_hecha_hoy__gt=0)
-            print(f"🔹 Recetas con actividad: {recetas_con_actividad.count()}")
             
-            recetas_procesadas = 0
-            for receta in recetas_con_actividad:
-                if receta.verificar_reinicio_diario():
-                    recetas_procesadas += 1
-            
-            print(f"🔹 Cierre automático completado: {recetas_procesadas} recetas procesadas")
-            return recetas_procesadas
-            
-        except Exception as e:
-            print(f"❌ Error en verificar_cierre_automatico: {e}")
-            import traceback
-            print(f"❌ Traceback: {traceback.format_exc()}")
-            return 0
+            if recetas_con_actividad.exists():
+                # Ejecutar cierre para el día anterior
+                for receta in recetas_con_actividad:
+                    if receta.veces_hecha_hoy > 0:
+                        # Crear historial con fecha del día anterior
+                        fecha_preparacion = datetime.combine(
+                            fecha_cierre, 
+                            datetime.min.time()
+                        ).replace(hour=23, minute=59, second=59)
+                        fecha_preparacion = tz_argentina.localize(fecha_preparacion)
+                        
+                        HistorialReceta.objects.create(
+                            receta=receta,
+                            cantidad_preparada=receta.veces_hecha_hoy,
+                            fecha_preparacion=fecha_preparacion
+                        )
+                        
+                        # Reiniciar contador
+                        receta.veces_hecha_hoy = 0
+                        receta.ultima_actualizacion_diaria = fecha_cierre
+                        receta.save(update_fields=['veces_hecha_hoy', 'ultima_actualizacion_diaria'])
+                
+                return recetas_con_actividad.count()
+        
+        return 0
 
     @classmethod
     def cierre_diario_general(cls):
