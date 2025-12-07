@@ -1119,7 +1119,7 @@ class GenerarPDFListaComprasAPIView(APIView):
                 'CustomTitle',
                 parent=styles['Heading1'],
                 fontSize=16,
-                spaceAfter=30,
+                spaceAfter=20,
                 alignment=1,
                 textColor=colors.HexColor('#7B5A50')
             )
@@ -1133,7 +1133,7 @@ class GenerarPDFListaComprasAPIView(APIView):
                 title_text += f" - Del {fecha_inicio_fmt} al {fecha_fin_fmt}"
             
             elements.append(Paragraph(title_text, title_style))
-            elements.append(Spacer(1, 20))
+            elements.append(Spacer(1, 15))
             
             # Preparar datos para la tabla - SIN DÍA COMPRA
             table_data = [['Insumo', 'Stock Actual', 'Stock Mínimo', 'Pedidos', 'Compra Sugerida', 'Proveedor']]
@@ -1172,15 +1172,12 @@ class GenerarPDFListaComprasAPIView(APIView):
             
             elements.append(table)
             
-            # Agregar resumen
-            elements.append(Spacer(1, 20))
+            # Agregar resumen SIMPLIFICADO (sin total sugerido)
+            elements.append(Spacer(1, 15))
             total_insumos = len(items_comprar)
             
-            # Calcular total de compra sugerida
-            total_compra_sugerida = sum(item['total_comprar'] for item in items_comprar)
-            total_compra_formateado = self.formatear_cantidad_con_comas(total_compra_sugerida)
-            
-            resumen_text = f"Resumen: {total_insumos} insumos a comprar | Total sugerido: {total_compra_formateado}"
+            # Resumen SIMPLIFICADO: solo contador de insumos
+            resumen_text = f"Resumen: {total_insumos} insumos a comprar"
             resumen_style = ParagraphStyle(
                 'Resumen',
                 parent=styles['Normal'],
@@ -1190,18 +1187,6 @@ class GenerarPDFListaComprasAPIView(APIView):
                 spaceBefore=10
             )
             elements.append(Paragraph(resumen_text, resumen_style))
-            
-            # Fecha de generación - FORMATO DD/MM/YYYY
-            fecha_gen = ParagraphStyle(
-                'FechaGen',
-                parent=styles['Normal'],
-                fontSize=9,
-                alignment=1,
-                textColor=colors.grey,
-                spaceBefore=20
-            )
-            fecha_text = f"Generado el: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
-            elements.append(Paragraph(fecha_text, fecha_gen))
             
             # Construir PDF
             doc.build(elements)
