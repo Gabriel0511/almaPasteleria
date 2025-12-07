@@ -206,9 +206,19 @@
 
         <div class="form-group">
           <label>Unidad de Medida:</label>
-          <select v-model="formInsumo.unidad_medida_id" required class="form-input">
+          <select 
+            v-model="formInsumo.unidad_medida_id" 
+            required 
+            class="form-input"
+            @change="onUnidadMedidaChange"
+          >
             <option value="">Seleccione una unidad</option>
-            <option v-for="unidad in unidadesPermitidas" :key="unidad.id" :value="unidad.id">
+            <option 
+              v-for="unidad in unidadesPermitidasParaEdicion" 
+              :key="unidad.id" 
+              :value="unidad.id"
+              :disabled="unidad.disabled"
+            >
               {{ unidad.nombre }} ({{ unidad.abreviatura }})
             </option>
           </select>
@@ -291,8 +301,7 @@
                 {{ insumo.nombre }}
                 (Stock: {{ formatDecimal(insumo.stock_actual) }} | Mín:
                 {{ formatDecimal(insumo.stock_minimo) }}
-                {{ insumo.unidad_medida?.abreviatura }})
-              </option>
+                {{ insumo.unidad_medida?.abreviatura }})</option>
             </select>
           </div>
         </div>
@@ -512,8 +521,7 @@
             <option v-for="insumo in insumos" :key="insumo.id" :value="insumo.id">
               {{ insumo.nombre }}
               (Stock: {{ formatDecimal(insumo.stock_actual) }}
-              {{ insumo.unidad_medida?.abreviatura }})
-            </option>
+              {{ insumo.unidad_medida?.abreviatura }})</option>
           </select>
         </div>
 
@@ -664,6 +672,10 @@ const showReactivarModal = ref(false);
 const insumoDesactivado = ref(null);
 const reactivando = ref(false);
 
+// Variables para manejo de conversiones
+const unidadAnterior = ref("");
+const unidadActual = ref("");
+
 // Variables de paginación
 const paginaActual = ref(1);
 const itemsPorPagina = ref(10);
@@ -688,6 +700,7 @@ const formInsumo = ref({
   stock_minimo: 0,
   precio_unitario: null,
   proveedor_id: null,
+  stockActual: 0,
 });
 
 const formCompra = ref({
@@ -780,6 +793,63 @@ const categoriasStock = computed(() => {
 const proveedoresStock = computed(() => {
   const proveedoresUnicos = [...new Set(stock.value.map((item) => item.proveedor))];
   return proveedoresUnicos.filter((prov) => prov && prov !== "Sin Proveedor");
+});
+
+// Computed property para filtrar unidades permitidas al editar
+const unidadesPermitidasParaEdicion = computed(() => {
+  // Si no estamos en modo edición, mostrar todas las unidades
+  if (!esEdicion.value) {
+    return unidadesMedida.value.map(unidad => ({
+      ...unidad,
+      disabled: false
+    }));
+  }
+
+  // Si estamos en modo edición, encontrar la unidad actual del insumo
+  const unidadActual = unidadesMedida.value.find(u => u.id === formInsumo.value.unidad_medida_id);
+  if (!unidadActual) {
+    return unidadesMedida.value.map(unidad => ({
+      ...unidad,
+      disabled: false
+    }));
+  }
+
+  const abreviaturaActual = unidadActual.abreviatura.toLowerCase();
+  
+  // Definir grupos de unidades compatibles
+  const grupos = {
+    // Volumen: l, ml, cda, cdta
+    volumen: ['l', 'ml', 'cda', 'cdta'],
+    // Peso: kg, g, cda, cdta (cda y cdta comparten con volumen)
+    peso: ['kg', 'g', 'cda', 'cdta'],
+    // Unidades: unidad, docena
+    unidades: ['unidad', 'docena']
+  };
+
+  // Determinar a qué grupo pertenece la unidad actual
+  let grupoPermitido = [];
+  
+  if (grupos.volumen.includes(abreviaturaActual)) {
+    grupoPermitido = grupos.volumen;
+  } else if (grupos.peso.includes(abreviaturaActual)) {
+    grupoPermitido = grupos.peso;
+  } else if (grupos.unidades.includes(abreviaturaActual)) {
+    grupoPermitido = grupos.unidades;
+  } else {
+    // Si no está en ningún grupo, permitir todas
+    grupoPermitido = [...grupos.volumen, ...grupos.peso, ...grupos.unidades];
+  }
+
+  // Filtrar unidades permitidas
+  return unidadesMedida.value.map(unidad => {
+    const abreviatura = unidad.abreviatura.toLowerCase();
+    const estaPermitida = grupoPermitido.includes(abreviatura);
+    
+    return {
+      ...unidad,
+      disabled: !estaPermitida
+    };
+  });
 });
 
 // Métodos para manejar eventos del PageHeader
@@ -1126,9 +1196,101 @@ const parsearNumero = (valor) => {
   return parseFloat(valor);
 };
 
+// Método para convertir entre unidades
+const convertirEntreUnidades = (cantidad, unidadOrigen, unidadDestino) => {
+  if (unidadOrigen === unidadDestino) return cantidad;
+
+  // Factores de conversión (simplificados del archivo conversiones.py)
+  const factores = {
+    // Peso
+    'kg': { 'g': 1000, 'cda': 58.8235, 'cdta': 200 },
+    'g': { 'kg': 0.001, 'cda': 0.0588, 'cdta': 0.2 },
+    
+    // Volumen
+    'l': { 'ml': 1000, 'cda': 66.6667, 'cdta': 200 },
+    'ml': { 'l': 0.001, 'cda': 0.0667, 'cdta': 0.2 },
+    'cda': { 'ml': 15, 'l': 0.015, 'cdta': 3, 'g': 17, 'kg': 0.017 },
+    'cdta': { 'ml': 5, 'l': 0.005, 'cda': 0.333, 'g': 5, 'kg': 0.005 },
+    
+    // Unidades
+    'unidad': { 'docena': 0.083333 },
+    'docena': { 'unidad': 12 }
+  };
+
+  const origen = unidadOrigen.toLowerCase();
+  const destino = unidadDestino.toLowerCase();
+
+  // Buscar conversión directa
+  if (factores[origen] && factores[origen][destino]) {
+    return cantidad * factores[origen][destino];
+  }
+
+  // Buscar conversión inversa
+  if (factores[destino] && factores[destino][origen]) {
+    return cantidad / factores[destino][origen];
+  }
+
+  // Si no hay conversión directa, devolver la cantidad original
+  console.warn(`No se encontró conversión de ${origen} a ${destino}`);
+  return cantidad;
+};
+
+// Método para manejar cambio de unidad en edición
+const onUnidadMedidaChange = () => {
+  if (!esEdicion.value) return;
+
+  const nuevaUnidadId = formInsumo.value.unidad_medida_id;
+  const unidadAnteriorObj = unidadesMedida.value.find(u => u.id === unidadAnterior.value);
+  const unidadNuevaObj = unidadesMedida.value.find(u => u.id === nuevaUnidadId);
+
+  if (!unidadAnteriorObj || !unidadNuevaObj || unidadAnteriorObj.id === unidadNuevaObj.id) {
+    unidadAnterior.value = nuevaUnidadId;
+    return;
+  }
+
+  // Guardar valores actuales antes de convertir
+  const stockActualAnterior = formInsumo.value.stockActual;
+  const stockMinimoAnterior = formInsumo.value.stock_minimo;
+  const precioUnitarioAnterior = formInsumo.value.precio_unitario;
+
+  // Convertir valores
+  const factorConversion = convertirEntreUnidades(
+    1, 
+    unidadAnteriorObj.abreviatura.toLowerCase(), 
+    unidadNuevaObj.abreviatura.toLowerCase()
+  );
+
+  // Aplicar conversiones
+  if (stockActualAnterior && stockActualAnterior > 0) {
+    formInsumo.value.stockActual = stockActualAnterior * factorConversion;
+  }
+
+  if (stockMinimoAnterior && stockMinimoAnterior > 0) {
+    formInsumo.value.stock_minimo = stockMinimoAnterior * factorConversion;
+  }
+
+  // Para precio unitario, la conversión es inversa
+  // Si pasas de kg a g, el precio por gramo es menor
+  if (precioUnitarioAnterior && precioUnitarioAnterior > 0) {
+    formInsumo.value.precio_unitario = precioUnitarioAnterior / factorConversion;
+  }
+
+  // Actualizar unidad anterior
+  unidadAnterior.value = nuevaUnidadId;
+
+  // Mostrar notificación informativa
+  notificationSystem.show({
+    type: "info",
+    title: "Conversión aplicada",
+    message: `Se han convertido los valores de ${unidadAnteriorObj.abreviatura} a ${unidadNuevaObj.abreviatura}`,
+    timeout: 3000,
+  });
+};
+
 const showNuevoInsumoModal = () => {
   esEdicion.value = false;
   resetFormInsumo();
+  unidadAnterior.value = "";
   showModalInsumo.value = true;
 };
 
@@ -1148,6 +1310,10 @@ const editarInsumo = (insumo) => {
     proveedor_id: insumo.proveedor_id,
     stockActual: parsearNumero(insumo.cantidad),
   };
+
+  // Guardar la unidad actual para futuras conversiones
+  unidadAnterior.value = formInsumo.value.unidad_medida_id;
+  
   showModalInsumo.value = true;
 };
 
@@ -1197,11 +1363,14 @@ const guardarInsumo = async () => {
       categoria_id: formInsumo.value.categoria_id,
       unidad_medida_id: formInsumo.value.unidad_medida_id,
       stock_minimo: formInsumo.value.stock_minimo,
+      precio_unitario: formInsumo.value.precio_unitario,
     };
 
     // 👉 SOLO para creación
     if (!esEdicion.value) {
       datosParaEnviar.stock_actual = 0;
+    } else {
+      datosParaEnviar.stock_actual = formInsumo.value.stockActual;
     }
 
     let response;
@@ -1210,8 +1379,6 @@ const guardarInsumo = async () => {
     // ✔ EDICIÓN
     // -----------------------------
     if (esEdicion.value) {
-      datosParaEnviar.stock_actual = formInsumo.value.stockActual;
-
       response = await axios.patch(
         `/api/insumos/${formInsumo.value.id}/actualizar-parcial/`,
         datosParaEnviar
@@ -1523,6 +1690,7 @@ const closeModal = () => {
   showNuevoProveedorModal.value = false;
   showNuevaCategoriaModal.value = false;
   resetForms();
+  unidadAnterior.value = "";
 };
 
 const resetFormInsumo = () => {
@@ -1566,6 +1734,7 @@ const resetForms = () => {
   resetFormProveedor();
   resetFormPerdida();
   esEdicion.value = false;
+  unidadAnterior.value = "";
 };
 
 // Método para registrar pérdida rápida
