@@ -324,8 +324,12 @@ class RecetasPorFechaView(APIView):
             # Usar el historial en lugar de las recetas directamente
             historial_query = HistorialReceta.objects.select_related('receta')
             
+            # Bandera para indicar si hay filtro por fecha
+            tiene_filtro_fecha = False
+            
             # Aplicar filtro por fecha si se proporciona
             if fecha_inicio_str and fecha_fin_str:
+                tiene_filtro_fecha = True
                 # Convertir a fecha Argentina
                 fecha_inicio_arg = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
                 fecha_fin_arg = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
@@ -343,8 +347,10 @@ class RecetasPorFechaView(APIView):
                 historial_query = historial_query.filter(
                     fecha_preparacion__range=[fecha_inicio_utc, fecha_fin_utc]
                 )
+                
             elif fecha_inicio_str:
                 # Si solo hay fecha inicio, buscar solo ese día
+                tiene_filtro_fecha = True
                 fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
                 
                 fecha_inicio_utc = tz_argentina.localize(
@@ -359,23 +365,14 @@ class RecetasPorFechaView(APIView):
                     fecha_preparacion__range=[fecha_inicio_utc, fecha_fin_utc]
                 )
             
-            # 🔹 AGREGAR: Obtener preparaciones de HOY si no hay filtro de fecha
-            if not fecha_inicio_str and not fecha_fin_str:
-                # Obtener las preparaciones de hoy desde el historial
-                hoy = timezone.now().date()
-                hoy_inicio_utc = tz_argentina.localize(
-                    datetime.combine(hoy, datetime.min.time())
-                ).astimezone(pytz.UTC)
-                hoy_fin_utc = tz_argentina.localize(
-                    datetime.combine(hoy, datetime.min.time())
-                ).replace(hour=23, minute=59, second=59).astimezone(pytz.UTC)
-                
-                historial_query = historial_query.filter(
-                    fecha_preparacion__range=[hoy_inicio_utc, hoy_fin_utc]
-                )
+            # 🔹 CAMBIO: Si NO hay filtro de fecha, mostrar TODAS las preparaciones del historial
+            # No aplicamos ningún filtro cuando no hay fechas especificadas
             
-            # 🔹 CAMBIO IMPORTANTE: Agrupar por receta Y por fecha
-            from django.db.models import Count, Sum, DateField
+            print(f"🔍 Consultando historial. Tiene filtro fecha: {tiene_filtro_fecha}")
+            print(f"🔍 Total registros en historial: {historial_query.count()}")
+            
+            # 🔹 AGREGAR: Agrupar por receta Y por fecha
+            from django.db.models import Sum
             from django.db.models.functions import TruncDate
             
             # Agrupar por receta y fecha de preparación (en hora Argentina)
@@ -393,6 +390,8 @@ class RecetasPorFechaView(APIView):
                 total_preparaciones=Sum('cantidad_preparada')
             ).order_by('-fecha_preparacion_arg', 'receta__nombre')
             
+            print(f"🔍 Recetas agrupadas encontradas: {recetas_agrupadas.count()}")
+            
             # Preparar datos para la respuesta
             recetas_data = []
             for grupo in recetas_agrupadas:
@@ -401,7 +400,7 @@ class RecetasPorFechaView(APIView):
                 if fecha_prep:
                     fecha_arg_str = fecha_prep.strftime('%d/%m/%Y')
                 else:
-                    fecha_arg_str = None
+                    fecha_arg_str = "Sin fecha"
                 
                 # Calcular costo total para esa cantidad de preparaciones
                 costo_por_preparacion = grupo['receta__costo_total'] or Decimal('0')
@@ -419,6 +418,12 @@ class RecetasPorFechaView(APIView):
                     'fecha_preparacion_original': fecha_prep.isoformat() if fecha_prep else None
                 })
             
+            # Si no hay datos y no hay filtro, podríamos incluir recetas sin preparaciones
+            if len(recetas_data) == 0 and not tiene_filtro_fecha:
+                print("⚠️ No hay preparaciones en el historial. Mostrando recetas sin preparaciones...")
+                # Opcional: puedes agregar lógica para mostrar recetas aunque no tengan historial
+                pass
+            
             return Response({
                 'fecha_inicio': fecha_inicio_str,
                 'fecha_fin': fecha_fin_str,
@@ -429,6 +434,8 @@ class RecetasPorFechaView(APIView):
             
         except Exception as e:
             print(f"❌ Error en RecetasPorFechaView: {str(e)}")
+            import traceback
+            print(f"❌ Traceback: {traceback.format_exc()}")
             return Response({
                 'error': f'Error interno del servidor: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

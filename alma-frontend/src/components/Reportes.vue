@@ -2076,8 +2076,8 @@ const fetchRecetasHechas = async () => {
     if (filtrosRecetasHechas.value.fechaFin) {
       params.fecha_fin = filtrosRecetasHechas.value.fechaFin;
     }
-    // 🔹 NOTA: Ya no autocompletamos fecha_fin igual a fecha_inicio
-    // Dejamos que el backend maneje la lógica
+    // 🔹 NOTA: Si no hay fechas, no enviamos parámetros
+    // Esto hará que el backend devuelva TODAS las preparaciones
 
     console.log(
       "📊 Haciendo petición a /api/recetas-por-fecha/ con params:",
@@ -2116,6 +2116,7 @@ const fetchRecetasHechas = async () => {
     }));
 
     console.log("📊 Datos procesados:", recetasHechas.value);
+    console.log("📊 Total de registros:", recetasHechas.value.length);
   } catch (error) {
     console.error("Error al cargar preparaciones:", error);
     recetasHechas.value = [];
@@ -2289,7 +2290,7 @@ onMounted(() => {
 
   Promise.all([
     fetchReportes(),
-    fetchListaCompras(), // Esta función ahora está definida
+    fetchListaCompras(),
     fetchRecetasHechas(),
     fetchPedidos(),
     fetchHistorialPerdidas(),
