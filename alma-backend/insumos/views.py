@@ -847,21 +847,6 @@ class GenerarPDFReporteInsumosAPIView(APIView):
                 )
                 elements.append(Paragraph("No hay insumos con stock usado en el período seleccionado", no_data_style))
                 
-                # Agregar información de parámetros
-                param_style = ParagraphStyle(
-                    'ParamStyle',
-                    parent=styles['Normal'],
-                    fontSize=10,
-                    alignment=1,
-                    textColor=colors.grey
-                )
-                param_text = f"Filtro aplicado: solo_con_stock_usado={solo_con_stock_usado}"
-                if fecha_inicio and fecha_fin:
-                    fecha_inicio_fmt = self.formatear_fecha_dd_mm_yyyy(fecha_inicio)
-                    fecha_fin_fmt = self.formatear_fecha_dd_mm_yyyy(fecha_fin)
-                    param_text += f" | Período: {fecha_inicio_fmt} a {fecha_fin_fmt}"
-                elements.append(Paragraph(param_text, param_style))
-                
                 doc.build(elements)
                 buffer.seek(0)
                 response = HttpResponse(buffer, content_type='application/pdf')
@@ -917,18 +902,15 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             
             elements.append(table)
             
-            # Agregar resumen
-            elements.append(Spacer(1, 30))
+            # Agregar resumen (SOLO contador, sin total stock usado)
+            elements.append(Spacer(1, 20))
             
             # Estadísticas
             total_insumos = len(reporte_data)
             insumos_reponer = len([item for item in reporte_data if item['necesita_reposicion']])
             
-            # Calcular total de stock usado
-            total_stock_usado = sum(item['stock_usado'] for item in reporte_data)
-            total_stock_usado_formateado = self.formatear_cantidad_con_comas(total_stock_usado)
-            
-            resumen_text = f"Resumen: {total_insumos} insumos con stock usado ({insumos_reponer} necesitan reposición) | Total stock usado: {total_stock_usado_formateado}"
+            # Resumen SIMPLIFICADO: solo contador de insumos y cuántos necesitan reposición
+            resumen_text = f"Resumen: {total_insumos} insumos con stock usado ({insumos_reponer} necesitan reposición)"
             resumen_style = ParagraphStyle(
                 'Resumen',
                 parent=styles['Normal'],
@@ -938,18 +920,6 @@ class GenerarPDFReporteInsumosAPIView(APIView):
                 spaceBefore=10
             )
             elements.append(Paragraph(resumen_text, resumen_style))
-            
-            # Fecha de generación - FORMATO DD/MM/YYYY
-            fecha_gen = ParagraphStyle(
-                'FechaGen',
-                parent=styles['Normal'],
-                fontSize=8,
-                alignment=1,
-                textColor=colors.grey,
-                spaceBefore=20
-            )
-            # Cambiado a DD/MM/YYYY
-            elements.append(Paragraph(f"Generado el: {datetime.now().strftime('%d/%m/%Y %H:%M')}", fecha_gen))
             
             # Construir PDF
             doc.build(elements)
