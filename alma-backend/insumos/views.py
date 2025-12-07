@@ -1242,3 +1242,305 @@ class GenerarPDFListaComprasAPIView(APIView):
                 return str(fecha_str)
         except (ValueError, AttributeError):
             return str(fecha_str)
+        
+class GenerarPDFPerdidasAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            # Obtener parámetros de filtro
+            fecha_inicio = request.GET.get('fecha_inicio')
+            fecha_fin = request.GET.get('fecha_fin')
+            motivo = request.GET.get('motivo')
+            
+            print(f"DEBUG PDF Pérdidas - Parámetros recibidos:")
+            print(f"  - fecha_inicio: {fecha_inicio}")
+            print(f"  - fecha_fin: {fecha_fin}")
+            print(f"  - motivo: {motivo}")
+            
+            # Obtener datos de pérdidas
+            perdidas_data = self.obtener_datos_perdidas(fecha_inicio, fecha_fin, motivo)
+            
+            print(f"DEBUG - Datos obtenidos: {len(perdidas_data)} pérdidas")
+            
+            # Crear el PDF
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=30, bottomMargin=30)
+            elements = []
+            
+            # Estilos
+            styles = getSampleStyleSheet()
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=16,
+                spaceAfter=10,
+                alignment=1,
+                textColor=colors.HexColor('#7B5A50')
+            )
+            
+            # Título principal
+            title_text = "Historial de Pérdidas de Insumos"
+            
+            # Subtítulo con fechas - FORMATO DD/MM/YYYY
+            if fecha_inicio and fecha_fin:
+                fecha_inicio_fmt = self.formatear_fecha_dd_mm_yyyy(fecha_inicio)
+                fecha_fin_fmt = self.formatear_fecha_dd_mm_yyyy(fecha_fin)
+                
+                subtitle_style = ParagraphStyle(
+                    'Subtitle',
+                    parent=styles['Normal'],
+                    fontSize=12,
+                    alignment=1,
+                    textColor=colors.grey,
+                    spaceAfter=10
+                )
+                elements.append(Paragraph(f"Período: {fecha_inicio_fmt} al {fecha_fin_fmt}", subtitle_style))
+            
+            elements.append(Paragraph(title_text, title_style))
+            elements.append(Spacer(1, 20))
+            
+            # Si no hay datos
+            if not perdidas_data:
+                no_data_style = ParagraphStyle(
+                    'NoData',
+                    parent=styles['Normal'],
+                    fontSize=12,
+                    alignment=1,
+                    textColor=colors.red,
+                    spaceAfter=20
+                )
+                elements.append(Paragraph("No hay registros de pérdidas en el período seleccionado", no_data_style))
+                
+                doc.build(elements)
+                buffer.seek(0)
+                response = HttpResponse(buffer, content_type='application/pdf')
+                filename = f"perdidas_sin_registros_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                return response
+            
+            # Preparar datos para la tabla
+            table_data = [['Fecha', 'Insumo', 'Categoría', 'Cantidad', 'Motivo', 'Observaciones']]
+            
+            # Agrupar pérdidas similares para el PDF (como en el frontend)
+            perdidas_agrupadas = {}
+            for perdida in perdidas_data:
+                # Usar el formato que usa el frontend para agrupar
+                fecha = perdida.get('fecha', '')
+                insumo_nombre = perdida.get('insumo_nombre', '')
+                categoria = perdida.get('categoria', '')
+                motivo = perdida.get('motivo', '')
+                
+                key = f"{insumo_nombre}-{fecha}-{motivo}"
+                
+                if key not in perdidas_agrupadas:
+                    perdidas_agrupadas[key] = {
+                        'fecha': fecha,
+                        'insumo_nombre': insumo_nombre,
+                        'categoria': categoria,
+                        'cantidad': float(perdida.get('cantidad', 0)),
+                        'unidad': perdida.get('unidad', ''),
+                        'motivo': motivo,
+                        'motivo_display': self.format_motivo_display(motivo),
+                        'observaciones': perdida.get('observaciones', ''),
+                        'count': 1
+                    }
+                else:
+                    perdidas_agrupadas[key]['cantidad'] += float(perdida.get('cantidad', 0))
+                    perdidas_agrupadas[key]['count'] += 1
+            
+            # Preparar filas para la tabla
+            for item in perdidas_agrupadas.values():
+                fecha_formateada = self.formatear_fecha_dd_mm_yyyy(item['fecha'])
+                
+                # Texto para observaciones (incluir contador si hay múltiples registros)
+                observaciones = item['observaciones']
+                if item['count'] > 1:
+                    observaciones = f"{observaciones} (Agrupado de {item['count']} registros)"
+                
+                table_data.append([
+                    fecha_formateada,
+                    item['insumo_nombre'],
+                    item['categoria'] or "-",
+                    f"{item['cantidad']:.3f} {item['unidad']}",
+                    item['motivo_display'],
+                    observaciones or "-"
+                ])
+            
+            # Crear tabla
+            table = Table(table_data, colWidths=[1*inch, 1.5*inch, 1*inch, 1*inch, 1*inch, 2*inch])
+            
+            # Estilos de la tabla
+            table_style = [
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#dc3545')),  # Rojo para pérdidas
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('ALIGN', (5, 1), (5, -1), 'LEFT'),  # Observaciones alineadas a la izquierda
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#f8d7da')),  # Fondo rojo claro
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#f8d7da'), colors.HexColor('#fff5f5')]),  # Filas alternadas
+            ]
+            
+            table.setStyle(TableStyle(table_style))
+            
+            elements.append(table)
+            
+            # Agregar resumen
+            elements.append(Spacer(1, 30))
+            
+            # Estadísticas
+            total_perdidas = len(perdidas_agrupadas)
+            total_cantidad = sum(item['cantidad'] for item in perdidas_agrupadas.values())
+            total_registros = sum(item['count'] for item in perdidas_agrupadas.values())
+            
+            # Resumen por motivo
+            motivos_dict = {}
+            for item in perdidas_agrupadas.values():
+                motivo = item['motivo_display']
+                if motivo not in motivos_dict:
+                    motivos_dict[motivo] = item['cantidad']
+                else:
+                    motivos_dict[motivo] += item['cantidad']
+            
+            resumen_text = f"Resumen: {total_perdidas} tipos de pérdidas ({total_registros} registros) | Total cantidad perdida: {total_cantidad:.3f}"
+            resumen_style = ParagraphStyle(
+                'Resumen',
+                parent=styles['Normal'],
+                fontSize=10,
+                alignment=1,
+                textColor=colors.HexColor('#dc3545'),
+                spaceBefore=10
+            )
+            elements.append(Paragraph(resumen_text, resumen_style))
+            
+            # Desglose por motivo
+            if motivos_dict:
+                elements.append(Spacer(1, 10))
+                motivos_text = "Desglose por motivo: "
+                motivos_list = [f"{motivo}: {cantidad:.3f}" for motivo, cantidad in motivos_dict.items()]
+                motivos_text += " | ".join(motivos_list)
+                
+                motivos_style = ParagraphStyle(
+                    'Motivos',
+                    parent=styles['Normal'],
+                    fontSize=9,
+                    alignment=1,
+                    textColor=colors.darkred,
+                    spaceBefore=5
+                )
+                elements.append(Paragraph(motivos_text, motivos_style))
+            
+            # Fecha de generación - FORMATO DD/MM/YYYY
+            fecha_gen = ParagraphStyle(
+                'FechaGen',
+                parent=styles['Normal'],
+                fontSize=8,
+                alignment=1,
+                textColor=colors.grey,
+                spaceBefore=20
+            )
+            elements.append(Paragraph(f"Generado el: {datetime.now().strftime('%d/%m/%Y %H:%M')}", fecha_gen))
+            
+            # Construir PDF
+            doc.build(elements)
+            
+            # Preparar respuesta
+            buffer.seek(0)
+            response = HttpResponse(buffer, content_type='application/pdf')
+            
+            # Nombre del archivo
+            filename = f"historial_perdidas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            if fecha_inicio and fecha_fin:
+                fecha_inicio_archivo = fecha_inicio.replace("-", "")
+                fecha_fin_archivo = fecha_fin.replace("-", "")
+                filename = f"perdidas_{fecha_inicio_archivo}_a_{fecha_fin_archivo}.pdf"
+            
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+            
+        except Exception as e:
+            import traceback
+            error_msg = f"ERROR generando PDF de pérdidas: {str(e)}"
+            print(error_msg)
+            print(traceback.format_exc())
+            return Response(
+                {'error': error_msg},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def obtener_datos_perdidas(self, fecha_inicio, fecha_fin, motivo):
+        """
+        Obtiene los datos de pérdidas
+        """
+        try:
+            # Construir query
+            query = Q()
+            
+            if fecha_inicio:
+                query &= Q(fecha__gte=fecha_inicio)
+            if fecha_fin:
+                query &= Q(fecha__lte=fecha_fin)
+            if motivo:
+                query &= Q(motivo=motivo)
+            
+            # Obtener pérdidas con datos relacionados
+            perdidas = Perdida.objects.filter(query).select_related(
+                'insumo', 'insumo__categoria', 'insumo__unidad_medida'
+            ).order_by('-fecha', '-id')
+            
+            print(f"DEBUG - Consulta SQL: {str(perdidas.query)}")
+            
+            # Preparar datos
+            perdidas_data = []
+            for perdida in perdidas:
+                perdidas_data.append({
+                    'id': perdida.id,
+                    'fecha': perdida.fecha.isoformat() if perdida.fecha else '',
+                    'insumo_nombre': perdida.insumo.nombre if perdida.insumo else 'Insumo no encontrado',
+                    'categoria': perdida.insumo.categoria.nombre if perdida.insumo and perdida.insumo.categoria else '',
+                    'cantidad': float(perdida.cantidad),
+                    'unidad': perdida.insumo.unidad_medida.abreviatura if perdida.insumo and perdida.insumo.unidad_medida else '',
+                    'motivo': perdida.motivo,
+                    'observaciones': perdida.observaciones
+                })
+            
+            return perdidas_data
+            
+        except Exception as e:
+            print(f"ERROR en obtener_datos_perdidas: {str(e)}")
+            return []
+    
+    def formatear_fecha_dd_mm_yyyy(self, fecha_str):
+        """
+        Convierte fecha de formato YYYY-MM-DD a DD/MM/YYYY
+        """
+        try:
+            if isinstance(fecha_str, str):
+                fecha_obj = datetime.strptime(fecha_str, '%Y-%m-%d')
+                return fecha_obj.strftime('%d/%m/%Y')
+            elif hasattr(fecha_str, 'strftime'):
+                return fecha_str.strftime('%d/%m/%Y')
+            else:
+                return str(fecha_str)
+        except (ValueError, AttributeError):
+            return str(fecha_str)
+    
+    def format_motivo_display(self, motivo):
+        """
+        Formatea el motivo para mostrar
+        """
+        motivos_display = {
+            'deterioro': 'Deterioro',
+            'vencimiento': 'Vencimiento',
+            'rotura': 'Rotura',
+            'error': 'Error en registro',
+            'uso_interno': 'Uso interno',
+            'otro': 'Otro'
+        }
+        return motivos_display.get(motivo, motivo)

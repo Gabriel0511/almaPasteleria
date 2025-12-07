@@ -14,7 +14,8 @@ from .views import (
     PerdidaListCreateView,
     PerdidaDetailView,
     GenerarPDFListaComprasAPIView,
-    GenerarPDFReporteInsumosAPIView
+    GenerarPDFReporteInsumosAPIView,
+    GenerarPDFPerdidasAPIView
 )
 
 urlpatterns = [
@@ -67,4 +68,5 @@ urlpatterns = [
     #PDF's
     path('reportes/generar-pdf/', views.GenerarPDFReporteInsumosAPIView.as_view(), name='generar-pdf-reporte'),
     path('reportes/generar-pdf-lista-compras/', views.GenerarPDFListaComprasAPIView.as_view(), name='generar-pdf-lista-compras'),
+    path('perdidas/generar-pdf/', views.GenerarPDFPerdidasAPIView.as_view(), name='generar-pdf-perdidas'),
 ]
