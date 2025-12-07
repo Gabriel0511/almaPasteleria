@@ -36,7 +36,7 @@ class Receta(models.Model):
             self.save(update_fields=['veces_hecha_hoy', 'ultima_actualizacion_diaria'])
             return True
         return False
-    
+        
     def verificar_reinicio_diario(self):
         """Nueva versión con cierre automático e historial"""
         try:
@@ -51,12 +51,20 @@ class Receta(models.Model):
                 
                 # Si había preparaciones, guardar en historial antes de reiniciar
                 if self.veces_hecha_hoy > 0:
+                    # Crear fecha a las 23:59 del día anterior
+                    fecha_anterior = self.ultima_actualizacion_diaria
+                    fecha_preparacion = datetime.combine(
+                        fecha_anterior, 
+                        datetime.min.time()
+                    ).replace(hour=23, minute=59, second=59)
+                    fecha_preparacion = tz_argentina.localize(fecha_preparacion)
+                    
                     HistorialReceta.objects.create(
                         receta=self,
                         cantidad_preparada=self.veces_hecha_hoy,
-                        fecha_preparacion=timezone.now()
+                        fecha_preparacion=fecha_preparacion  # ✅ Fecha personalizada
                     )
-                    print(f"🔹 Historial creado para {self.nombre}: {self.veces_hecha_hoy} preparaciones")
+                    print(f"🔹 Historial creado para {self.nombre}: {self.veces_hecha_hoy} preparaciones para {fecha_anterior}")
                 
                 # Reiniciar contador
                 self.veces_hecha_hoy = 0
@@ -79,10 +87,11 @@ class Receta(models.Model):
         self.veces_hecha_hoy += 1
         self.veces_hecha += 1
         
-        # Crear registro en historial
+        # Crear registro en historial con fecha actual
         HistorialReceta.objects.create(
             receta=self,
             cantidad_preparada=1,
+            fecha_preparacion=timezone.now()
         )
         self.save()
 
@@ -311,7 +320,7 @@ class RecetaInsumo(models.Model):
 
 class HistorialReceta(models.Model):
     receta = models.ForeignKey(Receta, on_delete=models.CASCADE, related_name='historial')
-    fecha_preparacion = models.DateTimeField(auto_now_add=True)
+    fecha_preparacion = models.DateTimeField(default=timezone.now)
     cantidad_preparada = models.PositiveIntegerField(default=1)
     
     def __str__(self):
