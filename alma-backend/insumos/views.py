@@ -399,7 +399,11 @@ class ReporteInsumosAPIView(APIView):
                     'proveedor': {
                         'id': insumo.proveedor.id if insumo.proveedor else None,
                         'nombre': insumo.proveedor.nombre if insumo.proveedor else 'Sin proveedor'
-                    } if insumo.proveedor else None
+                    } if insumo.proveedor else None,
+                    # Agregar versión formateada para el frontend
+                    'stock_usado_formateado': f"{float(stock_usado_total):.2f}".replace('.', ','),
+                    'stock_actual_formateado': f"{float(insumo.stock_actual):.2f}".replace('.', ','),
+                    'stock_minimo_formateado': f"{float(insumo.stock_minimo):.2f}".replace('.', ',')
                 })
             
             return Response(reporte_data, status=status.HTTP_200_OK)
@@ -584,7 +588,12 @@ class ListaComprasAPIView(APIView):
                         'id': insumo.proveedor.id if insumo.proveedor else None,
                         'nombre': insumo.proveedor.nombre if insumo.proveedor else 'Sin proveedor'
                     } if insumo.proveedor else None,
-                    'necesita_compra': total_comprar > 0
+                    'necesita_compra': total_comprar > 0,
+                    # Agregar versión formateada para el frontend
+                    'stock_actual_formateado': f"{float(stock_actual):.2f}".replace('.', ','),
+                    'stock_minimo_formateado': f"{float(stock_minimo):.2f}".replace('.', ','),
+                    'pedidos_formateado': f"{float(pedidos_periodo):.2f}".replace('.', ','),
+                    'total_comprar_formateado': f"{float(total_comprar):.2f}".replace('.', ',')
                 })
             
             return Response(lista_compras_data, status=status.HTTP_200_OK)
@@ -781,10 +790,6 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             if not reporte_data:
                 print("🚨 DEBUG - No se obtuvieron datos del reporte")
             
-            # Mostrar stock usado de cada insumo para debug
-            for i, item in enumerate(reporte_data[:5]):  # Mostrar primeros 5
-                print(f"  Insumo {i+1}: {item['nombre']} - Stock usado: {item['stock_usado']}")
-            
             # Filtrar solo los insumos con stock usado > 0 si se solicita
             if solo_con_stock_usado:
                 reporte_original = len(reporte_data)
@@ -871,11 +876,16 @@ class GenerarPDFReporteInsumosAPIView(APIView):
                 necesita_reposicion = "SÍ" if item['necesita_reposicion'] else "NO"
                 proveedor = item['proveedor']['nombre'] if item['proveedor'] else 'Sin proveedor'
                 
+                # Formatear cantidades con coma y 2 decimales
+                stock_usado_formateado = self.formatear_cantidad_con_comas(item['stock_usado'])
+                stock_actual_formateado = self.formatear_cantidad_con_comas(item['stock_actual'])
+                stock_minimo_formateado = self.formatear_cantidad_con_comas(item['stock_minimo'])
+                
                 table_data.append([
                     f"{item['nombre']} ({item['categoria']})",
-                    f"{item['stock_usado']:.3f} {item['unidad_medida']['abreviatura']}",
-                    f"{item['stock_actual']:.3f} {item['unidad_medida']['abreviatura']}",
-                    f"{item['stock_minimo']:.3f} {item['unidad_medida']['abreviatura']}",
+                    f"{stock_usado_formateado} {item['unidad_medida']['abreviatura']}",
+                    f"{stock_actual_formateado} {item['unidad_medida']['abreviatura']}",
+                    f"{stock_minimo_formateado} {item['unidad_medida']['abreviatura']}",
                     necesita_reposicion,
                     proveedor
                 ])
@@ -914,7 +924,11 @@ class GenerarPDFReporteInsumosAPIView(APIView):
             total_insumos = len(reporte_data)
             insumos_reponer = len([item for item in reporte_data if item['necesita_reposicion']])
             
-            resumen_text = f"Resumen: {total_insumos} insumos con stock usado | {insumos_reponer} necesitan reposición"
+            # Calcular total de stock usado
+            total_stock_usado = sum(item['stock_usado'] for item in reporte_data)
+            total_stock_usado_formateado = self.formatear_cantidad_con_comas(total_stock_usado)
+            
+            resumen_text = f"Resumen: {total_insumos} insumos con stock usado ({insumos_reponer} necesitan reposición) | Total stock usado: {total_stock_usado_formateado}"
             resumen_style = ParagraphStyle(
                 'Resumen',
                 parent=styles['Normal'],
@@ -1029,12 +1043,6 @@ class GenerarPDFReporteInsumosAPIView(APIView):
                     # Stock total usado
                     stock_usado_total = stock_usado_recetas + stock_usado_ingredientes_extra
                     
-                    # Debug por insumo
-                    if stock_usado_total > 0:
-                        print(f"  ✓ {insumo.nombre}: stock_usado = {stock_usado_total}")
-                    else:
-                        print(f"  ✗ {insumo.nombre}: stock_usado = 0")
-                    
                     reporte_data.append({
                         'id': insumo.id,
                         'nombre': insumo.nombre,
@@ -1098,6 +1106,15 @@ class GenerarPDFReporteInsumosAPIView(APIView):
         except (ValueError, AttributeError):
             # Si hay error, devolver la fecha original
             return str(fecha_str)
+    
+    def formatear_cantidad_con_comas(self, cantidad):
+        """
+        Formatea una cantidad con 2 decimales usando coma como separador decimal
+        """
+        # Formatear con 2 decimales
+        cantidad_formateada = f"{cantidad:.2f}"
+        # Reemplazar punto por coma
+        return cantidad_formateada.replace('.', ',')
         
 class GenerarPDFListaComprasAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -1152,12 +1169,18 @@ class GenerarPDFListaComprasAPIView(APIView):
             table_data = [['Insumo', 'Stock Actual', 'Stock Mínimo', 'Pedidos', 'Compra Sugerida', 'Proveedor']]
             
             for item in items_comprar:
+                # Formatear cantidades con coma y 2 decimales
+                stock_actual_formateado = self.formatear_cantidad_con_comas(item['stock_actual'])
+                stock_minimo_formateado = self.formatear_cantidad_con_comas(item['stock_minimo'])
+                pedidos_formateado = self.formatear_cantidad_con_comas(item['pedidos'])
+                total_comprar_formateado = self.formatear_cantidad_con_comas(item['total_comprar'])
+                
                 table_data.append([
                     f"{item['nombre']} ({item['categoria']})",
-                    f"{item['stock_actual']:.3f} {item['unidad_medida']['abreviatura']}",
-                    f"{item['stock_minimo']:.3f} {item['unidad_medida']['abreviatura']}",
-                    f"{item['pedidos']:.3f} {item['unidad_medida']['abreviatura']}",
-                    f"{item['total_comprar']:.3f} {item['unidad_medida']['abreviatura']}",
+                    f"{stock_actual_formateado} {item['unidad_medida']['abreviatura']}",
+                    f"{stock_minimo_formateado} {item['unidad_medida']['abreviatura']}",
+                    f"{pedidos_formateado} {item['unidad_medida']['abreviatura']}",
+                    f"{total_comprar_formateado} {item['unidad_medida']['abreviatura']}",
                     item['proveedor']['nombre'] if item['proveedor'] else 'Sin proveedor'
                 ])
             
@@ -1182,7 +1205,12 @@ class GenerarPDFListaComprasAPIView(APIView):
             # Agregar resumen
             elements.append(Spacer(1, 20))
             total_insumos = len(items_comprar)
-            resumen_text = f"Total de insumos a comprar: {total_insumos}"
+            
+            # Calcular total de compra sugerida
+            total_compra_sugerida = sum(item['total_comprar'] for item in items_comprar)
+            total_compra_formateado = self.formatear_cantidad_con_comas(total_compra_sugerida)
+            
+            resumen_text = f"Resumen: {total_insumos} insumos a comprar | Total sugerido: {total_compra_formateado}"
             resumen_style = ParagraphStyle(
                 'Resumen',
                 parent=styles['Normal'],
@@ -1242,6 +1270,15 @@ class GenerarPDFListaComprasAPIView(APIView):
                 return str(fecha_str)
         except (ValueError, AttributeError):
             return str(fecha_str)
+    
+    def formatear_cantidad_con_comas(self, cantidad):
+        """
+        Formatea una cantidad con 2 decimales usando coma como separador decimal
+        """
+        # Formatear con 2 decimales
+        cantidad_formateada = f"{cantidad:.2f}"
+        # Reemplazar punto por coma
+        return cantidad_formateada.replace('.', ',')
         
 class GenerarPDFPerdidasAPIView(APIView):
     permission_classes = [IsAuthenticated]

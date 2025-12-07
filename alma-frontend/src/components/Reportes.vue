@@ -1002,16 +1002,9 @@ import Sidebar from "./Sidebar.vue";
 import Header from "./Header.vue";
 
 const router = useRouter();
-
-// Referencia al sidebar para controlarlo desde el header
 const sidebarRef = ref(null);
-
-// Estado para controlar la pestaña activa
 const tabActiva = ref("insumos-usados");
 
-// ----------------------
-// 🔹 NUEVA ESTRUCTURA DE PESTAÑAS
-// ----------------------
 const tabs = ref([
   {
     id: "insumos-usados",
@@ -1036,10 +1029,7 @@ const tabs = ref([
   },
 ]);
 
-// ----------------------
-// 🔹 NUEVOS FILTROS POR PESTAÑA
-// ----------------------
-// Filtros para Insumos Usados
+// ---------------------- FILTROS POR PESTAÑA ----------------------
 const filtrosInsumosUsados = ref({
   fechaInicio: "",
   fechaFin: "",
@@ -1048,21 +1038,18 @@ const filtrosInsumosUsados = ref({
   searchTerm: "",
 });
 
-// Filtros para Recetas Hechas
 const filtrosRecetasHechas = ref({
   fechaInicio: "",
   fechaFin: "",
   searchTerm: "",
 });
 
-// Filtros para Pedidos
 const filtrosPedidos = ref({
   fechaInicio: "",
   fechaFin: "",
   clienteId: "",
 });
 
-// Filtros para Pérdidas de Insumos
 const filtrosPerdidas = ref({
   fechaInicio: "",
   fechaFin: "",
@@ -1071,22 +1058,17 @@ const filtrosPerdidas = ref({
   searchTerm: "",
 });
 
-// Filtros para Lista de Compras
 const filtrosListaCompras = ref({
   proveedorId: "",
 });
 
-// ----------------------
-// 🔹 ERRORES DE VALIDACIÓN DE FECHAS
-// ----------------------
+// ---------------------- ERRORES DE VALIDACIÓN ----------------------
 const errorFechaInsumosUsados = ref("");
 const errorFechaRecetasHechas = ref("");
 const errorFechaPedidos = ref("");
 const errorFechaPerdidas = ref("");
 
-// ----------------------
-// 🔹 PROPIEDADES COMPUTADAS PARA DISABLED DE FECHA FIN
-// ----------------------
+// ---------------------- COMPUTED PROPERTIES ----------------------
 const fechaFinDisabledInsumosUsados = computed(
   () => !filtrosInsumosUsados.value.fechaInicio
 );
@@ -1100,10 +1082,7 @@ const fechaFinDisabledPerdidas = computed(
   () => !filtrosPerdidas.value.fechaInicio
 );
 
-// ----------------------
-// 🔹 COMPUTED PROPERTIES PARA FILTROS ACTIVOS
-// ----------------------
-// Insumos Usados
+// Filtros activos
 const filtrosActivosInsumosUsados = computed(() => {
   return (
     filtrosInsumosUsados.value.fechaInicio ||
@@ -1114,7 +1093,37 @@ const filtrosActivosInsumosUsados = computed(() => {
   );
 });
 
-// Insumos Usados
+const filtrosActivosRecetasHechas = computed(() => {
+  return (
+    filtrosRecetasHechas.value.fechaInicio ||
+    filtrosRecetasHechas.value.fechaFin ||
+    filtrosRecetasHechas.value.searchTerm
+  );
+});
+
+const filtrosActivosPedidos = computed(() => {
+  return (
+    filtrosPedidos.value.fechaInicio ||
+    filtrosPedidos.value.fechaFin ||
+    filtrosPedidos.value.clienteId
+  );
+});
+
+const filtrosActivosPerdidas = computed(() => {
+  return (
+    filtrosPerdidas.value.fechaInicio ||
+    filtrosPerdidas.value.fechaFin ||
+    filtrosPerdidas.value.categoria ||
+    filtrosPerdidas.value.motivo ||
+    filtrosPerdidas.value.searchTerm
+  );
+});
+
+const filtrosActivosListaCompras = computed(() => {
+  return filtrosListaCompras.value.proveedorId;
+});
+
+// Periodos
 const filtroPeriodoInsumosUsados = computed(() => {
   if (
     filtrosInsumosUsados.value.fechaInicio &&
@@ -1131,24 +1140,6 @@ const filtroPeriodoInsumosUsados = computed(() => {
   return "";
 });
 
-const nombreProveedorInsumosUsados = computed(() => {
-  if (!filtrosInsumosUsados.value.proveedorId) return "";
-  const proveedor = proveedores.value.find(
-    (p) => p.id === parseInt(filtrosInsumosUsados.value.proveedorId)
-  );
-  return proveedor ? proveedor.nombre : "Proveedor no encontrado";
-});
-
-// Recetas Hechas
-const filtrosActivosRecetasHechas = computed(() => {
-  return (
-    filtrosRecetasHechas.value.fechaInicio ||
-    filtrosRecetasHechas.value.fechaFin ||
-    filtrosRecetasHechas.value.searchTerm
-  );
-});
-
-// Recetas Hechas
 const filtroPeriodoRecetasHechas = computed(() => {
   if (
     filtrosRecetasHechas.value.fechaInicio &&
@@ -1165,16 +1156,6 @@ const filtroPeriodoRecetasHechas = computed(() => {
   return "";
 });
 
-// Pedidos
-const filtrosActivosPedidos = computed(() => {
-  return (
-    filtrosPedidos.value.fechaInicio ||
-    filtrosPedidos.value.fechaFin ||
-    filtrosPedidos.value.clienteId
-  );
-});
-
-// Pedidos
 const filtroPeriodoPedidos = computed(() => {
   if (filtrosPedidos.value.fechaInicio && filtrosPedidos.value.fechaFin) {
     return `Período: ${formatearFechaCorta(
@@ -1186,26 +1167,6 @@ const filtroPeriodoPedidos = computed(() => {
   return "";
 });
 
-const nombreClientePedidos = computed(() => {
-  if (!filtrosPedidos.value.clienteId) return "";
-  const cliente = clientes.value.find(
-    (c) => c.id === parseInt(filtrosPedidos.value.clienteId)
-  );
-  return cliente ? cliente.nombre : "Cliente no encontrado";
-});
-
-// Pérdidas de Insumos
-const filtrosActivosPerdidas = computed(() => {
-  return (
-    filtrosPerdidas.value.fechaInicio ||
-    filtrosPerdidas.value.fechaFin ||
-    filtrosPerdidas.value.categoria ||
-    filtrosPerdidas.value.motivo ||
-    filtrosPerdidas.value.searchTerm
-  );
-});
-
-// Pérdidas de Insumos
 const filtroPeriodoPerdidas = computed(() => {
   if (filtrosPerdidas.value.fechaInicio && filtrosPerdidas.value.fechaFin) {
     return `Período: ${formatearFechaCorta(
@@ -1217,9 +1178,21 @@ const filtroPeriodoPerdidas = computed(() => {
   return "";
 });
 
-// Lista de Compras
-const filtrosActivosListaCompras = computed(() => {
-  return filtrosListaCompras.value.proveedorId;
+// Nombres
+const nombreProveedorInsumosUsados = computed(() => {
+  if (!filtrosInsumosUsados.value.proveedorId) return "";
+  const proveedor = proveedores.value.find(
+    (p) => p.id === parseInt(filtrosInsumosUsados.value.proveedorId)
+  );
+  return proveedor ? proveedor.nombre : "Proveedor no encontrado";
+});
+
+const nombreClientePedidos = computed(() => {
+  if (!filtrosPedidos.value.clienteId) return "";
+  const cliente = clientes.value.find(
+    (c) => c.id === parseInt(filtrosPedidos.value.clienteId)
+  );
+  return cliente ? cliente.nombre : "Cliente no encontrado";
 });
 
 const nombreProveedorListaCompras = computed(() => {
@@ -1230,9 +1203,17 @@ const nombreProveedorListaCompras = computed(() => {
   return proveedor ? proveedor.nombre : "Proveedor no encontrado";
 });
 
-// ----------------------
-// 🔹 MÉTODOS PARA CAMBIAR PESTAÑA
-// ----------------------
+const categoriasDisponibles = computed(() => {
+  const categorias = new Set();
+  historialPerdidas.value.forEach((perdida) => {
+    if (perdida.categoria) {
+      categorias.add(perdida.categoria);
+    }
+  });
+  return Array.from(categorias).sort();
+});
+
+// ---------------------- MÉTODOS PRINCIPALES ----------------------
 const cambiarTab = (tabId) => {
   tabActiva.value = tabId;
 };
@@ -1254,90 +1235,19 @@ const obtenerContador = (tabId) => {
   }
 };
 
-// ----------------------
-// 🔹 WATCHERS PARA AUTOCOMPLETAR FECHA FIN - MODIFICADOS
-// ----------------------
-// Watcher para Insumos Usados - NO autocompletar fecha fin
-watch(
-  () => filtrosInsumosUsados.value.fechaInicio,
-  (nuevaFechaInicio) => {
-    if (nuevaFechaInicio) {
-      // Solo validar, NO autocompletar fecha fin
-      validarFechasInsumosUsados();
-    } else if (!nuevaFechaInicio) {
-      // Limpiar Fecha Fin si se borra Fecha Inicio
-      filtrosInsumosUsados.value.fechaFin = "";
-    }
+const toggleSidebar = () => {
+  if (sidebarRef.value) {
+    sidebarRef.value.toggleSidebar();
   }
-);
+};
 
-// Watcher para Recetas Hechas - NO autocompletar fecha fin
-watch(
-  () => filtrosRecetasHechas.value.fechaInicio,
-  (nuevaFechaInicio) => {
-    if (nuevaFechaInicio) {
-      // Solo validar, NO autocompletar fecha fin
-      validarFechasRecetasHechas();
-    } else if (!nuevaFechaInicio) {
-      // Limpiar Fecha Fin si se borra Fecha Inicio
-      filtrosRecetasHechas.value.fechaFin = "";
-    }
-  }
-);
-
-// Watcher para Pedidos - NO autocompletar fecha fin
-watch(
-  () => filtrosPedidos.value.fechaInicio,
-  (nuevaFechaInicio) => {
-    if (nuevaFechaInicio) {
-      console.log("📦 Fecha inicio cambiada a:", nuevaFechaInicio);
-      // Solo validar, NO autocompletar fecha fin
-      validarFechasPedidos();
-    } else {
-      // Si se borra fecha inicio, también recargar
-      validarFechasPedidos();
-    }
-  }
-);
-
-// Watcher para Pérdidas - NO autocompletar fecha fin
-watch(
-  () => filtrosPerdidas.value.fechaInicio,
-  (nuevaFechaInicio) => {
-    if (nuevaFechaInicio) {
-      // Solo validar, NO autocompletar fecha fin
-      validarFechasPerdidas();
-    } else if (!nuevaFechaInicio) {
-      // Limpiar Fecha Fin si se borra Fecha Inicio
-      filtrosPerdidas.value.fechaFin = "";
-    }
-  }
-);
-
-watch(
-  () => filtrosPedidos.value.fechaFin,
-  (nuevaFechaFin) => {
-    if (nuevaFechaFin) {
-      console.log("📦 Fecha fin cambiada a:", nuevaFechaFin);
-      validarFechasPedidos();
-    } else {
-      // Si se borra fecha fin, también recargar
-      validarFechasPedidos();
-    }
-  }
-);
-
-// ----------------------
-// 🔹 MÉTODOS DE VALIDACIÓN DE FECHAS - MODIFICADOS
-// ----------------------
-// Validación para Insumos Usados
+// ---------------------- VALIDACIÓN DE FECHAS ----------------------
 const validarFechasInsumosUsados = () => {
   errorFechaInsumosUsados.value = "";
 
   const fechaInicio = filtrosInsumosUsados.value.fechaInicio;
   const fechaFin = filtrosInsumosUsados.value.fechaFin;
 
-  // Solo validar si AMBAS fechas están presentes
   if (fechaInicio && fechaFin) {
     const inicio = new Date(fechaInicio);
     const fin = new Date(fechaFin);
@@ -1349,7 +1259,6 @@ const validarFechasInsumosUsados = () => {
     }
   }
 
-  // Si hay al menos una fecha válida, cargar datos
   if (fechaInicio || fechaFin) {
     fetchReportes();
   }
@@ -1357,14 +1266,12 @@ const validarFechasInsumosUsados = () => {
   return true;
 };
 
-// Validación para Recetas Hechas
 const validarFechasRecetasHechas = () => {
   errorFechaRecetasHechas.value = "";
 
   const fechaInicio = filtrosRecetasHechas.value.fechaInicio;
   const fechaFin = filtrosRecetasHechas.value.fechaFin;
 
-  // Solo validar si AMBAS fechas están presentes
   if (fechaInicio && fechaFin) {
     const inicio = new Date(fechaInicio);
     const fin = new Date(fechaFin);
@@ -1376,7 +1283,6 @@ const validarFechasRecetasHechas = () => {
     }
   }
 
-  // Si hay al menos una fecha válida, cargar datos
   if (fechaInicio || fechaFin) {
     fetchRecetasHechas();
   }
@@ -1384,14 +1290,12 @@ const validarFechasRecetasHechas = () => {
   return true;
 };
 
-// Validación para Pedidos
 const validarFechasPedidos = () => {
   errorFechaPedidos.value = "";
 
   const fechaInicio = filtrosPedidos.value.fechaInicio;
   const fechaFin = filtrosPedidos.value.fechaFin;
 
-  // Solo validar si AMBAS fechas están presentes
   if (fechaInicio && fechaFin) {
     const inicio = new Date(fechaInicio);
     const fin = new Date(fechaFin);
@@ -1403,27 +1307,21 @@ const validarFechasPedidos = () => {
     }
   }
 
-  // 🔹 IMPORTANTE: Cargar datos SIEMPRE que haya al menos una fecha
-  // Incluso si solo hay fecha inicio
   if (fechaInicio || fechaFin) {
-    console.log("📦 Cargando pedidos con filtros:", { fechaInicio, fechaFin });
     fetchPedidos();
   } else {
-    // Si no hay filtros, también cargar (todos los pedidos entregados)
     fetchPedidos();
   }
 
   return true;
 };
 
-// Validación para Pérdidas
 const validarFechasPerdidas = () => {
   errorFechaPerdidas.value = "";
 
   const fechaInicio = filtrosPerdidas.value.fechaInicio;
   const fechaFin = filtrosPerdidas.value.fechaFin;
 
-  // Solo validar si AMBAS fechas están presentes
   if (fechaInicio && fechaFin) {
     const inicio = new Date(fechaInicio);
     const fin = new Date(fechaFin);
@@ -1435,7 +1333,6 @@ const validarFechasPerdidas = () => {
     }
   }
 
-  // Si hay al menos una fecha válida, cargar datos
   if (fechaInicio || fechaFin) {
     fetchHistorialPerdidas();
   }
@@ -1443,10 +1340,7 @@ const validarFechasPerdidas = () => {
   return true;
 };
 
-// ----------------------
-// 🔹 MÉTODOS PARA LIMPIAR FILTROS
-// ----------------------
-// Limpiar filtros de Insumos Usados
+// ---------------------- LIMPIAR FILTROS ----------------------
 const limpiarFiltrosInsumosUsados = () => {
   filtrosInsumosUsados.value = {
     fechaInicio: "",
@@ -1459,7 +1353,6 @@ const limpiarFiltrosInsumosUsados = () => {
   fetchReportes();
 };
 
-// Limpiar filtros de Recetas Hechas
 const limpiarFiltrosRecetasHechas = () => {
   filtrosRecetasHechas.value = {
     fechaInicio: "",
@@ -1470,7 +1363,6 @@ const limpiarFiltrosRecetasHechas = () => {
   fetchRecetasHechas();
 };
 
-// Limpiar filtros de Pedidos
 const limpiarFiltrosPedidos = () => {
   filtrosPedidos.value = {
     fechaInicio: "",
@@ -1481,7 +1373,6 @@ const limpiarFiltrosPedidos = () => {
   fetchPedidos();
 };
 
-// Limpiar filtros de Pérdidas
 const limpiarFiltrosPerdidas = () => {
   filtrosPerdidas.value = {
     fechaInicio: "",
@@ -1494,7 +1385,6 @@ const limpiarFiltrosPerdidas = () => {
   fetchHistorialPerdidas();
 };
 
-// Limpiar filtros de Lista de Compras
 const limpiarFiltrosListaCompras = () => {
   filtrosListaCompras.value = {
     proveedorId: "",
@@ -1502,51 +1392,33 @@ const limpiarFiltrosListaCompras = () => {
   fetchListaCompras();
 };
 
-// ----------------------
-// 🔹 MÉTODOS PARA EL SIDEBAR
-// ----------------------
-const toggleSidebar = () => {
-  if (sidebarRef.value) {
-    sidebarRef.value.toggleSidebar();
-  }
-};
-
-// ----------------------
-// 🔹 ESTADO Y DATOS
-// ----------------------
+// ---------------------- ESTADO Y DATOS ----------------------
 const reportes = ref([]);
 const listaCompras = ref([]);
 const recetasHechas = ref([]);
 const pedidos = ref([]);
 const proveedores = ref([]);
 const clientes = ref([]);
+const historialPerdidas = ref([]);
+
 const loading = ref(true);
 const loadingListaCompras = ref(false);
 const loadingRecetas = ref(false);
 const loadingPedidos = ref(false);
+const loadingPerdidas = ref(false);
+
 const generandoPDF = ref(false);
 const generandoPDFListaCompras = ref(false);
 const generandoPDFRecetas = ref(false);
 const generandoPDFPedidos = ref(false);
 const generandoPDFPerdidas = ref(false);
-const mostrarFiltros = ref(false);
-const isMobile = ref(false);
+
 const fechaHoy = ref(new Date().toISOString().split("T")[0]);
 
-// Nueva variable de estado para pérdidas
-const historialPerdidas = ref([]);
-const loadingPerdidas = ref(false);
-
-// ----------------------
-// 🔹 COMPUTED PROPERTIES PARA FILTRADO
-// ----------------------
-// Insumos Usados
+// ---------------------- COMPUTED PARA FILTRADO ----------------------
 const reporteFiltrado = computed(() => {
   let filtered = [...reportes.value];
 
-  // Filtrar por fechas (ya viene filtrado del backend)
-
-  // Filtrar por proveedor
   if (filtrosInsumosUsados.value.proveedorId) {
     filtered = filtered.filter(
       (item) =>
@@ -1554,7 +1426,6 @@ const reporteFiltrado = computed(() => {
     );
   }
 
-  // Filtrar por reponer
   if (filtrosInsumosUsados.value.reponer) {
     if (filtrosInsumosUsados.value.reponer === "si") {
       filtered = filtered.filter((item) => item.necesitaReposicion);
@@ -1563,7 +1434,6 @@ const reporteFiltrado = computed(() => {
     }
   }
 
-  // Filtrar por término de búsqueda
   if (filtrosInsumosUsados.value.searchTerm) {
     const searchLower = filtrosInsumosUsados.value.searchTerm.toLowerCase();
     filtered = filtered.filter(
@@ -1573,17 +1443,14 @@ const reporteFiltrado = computed(() => {
     );
   }
 
-  // Filtrar solo insumos con stock usado > 0
   filtered = filtered.filter((item) => item.stockUsado > 0);
 
   return filtered;
 });
 
-// Recetas Hechas
 const recetasHechasFiltradas = computed(() => {
   let filtered = [...recetasHechas.value];
 
-  // Filtrar por término de búsqueda
   if (filtrosRecetasHechas.value.searchTerm) {
     const searchLower = filtrosRecetasHechas.value.searchTerm.toLowerCase();
     filtered = filtered.filter((item) =>
@@ -1591,9 +1458,7 @@ const recetasHechasFiltradas = computed(() => {
     );
   }
 
-  // Ordenar por fecha (más reciente primero) y luego por nombre
   return filtered.sort((a, b) => {
-    // Primero por fecha
     const fechaA = a.fecha_preparacion_original
       ? new Date(a.fecha_preparacion_original)
       : new Date(0);
@@ -1602,19 +1467,16 @@ const recetasHechasFiltradas = computed(() => {
       : new Date(0);
 
     if (fechaB.getTime() !== fechaA.getTime()) {
-      return fechaB.getTime() - fechaA.getTime(); // Descendente
+      return fechaB.getTime() - fechaA.getTime();
     }
 
-    // Si misma fecha, ordenar por nombre
     return a.nombre.localeCompare(b.nombre);
   });
 });
 
 const pedidosFiltrados = computed(() => {
-  // Ya no necesitamos filtrar por estado porque fetchPedidos ya trae solo entregados
   let pedidosFiltrados = pedidos.value;
 
-  // Filtrar por cliente (si es necesario)
   if (filtrosPedidos.value.clienteId) {
     pedidosFiltrados = pedidosFiltrados.filter((pedido) => {
       const clienteId = pedido.cliente_id || pedido.cliente?.id;
@@ -1622,19 +1484,16 @@ const pedidosFiltrados = computed(() => {
     });
   }
 
-  // Ordenar por fecha_entrega (del más nuevo al más viejo)
   return pedidosFiltrados.sort((a, b) => {
     const fechaA = new Date(a.fecha_entrega).getTime();
     const fechaB = new Date(b.fecha_entrega).getTime();
-    return fechaB - fechaA; // Orden descendente
+    return fechaB - fechaA;
   });
 });
 
-// Lista de Compras
 const listaComprasFiltrada = computed(() => {
   let filtered = [...listaCompras.value];
 
-  // Filtrar por proveedor
   if (filtrosListaCompras.value.proveedorId) {
     filtered = filtered.filter(
       (item) =>
@@ -1642,29 +1501,24 @@ const listaComprasFiltrada = computed(() => {
     );
   }
 
-  // Mostrar solo los insumos que necesitan compra
   return filtered.filter((item) => item.totalComprar > 0);
 });
 
-// Pérdidas de Insumos
 const historialPerdidasFiltrado = computed(() => {
   let filtered = [...historialPerdidas.value];
 
-  // Aplicar filtro de categoría
   if (filtrosPerdidas.value.categoria) {
     filtered = filtered.filter(
       (perdida) => perdida.categoria === filtrosPerdidas.value.categoria
     );
   }
 
-  // Aplicar filtro de motivo
   if (filtrosPerdidas.value.motivo) {
     filtered = filtered.filter(
       (perdida) => perdida.motivo === filtrosPerdidas.value.motivo
     );
   }
 
-  // Filtrar por término de búsqueda
   if (filtrosPerdidas.value.searchTerm) {
     const searchLower = filtrosPerdidas.value.searchTerm.toLowerCase();
     filtered = filtered.filter((perdida) =>
@@ -1672,7 +1526,6 @@ const historialPerdidasFiltrado = computed(() => {
     );
   }
 
-  // Agrupar pérdidas por nombre de insumo, fecha y motivo
   const grouped = {};
   filtered.forEach((perdida) => {
     const key = `${perdida.insumo_nombre}-${perdida.fecha}-${perdida.motivo}`;
@@ -1692,23 +1545,9 @@ const historialPerdidasFiltrado = computed(() => {
   return Object.values(grouped);
 });
 
-// Obtener categorías únicas de TODAS las pérdidas
-const categoriasDisponibles = computed(() => {
-  const categorias = new Set();
-  historialPerdidas.value.forEach((perdida) => {
-    if (perdida.categoria) {
-      categorias.add(perdida.categoria);
-    }
-  });
-  return Array.from(categorias).sort();
-});
-
-// ----------------------
-// 🔹 MÉTODOS DE UTILIDAD
-// ----------------------
+// ---------------------- MÉTODOS DE UTILIDAD ----------------------
 const formatDecimal = (value) => {
   if (!value) return "0";
-  // Eliminar ceros decimales innecesarios
   const num = parseFloat(value);
   return num % 1 === 0 ? num.toString() : num.toFixed(3).replace(/\.?0+$/, "");
 };
@@ -1716,12 +1555,10 @@ const formatDecimal = (value) => {
 const formatearFechaCorta = (fecha) => {
   if (!fecha) return "";
 
-  // Si ya viene formateada como DD/MM/YYYY
   if (typeof fecha === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(fecha)) {
     return fecha;
   }
 
-  // Si es una fecha en formato YYYY-MM-DD
   if (typeof fecha === "string" && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
     const [year, month, day] = fecha.split("-");
     return `${day}/${month}/${year}`;
@@ -1729,10 +1566,7 @@ const formatearFechaCorta = (fecha) => {
 
   try {
     const fechaObj = new Date(fecha);
-
-    // 🔹 CORRECCIÓN: Ajustar por zona horaria
-    // Sumar el offset de la zona horaria para obtener la fecha correcta
-    const offset = fechaObj.getTimezoneOffset() * 60000; // en milisegundos
+    const offset = fechaObj.getTimezoneOffset() * 60000;
     const fechaLocal = new Date(fechaObj.getTime() - offset);
 
     const day = String(fechaLocal.getDate()).padStart(2, "0");
@@ -1798,19 +1632,15 @@ const getIngredientesExtraText = (detalles) => {
   return ingredientesExtra.join(", ");
 };
 
-// ----------------------
-// 🔹 MÉTODOS PARA GENERAR PDFs
-// ----------------------
+// ---------------------- GENERAR PDFs ----------------------
 const generarPDF = async () => {
   try {
     generandoPDF.value = true;
 
-    // Construir parámetros de filtro para el PDF
     const params = {
       solo_con_stock_usado: true,
     };
 
-    // Usar las fechas de los filtros específicos
     if (filtrosInsumosUsados.value.fechaInicio) {
       params.fecha_inicio = filtrosInsumosUsados.value.fechaInicio;
     }
@@ -1821,15 +1651,11 @@ const generarPDF = async () => {
       params.proveedor_id = filtrosInsumosUsados.value.proveedorId;
     }
 
-    console.log("📄 Parámetros enviados para PDF Insumos Usados:", params);
-
-    // Hacer la petición para generar el PDF
     const response = await axios.get("/api/reportes/generar-pdf/", {
       params: params,
       responseType: "blob",
     });
 
-    // Crear un enlace temporal para descargar el PDF
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement("a");
     link.href = url;
@@ -1853,13 +1679,11 @@ const generarPDFListaCompras = async () => {
   try {
     generandoPDFListaCompras.value = true;
 
-    // Construir parámetros de filtro para el PDF
     const params = {};
     if (filtrosListaCompras.value.proveedorId) {
       params.proveedor_id = filtrosListaCompras.value.proveedorId;
     }
 
-    // Hacer la petición para generar el PDF de lista de compras
     const response = await axios.get(
       "/api/reportes/generar-pdf-lista-compras/",
       {
@@ -1868,7 +1692,6 @@ const generarPDFListaCompras = async () => {
       }
     );
 
-    // Crear un enlace temporal para descargar el PDF
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement("a");
     link.href = url;
@@ -1905,12 +1728,10 @@ const generarPDFRecetas = async () => {
       responseType: "blob",
     });
 
-    // Crear un enlace temporal para descargar el PDF
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement("a");
     link.href = url;
 
-    // Nombre del archivo basado en las fechas de filtro
     let fileName = "recetas_hechas";
     if (
       filtrosRecetasHechas.value.fechaInicio &&
@@ -1948,19 +1769,15 @@ const generarPDFPedidos = async () => {
       params.fecha_fin = filtrosPedidos.value.fechaFin;
     }
 
-    console.log("📦 Generando PDF con parámetros:", params);
-
     const response = await axios.get("/api/pedidos/entregados/pdf/", {
       params: params,
       responseType: "blob",
     });
 
-    // Crear un enlace temporal para descargar el PDF
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement("a");
     link.href = url;
 
-    // Nombre del archivo basado en las fechas de filtro
     let fileName = "pedidos_entregados";
     if (filtrosPedidos.value.fechaInicio && filtrosPedidos.value.fechaFin) {
       fileName = `pedidos_${filtrosPedidos.value.fechaInicio}_a_${filtrosPedidos.value.fechaFin}`;
@@ -2027,26 +1844,20 @@ const generarPDFPerdidas = async () => {
   }
 };
 
-// ----------------------
-// 🔹 FETCH DATOS - MODIFICADOS
-// ----------------------
+// ---------------------- FETCH DATOS ----------------------
 const fetchReportes = async () => {
   try {
     loading.value = true;
 
     const params = {};
 
-    // Solo enviar fecha_inicio si tiene valor
     if (filtrosInsumosUsados.value.fechaInicio) {
       params.fecha_inicio = filtrosInsumosUsados.value.fechaInicio;
     }
 
-    // Solo enviar fecha_fin si tiene valor
     if (filtrosInsumosUsados.value.fechaFin) {
       params.fecha_fin = filtrosInsumosUsados.value.fechaFin;
     } else if (filtrosInsumosUsados.value.fechaInicio) {
-      // Si solo hay fecha_inicio, usar la misma fecha como fecha_fin
-      // para mostrar solo datos de esa fecha específica
       params.fecha_fin = filtrosInsumosUsados.value.fechaInicio;
     }
 
@@ -2054,11 +1865,8 @@ const fetchReportes = async () => {
       params.proveedor_id = filtrosInsumosUsados.value.proveedorId;
     }
 
-    console.log("📊 Parámetros enviados para Insumos Usados:", params);
-
     const response = await axios.get("/api/reportes/insumos/", { params });
 
-    // ✅ VERIFICAR que la respuesta tenga datos
     if (!response.data) {
       throw new Error("No se recibieron datos del servidor");
     }
@@ -2089,28 +1897,17 @@ const fetchRecetasHechas = async () => {
 
     const params = {};
 
-    // Solo enviar fecha_inicio si tiene valor
     if (filtrosRecetasHechas.value.fechaInicio) {
       params.fecha_inicio = filtrosRecetasHechas.value.fechaInicio;
     }
 
-    // Solo enviar fecha_fin si tiene valor
     if (filtrosRecetasHechas.value.fechaFin) {
       params.fecha_fin = filtrosRecetasHechas.value.fechaFin;
     }
-    // 🔹 NOTA: Si no hay fechas, no enviamos parámetros
-    // Esto hará que el backend devuelva TODAS las preparaciones
-
-    console.log(
-      "📊 Haciendo petición a /api/recetas-por-fecha/ con params:",
-      params
-    );
 
     const response = await axios.get("/api/recetas-por-fecha/", {
       params: params,
     });
-
-    console.log("📊 Respuesta recibida:", response.data);
 
     if (!response.data) {
       throw new Error(
@@ -2118,7 +1915,6 @@ const fetchRecetasHechas = async () => {
       );
     }
 
-    // Si el backend devuelve un error, mostrarlo
     if (response.data.error) {
       console.error("Error del backend:", response.data.error);
       recetasHechas.value = [];
@@ -2133,12 +1929,9 @@ const fetchRecetasHechas = async () => {
       unidad_rinde: item.unidad_rinde,
       costo_total: item.costo_total,
       precio_venta: item.precio_venta,
-      fecha_preparacion: item.fecha_preparacion, // ✅ Fecha específica
+      fecha_preparacion: item.fecha_preparacion,
       fecha_preparacion_original: item.fecha_preparacion_original,
     }));
-
-    console.log("📊 Datos procesados:", recetasHechas.value);
-    console.log("📊 Total de registros:", recetasHechas.value.length);
   } catch (error) {
     console.error("Error al cargar preparaciones:", error);
     recetasHechas.value = [];
@@ -2153,27 +1946,13 @@ const fetchPedidos = async () => {
 
     const params = {};
 
-    // Solo enviar fecha_inicio si tiene valor
     if (filtrosPedidos.value.fechaInicio) {
-      // 🔹 CORRECCIÓN: Usar la fecha exacta como la ve el usuario
-      // No modificar la fecha aquí, enviarla exactamente como está
       params.fecha_inicio = filtrosPedidos.value.fechaInicio;
-      console.log("📦 Fecha inicio enviada al backend:", params.fecha_inicio);
     }
 
-    // Solo enviar fecha_fin si tiene valor
     if (filtrosPedidos.value.fechaFin) {
       params.fecha_fin = filtrosPedidos.value.fechaFin;
-      console.log("📦 Fecha fin enviada al backend:", params.fecha_fin);
     }
-
-    // 🔹 IMPORTANTE: Si solo hay fecha inicio, NO enviar fecha fin automáticamente
-    // El backend ahora maneja la lógica de mostrar solo ese día
-
-    console.log(
-      "📦 Parámetros finales enviados para Pedidos Entregados:",
-      params
-    );
 
     const response = await axios.get("/api/pedidos/entregados/", {
       params: params,
@@ -2183,10 +1962,6 @@ const fetchPedidos = async () => {
       throw new Error("No se recibieron datos del servidor para pedidos");
     }
 
-    console.log("📦 Respuesta del servidor:", response.data);
-    console.log("📦 Total pedidos recibidos:", response.data.total);
-
-    // Procesar los datos directamente de la respuesta
     pedidos.value = response.data.pedidos.map((item) => ({
       id: item.id,
       cliente: item.cliente?.nombre || "Cliente no disponible",
@@ -2197,18 +1972,8 @@ const fetchPedidos = async () => {
       detalles: item.detalles || [],
       estado: "entregado",
     }));
-
-    console.log("📦 Pedidos procesados:", pedidos.value.length);
-
-    // 🔹 DEPURACIÓN: Mostrar las fechas de los pedidos recibidos
-    if (pedidos.value.length > 0) {
-      const fechasUnicas = [
-        ...new Set(pedidos.value.map((p) => p.fecha_entrega)),
-      ].sort();
-      console.log("📦 Fechas de entrega encontradas:", fechasUnicas);
-    }
   } catch (error) {
-    console.error("❌ Error al cargar pedidos:", error);
+    console.error("Error al cargar pedidos:", error);
     pedidos.value = [];
   } finally {
     loadingPedidos.value = false;
@@ -2221,23 +1986,17 @@ const fetchHistorialPerdidas = async () => {
 
     const params = new URLSearchParams();
 
-    // Solo enviar fecha_inicio si tiene valor
     if (filtrosPerdidas.value.fechaInicio) {
       params.append("fecha_inicio", filtrosPerdidas.value.fechaInicio);
     }
 
-    // Solo enviar fecha_fin si tiene valor
     if (filtrosPerdidas.value.fechaFin) {
       params.append("fecha_fin", filtrosPerdidas.value.fechaFin);
     } else if (filtrosPerdidas.value.fechaInicio) {
-      // Si solo hay fecha_inicio, usar la misma fecha como fecha_fin
-      // para mostrar solo datos de esa fecha específica
       params.append("fecha_fin", filtrosPerdidas.value.fechaInicio);
     }
 
-    console.log("🔍 Fetching pérdidas con parámetros:", params.toString());
     const response = await axios.get(`/api/perdidas/?${params.toString()}`);
-    console.log("📊 Pérdidas recibidas:", response.data);
     historialPerdidas.value = response.data;
   } catch (error) {
     console.error("Error al cargar historial de pérdidas:", error);
@@ -2264,9 +2023,6 @@ const fetchClientes = async () => {
   }
 };
 
-// ----------------------
-// 🔹 AGREGANDO LA FUNCIÓN FALTANTE
-// ----------------------
 const fetchListaCompras = async () => {
   try {
     loadingListaCompras.value = true;
@@ -2275,8 +2031,6 @@ const fetchListaCompras = async () => {
     if (filtrosListaCompras.value.proveedorId) {
       params.proveedor_id = filtrosListaCompras.value.proveedorId;
     }
-
-    console.log("🛒 Parámetros enviados para Lista de Compras:", params);
 
     const response = await axios.get("/api/reportes/lista-compras/", {
       params: params,
@@ -2308,19 +2062,7 @@ const fetchListaCompras = async () => {
   }
 };
 
-// Detectar cambios de tamaño de pantalla
-onMounted(() => {
-  checkMobile();
-  window.addEventListener("resize", checkMobile);
-});
-
-const checkMobile = () => {
-  isMobile.value = window.innerWidth <= 768;
-};
-
-// ----------------------
-// 🔹 MONTAR COMPONENTE
-// ----------------------
+// ---------------------- MONTAR COMPONENTE ----------------------
 onMounted(() => {
   if (!localStorage.getItem("access_token")) {
     router.push("/login");
@@ -2343,77 +2085,15 @@ onMounted(() => {
   });
 });
 
-// ----------------------
-// 🔹 WATCHERS ORIGINALES (MANTENIENDO TODOS LOS QUE YA FUNCIONABAN)
-// ----------------------
-// Watchers para los filtros de búsqueda
+// ---------------------- WATCHERS ----------------------
 watch(
-  () => filtrosInsumosUsados.value.searchTerm,
+  () => filtrosPedidos.value.fechaFin,
   () => {
-    // El filtrado se hace en el computed property
+    validarFechasPedidos();
   }
 );
 
-watch(
-  () => filtrosRecetasHechas.value.searchTerm,
-  () => {
-    // El filtrado se hace en el computed property
-  }
-);
-
-watch(
-  () => filtrosPerdidas.value.searchTerm,
-  () => {
-    // El filtrado se hace en el computed property
-  }
-);
-
-// Watchers para los filtros de select
-watch(
-  () => filtrosInsumosUsados.value.proveedorId,
-  () => {
-    // El filtrado se hace en el computed property
-  }
-);
-
-watch(
-  () => filtrosInsumosUsados.value.reponer,
-  () => {
-    // El filtrado se hace en el computed property
-  }
-);
-
-watch(
-  () => filtrosPedidos.value.clienteId,
-  () => {
-    // El filtrado se hace en el computed property
-  }
-);
-
-watch(
-  () => filtrosPerdidas.value.categoria,
-  () => {
-    // El filtrado se hace en el computed property
-  }
-);
-
-watch(
-  () => filtrosPerdidas.value.motivo,
-  () => {
-    // El filtrado se hace en el computed property
-  }
-);
-
-watch(
-  () => filtrosListaCompras.value.proveedorId,
-  () => {
-    // El filtrado se hace en el computed property
-  }
-);
-
-// Watcher para cambiar de pestaña
 watch(tabActiva, (newTab) => {
-  // Solo cargar datos si no están cargados
   if (newTab === "perdidas-insumos" && historialPerdidas.value.length === 0) {
     fetchHistorialPerdidas();
   }
@@ -2554,7 +2234,7 @@ watch(tabActiva, (newTab) => {
   transform: translateY(-1px);
 }
 
-/* Estilo para el buscador (estilo Principal.vue) */
+/* Estilo para el buscador */
 .filtro-group.buscador {
   grid-column: 1 / -1;
 }
@@ -2585,7 +2265,7 @@ watch(tabActiva, (newTab) => {
   opacity: 0.7;
 }
 
-/* MODIFICACIÓN ÚNICA: Contenedor unificado para filtros activos y botón limpiar */
+/* Filtros activos y botón limpiar */
 .filtros-activos-info {
   margin-top: 15px;
   padding: 10px 15px;
@@ -2615,7 +2295,7 @@ watch(tabActiva, (newTab) => {
   white-space: nowrap;
 }
 
-/* Botón Limpiar Filtros - Integrado en la misma línea */
+/* Botón Limpiar Filtros */
 .btn-limpiar-filtros {
   background-color: #6c757d;
   color: white;
@@ -2978,15 +2658,6 @@ watch(tabActiva, (newTab) => {
 .reportes-columna-observaciones {
   max-width: 250px;
   word-wrap: break-word;
-}
-
-/* -------------------- TÍTULO ESPECÍFICO PARA REPORTES -------------------- */
-.reportes-card-title1 {
-  color: var(--color-primary);
-  font-size: 1.8rem;
-  font-weight: 600;
-  margin: 0;
-  text-shadow: 0 2px 4px rgba(123, 90, 80, 0.1);
 }
 
 .main-content-repo {
