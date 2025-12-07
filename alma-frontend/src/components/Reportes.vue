@@ -393,12 +393,6 @@
                           </td>
                           <td class="reportes-columna-receta-nombre">
                             {{ item.nombre }}
-                            <span
-                              v-if="item.rinde"
-                              class="reportes-categoria-insumo"
-                            >
-                              (Rinde: {{ item.rinde }} {{ item.unidad_rinde }})
-                            </span>
                           </td>
                           <td class="reportes-columna-cantidad">
                             {{ item.cantidad }}
@@ -1597,21 +1591,13 @@ const recetasHechasFiltradas = computed(() => {
   });
 });
 
-// Pedidos
 const pedidosFiltrados = computed(() => {
-  // Filtrar solo pedidos entregados en el frontend
-  const pedidosEntregados = pedidos.value.filter(
-    (pedido) => pedido.estado === "entregado"
-  );
+  // Ya no necesitamos filtrar por estado porque fetchPedidos ya trae solo entregados
+  let pedidosFiltrados = pedidos.value;
 
-  // Aplicar filtro de fecha (ya viene filtrado del backend)
-  let pedidosFiltrados = pedidosEntregados;
-
-  // Filtrar por cliente
+  // Filtrar por cliente (si es necesario)
   if (filtrosPedidos.value.clienteId) {
     pedidosFiltrados = pedidosFiltrados.filter((pedido) => {
-      // Suponiendo que pedido.cliente es un string con el nombre del cliente
-      // Si necesitas comparar por ID, necesitarías tener el ID del cliente en los datos del pedido
       const clienteId = pedido.cliente_id || pedido.cliente?.id;
       return clienteId === parseInt(filtrosPedidos.value.clienteId);
     });
@@ -1927,11 +1913,18 @@ const generarPDFPedidos = async () => {
   try {
     generandoPDFPedidos.value = true;
 
+    const params = {};
+    if (filtrosPedidos.value.fechaInicio) {
+      params.fecha_inicio = filtrosPedidos.value.fechaInicio;
+    }
+    if (filtrosPedidos.value.fechaFin) {
+      params.fecha_fin = filtrosPedidos.value.fechaFin;
+    }
+
+    console.log("📦 Generando PDF con parámetros:", params);
+
     const response = await axios.get("/api/pedidos/entregados/pdf/", {
-      params: {
-        fecha_inicio: filtrosPedidos.value.fechaInicio,
-        fecha_fin: filtrosPedidos.value.fechaFin,
-      },
+      params: params,
       responseType: "blob",
     });
 
@@ -1944,6 +1937,8 @@ const generarPDFPedidos = async () => {
     let fileName = "pedidos_entregados";
     if (filtrosPedidos.value.fechaInicio && filtrosPedidos.value.fechaFin) {
       fileName = `pedidos_${filtrosPedidos.value.fechaInicio}_a_${filtrosPedidos.value.fechaFin}`;
+    } else if (filtrosPedidos.value.fechaInicio) {
+      fileName = `pedidos_${filtrosPedidos.value.fechaInicio}`;
     } else {
       fileName = `pedidos_entregados_${new Date().toISOString().split("T")[0]}`;
     }
@@ -2139,16 +2134,12 @@ const fetchPedidos = async () => {
     // Solo enviar fecha_fin si tiene valor
     if (filtrosPedidos.value.fechaFin) {
       params.fecha_fin = filtrosPedidos.value.fechaFin;
-    } else if (filtrosPedidos.value.fechaInicio) {
-      // Si solo hay fecha_inicio, usar la misma fecha como fecha_fin
-      // para mostrar solo datos de esa fecha específica
-      params.fecha_fin = filtrosPedidos.value.fechaInicio;
     }
 
-    console.log("📦 Parámetros enviados para Pedidos:", params);
+    console.log("📦 Parámetros enviados para Pedidos Entregados:", params);
 
-    // Obtener todos los pedidos (no solo los entregados, para poder filtrar en frontend)
-    const response = await axios.get("/api/pedidos/", {
+    // 🔹 CAMBIO IMPORTANTE: Usar el endpoint específico para pedidos entregados
+    const response = await axios.get("/api/pedidos/entregados/", {
       params: params,
     });
 
@@ -2156,9 +2147,10 @@ const fetchPedidos = async () => {
       throw new Error("No se recibieron datos del servidor para pedidos");
     }
 
-    console.log("Datos de pedidos recibidos:", response.data);
+    console.log("Datos de pedidos entregados recibidos:", response.data);
 
-    pedidos.value = response.data.map((item) => ({
+    // Procesar los datos directamente de la respuesta
+    pedidos.value = response.data.pedidos.map((item) => ({
       id: item.id,
       cliente: item.cliente?.nombre || "Cliente no disponible",
       cliente_id: item.cliente?.id || null,
@@ -2166,8 +2158,10 @@ const fetchPedidos = async () => {
       fecha_entrega: item.fecha_entrega,
       fecha_pedido: item.fecha_pedido,
       detalles: item.detalles || [],
-      estado: item.estado || "pendiente",
+      estado: "entregado", // Todos los pedidos de este endpoint son entregados
     }));
+
+    console.log("Pedidos procesados:", pedidos.value.length);
   } catch (error) {
     console.error("Error al cargar pedidos:", error);
     pedidos.value = [];

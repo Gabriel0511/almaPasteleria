@@ -233,16 +233,20 @@ class PedidosEntregadosView(APIView):
         fecha_inicio = request.GET.get('fecha_inicio')
         fecha_fin = request.GET.get('fecha_fin')
         
+        print(f"🔍 PedidosEntregadosView - Fecha inicio: {fecha_inicio}, Fecha fin: {fecha_fin}")
+        
         # Filtrar solo pedidos entregados
         pedidos = Pedido.objects.filter(estado='entregado')\
+                       .select_related('cliente')\
                        .prefetch_related('detalles__receta', 'detalles__ingredientes_extra')\
                        .order_by('-fecha_entrega')
         
         # Aplicar filtros de fecha si se proporcionan
         if fecha_inicio:
             try:
-                fecha_inicio = date.fromisoformat(fecha_inicio)
-                pedidos = pedidos.filter(fecha_entrega__gte=fecha_inicio)
+                fecha_inicio_obj = date.fromisoformat(fecha_inicio)
+                pedidos = pedidos.filter(fecha_entrega__gte=fecha_inicio_obj)
+                print(f"🔍 Aplicando filtro fecha_inicio: {fecha_inicio_obj}")
             except ValueError:
                 return Response(
                     {'error': 'Formato de fecha_inicio inválido. Use YYYY-MM-DD'},
@@ -251,20 +255,24 @@ class PedidosEntregadosView(APIView):
         
         if fecha_fin:
             try:
-                fecha_fin = date.fromisoformat(fecha_fin)
-                pedidos = pedidos.filter(fecha_entrega__lte=fecha_fin)
+                fecha_fin_obj = date.fromisoformat(fecha_fin)
+                pedidos = pedidos.filter(fecha_entrega__lte=fecha_fin_obj)
+                print(f"🔍 Aplicando filtro fecha_fin: {fecha_fin_obj}")
             except ValueError:
                 return Response(
                     {'error': 'Formato de fecha_fin inválido. Use YYYY-MM-DD'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
         
+        print(f"🔍 Total pedidos encontrados: {pedidos.count()}")
+        
+        # Serializar los datos
         serializer = PedidoReadSerializer(pedidos, many=True)
         
         return Response({
             'pedidos': serializer.data,
             'total': pedidos.count(),
-            'filtros': {
+            'filtros_aplicados': {
                 'fecha_inicio': fecha_inicio,
                 'fecha_fin': fecha_fin
             }
