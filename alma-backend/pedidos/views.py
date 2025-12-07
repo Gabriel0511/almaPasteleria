@@ -245,8 +245,15 @@ class PedidosEntregadosView(APIView):
         if fecha_inicio:
             try:
                 fecha_inicio_obj = date.fromisoformat(fecha_inicio)
-                pedidos = pedidos.filter(fecha_entrega__gte=fecha_inicio_obj)
-                print(f"🔍 Aplicando filtro fecha_inicio: {fecha_inicio_obj}")
+                # 🔹 SOLUCIÓN: Si solo hay fecha_inicio, buscar solo ese día (no desde esa fecha)
+                if not fecha_fin:
+                    # Filtra solo por ese día específico
+                    pedidos = pedidos.filter(fecha_entrega=fecha_inicio_obj)
+                    print(f"🔍 Solo fecha inicio: Filtrando EXACTAMENTE para {fecha_inicio_obj}")
+                else:
+                    # Si hay fecha_fin, usa rango >=
+                    pedidos = pedidos.filter(fecha_entrega__gte=fecha_inicio_obj)
+                    print(f"🔍 Con fecha fin: Filtrando desde {fecha_inicio_obj}")
             except ValueError:
                 return Response(
                     {'error': 'Formato de fecha_inicio inválido. Use YYYY-MM-DD'},
@@ -256,6 +263,7 @@ class PedidosEntregadosView(APIView):
         if fecha_fin:
             try:
                 fecha_fin_obj = date.fromisoformat(fecha_fin)
+                # 🔹 SOLUCIÓN: Si hay fecha_fin, usar <= para el rango
                 pedidos = pedidos.filter(fecha_entrega__lte=fecha_fin_obj)
                 print(f"🔍 Aplicando filtro fecha_fin: {fecha_fin_obj}")
             except ValueError:

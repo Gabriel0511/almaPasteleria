@@ -1290,11 +1290,12 @@ watch(
   () => filtrosPedidos.value.fechaInicio,
   (nuevaFechaInicio) => {
     if (nuevaFechaInicio) {
+      console.log("📦 Fecha inicio cambiada a:", nuevaFechaInicio);
       // Solo validar, NO autocompletar fecha fin
       validarFechasPedidos();
-    } else if (!nuevaFechaInicio) {
-      // Limpiar Fecha Fin si se borra Fecha Inicio
-      filtrosPedidos.value.fechaFin = "";
+    } else {
+      // Si se borra fecha inicio, también recargar
+      validarFechasPedidos();
     }
   }
 );
@@ -1309,6 +1310,19 @@ watch(
     } else if (!nuevaFechaInicio) {
       // Limpiar Fecha Fin si se borra Fecha Inicio
       filtrosPerdidas.value.fechaFin = "";
+    }
+  }
+);
+
+watch(
+  () => filtrosPedidos.value.fechaFin,
+  (nuevaFechaFin) => {
+    if (nuevaFechaFin) {
+      console.log("📦 Fecha fin cambiada a:", nuevaFechaFin);
+      validarFechasPedidos();
+    } else {
+      // Si se borra fecha fin, también recargar
+      validarFechasPedidos();
     }
   }
 );
@@ -1389,8 +1403,13 @@ const validarFechasPedidos = () => {
     }
   }
 
-  // Si hay al menos una fecha válida, cargar datos
+  // 🔹 IMPORTANTE: Cargar datos SIEMPRE que haya al menos una fecha
+  // Incluso si solo hay fecha inicio
   if (fechaInicio || fechaFin) {
+    console.log("📦 Cargando pedidos con filtros:", { fechaInicio, fechaFin });
+    fetchPedidos();
+  } else {
+    // Si no hay filtros, también cargar (todos los pedidos entregados)
     fetchPedidos();
   }
 
@@ -1702,19 +1721,27 @@ const formatearFechaCorta = (fecha) => {
     return fecha;
   }
 
+  // Si es una fecha en formato YYYY-MM-DD
+  if (typeof fecha === "string" && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    const [year, month, day] = fecha.split("-");
+    return `${day}/${month}/${year}`;
+  }
+
   try {
     const fechaObj = new Date(fecha);
-    if (isNaN(fechaObj.getTime())) {
-      return "Fecha inválida";
-    }
 
-    const day = String(fechaObj.getDate()).padStart(2, "0");
-    const month = String(fechaObj.getMonth() + 1).padStart(2, "0");
-    const year = fechaObj.getFullYear();
+    // 🔹 CORRECCIÓN: Ajustar por zona horaria
+    // Sumar el offset de la zona horaria para obtener la fecha correcta
+    const offset = fechaObj.getTimezoneOffset() * 60000; // en milisegundos
+    const fechaLocal = new Date(fechaObj.getTime() - offset);
+
+    const day = String(fechaLocal.getDate()).padStart(2, "0");
+    const month = String(fechaLocal.getMonth() + 1).padStart(2, "0");
+    const year = fechaLocal.getFullYear();
 
     return `${day}/${month}/${year}`;
   } catch (error) {
-    console.error("Error formateando fecha:", error);
+    console.error("Error formateando fecha:", error, "Fecha original:", fecha);
     return "Fecha inválida";
   }
 };
@@ -2128,17 +2155,26 @@ const fetchPedidos = async () => {
 
     // Solo enviar fecha_inicio si tiene valor
     if (filtrosPedidos.value.fechaInicio) {
+      // 🔹 CORRECCIÓN: Usar la fecha exacta como la ve el usuario
+      // No modificar la fecha aquí, enviarla exactamente como está
       params.fecha_inicio = filtrosPedidos.value.fechaInicio;
+      console.log("📦 Fecha inicio enviada al backend:", params.fecha_inicio);
     }
 
     // Solo enviar fecha_fin si tiene valor
     if (filtrosPedidos.value.fechaFin) {
       params.fecha_fin = filtrosPedidos.value.fechaFin;
+      console.log("📦 Fecha fin enviada al backend:", params.fecha_fin);
     }
 
-    console.log("📦 Parámetros enviados para Pedidos Entregados:", params);
+    // 🔹 IMPORTANTE: Si solo hay fecha inicio, NO enviar fecha fin automáticamente
+    // El backend ahora maneja la lógica de mostrar solo ese día
 
-    // 🔹 CAMBIO IMPORTANTE: Usar el endpoint específico para pedidos entregados
+    console.log(
+      "📦 Parámetros finales enviados para Pedidos Entregados:",
+      params
+    );
+
     const response = await axios.get("/api/pedidos/entregados/", {
       params: params,
     });
@@ -2147,7 +2183,8 @@ const fetchPedidos = async () => {
       throw new Error("No se recibieron datos del servidor para pedidos");
     }
 
-    console.log("Datos de pedidos entregados recibidos:", response.data);
+    console.log("📦 Respuesta del servidor:", response.data);
+    console.log("📦 Total pedidos recibidos:", response.data.total);
 
     // Procesar los datos directamente de la respuesta
     pedidos.value = response.data.pedidos.map((item) => ({
@@ -2158,12 +2195,20 @@ const fetchPedidos = async () => {
       fecha_entrega: item.fecha_entrega,
       fecha_pedido: item.fecha_pedido,
       detalles: item.detalles || [],
-      estado: "entregado", // Todos los pedidos de este endpoint son entregados
+      estado: "entregado",
     }));
 
-    console.log("Pedidos procesados:", pedidos.value.length);
+    console.log("📦 Pedidos procesados:", pedidos.value.length);
+
+    // 🔹 DEPURACIÓN: Mostrar las fechas de los pedidos recibidos
+    if (pedidos.value.length > 0) {
+      const fechasUnicas = [
+        ...new Set(pedidos.value.map((p) => p.fecha_entrega)),
+      ].sort();
+      console.log("📦 Fechas de entrega encontradas:", fechasUnicas);
+    }
   } catch (error) {
-    console.error("Error al cargar pedidos:", error);
+    console.error("❌ Error al cargar pedidos:", error);
     pedidos.value = [];
   } finally {
     loadingPedidos.value = false;
