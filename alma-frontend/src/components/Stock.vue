@@ -61,32 +61,20 @@
                     <div class="info-header">
                       <h4 class="nombre-insumo">{{ item.nombre }}</h4>
                       <div class="badges-container">
-                        <span class="badge-categoria">{{
-                          item.categoria
-                        }}</span>
-                        <span class="badge-proveedor">{{
-                          item.proveedor
-                        }}</span>
+                        <span class="badge-categoria">{{ item.categoria }}</span>
+                        <span class="badge-proveedor">{{ item.proveedor }}</span>
                       </div>
                     </div>
 
                     <div class="info-stock">
                       <div class="stock-actual">
-                        <span class="cantidad">{{
-                          formatDecimal(item.cantidad)
-                        }}</span>
+                        <span class="cantidad">{{ formatDecimal(item.cantidad) }}</span>
                         <span class="unidad">{{ item.unidad }}</span>
                       </div>
                       <div class="stock-minimo">
                         <span class="label"><b>Mín:</b></span>
-                        <span class="valor"
-                          >{{ formatDecimal(item.stock_minimo) }}
-                          {{ item.unidad }}
-                          <span style="margin-left: 10px"
-                            ><b>Precio por {{ item.unidad }}:</b> ${{
-                              item.precio_unitario
-                            }}</span
-                          >
+                        <span class="valor">{{ formatDecimal(item.stock_minimo) }} {{ item.unidad }}
+                          <span style="margin-left: 10px"><b>Precio por {{ item.unidad }}:</b> ${{ item.precio_unitario }}</span>
                         </span>
                       </div>
                     </div>
@@ -131,8 +119,7 @@
             <!-- Controles de paginación -->
             <div class="pagination-controls" v-if="totalPaginas > 1">
               <div class="pagination-info">
-                Mostrando {{ inicioPagina }}-{{ finPagina }} de
-                {{ stockFiltrado.length }} insumos
+                Mostrando {{ inicioPagina }}-{{ finPagina }} de {{ stockFiltrado.length }} insumos
               </div>
               <div class="pagination-buttons">
                 <button
@@ -153,11 +140,7 @@
                   >
                     {{ pagina }}
                   </button>
-                  <span
-                    v-if="mostrarPuntosSuspensivos"
-                    class="pagination-ellipsis"
-                    >...</span
-                  >
+                  <span v-if="mostrarPuntosSuspensivos" class="pagination-ellipsis">...</span>
                 </div>
 
                 <button
@@ -204,11 +187,7 @@
         <div class="form-group">
           <label>Categoría:</label>
           <div class="select-with-button">
-            <select
-              v-model="formInsumo.categoria_id"
-              required
-              class="form-input"
-            >
+            <select v-model="formInsumo.categoria_id" required class="form-input">
               <option value="">Seleccione una categoría</option>
               <option v-for="cat in categorias" :key="cat.id" :value="cat.id">
                 {{ cat.nombre }}
@@ -226,32 +205,10 @@
         </div>
 
         <div class="form-group">
-          <label>Cantidad:</label>
-          <input
-            v-model="formInsumo.stockActual"
-            type="number"
-            step="0.001"
-            min="0"
-            required
-            class="form-input"
-            placeholder="0.000"
-            @input="validarCantidad"
-          />
-        </div>
-
-        <div class="form-group">
           <label>Unidad de Medida:</label>
-          <select
-            v-model="formInsumo.unidad_medida_id"
-            required
-            class="form-input"
-          >
+          <select v-model="formInsumo.unidad_medida_id" required class="form-input">
             <option value="">Seleccione una unidad</option>
-            <option
-              v-for="unidad in unidadesPermitidas"
-              :key="unidad.id"
-              :value="unidad.id"
-            >
+            <option v-for="unidad in unidadesPermitidas" :key="unidad.id" :value="unidad.id">
               {{ unidad.nombre }} ({{ unidad.abreviatura }})
             </option>
           </select>
@@ -292,10 +249,7 @@
           <label>Insumo:</label>
 
           <!-- MODO REPOSICIÓN RÁPIDA: Mostrar insumo fijo -->
-          <div
-            class="insumo-fijo"
-            v-if="esReposicionRapida && insumoReposicionRapida"
-          >
+          <div class="insumo-fijo" v-if="esReposicionRapida && insumoReposicionRapida">
             <div class="insumo-fijo-nombre">
               <div class="insumo-fijo-header">
                 <i class="fas fa-lock"></i>
@@ -303,14 +257,10 @@
               </div>
               <div class="insumo-fijo-stock-info">
                 <span class="stock-actual-info">
-                  Stock actual:
-                  {{ formatDecimal(insumoReposicionRapida.cantidad) }}
-                  {{ insumoReposicionRapida.unidad }}
+                  Stock actual: {{ formatDecimal(insumoReposicionRapida.cantidad) }} {{ insumoReposicionRapida.unidad }}
                 </span>
                 <span class="stock-minimo-info">
-                  Stock mínimo:
-                  {{ formatDecimal(insumoReposicionRapida.stock_minimo) }}
-                  {{ insumoReposicionRapida.unidad }}
+                  Stock mínimo: {{ formatDecimal(insumoReposicionRapida.stock_minimo) }} {{ insumoReposicionRapida.unidad }}
                 </span>
               </div>
             </div>
@@ -337,11 +287,7 @@
               style="margin-top: 8px"
             >
               <option value="">Seleccione un insumo</option>
-              <option
-                v-for="insumo in insumosFiltrados"
-                :key="insumo.id"
-                :value="insumo.id"
-              >
+              <option v-for="insumo in insumosFiltrados" :key="insumo.id" :value="insumo.id">
                 {{ insumo.nombre }}
                 (Stock: {{ formatDecimal(insumo.stock_actual) }} | Mín:
                 {{ formatDecimal(insumo.stock_minimo) }}
@@ -367,12 +313,7 @@
 
         <div class="form-group">
           <label>Unidad de Medida:</label>
-          <input
-            :value="unidadCompra"
-            type="text"
-            disabled
-            class="form-input"
-          />
+          <input :value="unidadCompra" type="text" disabled class="form-input" />
         </div>
 
         <div class="form-group">
@@ -380,7 +321,7 @@
           <input
             v-model="formCompra.precio_total"
             type="number"
-            step="0.01"
+            step="1"
             min="0"
             required
             class="form-input"
@@ -391,29 +332,15 @@
 
         <div class="form-group">
           <label>Precio por {{ unidadCompra }}:</label>
-          <input
-            :value="formCompra.precio_unitario"
-            type="number"
-            step="0.01"
-            disabled
-            class="form-input"
-          />
+          <input :value="formCompra.precio_unitario" type="number" step="0.01" disabled class="form-input" />
         </div>
 
         <div class="form-group">
           <label>Proveedor:</label>
           <div class="select-with-button">
-            <select
-              v-model="formCompra.proveedor_id"
-              required
-              class="form-input"
-            >
+            <select v-model="formCompra.proveedor_id" required class="form-input">
               <option value="">Seleccione un proveedor</option>
-              <option
-                v-for="prov in proveedores"
-                :key="prov.id"
-                :value="prov.id"
-              >
+              <option v-for="prov in proveedores" :key="prov.id" :value="prov.id">
                 {{ prov.nombre }}
               </option>
             </select>
@@ -431,9 +358,7 @@
 
       <template #footer>
         <ModalButtons
-          :confirm-text="
-            esReposicionRapida ? 'Confirmar Reposición' : 'Registrar Compra'
-          "
+          :confirm-text="esReposicionRapida ? 'Confirmar Reposición' : 'Registrar Compra'"
           @cancel="cerrarModalCompra"
           @confirm="registrarCompra"
         />
@@ -561,10 +486,7 @@
           <label>Insumo:</label>
 
           <!-- MODO PÉRDIDA RÁPIDA: Mostrar insumo fijo -->
-          <div
-            class="insumo-fijo"
-            v-if="esPerdidaRapida && insumoPerdidaRapida"
-          >
+          <div class="insumo-fijo" v-if="esPerdidaRapida && insumoPerdidaRapida">
             <div class="insumo-fijo-nombre">
               <div class="insumo-fijo-header">
                 <i class="fas fa-lock"></i>
@@ -572,14 +494,10 @@
               </div>
               <div class="insumo-fijo-stock-info">
                 <span class="stock-actual-info">
-                  Stock actual:
-                  {{ formatDecimal(insumoPerdidaRapida.cantidad) }}
-                  {{ insumoPerdidaRapida.unidad }}
+                  Stock actual: {{ formatDecimal(insumoPerdidaRapida.cantidad) }} {{ insumoPerdidaRapida.unidad }}
                 </span>
                 <span class="stock-minimo-info">
-                  Stock mínimo:
-                  {{ formatDecimal(insumoPerdidaRapida.stock_minimo) }}
-                  {{ insumoPerdidaRapida.unidad }}
+                  Stock mínimo: {{ formatDecimal(insumoPerdidaRapida.stock_minimo) }} {{ insumoPerdidaRapida.unidad }}
                 </span>
               </div>
             </div>
@@ -589,18 +507,9 @@
           </div>
 
           <!-- MODO NORMAL: Selección de insumo -->
-          <select
-            v-else
-            v-model="formPerdida.insumo_id"
-            required
-            class="form-input"
-          >
+          <select v-else v-model="formPerdida.insumo_id" required class="form-input">
             <option value="">Seleccione un insumo</option>
-            <option
-              v-for="insumo in insumos"
-              :key="insumo.id"
-              :value="insumo.id"
-            >
+            <option v-for="insumo in insumos" :key="insumo.id" :value="insumo.id">
               {{ insumo.nombre }}
               (Stock: {{ formatDecimal(insumo.stock_actual) }}
               {{ insumo.unidad_medida?.abreviatura }})
@@ -613,7 +522,7 @@
           <input
             v-model="formPerdida.cantidad"
             type="number"
-            step="0.001"
+            step="1"
             min="0.001"
             required
             class="form-input"
@@ -677,20 +586,13 @@
           <div class="info-item">
             <span class="label">Categoría:</span>
             <span class="value">
-              {{
-                categorias.find((c) => c.id === formInsumo.categoria_id)
-                  ?.nombre || "Sin categoría"
-              }}
+              {{ categorias.find((c) => c.id === formInsumo.categoria_id)?.nombre || "Sin categoría" }}
             </span>
           </div>
           <div class="info-item">
             <span class="label">Unidad de medida:</span>
             <span class="value">
-              {{
-                unidadesPermitidas.find(
-                  (u) => u.id === formInsumo.unidad_medida_id
-                )?.nombre || "Sin unidad"
-              }}
+              {{ unidadesPermitidas.find((u) => u.id === formInsumo.unidad_medida_id)?.nombre || "Sin unidad" }}
             </span>
           </div>
           <div class="info-item">
@@ -702,18 +604,10 @@
 
       <template #footer>
         <div class="reactivar-buttons">
-          <button
-            class="btn-cancelar"
-            @click="cancelarReactivacion"
-            :disabled="reactivando"
-          >
+          <button class="btn-cancelar" @click="cancelarReactivacion" :disabled="reactivando">
             Cancelar
           </button>
-          <button
-            class="btn-reactivar"
-            @click="reactivarInsumo"
-            :disabled="reactivando"
-          >
+          <button class="btn-reactivar" @click="reactivarInsumo" :disabled="reactivando">
             <i v-if="reactivando" class="fas fa-spinner fa-spin"></i>
             {{ reactivando ? "Reactivando..." : "Reactivar Insumo" }}
           </button>
@@ -725,7 +619,7 @@
 
 <script setup>
 import { useRouter } from "vue-router";
-import { ref, computed, onMounted, onUnmounted, watch, inject } from "vue";
+import { ref, computed, onMounted, watch, inject } from "vue";
 import { useRoute } from "vue-router";
 import Sidebar from "./Sidebar.vue";
 import Header from "./Header.vue";
@@ -740,7 +634,6 @@ const route = useRoute();
 const notificationSystem = inject("notifications");
 
 // Variables de estado
-const headerRef = ref(null);
 const stock = ref([]);
 const insumos = ref([]);
 const categorias = ref([]);
@@ -754,11 +647,11 @@ const stockDesplegado = ref({});
 const busquedaInsumo = ref("");
 const insumosFiltrados = ref([]);
 const filtroActivo = ref(""); // 'critico', 'bajo', 'normal', 'total'
-// Variables de estado - Agrega estas después de las variables existentes
+
+// Variables para pérdidas
 const showRegistrarPerdidaModal = ref(false);
 const esPerdidaRapida = ref(false);
 const insumoPerdidaRapida = ref(null);
-
 const formPerdida = ref({
   insumo_id: "",
   cantidad: 0,
@@ -782,7 +675,7 @@ const showNuevoProveedorModal = ref(false);
 const showConfirmModal = ref(false);
 const showNuevaCategoriaModal = ref(false);
 
-// Agregar después de las otras variables
+// Variables para reposición rápida
 const esReposicionRapida = ref(false);
 const insumoReposicionRapida = ref(null);
 
@@ -811,7 +704,6 @@ const formProveedor = ref({
   email: "",
 });
 
-// Agregar formulario para categoría
 const formCategoria = ref({
   nombre: "",
   descripcion: "",
@@ -821,140 +713,12 @@ const esEdicion = ref(false);
 const insumoAEliminar = ref(null);
 const unidadCompra = ref("");
 
-// Referencia al sidebar para controlarlo desde el header
+// Referencia al sidebar
 const sidebarRef = ref(null);
 
-// Método para alternar el sidebar desde el header
-const toggleSidebar = () => {
-  if (sidebarRef.value) {
-    sidebarRef.value.toggleSidebar();
-  }
-};
-
-// Método para registrar pérdida rápida
-const registrarPerdidaRapida = (item) => {
-  esPerdidaRapida.value = true;
-  insumoPerdidaRapida.value = item;
-  formPerdida.value.insumo_id = item.id;
-  formPerdida.value.cantidad = 0;
-  formPerdida.value.motivo = "";
-  formPerdida.value.observaciones = "";
-  showRegistrarPerdidaModal.value = true;
-};
-
-// Método para registrar pérdida
-const registrarPerdida = async () => {
-  try {
-    // Validaciones
-    if (parseFloat(formPerdida.value.cantidad) <= 0) {
-      notificationSystem.show({
-        type: "error",
-        title: "Error de validación",
-        message: "La cantidad debe ser mayor a 0",
-        timeout: 4000,
-      });
-      return;
-    }
-
-    if (!formPerdida.value.motivo) {
-      notificationSystem.show({
-        type: "error",
-        title: "Error de validación",
-        message: "Debe seleccionar un motivo",
-        timeout: 4000,
-      });
-      return;
-    }
-
-    // Preparar datos para enviar
-    const datosPerdida = {
-      insumo: formPerdida.value.insumo_id,
-      cantidad: parseFloat(formPerdida.value.cantidad),
-      motivo: formPerdida.value.motivo,
-      observaciones: formPerdida.value.observaciones,
-      fecha: new Date().toISOString().split("T")[0], // Fecha actual
-    };
-
-    // Enviar al backend
-    const response = await axios.post("/api/perdidas/", datosPerdida);
-
-    // Actualizar datos locales
-    await fetchStock();
-    await fetchInsumos();
-
-    // Cerrar modal y resetear
-    showRegistrarPerdidaModal.value = false;
-    resetFormPerdida();
-
-    notificationSystem.show({
-      type: "success",
-      title: "Pérdida registrada",
-      message: "La pérdida se registró correctamente",
-      timeout: 4000,
-    });
-  } catch (error) {
-    console.error("Error al registrar pérdida:", error);
-
-    let mensajeError = "No se pudo registrar la pérdida";
-    if (error.response?.data?.error) {
-      mensajeError = error.response.data.error;
-    }
-
-    notificationSystem.show({
-      type: "error",
-      title: "Error",
-      message: mensajeError,
-      timeout: 6000,
-    });
-  }
-};
-
-// Método para cerrar modal de pérdida
-const cerrarModalPerdida = () => {
-  showRegistrarPerdidaModal.value = false;
-  // Resetear modo pérdida rápida
-  esPerdidaRapida.value = false;
-  insumoPerdidaRapida.value = null;
-  resetFormPerdida();
-};
-
-// Método para validar cantidad de pérdida
-const validarCantidadPerdida = () => {
-  // Solo validar que no sea negativo, pero permitir 0
-  if (parseFloat(formPerdida.value.cantidad) < 0) {
-    formPerdida.value.cantidad = 0;
-  }
-};
-
-// Método para resetear formulario de pérdida
-const resetFormPerdida = () => {
-  formPerdida.value = {
-    insumo_id: "",
-    cantidad: 0,
-    motivo: "",
-    observaciones: "",
-  };
-};
-// Computed properties
-
 // Computed properties para el PageHeader
-const categoriasStock = computed(() => {
-  const categoriasUnicas = [
-    ...new Set(stock.value.map((item) => item.categoria)),
-  ];
-  return categoriasUnicas.filter((cat) => cat && cat !== "Sin categoría");
-});
-
-// Agregar proveedores únicos del stock
-const proveedoresStock = computed(() => {
-  const proveedoresUnicos = [
-    ...new Set(stock.value.map((item) => item.proveedor)),
-  ];
-  return proveedoresUnicos.filter((prov) => prov && prov !== "Sin Proveedor");
-});
-
 const stockStats = computed(() => {
-  const { critico, bajo, normal, total } = estadisticasStock.value;
+  const { critico, bajo, normal } = estadisticasStock.value;
 
   return [
     {
@@ -981,14 +745,6 @@ const stockStats = computed(() => {
       tooltip: "Ver insumos con stock normal",
       value: normal,
     },
-    {
-      type: "total",
-      label: `${total} Total`,
-      compactLabel: `${total} Total`,
-      icon: "fas fa-boxes",
-      tooltip: "Ver todos los insumos",
-      value: total,
-    },
   ];
 });
 
@@ -1004,19 +760,27 @@ const stockFilters = computed(() => [
     placeholder: "Categoría",
     value: categoriaSeleccionada.value,
     defaultOption: "Todas las categorías",
-    options: categoriasStock.value.map((cat) => ({ label: cat, value: cat })),
+    options: categoriasStock.value?.map((cat) => ({ label: cat, value: cat })) || [],
   },
   {
     type: "select",
     placeholder: "Proveedor",
     value: proveedorSeleccionado.value,
     defaultOption: "Todos los proveedores",
-    options: proveedoresStock.value.map((prov) => ({
-      label: prov,
-      value: prov,
-    })),
+    options: proveedoresStock.value?.map((prov) => ({ label: prov, value: prov })) || [],
   },
 ]);
+
+// Computed properties para categorías y proveedores únicos
+const categoriasStock = computed(() => {
+  const categoriasUnicas = [...new Set(stock.value.map((item) => item.categoria))];
+  return categoriasUnicas.filter((cat) => cat && cat !== "Sin categoría");
+});
+
+const proveedoresStock = computed(() => {
+  const proveedoresUnicos = [...new Set(stock.value.map((item) => item.proveedor))];
+  return proveedoresUnicos.filter((prov) => prov && prov !== "Sin Proveedor");
+});
 
 // Métodos para manejar eventos del PageHeader
 const handleStockStatClick = (stat) => {
@@ -1039,7 +803,6 @@ const limpiarFiltrosStock = () => {
 };
 
 // Computed properties para paginación
-
 const stockPaginado = computed(() => {
   const inicio = (paginaActual.value - 1) * itemsPorPagina.value;
   const fin = inicio + itemsPorPagina.value;
@@ -1114,7 +877,7 @@ const stockFiltrado = computed(() => {
     );
   }
 
-  //Filtrar por proveedor
+  // Filtrar por proveedor
   if (proveedorSeleccionado.value) {
     filtered = filtered.filter(
       (item) => item.proveedor === proveedorSeleccionado.value
@@ -1150,6 +913,7 @@ const stockFiltrado = computed(() => {
         break;
     }
   }
+  
   // Ordenar: stock crítico primero, luego bajo, luego normal
   return filtered.sort((a, b) => {
     const aCritico = a.cantidad <= a.stock_minimo * 0.5;
@@ -1171,9 +935,7 @@ const notificacionesStockCritico = computed(() => {
       id: `stock-critico-${item.id}`,
       type: "critical",
       title: "Stock Crítico",
-      message: `${item.nombre} está en nivel crítico (${formatDecimal(
-        item.cantidad
-      )}/${formatDecimal(item.stock_minimo)} ${item.unidad})`,
+      message: `${item.nombre} está en nivel crítico (${formatDecimal(item.cantidad)}/${formatDecimal(item.stock_minimo)} ${item.unidad})`,
       timestamp: new Date(),
       read: false,
       item: item,
@@ -1187,20 +949,11 @@ const notificacionesStockBajo = computed(() => {
       id: `stock-bajo-${item.id}`,
       type: "warning",
       title: "Stock Bajo",
-      message: `${item.nombre} está por debajo del mínimo (${formatDecimal(
-        item.cantidad
-      )}/${formatDecimal(item.stock_minimo)} ${item.unidad})`,
+      message: `${item.nombre} está por debajo del mínimo (${formatDecimal(item.cantidad)}/${formatDecimal(item.stock_minimo)} ${item.unidad})`,
       timestamp: new Date(),
       read: false,
       item: item,
     }));
-});
-
-const todasLasNotificacionesStock = computed(() => {
-  return [
-    ...notificacionesStockCritico.value,
-    ...notificacionesStockBajo.value,
-  ];
 });
 
 const estadisticasStock = computed(() => {
@@ -1217,11 +970,16 @@ const estadisticasStock = computed(() => {
   };
 });
 
-// AGREGAR: Métodos para manejar filtros
+// Computed para unidades permitidas
+const unidadesPermitidas = computed(() => {
+  return unidadesMedida.value;
+});
+
+// Métodos para manejar filtros
 const aplicarFiltro = (tipo) => {
   // Si es "total", no hacer nada (no aplicar filtro)
   if (tipo === "total") {
-    return; // Salir sin hacer cambios
+    return;
   }
 
   // Si ya está activo el mismo filtro, desactivarlo
@@ -1240,7 +998,7 @@ const limpiarFiltros = () => {
   resetearPaginacion();
 };
 
-// 🔍 MÉTODO PARA FILTRAR INSUMOS EN MODAL DE COMPRA
+// Método para filtrar insumos en modal de compra
 const filtrarInsumos = () => {
   if (!busquedaInsumo.value) {
     insumosFiltrados.value = insumos.value;
@@ -1264,11 +1022,6 @@ const cambiarPagina = (pagina) => {
 
 const resetearPaginacion = () => {
   paginaActual.value = 1;
-};
-
-// Métodos
-const handleNavigation = (route) => {
-  router.push(route);
 };
 
 const logout = async () => {
@@ -1373,20 +1126,10 @@ const parsearNumero = (valor) => {
   return parseFloat(valor);
 };
 
-const resetFilters = () => {
-  categoriaSeleccionada.value = "";
-  searchTerm.value = "";
-};
-
 const showNuevoInsumoModal = () => {
   esEdicion.value = false;
   resetFormInsumo();
   showModalInsumo.value = true;
-};
-
-const showNuevaCompraModal = () => {
-  resetFormCompra();
-  showModalCompra.value = true;
 };
 
 const editarInsumo = (insumo) => {
@@ -1399,8 +1142,7 @@ const editarInsumo = (insumo) => {
     categoria_id:
       categorias.value.find((c) => c.nombre === insumo.categoria)?.id || "",
     unidad_medida_id:
-      unidadesMedida.value.find((u) => u.abreviatura === insumo.unidad)?.id ||
-      "",
+      unidadesMedida.value.find((u) => u.abreviatura === insumo.unidad)?.id || "",
     stock_minimo: parsearNumero(insumo.stock_minimo),
     precio_unitario: parsearNumero(insumo.precio_unitario),
     proveedor_id: insumo.proveedor_id,
@@ -1427,8 +1169,6 @@ const eliminarInsumo = async () => {
     }
 
     showConfirmModal.value = false;
-
-    actualizarNotificacionesStock();
 
     notificationSystem.show({
       type: "success",
@@ -1464,8 +1204,6 @@ const guardarInsumo = async () => {
       datosParaEnviar.stock_actual = 0;
     }
 
-    console.log("📤 Payload enviado al servidor:", datosParaEnviar);
-
     let response;
 
     // -----------------------------
@@ -1498,15 +1236,8 @@ const guardarInsumo = async () => {
     try {
       response = await axios.post("/api/insumos/crear/", datosParaEnviar);
     } catch (error) {
-      // DEBUG: Mostrar toda la respuesta del error
-      console.log("🔍🔍🔍 DEBUG COMPLETO DEL ERROR:");
-      console.log("Status:", error.response?.status);
-      console.log("Data:", error.response?.data);
-      console.log("Error completo:", error);
-
       // Manejar el caso de insumo desactivado
       if (error.response?.data?.error === "insumo_desactivado") {
-        console.log("✅ BACKEND CORRECTO - Detectó insumo desactivado");
         insumoDesactivado.value = error.response.data;
         showReactivarModal.value = true;
         return;
@@ -1516,7 +1247,6 @@ const guardarInsumo = async () => {
         error.response?.data?.error &&
         error.response.data.error.includes("Ya existe un insumo")
       ) {
-        console.log("❌ BACKEND - Insumo activo con mismo nombre");
         notificationSystem.show({
           type: "error",
           title: "Error",
@@ -1527,7 +1257,6 @@ const guardarInsumo = async () => {
       }
       // Otros errores
       else {
-        console.log("❌ ERROR DESCONOCIDO");
         notificationSystem.show({
           type: "error",
           title: "Error",
@@ -1538,8 +1267,6 @@ const guardarInsumo = async () => {
         return;
       }
     }
-
-    console.log("📥 Respuesta del servidor:", response.data);
 
     const nuevoID = response.data?.id;
 
@@ -1567,8 +1294,6 @@ const guardarInsumo = async () => {
       );
     }
 
-    console.log("🔍 Insumo creado:", nuevoInsumoCompleto);
-
     if (nuevoInsumoCompleto) {
       setTimeout(() => {
         reponerStockRapido(nuevoInsumoCompleto);
@@ -1577,7 +1302,6 @@ const guardarInsumo = async () => {
   } catch (error) {
     console.error("❌ ERROR COMPLETO NO MANEJADO:", error);
 
-    // Este catch solo debería ejecutarse para errores no manejados
     notificationSystem.show({
       type: "error",
       title: "Error inesperado",
@@ -1643,7 +1367,6 @@ const reactivarInsumo = async () => {
 const cancelarReactivacion = () => {
   showReactivarModal.value = false;
   insumoDesactivado.value = null;
-  // Mantener el modal de insumo abierto para que el usuario pueda cambiar el nombre
 };
 
 const registrarCompra = async () => {
@@ -1701,16 +1424,10 @@ const registrarCompra = async () => {
       `/api/insumos/${formCompra.value.insumo_id}/actualizar-parcial/`,
       datosActualizacion
     );
+    
     // Refrescar tanto stock como insumos
     await fetchStock();
     await fetchInsumos();
-
-    const itemActualizado = stock.value.find(
-      (item) => item.id === parseInt(formCompra.value.insumo_id)
-    );
-    if (itemActualizado) {
-      verificarStockYNotificar(itemActualizado, "reposicion");
-    }
 
     closeModal();
 
@@ -1726,8 +1443,6 @@ const registrarCompra = async () => {
     });
   } catch (error) {
     console.error("Error completo al registrar compra:", error);
-    console.error("Response data:", error.response?.data);
-    console.error("Response status:", error.response?.status);
 
     notificationSystem.show({
       type: "error",
@@ -1853,13 +1568,116 @@ const resetForms = () => {
   esEdicion.value = false;
 };
 
+// Método para registrar pérdida rápida
+const registrarPerdidaRapida = (item) => {
+  esPerdidaRapida.value = true;
+  insumoPerdidaRapida.value = item;
+  formPerdida.value.insumo_id = item.id;
+  formPerdida.value.cantidad = 0;
+  formPerdida.value.motivo = "";
+  formPerdida.value.observaciones = "";
+  showRegistrarPerdidaModal.value = true;
+};
+
+// Método para registrar pérdida
+const registrarPerdida = async () => {
+  try {
+    // Validaciones
+    if (parseFloat(formPerdida.value.cantidad) <= 0) {
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "La cantidad debe ser mayor a 0",
+        timeout: 4000,
+      });
+      return;
+    }
+
+    if (!formPerdida.value.motivo) {
+      notificationSystem.show({
+        type: "error",
+        title: "Error de validación",
+        message: "Debe seleccionar un motivo",
+        timeout: 4000,
+      });
+      return;
+    }
+
+    // Preparar datos para enviar
+    const datosPerdida = {
+      insumo: formPerdida.value.insumo_id,
+      cantidad: parseFloat(formPerdida.value.cantidad),
+      motivo: formPerdida.value.motivo,
+      observaciones: formPerdida.value.observaciones,
+      fecha: new Date().toISOString().split("T")[0], // Fecha actual
+    };
+
+    // Enviar al backend
+    const response = await axios.post("/api/perdidas/", datosPerdida);
+
+    // Actualizar datos locales
+    await fetchStock();
+    await fetchInsumos();
+
+    // Cerrar modal y resetear
+    showRegistrarPerdidaModal.value = false;
+    resetFormPerdida();
+
+    notificationSystem.show({
+      type: "success",
+      title: "Pérdida registrada",
+      message: "La pérdida se registró correctamente",
+      timeout: 4000,
+    });
+  } catch (error) {
+    console.error("Error al registrar pérdida:", error);
+
+    let mensajeError = "No se pudo registrar la pérdida";
+    if (error.response?.data?.error) {
+      mensajeError = error.response.data.error;
+    }
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: mensajeError,
+      timeout: 6000,
+    });
+  }
+};
+
+// Método para cerrar modal de pérdida
+const cerrarModalPerdida = () => {
+  showRegistrarPerdidaModal.value = false;
+  // Resetear modo pérdida rápida
+  esPerdidaRapida.value = false;
+  insumoPerdidaRapida.value = null;
+  resetFormPerdida();
+};
+
+// Método para validar cantidad de pérdida
+const validarCantidadPerdida = () => {
+  // Solo validar que no sea negativo, pero permitir 0
+  if (parseFloat(formPerdida.value.cantidad) < 0) {
+    formPerdida.value.cantidad = 0;
+  }
+};
+
+// Método para resetear formulario de pérdida
+const resetFormPerdida = () => {
+  formPerdida.value = {
+    insumo_id: "",
+    cantidad: 0,
+    motivo: "",
+    observaciones: "",
+  };
+};
+
 // Funciones para cargar datos
 const fetchStock = async () => {
   try {
     loading.value = true;
-    console.log("Fetching stock...");
     const response = await axios.get("/api/insumos/");
-    console.log("Respuesta del servidor:", response.data);
 
     stock.value = response.data.insumos
       .map((insumo) => ({
@@ -1880,7 +1698,6 @@ const fetchStock = async () => {
         return 0;
       });
 
-    console.log("Stock procesado:", stock.value);
     loading.value = false;
   } catch (err) {
     console.error("Error en fetchStock:", err);
@@ -1895,7 +1712,6 @@ const fetchInsumos = async () => {
   try {
     const response = await axios.get("/api/insumos/");
     insumos.value = response.data.insumos;
-    // 🔍 CORREGIR: Usar insumosFiltrados.value en lugar de insumosFiltrados
     insumosFiltrados.value = response.data.insumos;
   } catch (err) {
     console.error("Error en fetchInsumos:", err);
@@ -1929,39 +1745,6 @@ const fetchProveedores = async () => {
   }
 };
 
-// Watchers para resetear paginación cuando cambian los filtros
-watch(
-  [searchTerm, categoriaSeleccionada, proveedorSeleccionado, filtroActivo],
-  () => {
-    resetearPaginacion();
-  }
-);
-
-// Computed para unidades permitidas
-const unidadesPermitidas = computed(() => {
-  return unidadesMedida.value;
-});
-
-// Watch para calcular precio unitario cuando cambia cantidad o precio total
-watch(
-  () => [formCompra.value.cantidad, formCompra.value.precio_total],
-  () => {
-    calcularPrecioUnitario();
-  }
-);
-
-// AGREGAR: Watch para notificaciones de stock
-watch(
-  () => [...notificacionesStockCritico.value, ...notificacionesStockBajo.value],
-  (nuevasNotificaciones, anterioresNotificaciones) => {
-    // Aquí podrías integrar con el sistema de notificaciones del header
-    if (headerRef.value && headerRef.value.actualizarNotificacionesStock) {
-      headerRef.value.actualizarNotificacionesStock(nuevasNotificaciones);
-    }
-  },
-  { deep: true }
-);
-
 const reponerStockRapido = (item) => {
   esReposicionRapida.value = true;
   insumoReposicionRapida.value = item;
@@ -1974,57 +1757,36 @@ const reponerStockRapido = (item) => {
   showModalCompra.value = true;
 };
 
-// AGREGAR: Método para actualizar notificaciones en el Header
-const actualizarNotificacionesStock = () => {
-  if (headerRef.value && headerRef.value.actualizarNotificaciones) {
-    headerRef.value.actualizarNotificaciones();
+const cerrarModalCompra = () => {
+  showModalCompra.value = false;
+  // Resetear modo reposición rápida
+  esReposicionRapida.value = false;
+  insumoReposicionRapida.value = null;
+  resetFormCompra();
+};
+
+const validarCantidad = () => {
+  // Solo validar que no sea negativo, pero permitir 0
+  if (parseFloat(formCompra.value.cantidad) < 0) {
+    formCompra.value.cantidad = 0;
   }
 };
 
-// Método para verificar y notificar cambios en stock
-const verificarStockYNotificar = (item, accion) => {
-  // Notificar si el stock está crítico
-  if (item.cantidad <= item.stock_minimo * 0.5) {
-    notificationSystem.show({
-      type: "warning",
-      title: "Stock Crítico",
-      message: `${item.nombre} necesita reposición urgente`,
-      timeout: 6000,
-    });
-  }
-  // Notificar si el stock está bajo
-  else if (item.bajoStock) {
-    notificationSystem.show({
-      type: "info",
-      title: "Stock Bajo",
-      message: `${item.nombre} está por debajo del stock mínimo`,
-      timeout: 5000,
-    });
-  }
-
-  // Actualizar notificaciones en el header
-  actualizarNotificacionesStock();
-};
-
-// Método para verificar parámetro de búsqueda en la URL
-const verificarParametroBusqueda = () => {
-  // Verificar si hay un parámetro 'search' en la URL
-  if (route.query.search) {
-    // Asignar el valor del parámetro al campo de búsqueda
-    searchTerm.value = route.query.search;
-
-    // Opcional: Mostrar un mensaje indicando que se aplicó un filtro
-    notificationSystem.show({
-      type: "info",
-      title: "Búsqueda aplicada",
-      message: `Mostrando resultados para: "${route.query.search}"`,
-      timeout: 3000,
-    });
+const toggleSidebar = () => {
+  if (sidebarRef.value) {
+    sidebarRef.value.toggleSidebar();
   }
 };
 
-// Watchers
-watch(() => formCompra.value.insumo_id, actualizarUnidadMedida);
+// Watchers para resetear paginación cuando cambian los filtros
+watch(
+  [searchTerm, categoriaSeleccionada, proveedorSeleccionado, filtroActivo],
+  () => {
+    resetearPaginacion();
+  }
+);
+
+// Watch para calcular precio unitario cuando cambia cantidad o precio total
 watch(
   () => [formCompra.value.cantidad, formCompra.value.precio_total],
   () => {
@@ -2054,13 +1816,8 @@ watch(
   }
 );
 
-watch(
-  stock,
-  () => {
-    actualizarNotificacionesStock();
-  },
-  { deep: true }
-);
+// Watchers
+watch(() => formCompra.value.insumo_id, actualizarUnidadMedida);
 
 // Cargar datos al montar el componente
 onMounted(() => {
@@ -2076,94 +1833,18 @@ onMounted(() => {
     fetchCategorias(),
     fetchUnidadesMedida(),
     fetchProveedores(),
-  ])
-    .then(() => {
-      // AGREGAR: Actualizar notificaciones después de cargar stock
-      actualizarNotificacionesStock();
-
-      // AGREGAR: Verificar si hay un parámetro de búsqueda en la URL
-      verificarParametroBusqueda();
-    })
-    .catch((error) => {
-      console.error("Error cargando datos:", error);
-      loading.value = false;
-      if (error.response?.status === 401) {
-        logout();
-      }
-    });
-});
-
-const cerrarModalCompra = () => {
-  showModalCompra.value = false;
-  // Resetear modo reposición rápida
-  esReposicionRapida.value = false;
-  insumoReposicionRapida.value = null;
-  resetFormCompra();
-};
-
-const validarCantidad = () => {
-  // Solo validar que no sea negativo, pero permitir 0
-  if (parseFloat(formCompra.value.cantidad) < 0) {
-    formCompra.value.cantidad = 0;
-  }
-};
-
-// Agregar en el script
-const isMobile = ref(false);
-
-const checkViewport = () => {
-  isMobile.value = window.innerWidth <= 768;
-};
-
-onMounted(() => {
-  checkViewport();
-  window.addEventListener("resize", checkViewport);
-});
-
-onUnmounted(() => {
-  window.removeEventListener("resize", checkViewport);
+  ]).catch((error) => {
+    console.error("Error cargando datos:", error);
+    loading.value = false;
+    if (error.response?.status === 401) {
+      logout();
+    }
+  });
 });
 </script>
 
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
-
-/* ----------------------------- BOTONES GENERALES ----------------------------- */
-.botones-acciones {
-  display: flex;
-  gap: 10px;
-}
-
-.btn-nuevo-insumo,
-.btn-nueva-compra {
-  background: linear-gradient(135deg, var(--color-success), #218838);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  padding: 12px 20px;
-  cursor: pointer;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
-  font-size: 0.9rem;
-}
-
-.btn-nuevo-insumo:hover,
-.btn-nueva-compra:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
-}
-
-.btn-nueva-compra {
-  background: linear-gradient(135deg, #17a2b8, #138496);
-}
-
-.btn-nueva-compra:hover {
-  box-shadow: 0 6px 20px rgba(23, 162, 184, 0.3);
-}
 
 /* ----------------------------- CARD DE STOCK MEJORADA ----------------------------- */
 .stock-card {
@@ -2390,86 +2071,16 @@ onUnmounted(() => {
   box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
 }
 
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    max-height: 0;
-  }
-  to {
-    opacity: 1;
-    max-height: 200px;
-  }
+/* Estilo para el botón de pérdida */
+.btn-perdida {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
 }
 
-.detalles-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.detalle-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background: white;
-  border-radius: 6px;
-  border: 1px solid #e9ecef;
-}
-
-.detalle-label {
-  font-size: 0.85rem;
-  color: #6c757d;
-  font-weight: 500;
-}
-
-.detalle-valor {
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.detalle-valor.critico {
-  color: #dc3545;
-}
-
-.detalle-valor.bajo {
-  color: #e0a800;
-}
-
-.detalle-valor.normal {
-  color: #28a745;
-}
-
-.detalle-valor.negativo {
-  color: #dc3545;
-}
-
-.detalle-valor.positivo {
-  color: #28a745;
-}
-
-/* Alerta de stock */
-.alerta-stock {
-  padding: 10px 12px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.alerta-stock.critica {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-}
-
-.alerta-stock.advertencia {
-  background: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffeaa7;
+.btn-perdida:hover {
+  background: linear-gradient(135deg, #c0392b, #a93226);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
 }
 
 /* ----------------------------- BOTÓN FLOTANTE NUEVA COMPRA ----------------------------- */
@@ -2665,21 +2276,6 @@ onUnmounted(() => {
   color: #6c757d;
 }
 
-/* Estilos para el select de insumos en modo normal */
-.form-input option {
-  padding: 8px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.form-input option:hover {
-  background-color: #f8f9fa;
-}
-
-/* ----------------------------- UTILIDADES ----------------------------- */
-.cursor-pointer {
-  cursor: pointer;
-}
-
 /* Estilos para el modal de reactivación */
 .reactivar-content {
   text-align: center;
@@ -2766,18 +2362,6 @@ onUnmounted(() => {
   transform: translateY(-1px);
 }
 
-/* Estilo para el botón de pérdida */
-.btn-perdida {
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
-  color: white;
-}
-
-.btn-perdida:hover {
-  background: linear-gradient(135deg, #c0392b, #a93226);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
-}
-
 /* ----------------------------- RESPONSIVE ----------------------------- */
 
 /* Tablets */
@@ -2789,15 +2373,6 @@ onUnmounted(() => {
 
 /* Tablets pequeñas y móviles grandes */
 @media (max-width: 768px) {
-  .botones-acciones {
-    width: 100%;
-  }
-
-  .btn-nuevo-insumo {
-    width: 100%;
-    justify-content: center;
-  }
-
   .stock-card {
     padding: 12px;
   }
@@ -2822,15 +2397,6 @@ onUnmounted(() => {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
-  }
-
-  .detalles-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .detalle-item {
-    padding: 6px 10px;
   }
 
   .btn-nueva-compra-flotante {
@@ -2892,15 +2458,6 @@ onUnmounted(() => {
 
   .cantidad {
     font-size: 1rem;
-  }
-
-  .stock-detalles {
-    padding: 12px;
-  }
-
-  .alerta-stock {
-    padding: 8px 10px;
-    font-size: 0.8rem;
   }
 
   .acciones-container {
@@ -2977,18 +2534,8 @@ onUnmounted(() => {
     min-width: 44px;
   }
 
-  .btn-nuevo-insumo,
   .btn-nueva-compra-flotante {
     min-height: 44px;
   }
-}
-.total-counter-small {
-  font-size: 0.7em;
-  color: var(--color-primary);
-  font-weight: 600;
-  margin-left: 0;
-  background: rgba(108, 117, 125, 0.1);
-  padding: 0;
-  border-radius: 8px;
 }
 </style>
