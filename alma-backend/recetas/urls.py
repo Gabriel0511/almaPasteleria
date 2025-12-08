@@ -10,7 +10,9 @@ from .views import (
     RecetasHechasHoyView,
     RecetasPorFechaView,
     GenerarPDFRecetasView,
-    CierreDiarioView
+    CierreDiarioView,
+    ActualizarCostosRecetasView,
+    ActualizarCostoRecetaView
 )
 
 urlpatterns = [
@@ -27,6 +29,6 @@ urlpatterns = [
     path('recetas-por-fecha/', RecetasPorFechaView.as_view(), name='recetas-por-fecha'),
     path('recetas-por-fecha/pdf/', GenerarPDFRecetasView.as_view(), name='recetas-por-fecha-pdf'),
     path('cierre-diario/', CierreDiarioView.as_view(), name='cierre-diario'),
-    path('api/recetas/actualizar-costos/', views.ActualizarCostosRecetasView.as_view(), name='actualizar_costos_recetas'),
-    path('api/recetas/<int:pk>/actualizar-costo/', views.ActualizarCostoRecetaView.as_view(), name='actualizar_costo_receta'),
+    path('api/recetas/actualizar-costos/', ActualizarCostosRecetasView.as_view(), name='actualizar_costos_recetas'),
+    path('api/recetas/<int:pk>/actualizar-costo/', ActualizarCostoRecetaView.as_view(), name='actualizar_costo_receta'),
 ]
