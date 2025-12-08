@@ -35,6 +35,7 @@
               :key="pedido.id"
               class="pedido-item"
               :class="{
+                'pedido-entregado': pedido.estado === 'entregado',
                 'pedido-atrasado': notificacionesPedidosAtrasados.some(
                   (n) => n.pedido.id === pedido.id
                 ),
@@ -42,9 +43,6 @@
                   (n) => n.pedido.id === pedido.id
                 ),
                 expanded: pedidoDesplegado[pedido.id],
-                [`estado-${pedido.estado
-                  .toLowerCase()
-                  .replace(' ', '-')}`]: true,
               }"
             >
               <!-- Contenedor principal compacto -->
@@ -53,20 +51,21 @@
                 <div
                   class="estado-indicador"
                   :class="{
-                    // Estados normales
-                    'estado-pendiente': pedido.estado === 'pendiente',
-                    'estado-en-preparacion': pedido.estado === 'en preparacion',
-                    'estado-listo': pedido.estado === 'listo',
-                    'estado-entregado': pedido.estado === 'entregado',
-                    'estado-cancelado': pedido.estado === 'cancelado',
-
-                    // Estados especiales (sobreescriben)
-                    'estado-critico': notificacionesPedidosAtrasados.some(
+                    critico: notificacionesPedidosAtrasados.some(
                       (n) => n.pedido.id === pedido.id
                     ),
-                    'estado-bajo': notificacionesPedidosParaHoy.some(
+                    bajo: notificacionesPedidosParaHoy.some(
                       (n) => n.pedido.id === pedido.id
                     ),
+                    normal:
+                      !notificacionesPedidosAtrasados.some(
+                        (n) => n.pedido.id === pedido.id
+                      ) &&
+                      !notificacionesPedidosParaHoy.some(
+                        (n) => n.pedido.id === pedido.id
+                      ) &&
+                      pedido.estado !== 'entregado',
+                    entregado: pedido.estado === 'entregado',
                   }"
                 ></div>
 
@@ -75,14 +74,11 @@
                   <div class="info-header">
                     <h4 class="cliente-nombre">{{ pedido.cliente.nombre }}</h4>
                     <div class="badges-container">
-                      <!-- Badge de estado - ACTUALIZADO -->
                       <span
-                        class="badge-estado estado-indicator"
-                        :class="`estado-${pedido.estado
-                          .toLowerCase()
-                          .replace(' ', '-')}`"
+                        class="badge-estado"
+                        :class="pedido.estado.toLowerCase()"
                       >
-                        {{ formatearEstado(pedido.estado) }}
+                        {{ pedido.estado }}
                       </span>
                       <span class="badge-total">
                         ${{ calcularTotalPedido(pedido) }}
@@ -92,26 +88,23 @@
 
                   <div class="info-detalles">
                     <div class="detalle-grupo">
-                      <span class="detalle-item fecha-registro">
+                      <span class="detalle-item">
                         <i class="fas fa-calendar-alt"></i>
                         {{ formatFecha(pedido.fecha_pedido) }}
-                        <span class="fecha-label">(Registro)</span>
                       </span>
                       <span
-                        class="detalle-item fecha-preparacion"
-                        :class="getColorClasePreparacion(pedido)"
-                      >
-                        <i class="fas fa-clock"></i>
-                        {{ formatFecha(pedido.fecha_fabricacion) }}
-                        <span class="fecha-label">(Preparación)</span>
-                      </span>
-                      <span
-                        class="detalle-item fecha-entrega"
-                        :class="getColorClaseEntrega(pedido)"
+                        class="detalle-item"
+                        :class="{
+                          'fecha-atrasada': notificacionesPedidosAtrasados.some(
+                            (n) => n.pedido.id === pedido.id
+                          ),
+                          'fecha-hoy': notificacionesPedidosParaHoy.some(
+                            (n) => n.pedido.id === pedido.id
+                          ),
+                        }"
                       >
                         <i class="fas fa-truck"></i>
                         {{ formatFecha(pedido.fecha_entrega) }}
-                        <span class="fecha-label">(Entrega)</span>
                       </span>
                     </div>
                     <div class="detalle-grupo">
@@ -394,17 +387,6 @@
         </div>
 
         <div class="form-group">
-          <label>Fecha de Preparación:</label>
-          <input
-            v-model="formPedido.fecha_fabricacion"
-            type="date"
-            required
-            class="form-input"
-          />
-          <small class="form-help">Cuándo se debe empezar a preparar</small>
-        </div>
-
-        <div class="form-group">
           <label>Fecha de Entrega:</label>
           <input
             v-model="formPedido.fecha_entrega"
@@ -417,11 +399,13 @@
         <div class="form-group">
           <label>Estado:</label>
           <select v-model="formPedido.estado" required class="form-input">
-            <option value="pendiente">Pendiente</option>
-            <option value="en preparacion">En Preparación</option>
-            <option value="listo">Listo para entregar</option>
-            <option value="entregado">Entregado</option>
-            <option value="cancelado">Cancelado</option>
+            <option
+              v-for="estado in estadosPedido"
+              :key="estado"
+              :value="estado"
+            >
+              {{ estado }}
+            </option>
           </select>
         </div>
       </div>
@@ -444,7 +428,7 @@
     >
       <div class="form-grid">
         <div class="form-group">
-          <label>Nombre: <span style="color: red">*</span></label>
+          <label>Nombre:</label>
           <input
             v-model="formCliente.nombre"
             type="text"
@@ -460,18 +444,17 @@
             v-model="formCliente.telefono"
             type="text"
             class="form-input"
-            placeholder="Teléfono (opcional)"
+            placeholder="Teléfono"
           />
         </div>
 
         <div class="form-group full-width">
-          <label>Dirección: <span style="color: red">*</span></label>
+          <label>Dirección:</label>
           <textarea
             v-model="formCliente.direccion"
             class="form-input"
             rows="3"
             placeholder="Dirección"
-            required
           ></textarea>
         </div>
       </div>
@@ -1103,8 +1086,7 @@ const pedidoActual = ref(null);
 // Estados de pedido
 const estadosPedido = ref([
   "pendiente",
-  "en preparacion",
-  "listo",
+  "en preparación",
   "entregado",
   "cancelado",
 ]);
@@ -1239,9 +1221,7 @@ const notificacionesPedidosAtrasados = computed(() => {
       if (pedido.estado === "entregado" || pedido.estado === "cancelado") {
         return false;
       }
-      // Usar fecha_fabricacion para determinar atrasos
-      const fechaPreparacion = pedido.fecha_fabricacion;
-      return fechaPreparacion && fechaPreparacion < hoy;
+      return pedido.fecha_entrega < hoy;
     })
     .map((pedido) => ({
       id: `pedido-atrasado-${pedido.id}`,
@@ -1249,7 +1229,7 @@ const notificacionesPedidosAtrasados = computed(() => {
       title: "Pedido Atrasado",
       message: `El pedido de ${
         pedido.cliente.nombre
-      } está atrasado (Preparación: ${formatFecha(pedido.fecha_fabricacion)})`,
+      } está atrasado (Entrega: ${formatFecha(pedido.fecha_entrega)})`,
       timestamp: new Date(),
       read: false,
       pedido: pedido,
@@ -1264,13 +1244,13 @@ const notificacionesPedidosParaHoy = computed(() => {
       if (pedido.estado === "entregado" || pedido.estado === "cancelado") {
         return false;
       }
-      return pedido.fecha_fabricacion === hoy;
+      return pedido.fecha_entrega === hoy;
     })
     .map((pedido) => ({
       id: `pedido-hoy-${pedido.id}`,
       type: "warning",
-      title: "Preparación Hoy",
-      message: `El pedido de ${pedido.cliente.nombre} debe prepararse hoy`,
+      title: "Entrega Hoy",
+      message: `El pedido de ${pedido.cliente.nombre} debe entregarse hoy`,
       timestamp: new Date(),
       read: false,
       pedido: pedido,
@@ -1287,13 +1267,13 @@ const notificacionesPedidosParaManana = computed(() => {
       if (pedido.estado === "entregado" || pedido.estado === "cancelado") {
         return false;
       }
-      return pedido.fecha_fabricacion === mananaStr;
+      return pedido.fecha_entrega === mananaStr;
     })
     .map((pedido) => ({
       id: `pedido-manana-${pedido.id}`,
       type: "info",
-      title: "Preparación Mañana",
-      message: `El pedido de ${pedido.cliente.nombre} se prepara mañana`,
+      title: "Entrega Mañana",
+      message: `El pedido de ${pedido.cliente.nombre} se entrega mañana`,
       timestamp: new Date(),
       read: false,
       pedido: pedido,
@@ -1336,68 +1316,6 @@ const formatFecha = (fecha) => {
     month: "2-digit",
     day: "2-digit",
   });
-};
-
-// Método para determinar color de fecha de preparación
-const getColorClasePreparacion = (pedido) => {
-  if (!pedido.fecha_fabricacion) return "fecha-neutra";
-
-  const hoy = new Date().toISOString().split("T")[0];
-  const manana = new Date();
-  manana.setDate(manana.getDate() + 1);
-  const mananaStr = manana.toISOString().split("T")[0];
-
-  if (pedido.estado === "entregado" || pedido.estado === "cancelado") {
-    return "fecha-neutra";
-  }
-
-  if (pedido.fecha_fabricacion < hoy) {
-    return "fecha-critica";
-  } else if (pedido.fecha_fabricacion === hoy) {
-    return "fecha-alerta";
-  } else if (pedido.fecha_fabricacion === mananaStr) {
-    return "fecha-advertencia";
-  }
-
-  return "fecha-futura";
-};
-
-// Método para determinar color de fecha de entrega
-const getColorClaseEntrega = (pedido) => {
-  if (!pedido.fecha_entrega) return "fecha-neutra";
-
-  const hoy = new Date().toISOString().split("T")[0];
-  const manana = new Date();
-  manana.setDate(manana.getDate() + 1);
-  const mananaStr = manana.toISOString().split("T")[0];
-
-  if (pedido.estado === "entregado") {
-    return "fecha-completada";
-  } else if (pedido.estado === "cancelado") {
-    return "fecha-neutra";
-  }
-
-  if (pedido.fecha_entrega < hoy) {
-    return "fecha-critica";
-  } else if (pedido.fecha_entrega === hoy) {
-    return "fecha-alerta";
-  } else if (pedido.fecha_entrega === mananaStr) {
-    return "fecha-advertencia";
-  }
-
-  return "fecha-futura";
-};
-
-// Formatear estado para mostrar
-const formatearEstado = (estado) => {
-  const estados = {
-    pendiente: "Pendiente",
-    "en preparacion": "En Preparación",
-    listo: "Listo para entregar",
-    entregado: "Entregado",
-    cancelado: "Cancelado",
-  };
-  return estados[estado] || estado;
 };
 
 // Función para convertir entre unidades de medida
@@ -1694,26 +1612,6 @@ const guardarPedido = async () => {
 };
 
 const guardarCliente = async () => {
-  // Validacion basica en frontend
-  const errores = [];
-
-  if (!formCliente.value.nombre.trim()) {
-    errores.push("El nombre es requerido");
-  }
-
-  if (!formCliente.value.direccion.trim()) {
-    errores.push("La dirección es requerida");
-  }
-
-  if (errores.length > 0) {
-    notificationSystem.show({
-      type: "error",
-      title: "Campos requeridos",
-      message: errores.join("\n"),
-      timeout: 5000,
-    });
-    return;
-  }
   try {
     await axios.post("/api/clientes/", formCliente.value);
     await fetchClientes();
@@ -1730,44 +1628,20 @@ const guardarCliente = async () => {
     let errorMessage = "Error al guardar el cliente";
 
     if (error.response?.status === 400) {
-      // Mejor manejo de errores de validación
-      if (error.response.data) {
+      if (error.response.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (typeof error.response.data === "object") {
         const errors = [];
-
-        // Mapear nombres de campos a nombres legibles
-        const fieldNames = {
-          nombre: "Nombre",
-          telefono: "Teléfono",
-          direccion: "Dirección",
-        };
-
-        if (typeof error.response.data === "object") {
-          for (const key in error.response.data) {
-            const fieldName = fieldNames[key] || key;
-
-            if (Array.isArray(error.response.data[key])) {
-              // Para cada error en el array
-              error.response.data[key].forEach((err) => {
-                errors.push(`${fieldName}: ${err}`);
-              });
-            } else if (typeof error.response.data[key] === "string") {
-              errors.push(`${fieldName}: ${error.response.data[key]}`);
-            } else {
-              errors.push(`${fieldName}: Campo inválido`);
-            }
+        for (const key in error.response.data) {
+          if (Array.isArray(error.response.data[key])) {
+            errors.push(...error.response.data[key]);
+          } else {
+            errors.push(`${key}: ${error.response.data[key]}`);
           }
-
-          if (errors.length > 0) {
-            // Para múltiples errores, usar bullets
-            if (errors.length > 1) {
-              errorMessage = "Errores encontrados:\n• " + errors.join("\n• ");
-            } else {
-              errorMessage = errors[0];
-            }
-          }
-        } else if (typeof error.response.data === "string") {
-          errorMessage = error.response.data;
         }
+        errorMessage = errors.join(", ");
+      } else if (typeof error.response.data === "string") {
+        errorMessage = error.response.data;
       }
     } else if (error.response?.status === 409) {
       errorMessage = "Ya existe un cliente con ese nombre o teléfono";
@@ -2232,7 +2106,8 @@ const marcarComoEntregado = async (pedido) => {
 
 // Computed properties para el PageHeader
 const pedidosStats = computed(() => {
-  const { atrasados, paraHoy, paraManana } = estadisticasPedidos.value;
+  const { atrasados, paraHoy, paraManana, totalActivos } =
+    estadisticasPedidos.value;
 
   return [
     {
@@ -2240,23 +2115,23 @@ const pedidosStats = computed(() => {
       label: `${atrasados} Atrasado(s)`,
       compactLabel: `${atrasados} Atrasado(s)`,
       icon: "fas fa-exclamation-triangle",
-      tooltip: "Ver pedidos atrasados (fecha de preparación pasada)",
+      tooltip: "Ver pedidos atrasados",
       value: atrasados,
     },
     {
       type: "bajo",
-      label: `${paraHoy} Fecha de preparación hoy`,
+      label: `${paraHoy} Hoy`,
       compactLabel: `${paraHoy} Hoy`,
       icon: "fas fa-bolt",
-      tooltip: "Ver pedidos con fecha de preparación hoy",
+      tooltip: "Ver pedidos para hoy",
       value: paraHoy,
     },
     {
       type: "normal",
-      label: `${paraManana} Fecha de preparación mañana`,
+      label: `${paraManana} Mañana`,
       compactLabel: `${paraManana} Mañana`,
       icon: "fas fa-clock",
-      tooltip: "Ver pedidos con fecha de preparación mañana",
+      tooltip: "Ver pedidos para mañana",
       value: paraManana,
     },
   ];
@@ -2286,43 +2161,36 @@ const pedidosFilters = computed(() => [
   },
   {
     type: "checkbox",
-    id: "filtro-atrasados",
     label: "Solo atrasados",
     checked: filtroAtrasados.value,
+    id: "filtro-atrasados",
   },
 ]);
 
 // Métodos para manejar eventos del PageHeader
 const handlePedidoStatClick = (stat) => {
   switch (stat.type) {
-    case "critico": // Atrasados
-      // Alternar el filtro de atrasados basado en fecha_fabricacion
-      filtroAtrasados.value = !filtroAtrasados.value;
-      estadoSeleccionado.value = filtroAtrasados.value ? stat.type : "";
-
-      if (filtroAtrasados.value) {
-        fechaFabricacionSeleccionada.value = "";
-        fechaSeleccionada.value = "";
-        searchTerm.value = "";
-      }
+    case "critico":
+      estadoSeleccionado.value = "";
+      fechaSeleccionada.value = "";
+      searchTerm.value = "";
+      filtroAtrasados.value = true;
       resetearPaginacion();
       break;
-    case "bajo": // Preparación hoy
+    case "bajo":
       const hoy = new Date().toISOString().split("T")[0];
       estadoSeleccionado.value = "";
-      fechaFabricacionSeleccionada.value = hoy;
-      fechaSeleccionada.value = "";
+      fechaSeleccionada.value = hoy;
       searchTerm.value = "";
       filtroAtrasados.value = false;
       resetearPaginacion();
       break;
-    case "normal": // Preparación mañana
+    case "normal":
       const manana = new Date();
       manana.setDate(manana.getDate() + 1);
       const mananaStr = manana.toISOString().split("T")[0];
       estadoSeleccionado.value = "";
-      fechaFabricacionSeleccionada.value = mananaStr;
-      fechaSeleccionada.value = "";
+      fechaSeleccionada.value = mananaStr;
       searchTerm.value = "";
       filtroAtrasados.value = false;
       resetearPaginacion();
@@ -2721,7 +2589,6 @@ onMounted(() => {
 .pedido-item {
   background: white;
   border-radius: 10px;
-  border-left: 4px solid #3498db;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   border: 1px solid #f0f0f0;
   overflow: hidden;
@@ -2729,33 +2596,20 @@ onMounted(() => {
   position: relative;
 }
 
-/* Border-left según estado (sincronizado con indicadores) */
-.pedido-item.estado-pendiente {
-  border-left-color: var(--color-pendiente);
-}
-
-.pedido-item.estado-en-preparacion {
-  border-left-color: var(--color-en-preparacion);
-}
-
-.pedido-item.estado-listo {
-  border-left-color: var(--color-listo);
-}
-
-.pedido-item.estado-entregado {
-  border-left-color: var(--color-entregado);
-}
-
-.pedido-item.estado-cancelado {
-  border-left-color: var(--color-cancelado);
-}
-
 .pedido-item.pedido-atrasado {
-  border-left-color: var(--color-atrasado) !important;
+  border-left: 4px solid #dc3545;
 }
 
 .pedido-item.pedido-hoy {
-  border-left-color: var(--color-hoy) !important;
+  border-left: 4px solid #ffc107;
+}
+
+.pedido-item.pedido-entregado {
+  border-left: 4px solid #28a745;
+}
+
+.pedido-item:not(.pedido-atrasado):not(.pedido-hoy):not(.pedido-entregado) {
+  border-left: 4px solid #3498db;
 }
 
 .pedido-item:hover {
@@ -2778,108 +2632,26 @@ onMounted(() => {
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-  transition: all 0.3s ease;
 }
 
-/* Indicadores según estado (mismo color que border-left) */
-.estado-indicador.estado-pendiente {
-  background-color: var(--color-pendiente);
-  box-shadow: 0 0 0 3px rgba(255, 234, 167, 0.3);
+.estado-indicador.critico {
+  background-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
 }
 
-.estado-indicador.estado-en-preparacion {
-  background-color: var(--color-en-preparacion);
-  box-shadow: 0 0 0 3px rgba(166, 227, 233, 0.3);
+.estado-indicador.bajo {
+  background-color: #ffc107;
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2);
 }
 
-.estado-indicador.estado-listo {
-  background-color: var(--color-listo);
-  box-shadow: 0 0 0 3px rgba(158, 197, 254, 0.3);
+.estado-indicador.normal {
+  background-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
 }
 
-.estado-indicador.estado-entregado {
-  background-color: var(--color-entregado);
-  box-shadow: 0 0 0 3px rgba(168, 230, 163, 0.3);
-}
-
-.estado-indicador.estado-cancelado {
-  background-color: var(--color-cancelado);
-  box-shadow: 0 0 0 3px rgba(245, 183, 177, 0.3);
-}
-
-/* Estados especiales (sobreescriben) */
-.estado-indicador.estado-critico {
-  background-color: var(--color-atrasado) !important;
-  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.3) !important;
-}
-
-.estado-indicador.estado-bajo {
-  background-color: var(--color-hoy) !important;
-  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.3) !important;
-}
-
-/* Efecto hover en indicadores */
-.pedido-item:hover .estado-indicador {
-  transform: scale(1.3);
-  box-shadow: 0 0 0 5px rgba(0, 0, 0, 0.1);
-}
-
-/* ----------------------------- BADGES DE ESTADO SINCRONIZADOS ----------------------------- */
-
-.estado-indicator,
-.badge-estado {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.7rem;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  transition: all 0.2s ease;
-}
-
-/* Colores de badges (mismo esquema que border-left) */
-.estado-pendiente,
-.badge-estado.estado-pendiente {
-  color: var(--texto-pendiente);
-  background: linear-gradient(135deg, #fff3cd, var(--color-pendiente));
-  border: 1px solid var(--color-pendiente);
-}
-
-.estado-en-preparacion,
-.badge-estado.estado-en-preparacion {
-  color: var(--texto-en-preparacion);
-  background: linear-gradient(135deg, #d1ecf1, var(--color-en-preparacion));
-  border: 1px solid var(--color-en-preparacion);
-}
-
-.estado-listo,
-.badge-estado.estado-listo {
-  color: var(--texto-listo);
-  background: linear-gradient(135deg, #cfe2ff, var(--color-listo));
-  border: 1px solid var(--color-listo);
-}
-
-.estado-entregado,
-.badge-estado.estado-entregado {
-  color: var(--texto-entregado);
-  background: linear-gradient(135deg, #d4edda, var(--color-entregado));
-  border: 1px solid var(--color-entregado);
-}
-
-.estado-cancelado,
-.badge-estado.estado-cancelado {
-  color: var(--texto-cancelado);
-  background: linear-gradient(135deg, #f8d7da, var(--color-cancelado));
-  border: 1px solid var(--color-cancelado);
-}
-
-/* Efecto hover en badges */
-.estado-indicator:hover,
-.badge-estado:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.estado-indicador.entregado {
+  background-color: #28a745;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
 }
 
 /* Información principal */
@@ -2923,6 +2695,26 @@ onMounted(() => {
   font-size: 0.7rem;
   font-weight: 600;
   white-space: nowrap;
+}
+
+.badge-estado.pendiente {
+  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+  color: #856404;
+}
+
+.badge-estado.en-preparacion {
+  background: linear-gradient(135deg, #d1ecf1, #a6e3e9);
+  color: #0c5460;
+}
+
+.badge-estado.entregado {
+  background: linear-gradient(135deg, #d4edda, #a8e6a3);
+  color: #155724;
+}
+
+.badge-estado.cancelado {
+  background: linear-gradient(135deg, #f8d7da, #f5b7b1);
+  color: #721c24;
 }
 
 .badge-total {
@@ -3475,183 +3267,6 @@ onMounted(() => {
   padding: 0 8px;
   color: #6c757d;
   font-weight: 500;
-}
-
-/* ----------------------------- COLOR CODING DE FECHAS ----------------------------- */
-.fecha-label {
-  font-size: 0.7rem;
-  opacity: 0.8;
-  margin-left: 4px;
-}
-
-/* Colores base para fechas */
-.fecha-critica {
-  color: #dc3545 !important;
-  font-weight: 700;
-  background: rgba(220, 53, 69, 0.1);
-  padding: 2px 8px;
-  border-radius: 4px;
-  border-left: 3px solid #dc3545;
-}
-
-.fecha-alerta {
-  color: #ffc107 !important;
-  font-weight: 600;
-  background: rgba(255, 193, 7, 0.1);
-  padding: 2px 8px;
-  border-radius: 4px;
-  border-left: 3px solid #ffc107;
-}
-
-.fecha-advertencia {
-  color: #17a2b8 !important;
-  font-weight: 600;
-  background: rgba(23, 162, 184, 0.1);
-  padding: 2px 8px;
-  border-radius: 4px;
-  border-left: 3px solid #17a2b8;
-}
-
-.fecha-normal {
-  color: #28a745 !important;
-  background: rgba(40, 167, 69, 0.1);
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.fecha-futura {
-  color: #6c757d !important;
-  background: rgba(108, 117, 125, 0.05);
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.fecha-completada {
-  color: #28a745 !important;
-  font-weight: 600;
-  background: rgba(40, 167, 69, 0.15);
-  padding: 2px 8px;
-  border-radius: 4px;
-  border-left: 3px solid #28a745;
-}
-
-.fecha-neutra {
-  color: #6c757d !important;
-  opacity: 0.8;
-}
-
-/* Colores para estados */
-.estado-pendiente,
-.badge-estado.pendiente {
-  color: var(--texto-pendiente);
-  background: linear-gradient(135deg, #fff3cd, var(--color-pendiente));
-  border: 1px solid var(--color-pendiente);
-}
-
-.estado-en-preparacion,
-.badge-estado.en-preparacion {
-  color: var(--texto-en-preparacion);
-  background: linear-gradient(135deg, #d1ecf1, var(--color-en-preparacion));
-  border: 1px solid var(--color-en-preparacion);
-}
-
-.estado-listo,
-.badge-estado.listo {
-  color: var(--texto-listo);
-  background: linear-gradient(135deg, #cfe2ff, var(--color-listo));
-  border: 1px solid var(--color-listo);
-}
-
-.badge-estado.listo {
-  background: linear-gradient(135deg, #cfe2ff, #9ec5fe);
-  color: #0c5460;
-}
-
-.estado-entregado,
-.badge-estado.entregado {
-  color: var(--texto-entregado);
-  background: linear-gradient(135deg, #d4edda, var(--color-entregado));
-  border: 1px solid var(--color-entregado);
-}
-
-.estado-cancelado,
-.badge-estado.cancelado {
-  color: var(--texto-cancelado);
-  background: linear-gradient(135deg, #f8d7da, var(--color-cancelado));
-  border: 1px solid var(--color-cancelado);
-}
-
-/* Leyenda de colores */
-.leyenda-colores {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin: 15px 0;
-  padding: 10px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-}
-
-.item-leyenda {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
-  color: #495057;
-}
-
-.color-muestra {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-}
-
-.color-critica {
-  background-color: #dc3545;
-}
-.color-alerta {
-  background-color: #ffc107;
-}
-.color-advertencia {
-  background-color: #17a2b8;
-}
-.color-normal {
-  background-color: #28a745;
-}
-.color-futura {
-  background-color: #6c757d;
-}
-.color-completada {
-  background-color: #28a745;
-}
-
-/* Efecto hover para estados */
-.estado-indicator:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
-}
-
-/* Indicador de estado en la línea izquierda del pedido */
-.pedido-item[class*="estado-"] {
-  border-left-width: 4px;
-}
-
-.pedido-item.estado-en-preparacion {
-  border-left: 4px solid var(--color-en-preparacion);
-}
-
-.pedido-item.estado-listo {
-  border-left: 4px solid var(--color-listo);
-}
-
-.pedido-item.estado-entregado {
-  border-left: 4px solid var(--color-entregado);
-}
-
-.pedido-item.estado-cancelado {
-  border-left: 4px solid var(--color-cancelado);
 }
 
 /* ==============================
