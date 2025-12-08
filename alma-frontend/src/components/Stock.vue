@@ -796,6 +796,7 @@ const proveedoresStock = computed(() => {
 });
 
 // Computed property para filtrar unidades permitidas al editar
+// Computed property para filtrar unidades permitidas al editar
 const unidadesPermitidasParaEdicion = computed(() => {
   // Si no estamos en modo edición, mostrar todas las unidades
   if (!esEdicion.value) {
@@ -827,23 +828,37 @@ const unidadesPermitidasParaEdicion = computed(() => {
   };
 
   // Determinar a qué grupo pertenece la unidad actual
-  let grupoPermitido = [];
+  let gruposPermitidos = [];
   
   if (grupos.volumen.includes(abreviaturaActual)) {
-    grupoPermitido = grupos.volumen;
-  } else if (grupos.peso.includes(abreviaturaActual)) {
-    grupoPermitido = grupos.peso;
-  } else if (grupos.unidades.includes(abreviaturaActual)) {
-    grupoPermitido = grupos.unidades;
-  } else {
-    // Si no está en ningún grupo, permitir todas
-    grupoPermitido = [...grupos.volumen, ...grupos.peso, ...grupos.unidades];
+    gruposPermitidos.push('volumen');
   }
+  
+  if (grupos.peso.includes(abreviaturaActual)) {
+    gruposPermitidos.push('peso');
+  }
+  
+  if (grupos.unidades.includes(abreviaturaActual)) {
+    gruposPermitidos.push('unidades');
+  }
+  
+  // Si la unidad no está en ningún grupo, permitir todas
+  if (gruposPermitidos.length === 0) {
+    gruposPermitidos = ['volumen', 'peso', 'unidades'];
+  }
+
+  // Crear lista única de unidades permitidas
+  const unidadesPermitidasSet = new Set();
+  gruposPermitidos.forEach(grupo => {
+    grupos[grupo].forEach(unidad => unidadesPermitidasSet.add(unidad));
+  });
+
+  const unidadesPermitidas = Array.from(unidadesPermitidasSet);
 
   // Filtrar unidades permitidas
   return unidadesMedida.value.map(unidad => {
     const abreviatura = unidad.abreviatura.toLowerCase();
-    const estaPermitida = grupoPermitido.includes(abreviatura);
+    const estaPermitida = unidadesPermitidas.includes(abreviatura);
     
     return {
       ...unidad,
@@ -851,26 +866,6 @@ const unidadesPermitidasParaEdicion = computed(() => {
     };
   });
 });
-
-// Métodos para manejar eventos del PageHeader
-const handleStockStatClick = (stat) => {
-  aplicarFiltro(stat.type);
-};
-
-const handleStockFilterChange = ({ filter, value }) => {
-  if (filter.placeholder?.includes("Buscar")) {
-    searchTerm.value = value;
-  } else if (filter.placeholder?.includes("Categoría")) {
-    categoriaSeleccionada.value = value;
-  } else if (filter.placeholder?.includes("Proveedor")) {
-    proveedorSeleccionado.value = value;
-  }
-  resetearPaginacion();
-};
-
-const limpiarFiltrosStock = () => {
-  limpiarFiltros();
-};
 
 // Computed properties para paginación
 const stockPaginado = computed(() => {
@@ -1045,6 +1040,26 @@ const unidadesPermitidas = computed(() => {
   return unidadesMedida.value;
 });
 
+// Métodos para manejar eventos del PageHeader
+const handleStockStatClick = (stat) => {
+  aplicarFiltro(stat.type);
+};
+
+const handleStockFilterChange = ({ filter, value }) => {
+  if (filter.placeholder?.includes("Buscar")) {
+    searchTerm.value = value;
+  } else if (filter.placeholder?.includes("Categoría")) {
+    categoriaSeleccionada.value = value;
+  } else if (filter.placeholder?.includes("Proveedor")) {
+    proveedorSeleccionado.value = value;
+  }
+  resetearPaginacion();
+};
+
+const limpiarFiltrosStock = () => {
+  limpiarFiltros();
+};
+
 // Métodos para manejar filtros
 const aplicarFiltro = (tipo) => {
   // Si es "total", no hacer nada (no aplicar filtro)
@@ -1121,6 +1136,51 @@ const formatDecimal = (value) => {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+};
+
+// Función para formatear números para el backend (con coma decimal)
+const formatearNumeroParaBackend = (numero) => {
+  if (numero === null || numero === undefined || numero === "") return "0,00";
+  
+  try {
+    // Si es string, convertir a número primero
+    let num;
+    if (typeof numero === 'string') {
+      // Reemplazar coma por punto para parsear
+      num = parseFloat(numero.replace(",", "."));
+    } else {
+      num = numero;
+    }
+    
+    // Si no es un número válido, devolver 0,00
+    if (isNaN(num)) return "0,00";
+    
+    // Redondear a 2 decimales y usar coma como separador decimal
+    return num.toFixed(2).replace(".", ",");
+  } catch (error) {
+    console.error("Error al formatear número:", numero, error);
+    return "0,00";
+  }
+};
+
+// Función para preparar datos para enviar al backend
+const prepararDatosParaBackend = (datos) => {
+  const datosPreparados = { ...datos };
+  
+  // Formatear números para el backend
+  if (datosPreparados.stock_minimo !== undefined) {
+    datosPreparados.stock_minimo = formatearNumeroParaBackend(datosPreparados.stock_minimo);
+  }
+  
+  if (datosPreparados.stock_actual !== undefined) {
+    datosPreparados.stock_actual = formatearNumeroParaBackend(datosPreparados.stock_actual);
+  }
+  
+  if (datosPreparados.precio_unitario !== undefined && datosPreparados.precio_unitario !== null) {
+    datosPreparados.precio_unitario = formatearNumeroParaBackend(datosPreparados.precio_unitario);
+  }
+  
+  return datosPreparados;
 };
 
 // Método para guardar categoría
@@ -1373,35 +1433,64 @@ const guardarInsumo = async () => {
       datosParaEnviar.stock_actual = formInsumo.value.stockActual;
     }
 
+    // PREPARAR DATOS para el backend (formatear números)
+    const datosPreparados = prepararDatosParaBackend(datosParaEnviar);
+
     let response;
 
     // -----------------------------
     // ✔ EDICIÓN
     // -----------------------------
     if (esEdicion.value) {
-      response = await axios.patch(
-        `/api/insumos/${formInsumo.value.id}/actualizar-parcial/`,
-        datosParaEnviar
-      );
+      try {
+        console.log("Enviando datos para editar insumo:", datosPreparados);
+        
+        response = await axios.patch(
+          `/api/insumos/${formInsumo.value.id}/actualizar-parcial/`,
+          datosPreparados
+        );
 
-      notificationSystem.show({
-        type: "success",
-        title: "Insumo editado",
-        message: "Los cambios se guardaron correctamente",
-        timeout: 3000,
-      });
+        notificationSystem.show({
+          type: "success",
+          title: "Insumo editado",
+          message: "Los cambios se guardaron correctamente",
+          timeout: 3000,
+        });
 
-      closeModal();
-      await fetchStock();
-      await fetchInsumos();
-      return;
+        closeModal();
+        await fetchStock();
+        await fetchInsumos();
+        return;
+      } catch (error) {
+        console.error("Error detallado al editar insumo:", error);
+        console.error("Datos enviados:", datosPreparados);
+        
+        let mensajeError = "Error al actualizar el insumo";
+        if (error.response?.data) {
+          if (typeof error.response.data === 'object') {
+            mensajeError = Object.values(error.response.data).join(', ');
+          } else {
+            mensajeError = error.response.data;
+          }
+        }
+        
+        notificationSystem.show({
+          type: "error",
+          title: "Error al editar",
+          message: mensajeError,
+          timeout: 6000,
+        });
+        return;
+      }
     }
 
     // -----------------------------
     // ✔ CREACIÓN - Manejo de insumo desactivado
     // -----------------------------
     try {
-      response = await axios.post("/api/insumos/crear/", datosParaEnviar);
+      console.log("Enviando datos para crear insumo:", datosPreparados);
+      
+      response = await axios.post("/api/insumos/crear/", datosPreparados);
     } catch (error) {
       // Manejar el caso de insumo desactivado
       if (error.response?.data?.error === "insumo_desactivado") {
@@ -1424,12 +1513,23 @@ const guardarInsumo = async () => {
       }
       // Otros errores
       else {
+        console.error("Error detallado al crear insumo:", error);
+        console.error("Datos enviados:", datosPreparados);
+        
+        let mensajeError = "No se pudo guardar el insumo";
+        if (error.response?.data) {
+          if (typeof error.response.data === 'object') {
+            mensajeError = Object.values(error.response.data).join(', ');
+          } else {
+            mensajeError = error.response.data;
+          }
+        }
+        
         notificationSystem.show({
           type: "error",
           title: "Error",
-          message:
-            error.response?.data?.error || "No se pudo guardar el insumo",
-          timeout: 4000,
+          message: mensajeError,
+          timeout: 6000,
         });
         return;
       }
@@ -1468,6 +1568,7 @@ const guardarInsumo = async () => {
     }
   } catch (error) {
     console.error("❌ ERROR COMPLETO NO MANEJADO:", error);
+    console.error("Stack trace:", error.stack);
 
     notificationSystem.show({
       type: "error",
@@ -1568,23 +1669,24 @@ const registrarCompra = async () => {
     const stockActual = parsearNumeroConComa(insumo.stock_actual);
     const cantidadComprada = parseFloat(formCompra.value.cantidad);
 
-    // Suma precisa de decimales
-    const nuevoStock = (stockActual * 1000 + cantidadComprada * 1000) / 1000;
+    // Suma precisa de decimales (2 decimales)
+    const nuevoStock = Math.round((stockActual + cantidadComprada) * 100) / 100;
 
+    // PREPARAR DATOS para el backend
     const datosActualizacion = {
-      stock_actual: nuevoStock.toFixed(3).replace(".", ","),
+      stock_actual: formatearNumeroParaBackend(nuevoStock),
     };
 
     // Si también quieres actualizar el precio unitario
     if (formCompra.value.precio_unitario) {
-      datosActualizacion.precio_unitario = formCompra.value.precio_unitario
-        .toString()
-        .replace(".", ",");
+      datosActualizacion.precio_unitario = formatearNumeroParaBackend(formCompra.value.precio_unitario);
     }
 
     if (formCompra.value.proveedor_id) {
       datosActualizacion.proveedor_id = formCompra.value.proveedor_id;
     }
+
+    console.log("Datos a enviar para actualizar compra:", datosActualizacion);
 
     // Usa PATCH para actualización parcial
     const response = await axios.patch(
@@ -1610,11 +1712,19 @@ const registrarCompra = async () => {
     });
   } catch (error) {
     console.error("Error completo al registrar compra:", error);
+    console.error("Datos enviados:", datosActualizacion);
+
+    let mensajeError = error.response?.data?.message || error.message;
+    if (error.response?.data) {
+      if (typeof error.response.data === 'object') {
+        mensajeError = Object.values(error.response.data).join(', ');
+      }
+    }
 
     notificationSystem.show({
       type: "error",
       title: "Error al registrar compra",
-      message: error.response?.data?.message || error.message,
+      message: mensajeError,
       timeout: 6000,
     });
   }
@@ -2011,7 +2121,6 @@ onMounted(() => {
   });
 });
 </script>
-
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
 
