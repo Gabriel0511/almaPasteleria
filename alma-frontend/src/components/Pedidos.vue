@@ -18,7 +18,7 @@
           @clear-filters="limpiarFiltrosPedidos"
         />
 
-        <!-- Card principal de pedidos - ESTILO COMO STOCK -->
+        <!-- Card principal de pedidos -->
         <div class="card pedidos-card">
           <div v-if="loading" class="loading-state">
             <i class="fas fa-spinner fa-spin"></i> Cargando pedidos...
@@ -31,7 +31,7 @@
 
           <div v-else class="pedidos-list">
             <div
-              v-for="pedido in pedidosFiltrados"
+              v-for="pedido in pedidosPaginados"
               :key="pedido.id"
               class="pedido-item"
               :class="{
@@ -45,7 +45,7 @@
                 expanded: pedidoDesplegado[pedido.id],
               }"
             >
-              <!-- Contenedor principal compacto - ESTILO COMO STOCK -->
+              <!-- Contenedor principal compacto -->
               <div class="pedido-item-compact">
                 <!-- Indicador de estado -->
                 <div
@@ -149,7 +149,7 @@
                 </div>
               </div>
 
-              <!-- Desplegable de detalles del pedido - MEJORADO -->
+              <!-- Desplegable de detalles del pedido -->
               <div
                 v-if="pedidoDesplegado[pedido.id]"
                 class="pedido-detalles-desplegable"
@@ -303,9 +303,48 @@
               </div>
             </div>
           </div>
-        </div>
+          <div class="pagination-controls" v-if="totalPaginas > 1">
+            <div class="pagination-info">
+              Mostrando {{ inicioPagina }}-{{ finPagina }} de
+              {{ pedidosFiltrados.length }} pedido(s)
+            </div>
+            <div class="pagination-buttons">
+              <button
+                class="pagination-btn"
+                :disabled="paginaActual === 1"
+                @click="cambiarPagina(paginaActual - 1)"
+              >
+                <i class="fas fa-chevron-left"></i>
+              </button>
 
-        <!-- Botón Nuevo Pedido flotante - ESTILO COMO STOCK -->
+              <div class="pagination-numbers">
+                <button
+                  v-for="pagina in paginasVisibles"
+                  :key="pagina"
+                  class="pagination-number"
+                  :class="{ active: pagina === paginaActual }"
+                  @click="cambiarPagina(pagina)"
+                >
+                  {{ pagina }}
+                </button>
+                <span
+                  v-if="mostrarPuntosSuspensivos"
+                  class="pagination-ellipsis"
+                  >...</span
+                >
+              </div>
+
+              <button
+                class="pagination-btn"
+                :disabled="paginaActual === totalPaginas"
+                @click="cambiarPagina(paginaActual + 1)"
+              >
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <!-- Botón Nuevo Pedido flotante -->
         <button class="btn-nuevo-pedido-flotante" @click="showNuevoPedidoModal">
           <i class="fas fa-plus"></i>
           <span>Nuevo Pedido</span>
@@ -728,14 +767,6 @@
                 {{ unidad.nombre }} ({{ unidad.abreviatura }})
               </option>
             </select>
-            <button
-              type="button"
-              class="btn-agregar"
-              @click="showNuevaUnidadDeMedidaModal = true"
-              title="Agregar nueva unidad de medida"
-            >
-              <i class="fas fa-plus"></i>
-            </button>
           </div>
         </div>
 
@@ -928,7 +959,7 @@
 
 <script setup>
 import { useRouter } from "vue-router";
-import { ref, computed, onMounted, onUnmounted, watch, inject } from "vue";
+import { ref, computed, onMounted, inject } from "vue";
 import Sidebar from "./Sidebar.vue";
 import Header from "./Header.vue";
 import BaseModal from "./Modals/BaseModal.vue";
@@ -941,9 +972,7 @@ const router = useRouter();
 const notificationSystem = inject("notifications");
 
 // Variables de estado
-const headerRef = ref(null);
-const userEmail = ref("Usuario");
-const showPasswordModal = ref(false);
+const sidebarRef = ref(null);
 const pedidos = ref([]);
 const clientes = ref([]);
 const recetas = ref([]);
@@ -957,6 +986,7 @@ const searchTerm = ref("");
 const loading = ref(true);
 const detalleExpandido = ref({});
 const pedidoDesplegado = ref({});
+const filtroAtrasados = ref(false);
 
 // Modales
 const showModalPedido = ref(false);
@@ -965,12 +995,15 @@ const showModalReceta = ref(false);
 const showNuevoInsumoModal = ref(false);
 const showNuevaRecetaModal = ref(false);
 const showNuevaCategoriaModal = ref(false);
-const showNuevaUnidadDeMedidaModal = ref(false);
 const showNuevoProveedorModal = ref(false);
 const showModalIngrediente = ref(false);
 const showConfirmModalPedido = ref(false);
 const showConfirmModalIngrediente = ref(false);
 const showConfirmModalReceta = ref(false);
+
+// Variables de paginación
+const paginaActual = ref(1);
+const itemsPorPagina = ref(10);
 
 // Formularios
 const formPedido = ref({
@@ -1034,10 +1067,7 @@ const formProveedor = ref({
   email: "",
 });
 
-// Referencia al sidebar para controlarlo desde el header
-const sidebarRef = ref(null);
-
-// Método para alternar el sidebar desde el header
+// Método para alternar el sidebar
 const toggleSidebar = () => {
   if (sidebarRef.value) {
     sidebarRef.value.toggleSidebar();
@@ -1092,28 +1122,105 @@ const pedidosFiltrados = computed(() => {
     });
   }
 
+  // Filtrar por atrasados
+  if (filtroAtrasados.value) {
+    const hoy = new Date().toISOString().split("T")[0];
+    filtered = filtered.filter((pedido) => {
+      return (
+        pedido.fecha_entrega < hoy &&
+        pedido.estado !== "entregado" &&
+        pedido.estado !== "cancelado"
+      );
+    });
+  }
+
   // Ordenar por fecha de pedido (más reciente primero)
   return filtered.sort((a, b) => {
-    // Convertir fechas a timestamps para comparar
     const fechaA = new Date(a.fecha_pedido).getTime();
     const fechaB = new Date(b.fecha_pedido).getTime();
-
-    // Orden descendente (más reciente primero)
     return fechaB - fechaA;
   });
 });
+
+const pedidosPaginados = computed(() => {
+  const inicio = (paginaActual.value - 1) * itemsPorPagina.value;
+  const fin = inicio + itemsPorPagina.value;
+  return pedidosFiltrados.value.slice(inicio, fin);
+});
+
+const totalPaginas = computed(() => {
+  return Math.ceil(pedidosFiltrados.value.length / itemsPorPagina.value);
+});
+
+const inicioPagina = computed(() => {
+  return (paginaActual.value - 1) * itemsPorPagina.value + 1;
+});
+
+const finPagina = computed(() => {
+  const fin = paginaActual.value * itemsPorPagina.value;
+  return Math.min(fin, pedidosFiltrados.value.length);
+});
+
+const paginasVisibles = computed(() => {
+  const paginas = [];
+  const total = totalPaginas.value;
+  const actual = paginaActual.value;
+  const maxPaginasVisibles = 5;
+
+  if (total <= maxPaginasVisibles) {
+    for (let i = 1; i <= total; i++) {
+      paginas.push(i);
+    }
+  } else {
+    if (actual <= 3) {
+      for (let i = 1; i <= 4; i++) paginas.push(i);
+      paginas.push(total);
+    } else if (actual >= total - 2) {
+      paginas.push(1);
+      for (let i = total - 3; i <= total; i++) paginas.push(i);
+    } else {
+      paginas.push(1);
+      for (let i = actual - 1; i <= actual + 1; i++) paginas.push(i);
+      paginas.push(total);
+    }
+  }
+
+  return paginas;
+});
+
+const mostrarPuntosSuspensivos = computed(() => {
+  return (
+    totalPaginas.value > 5 &&
+    !(paginaActual.value <= 3 || paginaActual.value >= totalPaginas.value - 2)
+  );
+});
+
+const cambiarPagina = (pagina) => {
+  if (pagina >= 1 && pagina <= totalPaginas.value) {
+    // Cerrar todos los pedidos desplegados al cambiar de página
+    cerrarTodosLosPedidos();
+    paginaActual.value = pagina;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+};
+
+const resetearPaginacion = () => {
+  cerrarTodosLosPedidos();
+  paginaActual.value = 1;
+};
+
+const cerrarTodosLosPedidos = () => {
+  pedidoDesplegado.value = {};
+};
 
 const notificacionesPedidosAtrasados = computed(() => {
   const hoy = new Date().toISOString().split("T")[0];
 
   return pedidos.value
     .filter((pedido) => {
-      // Excluir pedidos entregados o cancelados
       if (pedido.estado === "entregado" || pedido.estado === "cancelado") {
         return false;
       }
-
-      // Verificar si la fecha de entrega es anterior a hoy
       return pedido.fecha_entrega < hoy;
     })
     .map((pedido) => ({
@@ -1134,12 +1241,9 @@ const notificacionesPedidosParaHoy = computed(() => {
 
   return pedidos.value
     .filter((pedido) => {
-      // Excluir pedidos entregados o cancelados
       if (pedido.estado === "entregado" || pedido.estado === "cancelado") {
         return false;
       }
-
-      // Verificar si la fecha de entrega es hoy
       return pedido.fecha_entrega === hoy;
     })
     .map((pedido) => ({
@@ -1160,12 +1264,9 @@ const notificacionesPedidosParaManana = computed(() => {
 
   return pedidos.value
     .filter((pedido) => {
-      // Excluir pedidos entregados o cancelados
       if (pedido.estado === "entregado" || pedido.estado === "cancelado") {
         return false;
       }
-
-      // Verificar si la fecha de entrega es mañana
       return pedido.fecha_entrega === mananaStr;
     })
     .map((pedido) => ({
@@ -1179,19 +1280,6 @@ const notificacionesPedidosParaManana = computed(() => {
     }));
 });
 
-const todasLasNotificacionesPedidos = computed(() => {
-  return [
-    ...notificacionesPedidosAtrasados.value,
-    ...notificacionesPedidosParaHoy.value,
-    ...notificacionesPedidosParaManana.value,
-  ];
-});
-
-// Métodos
-const handleNavigation = (route) => {
-  router.push(route);
-};
-
 const logout = async () => {
   try {
     const refreshToken = localStorage.getItem("refresh_token");
@@ -1199,7 +1287,7 @@ const logout = async () => {
       await axios.post("/api/auth/logout/", { refresh: refreshToken });
     }
   } catch (err) {
-    console.error("Error al cerrar sesión:", err.response?.data || err);
+    // Solo registrar error en consola para debugging
   } finally {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
@@ -1208,7 +1296,6 @@ const logout = async () => {
   }
 };
 
-// Nuevo método para toggle del desplegable de pedidos
 const togglePedido = (pedidoId) => {
   pedidoDesplegado.value = {
     ...pedidoDesplegado.value,
@@ -1219,10 +1306,7 @@ const togglePedido = (pedidoId) => {
 const formatFecha = (fecha) => {
   if (!fecha) return "";
 
-  // Crear fecha en la zona horaria local
   const fechaLocal = new Date(fecha);
-
-  // Ajustar para compensar el offset de zona horaria
   const fechaAjustada = new Date(
     fechaLocal.getTime() + fechaLocal.getTimezoneOffset() * 60000
   );
@@ -1236,35 +1320,27 @@ const formatFecha = (fecha) => {
 
 // Función para convertir entre unidades de medida
 const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => {
-  // Si las unidades son iguales, no hay conversión
   if (unidadOrigen === unidadDestino) {
     return cantidad;
   }
 
-  // Definir factores de conversión comunes
   const conversiones = {
-    // Peso
     kg: { g: 1000, mg: 1000000, lb: 2.20462, oz: 35.274 },
     g: { kg: 0.001, mg: 1000, lb: 0.00220462, oz: 0.035274 },
     mg: { kg: 0.000001, g: 0.001, lb: 0.00000220462, oz: 0.000035274 },
     lb: { kg: 0.453592, g: 453.592, mg: 453592, oz: 16 },
     oz: { kg: 0.0283495, g: 28.3495, mg: 28349.5, lb: 0.0625 },
-
-    // Volumen
     l: { ml: 1000, cl: 100, dl: 10, gal: 0.264172 },
     ml: { l: 0.001, cl: 0.1, dl: 0.01, gal: 0.000264172 },
     cl: { l: 0.01, ml: 10, dl: 0.1, gal: 0.00264172 },
     dl: { l: 0.1, ml: 100, cl: 10, gal: 0.0264172 },
     gal: { l: 3.78541, ml: 3785.41, cl: 378.541, dl: 37.8541 },
-
-    // Unidades simples (sin conversión)
     unidad: { unidad: 1 },
     porcion: { porcion: 1 },
     paquete: { paquete: 1 },
     caja: { caja: 1 },
   };
 
-  // Normalizar nombres de unidades
   const normalizarUnidad = (unidad) => {
     const normalizadas = {
       kilogramo: "kg",
@@ -1303,9 +1379,7 @@ const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => {
   const origenNorm = normalizarUnidad(unidadOrigen);
   const destinoNorm = normalizarUnidad(unidadDestino);
 
-  // Si no hay conversión disponible, devolver la cantidad original
   if (!conversiones[origenNorm] || !conversiones[origenNorm][destinoNorm]) {
-    console.warn(`No se encontró conversión de ${origenNorm} a ${destinoNorm}`);
     return cantidad;
   }
 
@@ -1318,13 +1392,11 @@ const calcularTotalPedido = (pedido) => {
 
   if (pedido.detalles) {
     pedido.detalles.forEach((detalle) => {
-      // Calcular subtotal de la receta
       const precioReceta = parseFloat(detalle.receta?.precio_venta) || 0;
       const cantidadReceta = parseFloat(detalle.cantidad) || 0;
       const subtotalReceta = precioReceta * cantidadReceta;
       total += subtotalReceta;
 
-      // Calcular subtotal de ingredientes extras
       if (
         detalle.ingredientes_extra &&
         Array.isArray(detalle.ingredientes_extra)
@@ -1334,13 +1406,11 @@ const calcularTotalPedido = (pedido) => {
             parseFloat(ingrediente.insumo?.precio_unitario) || 0;
           const cantidadIngrediente = parseFloat(ingrediente.cantidad) || 0;
 
-          // Obtener unidades
           const unidadInsumo =
             ingrediente.insumo?.unidad_medida?.abreviatura || "unidad";
           const unidadIngrediente =
             ingrediente.unidad_medida?.abreviatura || "unidad";
 
-          // Convertir a la unidad del insumo para calcular el precio correctamente
           const cantidadConvertida = convertirUnidad(
             cantidadIngrediente,
             unidadIngrediente.toLowerCase(),
@@ -1357,7 +1427,6 @@ const calcularTotalPedido = (pedido) => {
   return total.toFixed(2);
 };
 
-// También corrige calcularPrecioReceta por consistencia
 const calcularPrecioReceta = (detalle) => {
   const precioReceta = parseFloat(detalle.receta?.precio_venta) || 0;
   const cantidad = parseFloat(detalle.cantidad) || 0;
@@ -1414,7 +1483,6 @@ const eliminarPedido = async () => {
   try {
     await axios.delete(`/api/pedidos/${pedidoAEliminar.value.id}/`);
 
-    // Actualizar la lista local
     const index = pedidos.value.findIndex(
       (item) => item.id === pedidoAEliminar.value.id
     );
@@ -1424,9 +1492,6 @@ const eliminarPedido = async () => {
 
     showConfirmModalPedido.value = false;
 
-    // AGREGAR: Actualizar notificaciones después de eliminar
-    actualizarNotificacionesPedidos();
-
     notificationSystem.show({
       type: "success",
       title: "Pedido eliminado",
@@ -1434,8 +1499,6 @@ const eliminarPedido = async () => {
       timeout: 4000,
     });
   } catch (error) {
-    console.error("Error al eliminar pedido:", error);
-
     notificationSystem.show({
       type: "error",
       title: "Error",
@@ -1468,23 +1531,19 @@ const guardarPedido = async () => {
 
     let response;
     if (esEdicionPedido.value) {
-      // Para edición: enviar SOLO los datos básicos del pedido, NO los detalles
       const datosActualizacion = {
         cliente_id: formPedido.value.cliente_id,
         fecha_pedido: formPedido.value.fecha_pedido,
         fecha_entrega: formPedido.value.fecha_entrega,
         estado: formPedido.value.estado,
-        // NO incluir detalles aquí - se mantendrán los existentes
       };
-
-      console.log("Enviando datos básicos para edición:", datosActualizacion);
 
       response = await axios.put(
         `/api/pedidos/${formPedido.value.id}/`,
         datosActualizacion
       );
 
-      await fetchPedidos(); // Recargar todos los pedidos
+      await fetchPedidos();
       closeModal();
 
       notificationSystem.show({
@@ -1494,7 +1553,6 @@ const guardarPedido = async () => {
         timeout: 4000,
       });
     } else {
-      // Para nuevo pedido (código existente)
       const datosNuevoPedido = {
         cliente_id: formPedido.value.cliente_id,
         fecha_pedido: formPedido.value.fecha_pedido,
@@ -1555,7 +1613,7 @@ const guardarPedido = async () => {
 
 const guardarCliente = async () => {
   try {
-    const response = await axios.post("/api/clientes/", formCliente.value);
+    await axios.post("/api/clientes/", formCliente.value);
     await fetchClientes();
     showNuevoClienteModal.value = false;
     resetFormCliente();
@@ -1567,12 +1625,34 @@ const guardarCliente = async () => {
       timeout: 4000,
     });
   } catch (error) {
-    console.error("Error al guardar cliente:", error);
+    let errorMessage = "Error al guardar el cliente";
+
+    if (error.response?.status === 400) {
+      if (error.response.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (typeof error.response.data === "object") {
+        const errors = [];
+        for (const key in error.response.data) {
+          if (Array.isArray(error.response.data[key])) {
+            errors.push(...error.response.data[key]);
+          } else {
+            errors.push(`${key}: ${error.response.data[key]}`);
+          }
+        }
+        errorMessage = errors.join(", ");
+      } else if (typeof error.response.data === "string") {
+        errorMessage = error.response.data;
+      }
+    } else if (error.response?.status === 409) {
+      errorMessage = "Ya existe un cliente con ese nombre o teléfono";
+    } else if (!error.response) {
+      errorMessage = "Error de conexión. Verifique su internet.";
+    }
 
     notificationSystem.show({
       type: "error",
-      title: "Error",
-      message: "Error al guardar el cliente",
+      title: "Error al crear cliente",
+      message: errorMessage,
       timeout: 6000,
     });
   }
@@ -1595,10 +1675,7 @@ const guardarNuevaCategoria = async () => {
       formCategoria.value
     );
 
-    // Actualizar la lista de categorías
     await fetchCategorias();
-
-    // Seleccionar automáticamente la nueva categoría
     formInsumo.value.categoria_id = response.data.id;
 
     showNuevaCategoriaModal.value = false;
@@ -1611,8 +1688,6 @@ const guardarNuevaCategoria = async () => {
       timeout: 4000,
     });
   } catch (error) {
-    console.error("Error al guardar categoría:", error);
-
     notificationSystem.show({
       type: "error",
       title: "Error",
@@ -1639,10 +1714,7 @@ const guardarNuevoProveedor = async () => {
       formProveedor.value
     );
 
-    // Actualizar la lista de proveedores
     await fetchProveedores();
-
-    // Seleccionar automáticamente el nuevo proveedor
     formInsumo.value.proveedor_id = response.data.id;
 
     showNuevoProveedorModal.value = false;
@@ -1655,8 +1727,6 @@ const guardarNuevoProveedor = async () => {
       timeout: 4000,
     });
   } catch (error) {
-    console.error("Error al guardar proveedor:", error);
-
     notificationSystem.show({
       type: "error",
       title: "Error",
@@ -1696,7 +1766,6 @@ const guardarNuevoInsumo = async () => {
       return;
     }
 
-    // Preparar datos para enviar (sin el formateo complicado)
     const datosParaEnviar = {
       nombre: formInsumo.value.nombre,
       categoria_id: formInsumo.value.categoria_id || null,
@@ -1706,17 +1775,13 @@ const guardarNuevoInsumo = async () => {
         ? parseFloat(formInsumo.value.precio_unitario)
         : null,
       proveedor_id: formInsumo.value.proveedor_id || null,
-      stock_actual: 0, // Siempre empezar con stock 0 para nuevos insumos
+      stock_actual: 0,
       activo: true,
     };
 
-    // Solo para crear nuevo insumo (sin lógica de edición)
     const response = await axios.post("/api/insumos/crear/", datosParaEnviar);
 
-    // Actualizar la lista de insumos
     await fetchInsumos();
-
-    // Seleccionar automáticamente el nuevo insumo en el formulario de ingrediente
     formIngrediente.value.insumo_id = response.data.id;
 
     showNuevoInsumoModal.value = false;
@@ -1729,8 +1794,6 @@ const guardarNuevoInsumo = async () => {
       timeout: 4000,
     });
   } catch (error) {
-    console.error("Error al guardar insumo:", error);
-
     if (error.response?.status === 400 && error.response?.data?.error) {
       notificationSystem.show({
         type: "error",
@@ -1779,7 +1842,6 @@ const guardarNuevaReceta = async () => {
       return;
     }
 
-    // Preparar datos para enviar
     const datosReceta = {
       nombre: formReceta.value.nombre,
       rinde: formReceta.value.rinde,
@@ -1791,10 +1853,7 @@ const guardarNuevaReceta = async () => {
 
     const response = await axios.post("/api/recetas/", datosReceta);
 
-    // Actualizar la lista de recetas
     await fetchRecetas();
-
-    // Seleccionar automáticamente la nueva receta
     formDetalle.value.receta_id = response.data.id;
 
     showNuevaRecetaModal.value = false;
@@ -1807,9 +1866,6 @@ const guardarNuevaReceta = async () => {
       timeout: 4000,
     });
   } catch (error) {
-    console.error("Error al guardar receta:", error);
-    console.error("Respuesta del servidor:", error.response?.data);
-
     let mensajeError = "Error al crear la receta";
     if (error.response?.data) {
       if (typeof error.response.data === "object") {
@@ -1872,7 +1928,6 @@ const eliminarIngredienteExtra = async () => {
       `/api/ingredientes-extra/${ingredienteAEliminar.value.id}/`
     );
 
-    // Actualizar la lista local
     const pedidoIndex = pedidos.value.findIndex((pedido) =>
       pedido.detalles.some((detalle) =>
         detalle.ingredientes_extra.some(
@@ -1903,8 +1958,6 @@ const eliminarIngredienteExtra = async () => {
       timeout: 4000,
     });
   } catch (error) {
-    console.error("Error al eliminar ingrediente extra:", error);
-
     notificationSystem.show({
       type: "error",
       title: "Error",
@@ -1947,7 +2000,6 @@ const guardarIngredienteExtra = async () => {
       return;
     }
 
-    // Preparar datos para enviar al backend según el serializer
     const datosParaEnviar = {
       insumo_id: formIngrediente.value.insumo_id,
       cantidad: formIngrediente.value.cantidad,
@@ -1965,7 +2017,6 @@ const guardarIngredienteExtra = async () => {
       response = await axios.post("/api/ingredientes-extra/", datosParaEnviar);
     }
 
-    // Actualizar el pedido localmente
     await fetchPedidos();
     closeModal();
 
@@ -1980,10 +2031,6 @@ const guardarIngredienteExtra = async () => {
       timeout: 4000,
     });
   } catch (error) {
-    console.error("Error al guardar ingrediente extra:", error);
-    console.error("Datos enviados:", error.config?.data);
-    console.error("Respuesta del servidor:", error.response?.data);
-
     let mensajeError = "Error al guardar el ingrediente extra";
     if (error.response?.data) {
       if (typeof error.response.data === "object") {
@@ -2002,11 +2049,8 @@ const guardarIngredienteExtra = async () => {
   }
 };
 
-// Método para marcar pedido como entregado rápidamente
-// Método para marcar pedido como entregado rápidamente - CORREGIDO
 const marcarComoEntregado = async (pedido) => {
   try {
-    // Verificar que el pedido no esté ya entregado
     if (pedido.estado === "entregado") {
       notificationSystem.show({
         type: "warning",
@@ -2017,7 +2061,6 @@ const marcarComoEntregado = async (pedido) => {
       return;
     }
 
-    // Crear objeto con solo los datos necesarios para la actualización
     const datosActualizacion = {
       cliente_id: pedido.cliente.id,
       fecha_pedido: pedido.fecha_pedido,
@@ -2025,40 +2068,24 @@ const marcarComoEntregado = async (pedido) => {
       estado: "entregado",
     };
 
-    console.log(
-      "Actualizando pedido:",
-      pedido.id,
-      "con datos:",
-      datosActualizacion
-    );
-
     const response = await axios.put(
       `/api/pedidos/${pedido.id}/`,
       datosActualizacion
     );
 
-    // Actualizar localmente - FORMA CORRECTA
     const pedidoActualizado = response.data;
     const index = pedidos.value.findIndex((p) => p.id === pedido.id);
     if (index !== -1) {
-      // Actualizar el objeto completo con la respuesta del servidor
       pedidos.value[index] = { ...pedidos.value[index], ...pedidoActualizado };
     }
 
-    // Notificar
     notificationSystem.show({
       type: "success",
       title: "Pedido Entregado",
       message: `Pedido de ${pedido.cliente.nombre} marcado como entregado`,
       timeout: 4000,
     });
-
-    // Actualizar notificaciones
-    actualizarNotificacionesPedidos();
   } catch (error) {
-    console.error("Error al marcar pedido como entregado:", error);
-    console.error("Detalles del error:", error.response?.data);
-
     let mensajeError = "Error al marcar el pedido como entregado";
     if (error.response?.data) {
       if (typeof error.response.data === "object") {
@@ -2107,14 +2134,6 @@ const pedidosStats = computed(() => {
       tooltip: "Ver pedidos para mañana",
       value: paraManana,
     },
-    {
-      type: "total",
-      label: `${totalActivos} Activo(s)`,
-      compactLabel: `${totalActivos} Activo(s)`,
-      icon: "fas fa-clipboard-list",
-      tooltip: "Ver todos los pedidos activos",
-      value: totalActivos,
-    },
   ];
 });
 
@@ -2140,40 +2159,48 @@ const pedidosFilters = computed(() => [
     placeholder: "Fecha de entrega",
     value: fechaSeleccionada.value,
   },
+  {
+    type: "checkbox",
+    id: "filtro-atrasados",
+    label: "Solo atrasados",
+    checked: filtroAtrasados.value,
+  },
 ]);
 
 // Métodos para manejar eventos del PageHeader
 const handlePedidoStatClick = (stat) => {
-  // Aquí puedes manejar el click en las estadísticas
-  // Por ejemplo, filtrar por tipo de estadística
   switch (stat.type) {
     case "critico":
-      // Mostrar solo pedidos atrasados
-      estadoSeleccionado.value = "";
-      fechaSeleccionada.value = "";
-      searchTerm.value = "";
+      // Alternar el filtro de atrasados
+      filtroAtrasados.value = !filtroAtrasados.value;
+
+      // Actualizar activeFilterType
+      estadoSeleccionado.value = filtroAtrasados.value ? stat.type : "";
+
+      // Limpiar otros filtros cuando se activa atrasados
+      if (filtroAtrasados.value) {
+        fechaSeleccionada.value = "";
+        searchTerm.value = "";
+      }
+      resetearPaginacion();
       break;
     case "bajo":
-      // Mostrar solo pedidos para hoy
       const hoy = new Date().toISOString().split("T")[0];
       estadoSeleccionado.value = "";
       fechaSeleccionada.value = hoy;
       searchTerm.value = "";
+      filtroAtrasados.value = false;
+      resetearPaginacion();
       break;
     case "normal":
-      // Mostrar solo pedidos para mañana
       const manana = new Date();
       manana.setDate(manana.getDate() + 1);
       const mananaStr = manana.toISOString().split("T")[0];
       estadoSeleccionado.value = "";
       fechaSeleccionada.value = mananaStr;
       searchTerm.value = "";
-      break;
-    case "total":
-      // Mostrar todos los pedidos activos
-      estadoSeleccionado.value = "";
-      fechaSeleccionada.value = "";
-      searchTerm.value = "";
+      filtroAtrasados.value = false;
+      resetearPaginacion();
       break;
   }
 };
@@ -2181,10 +2208,16 @@ const handlePedidoStatClick = (stat) => {
 const handlePedidoFilterChange = ({ filter, value }) => {
   if (filter.placeholder?.includes("Buscar cliente")) {
     searchTerm.value = value;
+    resetearPaginacion();
   } else if (filter.placeholder?.includes("Estado")) {
     estadoSeleccionado.value = value;
+    resetearPaginacion();
   } else if (filter.type === "date") {
     fechaSeleccionada.value = value;
+    resetearPaginacion();
+  } else if (filter.type === "checkbox" && filter.id === "filtro-atrasados") {
+    filtroAtrasados.value = value;
+    resetearPaginacion();
   }
 };
 
@@ -2192,6 +2225,8 @@ const limpiarFiltrosPedidos = () => {
   estadoSeleccionado.value = "";
   fechaSeleccionada.value = "";
   searchTerm.value = "";
+  filtroAtrasados.value = false;
+  resetearPaginacion();
 };
 
 // Método para obtener estadísticas rápidas
@@ -2212,55 +2247,6 @@ const estadisticasPedidos = computed(() => {
   };
 });
 
-// Método para actualizar notificaciones en el Header
-const actualizarNotificacionesPedidos = () => {
-  if (headerRef.value && headerRef.value.actualizarNotificaciones) {
-    headerRef.value.actualizarNotificaciones();
-  }
-};
-
-// Método para verificar y notificar cambios en pedidos
-// Método para verificar y notificar cambios en pedidos - CORREGIDO
-const verificarEstadoPedidoYNotificar = (pedido, accion) => {
-  const hoy = new Date().toISOString().split("T")[0];
-
-  // Solo notificar si el pedido no está entregado
-  if (pedido.estado !== "entregado") {
-    // Notificar si el pedido está atrasado
-    if (pedido.fecha_entrega < hoy) {
-      notificationSystem.show({
-        type: "warning",
-        title: "Pedido Atrasado",
-        message: `El pedido de ${pedido.cliente.nombre} está atrasado`,
-        timeout: 6000,
-      });
-    }
-
-    // Notificar si el pedido es para hoy
-    if (pedido.fecha_entrega === hoy) {
-      notificationSystem.show({
-        type: "info",
-        title: "Entrega Hoy",
-        message: `Recuerda entregar el pedido de ${pedido.cliente.nombre} hoy`,
-        timeout: 5000,
-      });
-    }
-  }
-
-  // Notificar cuando se marca como entregado
-  if (accion === "entregado" && pedido.estado === "entregado") {
-    notificationSystem.show({
-      type: "success",
-      title: "Pedido Entregado",
-      message: `Pedido de ${pedido.cliente.nombre} marcado como entregado`,
-      timeout: 4000,
-    });
-  }
-
-  // Actualizar notificaciones en el header
-  actualizarNotificacionesPedidos();
-};
-
 const closeModal = () => {
   showModalPedido.value = false;
   showNuevoClienteModal.value = false;
@@ -2268,7 +2254,6 @@ const closeModal = () => {
   showModalIngrediente.value = false;
   showNuevaRecetaModal.value = false;
   showNuevoInsumoModal.value = false;
-  showNuevoClienteModal.value = false;
   resetForms();
 };
 
@@ -2382,7 +2367,6 @@ const eliminarReceta = async () => {
   try {
     await axios.delete(`/api/detalles-pedido/${recetaAEliminar.value.id}/`);
 
-    // Actualizar la lista local
     const pedidoIndex = pedidos.value.findIndex((pedido) =>
       pedido.detalles.some((detalle) => detalle.id === recetaAEliminar.value.id)
     );
@@ -2406,8 +2390,6 @@ const eliminarReceta = async () => {
       timeout: 4000,
     });
   } catch (error) {
-    console.error("Error al eliminar receta:", error);
-
     notificationSystem.show({
       type: "error",
       title: "Error",
@@ -2438,7 +2420,6 @@ const guardarDetalle = async () => {
       return;
     }
 
-    // Preparar datos para enviar al backend
     const datosParaEnviar = {
       pedido: formDetalle.value.pedido_id,
       receta_id: formDetalle.value.receta_id,
@@ -2456,7 +2437,6 @@ const guardarDetalle = async () => {
       response = await axios.post("/api/detalles-pedido/", datosParaEnviar);
     }
 
-    // Actualizar el pedido localmente
     await fetchPedidos();
     closeModal();
 
@@ -2469,10 +2449,6 @@ const guardarDetalle = async () => {
       timeout: 4000,
     });
   } catch (error) {
-    console.error("Error al guardar detalle:", error);
-    console.error("Datos enviados:", error.config?.data);
-    console.error("Respuesta del servidor:", error.response?.data);
-
     let mensajeError = "Error al guardar la receta en el pedido";
     if (error.response?.data) {
       if (typeof error.response.data === "object") {
@@ -2513,7 +2489,6 @@ const fetchPedidos = async () => {
     pedidos.value = response.data;
     loading.value = false;
   } catch (err) {
-    console.error("Error en fetchPedidos:", err);
     loading.value = false;
     if (err.response?.status === 401) {
       logout();
@@ -2526,7 +2501,7 @@ const fetchCategorias = async () => {
     const response = await axios.get("/api/categorias/");
     categorias.value = response.data;
   } catch (err) {
-    console.error("Error en fetchCategorias:", err);
+    // Error silencioso
   }
 };
 
@@ -2535,7 +2510,7 @@ const fetchProveedores = async () => {
     const response = await axios.get("/api/proveedores/");
     proveedores.value = response.data;
   } catch (err) {
-    console.error("Error en fetchProveedores:", err);
+    // Error silencioso
   }
 };
 
@@ -2544,7 +2519,7 @@ const fetchClientes = async () => {
     const response = await axios.get("/api/clientes/");
     clientes.value = response.data;
   } catch (err) {
-    console.error("Error en fetchClientes:", err);
+    // Error silencioso
   }
 };
 
@@ -2553,7 +2528,7 @@ const fetchRecetas = async () => {
     const response = await axios.get("/api/recetas/");
     recetas.value = response.data;
   } catch (err) {
-    console.error("Error en fetchRecetas:", err);
+    // Error silencioso
   }
 };
 
@@ -2562,7 +2537,7 @@ const fetchInsumos = async () => {
     const response = await axios.get("/api/insumos/");
     insumos.value = response.data.insumos || response.data;
   } catch (err) {
-    console.error("Error en fetchInsumos:", err);
+    // Error silencioso
   }
 };
 
@@ -2571,7 +2546,7 @@ const fetchUnidadesMedida = async () => {
     const response = await axios.get("/api/unidades-medida/");
     unidadesMedida.value = response.data;
   } catch (err) {
-    console.error("Error en fetchUnidadesMedida:", err);
+    // Error silencioso
   }
 };
 
@@ -2582,7 +2557,6 @@ onMounted(() => {
     return;
   }
 
-  // Cargar datos del usuario y pedidos
   Promise.all([
     fetchPedidos(),
     fetchClientes(),
@@ -2591,50 +2565,17 @@ onMounted(() => {
     fetchUnidadesMedida(),
     fetchCategorias(),
     fetchProveedores(),
-  ])
-    .then(() => {
-      // AGREGAR: Actualizar notificaciones después de cargar pedidos
-      actualizarNotificacionesPedidos();
-    })
-    .catch((error) => {
-      console.error("Error cargando datos:", error);
-      loading.value = false;
-      if (error.response?.status === 401) {
-        logout();
-      }
-    });
-});
-
-// AGREGAR: Watcher para actualizar notificaciones cuando cambien los pedidos
-watch(
-  pedidos,
-  () => {
-    actualizarNotificacionesPedidos();
-  },
-  { deep: true }
-);
-
-// Agregar después de las otras variables
-const isMobile = ref(false);
-
-const checkViewport = () => {
-  isMobile.value = window.innerWidth <= 768;
-};
-
-onMounted(() => {
-  checkViewport();
-  window.addEventListener("resize", checkViewport);
-});
-
-onUnmounted(() => {
-  window.removeEventListener("resize", checkViewport);
+  ]).catch((error) => {
+    loading.value = false;
+    if (error.response?.status === 401) {
+      logout();
+    }
+  });
 });
 </script>
 
 <style scoped>
-@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
-
-/* ----------------------------- CARD DE PEDIDOS - MISMO ESTILO QUE STOCK ----------------------------- */
+/* ----------------------------- CARD DE PEDIDOS ----------------------------- */
 .pedidos-card {
   max-height: calc(100vh - 220px);
   overflow-y: auto;
@@ -2659,22 +2600,7 @@ onUnmounted(() => {
   border: 1px solid #f0f0f0;
   overflow: hidden;
   transition: all 0.3s ease;
-}
-
-.pedido-item::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  opacity: 0.8;
-}
-
-.pedido-item:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
-  border-color: var(--color-primary);
+  position: relative;
 }
 
 .pedido-item.pedido-atrasado {
@@ -2693,7 +2619,13 @@ onUnmounted(() => {
   border-left: 4px solid #3498db;
 }
 
-/* Contenedor compacto - MISMO ESTILO QUE STOCK */
+.pedido-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+  border-color: var(--color-primary);
+}
+
+/* Contenedor compacto */
 .pedido-item-compact {
   display: flex;
   align-items: center;
@@ -2701,7 +2633,7 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-/* Indicador de estado - MISMO ESTILO QUE STOCK */
+/* Indicador de estado */
 .estado-indicador {
   width: 8px;
   height: 8px;
@@ -2729,7 +2661,7 @@ onUnmounted(() => {
   box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
 }
 
-/* Información principal - MISMO ESTILO QUE STOCK */
+/* Información principal */
 .info-principal {
   flex: 1;
   min-width: 0;
@@ -2834,7 +2766,7 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-/* Acciones - MISMO ESTILO QUE STOCK */
+/* Acciones */
 .acciones-container {
   display: flex;
   gap: 6px;
@@ -2908,7 +2840,7 @@ onUnmounted(() => {
   font-size: 11px;
 }
 
-/* ----------------------------- DESPLEGABLE DE DETALLES - MEJORADO ----------------------------- */
+/* ----------------------------- DESPLEGABLE DE DETALLES ----------------------------- */
 .pedido-detalles-desplegable {
   background: #fafbfc;
   border-top: 1px solid #eef1f4;
@@ -2980,7 +2912,7 @@ onUnmounted(() => {
   font-size: 1.1rem;
 }
 
-/* ----------------------------- RECETAS E INGREDIENTES - MEJORADO ----------------------------- */
+/* ----------------------------- RECETAS E INGREDIENTES ----------------------------- */
 .recetas-container {
   display: flex;
   flex-direction: column;
@@ -3101,17 +3033,6 @@ onUnmounted(() => {
   border-bottom: 2px solid #e9ecef;
 }
 
-.ingredientes-extras h4::before {
-  content: "🧩";
-  font-size: 1rem;
-}
-
-.ingredientes-lista {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .ingrediente-extra {
   display: flex;
   justify-content: space-between;
@@ -3121,6 +3042,7 @@ onUnmounted(() => {
   border-radius: 8px;
   border: 1px solid #e9ecef;
   transition: all 0.2s ease;
+  margin-bottom: 8px;
 }
 
 .ingrediente-extra:hover {
@@ -3130,7 +3052,7 @@ onUnmounted(() => {
 }
 
 .ingrediente-extra:last-child {
-  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .ingrediente-info {
@@ -3140,20 +3062,6 @@ onUnmounted(() => {
   font-size: 0.85rem;
   color: #495057;
   flex: 1;
-}
-
-.ingrediente-nombre {
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.ingrediente-cantidad {
-  background: rgba(0, 123, 255, 0.1);
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-weight: 600;
-  color: #007bff;
-  font-size: 0.8rem;
 }
 
 .ingrediente-acciones {
@@ -3198,7 +3106,6 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #138496, #117a8b);
 }
 
-/* Indicador de estado para recetas expandidas */
 .receta-item.expanded .receta-header {
   background: linear-gradient(135deg, #e3f2fd, #e1f5fe);
   border-bottom-color: #d1e7ff;
@@ -3209,14 +3116,7 @@ onUnmounted(() => {
   color: #007bff;
 }
 
-/* ----------------------------- ESTADOS ESPECIALES ----------------------------- */
-.receta-item.sin-ingredientes .receta-detalles {
-  text-align: center;
-  color: #6c757d;
-  font-style: italic;
-}
-
-/* ----------------------------- BOTÓN FLOTANTE NUEVO PEDIDO - MISMO ESTILO QUE STOCK ----------------------------- */
+/* ----------------------------- BOTÓN FLOTANTE NUEVO PEDIDO ----------------------------- */
 .btn-nuevo-pedido-flotante {
   position: fixed;
   bottom: 30px;
@@ -3242,7 +3142,7 @@ onUnmounted(() => {
   box-shadow: 0 8px 25px rgba(123, 90, 80, 0.4);
 }
 
-/* ----------------------------- ESTADOS DE CARGA Y VACÍO - MISMO ESTILO QUE STOCK ----------------------------- */
+/* ----------------------------- ESTADOS DE CARGA Y VACÍO ----------------------------- */
 .loading-state {
   text-align: center;
   padding: 60px;
@@ -3278,8 +3178,106 @@ onUnmounted(() => {
   font-size: 1.1rem;
 }
 
+/* ----------------------------- PAGINACIÓN ----------------------------- */
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  padding: 15px 0;
+  border-top: 1px solid #eaeaea;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.pagination-info {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #dee2e6;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #495057;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+  transform: translateY(-1px);
+}
+
+.pagination-btn:disabled {
+  background: #f8f9fa;
+  color: #adb5bd;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pagination-btn i {
+  font-size: 0.8rem;
+}
+
+.pagination-numbers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid #dee2e6;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #495057;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.pagination-number:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+  transform: translateY(-1px);
+}
+
+.pagination-number.active {
+  background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
+  color: white;
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-ellipsis {
+  padding: 0 8px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
 /* ==============================
-   RESPONSIVE DESIGN - CONSISTENTE CON STOCK
+   RESPONSIVE DESIGN
    ============================== */
 
 /* Tablets */
@@ -3374,7 +3372,7 @@ onUnmounted(() => {
 
   .ingrediente-acciones {
     align-self: flex-end;
-    opacity: 1; /* Siempre visible en móvil */
+    opacity: 1;
   }
 
   .receta-acciones {
@@ -3507,7 +3505,7 @@ onUnmounted(() => {
   }
 
   .ingrediente-acciones {
-    opacity: 1; /* Siempre visible en dispositivos táctiles */
+    opacity: 1;
   }
 
   .receta-item:hover {

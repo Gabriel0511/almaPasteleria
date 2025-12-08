@@ -145,7 +145,12 @@ const handleStatClick = (stat) => {
 };
 
 const handleFilterChange = (filter, event) => {
-  const value = event.target.value;
+  let value;
+  if (filter.type === "checkbox") {
+    value = event.target.checked;
+  } else {
+    value = event.target.value;
+  }
   emit("filter-change", { filter, value });
 };
 
@@ -156,7 +161,12 @@ const handleClearFilters = () => {
 const hasActiveFilters = computed(() => {
   return (
     props.activeFilterType ||
-    props.filters.some((f) => f.value && f.value !== "")
+    props.filters.some((f) => {
+      if (f.type === "checkbox") {
+        return f.checked;
+      }
+      return f.value && f.value !== "";
+    })
   );
 });
 
@@ -261,7 +271,6 @@ onUnmounted(() => {
 }
 
 .estadistica-badge.active {
-  border: 2px solid currentColor;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   transform: translateY(-2px);
 }
