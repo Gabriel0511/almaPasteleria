@@ -30,51 +30,50 @@ class RecetaInsumoSerializer(serializers.ModelSerializer):
     costo_insumo = serializers.SerializerMethodField()
     
     def get_costo_insumo(self, obj):
-        """Calcular costo de este insumo en la receta - VERSIÓN SUPER SEGURA"""
+        """Calcular costo de este insumo en la receta - VERSIÓN ULTRA SEGURA"""
         try:
             if not obj.insumo or not obj.insumo.precio_unitario:
                 return "0.00"
             
-            # 🔹 PASO 1: Convertir precio a FLOAT (no Decimal)
-            precio_str = str(obj.insumo.precio_unitario)
-            precio_str = precio_str.replace(',', '.')
-            precio_float = float(precio_str)
+            # 🔹 PASO 1: Convertir precio a FLOAT (GARANTIZADO)
+            precio = self._convertir_a_float(obj.insumo.precio_unitario)
             
-            # 🔹 PASO 2: Convertir cantidad a FLOAT (no Decimal)
-            cantidad_str = str(obj.cantidad)
-            cantidad_str = cantidad_str.replace(',', '.')
-            cantidad_float = float(cantidad_str)
+            # 🔹 PASO 2: Convertir cantidad a FLOAT (GARANTIZADO)
+            cantidad = self._convertir_a_float(obj.cantidad)
             
-            # 🔹 PASO 3: Verificar si necesitamos conversión de unidades
+            # 🔹 PASO 3: Verificar conversión de unidades
             if obj.unidad_medida and obj.insumo.unidad_medida:
                 unidad_receta = obj.unidad_medida.abreviatura.lower()
                 unidad_insumo = obj.insumo.unidad_medida.abreviatura.lower()
                 
                 if unidad_receta != unidad_insumo:
-                    # 🔹 PASO CRÍTICO: Asegurar que convertir_unidad devuelva float
-                    try:
-                        cantidad_convertida = convertir_unidad(
-                            cantidad_float,
-                            unidad_receta,
-                            unidad_insumo
-                        )
-                        # 🔹 FORZAR a float por si acaso
-                        cantidad_float = float(str(cantidad_convertida))
-                    except Exception as conv_error:
-                        print(f"⚠️ Error en conversión: {conv_error}")
-                        # Si falla la conversión, usar cantidad original
+                    # 🔹 Convertir unidades (convertir_unidad ya devuelve float)
+                    cantidad = convertir_unidad(cantidad, unidad_receta, unidad_insumo)
             
-            # 🔹 PASO 4: Calcular costo (FLOAT * FLOAT = seguro)
-            costo = precio_float * cantidad_float
-            
-            # 🔹 PASO 5: Formatear resultado
+            # 🔹 PASO 4: Calcular costo (FLOAT * FLOAT = SEGURO)
+            costo = precio * cantidad
             return f"{costo:.2f}"
             
         except Exception as e:
-            print(f"❌ ERROR CRÍTICO en get_costo_insumo: {str(e)}")
-            import traceback
-            print(f"❌ Traceback: {traceback.format_exc()}")
+            print(f"❌ Error calculando costo para {obj.insumo.nombre if obj.insumo else 'insumo desconocido'}: {e}")
             return "0.00"
+    
+    def _convertir_a_float(self, valor):
+        """Convertir cualquier tipo a float de forma segura"""
+        if valor is None:
+            return 0.0
+        
+        try:
+            if isinstance(valor, Decimal):
+                return float(valor)
+            elif isinstance(valor, (int, float)):
+                return float(valor)
+            else:
+                # Si es string, limpiar y convertir
+                valor_str = str(valor).replace(',', '.')
+                return float(valor_str)
+        except:
+            return 0.0
     
     class Meta:
         model = RecetaInsumo
@@ -87,70 +86,65 @@ class RecetaSerializer(serializers.ModelSerializer):
     costo_unitario = serializers.SerializerMethodField()
     
     def get_costo_total(self, obj):
-        """Calcular costo total - SIN Decimal, solo float"""
+        """Calcular costo total - VERSIÓN ULTRA SEGURA"""
         try:
-            costo_total_float = 0.0
+            costo_total = 0.0
             
             for insumo_receta in obj.insumos.all():
                 if not insumo_receta.insumo or not insumo_receta.insumo.precio_unitario:
                     continue
                 
-                # 🔹 CONVERTIR a float explícitamente
-                try:
-                    precio_str = str(insumo_receta.insumo.precio_unitario)
-                    precio_str = precio_str.replace(',', '.')
-                    precio_float = float(precio_str)
-                except:
-                    precio_float = 0.0
+                # 🔹 Convertir usando el método seguro
+                precio = self._convertir_a_float(insumo_receta.insumo.precio_unitario)
+                cantidad = self._convertir_a_float(insumo_receta.cantidad)
                 
-                try:
-                    cantidad_str = str(insumo_receta.cantidad)
-                    cantidad_str = cantidad_str.replace(',', '.')
-                    cantidad_float = float(cantidad_str)
-                except:
-                    cantidad_float = 0.0
-                
-                # 🔹 Conversión de unidades (si aplica)
+                # 🔹 Verificar conversión de unidades
                 if insumo_receta.unidad_medida and insumo_receta.insumo.unidad_medida:
                     unidad_receta = insumo_receta.unidad_medida.abreviatura.lower()
                     unidad_insumo = insumo_receta.insumo.unidad_medida.abreviatura.lower()
                     
                     if unidad_receta != unidad_insumo:
-                        try:
-                            cantidad_float = convertir_unidad(
-                                cantidad_float,
-                                unidad_receta,
-                                unidad_insumo
-                            )
-                            cantidad_float = float(str(cantidad_float))  # 🔹 FORZAR float
-                        except:
-                            pass  # Si falla, seguir con cantidad original
+                        cantidad = convertir_unidad(cantidad, unidad_receta, unidad_insumo)
                 
-                # 🔹 Multiplicación SEGURA (float * float)
-                costo_insumo = precio_float * cantidad_float
-                costo_total_float += costo_insumo
+                # 🔹 Multiplicación segura
+                costo_insumo = precio * cantidad
+                costo_total += costo_insumo
             
-            return f"{costo_total_float:.2f}"
+            return f"{costo_total:.2f}"
             
         except Exception as e:
-            print(f"❌ ERROR en get_costo_total: {str(e)}")
-            import traceback
-            print(f"❌ Traceback: {traceback.format_exc()}")
+            print(f"❌ Error calculando costo total: {e}")
             return "0.00"
     
     def get_costo_unitario(self, obj):
         """Calcular costo unitario"""
         try:
             costo_total_str = self.get_costo_total(obj)
-            costo_total_float = float(costo_total_str)
+            costo_total = float(costo_total_str)
             
             if obj.rinde > 0:
-                costo_unitario = costo_total_float / float(obj.rinde)
+                costo_unitario = costo_total / float(obj.rinde)
                 return f"{costo_unitario:.2f}"
             return "0.00"
         except Exception as e:
-            print(f"❌ ERROR en get_costo_unitario: {e}")
+            print(f"❌ Error calculando costo unitario: {e}")
             return "0.00"
+    
+    def _convertir_a_float(self, valor):
+        """Método auxiliar para convertir a float"""
+        if valor is None:
+            return 0.0
+        
+        try:
+            if isinstance(valor, Decimal):
+                return float(valor)
+            elif isinstance(valor, (int, float)):
+                return float(valor)
+            else:
+                valor_str = str(valor).replace(',', '.')
+                return float(valor_str)
+        except:
+            return 0.0
     
     class Meta:
         model = Receta

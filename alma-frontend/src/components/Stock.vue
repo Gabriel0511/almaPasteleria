@@ -68,12 +68,13 @@
 
                     <div class="info-stock">
                       <div class="stock-actual">
-                        <span class="cantidad">{{ formatDecimal(item.cantidad) }}</span>
+                        <span class="cantidad">{{ formatDecimal(item.cantidad, item.unidad) }}</span>
                         <span class="unidad">{{ item.unidad }}</span>
                       </div>
+
                       <div class="stock-minimo">
                         <span class="label"><b>Mín:</b></span>
-                        <span class="valor">{{ formatDecimal(item.stock_minimo) }} {{ item.unidad }}
+                        <span class="valor">{{ formatDecimal(item.stock_minimo, item.unidad) }} {{ item.unidad }}
                           <span style="margin-left: 10px"><b>Precio por {{ item.unidad }}:</b> ${{ item.precio_unitario }}</span>
                         </span>
                       </div>
@@ -267,10 +268,10 @@
               </div>
               <div class="insumo-fijo-stock-info">
                 <span class="stock-actual-info">
-                  Stock actual: {{ formatDecimal(insumoReposicionRapida.cantidad) }} {{ insumoReposicionRapida.unidad }}
+                  Stock actual: {{ formatDecimal(insumoReposicionRapida.cantidad, insumoReposicionRapida.unidad) }} {{ insumoReposicionRapida.unidad }}
                 </span>
                 <span class="stock-minimo-info">
-                  Stock mínimo: {{ formatDecimal(insumoReposicionRapida.stock_minimo) }} {{ insumoReposicionRapida.unidad }}
+                  Stock mínimo: {{ formatDecimal(insumoReposicionRapida.stock_minimo, insumoReposicionRapida.unidad) }} {{ insumoReposicionRapida.unidad }}
                 </span>
               </div>
             </div>
@@ -503,10 +504,10 @@
               </div>
               <div class="insumo-fijo-stock-info">
                 <span class="stock-actual-info">
-                  Stock actual: {{ formatDecimal(insumoPerdidaRapida.cantidad) }} {{ insumoPerdidaRapida.unidad }}
+                  Stock actual: {{ formatDecimal(insumoPerdidaRapida.cantidad, insumoPerdidaRapida.unidad) }} {{ insumoPerdidaRapida.unidad }}
                 </span>
                 <span class="stock-minimo-info">
-                  Stock mínimo: {{ formatDecimal(insumoPerdidaRapida.stock_minimo) }} {{ insumoPerdidaRapida.unidad }}
+                  Stock mínimo: {{ formatDecimal(insumoPerdidaRapida.stock_minimo, insumoPerdidaRapida.unidad) }} {{ insumoPerdidaRapida.unidad }}
                 </span>
               </div>
             </div>
@@ -1125,17 +1126,50 @@ const logout = async () => {
   }
 };
 
-const formatDecimal = (value) => {
+const formatDecimal = (value, unidad = '') => {
+  console.log('formatDecimal called with:', { value, unidad }); // Debug
+  
   if (value === null || value === undefined) return "0.00";
 
-  // Convertir coma a punto para poder parsear correctamente
-  const numericValue =
-    typeof value === "string" ? parseFloat(value.replace(",", ".")) : value;
+  const numericValue = typeof value === "string" 
+    ? parseFloat(value.replace(",", ".")) 
+    : Number(value);
 
-  return Number(numericValue).toLocaleString("es-ES", {
+  if (isNaN(numericValue)) return "0.00";
+
+  const unidadNormalizada = String(unidad).toLowerCase().trim();
+  console.log('Normalized unit:', unidadNormalizada); // Debug
+  
+  // Lista de unidades que deben mostrarse sin decimales
+  const unidadesSinDecimales = [
+    'g', 'gramos', 
+    'unidad', 'u', 
+    'docena',
+    'ml', 'mililitros'
+  ];
+
+  // Verificar si la unidad está en la lista - COMPARACIÓN EXACTA
+  const esUnidadSinDecimales = unidadesSinDecimales.some(u => 
+    unidadNormalizada === u
+  );
+
+  console.log('Should show without decimals?', esUnidadSinDecimales); // Debug
+
+  if (esUnidadSinDecimales) {
+    const result = Math.round(numericValue).toLocaleString("es-ES", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+    console.log('Result without decimals:', result); // Debug
+    return result;
+  }
+
+  const result = numericValue.toLocaleString("es-ES", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+  console.log('Result with decimals:', result); // Debug
+  return result;
 };
 
 // Función para formatear números para el backend (con coma decimal)

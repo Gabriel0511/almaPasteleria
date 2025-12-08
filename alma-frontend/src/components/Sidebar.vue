@@ -27,7 +27,7 @@
       </button>
       <div class="footer-logo">
         <img
-          src="/logoSidebar.png"
+          src="/logoSidebar2.png"
           alt="A&C Consulting Logo"
           class="logo-img"
         />
