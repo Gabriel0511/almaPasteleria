@@ -10,6 +10,24 @@
   --color-danger: #dc3545;
   --color-warning: #ffc107;
   --color-success: #28a745;
+
+  /* Sistema centralizado de colores de estado - SOLO COLORES BÁSICOS */
+  --color-pendiente: #ffeaa7;
+  --color-en-preparacion: #a6e3e9;
+  --color-listo: #9ec5fe;
+  --color-entregado: #a8e6a3;
+  --color-cancelado: #f5b7b1;
+
+  /* Estados especiales */
+  --color-atrasado: #dc3545;
+  --color-hoy: #ffc107;
+
+  /* Colores de texto para los badges */
+  --texto-pendiente: #856404;
+  --texto-en-preparacion: #0c5460;
+  --texto-listo: #0c5460;
+  --texto-entregado: #155724;
+  --texto-cancelado: #721c24;
 }
 
 /* ----------------------------- RESET Y BASE ----------------------------- */
