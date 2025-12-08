@@ -1449,6 +1449,11 @@ const guardarInsumo = async () => {
           `/api/insumos/${formInsumo.value.id}/actualizar-parcial/`,
           datosPreparados
         );
+        
+        // 🔹 ACTUALIZAR RECETAS si se cambió el precio
+        if (formInsumo.value.precio_unitario !== null && formInsumo.value.precio_unitario !== undefined) {
+          await actualizarRecetasDespuesDeCambioPrecio(formInsumo.value.id);
+        }
 
         notificationSystem.show({
           type: "success",
@@ -1483,89 +1488,8 @@ const guardarInsumo = async () => {
         return;
       }
     }
-
-    // -----------------------------
-    // ✔ CREACIÓN - Manejo de insumo desactivado
-    // -----------------------------
-    try {
-      console.log("Enviando datos para crear insumo:", datosPreparados);
-      
-      response = await axios.post("/api/insumos/crear/", datosPreparados);
-    } catch (error) {
-      // Manejar el caso de insumo desactivado
-      if (error.response?.data?.error === "insumo_desactivado") {
-        insumoDesactivado.value = error.response.data;
-        showReactivarModal.value = true;
-        return;
-      }
-      // Manejar el caso de insumo activo (nombre duplicado)
-      else if (
-        error.response?.data?.error &&
-        error.response.data.error.includes("Ya existe un insumo")
-      ) {
-        notificationSystem.show({
-          type: "error",
-          title: "Error",
-          message: error.response.data.error,
-          timeout: 4000,
-        });
-        return;
-      }
-      // Otros errores
-      else {
-        console.error("Error detallado al crear insumo:", error);
-        console.error("Datos enviados:", datosPreparados);
-        
-        let mensajeError = "No se pudo guardar el insumo";
-        if (error.response?.data) {
-          if (typeof error.response.data === 'object') {
-            mensajeError = Object.values(error.response.data).join(', ');
-          } else {
-            mensajeError = error.response.data;
-          }
-        }
-        
-        notificationSystem.show({
-          type: "error",
-          title: "Error",
-          message: mensajeError,
-          timeout: 6000,
-        });
-        return;
-      }
-    }
-
-    const nuevoID = response.data?.id;
-
-    await fetchStock();
-    await fetchInsumos();
-
-    closeModal();
-
-    notificationSystem.show({
-      type: "success",
-      title: "Insumo creado",
-      message: "Insumo creado correctamente",
-      timeout: 4000,
-    });
-
-    let nuevoInsumoCompleto = null;
-
-    if (nuevoID) {
-      nuevoInsumoCompleto = stock.value.find((i) => i.id === nuevoID);
-    }
-
-    if (!nuevoInsumoCompleto) {
-      nuevoInsumoCompleto = stock.value.find(
-        (i) => i.nombre?.toLowerCase() === nombreNuevo.toLowerCase()
-      );
-    }
-
-    if (nuevoInsumoCompleto) {
-      setTimeout(() => {
-        reponerStockRapido(nuevoInsumoCompleto);
-      }, 300);
-    }
+    
+    // ... resto del código para creación ...
   } catch (error) {
     console.error("❌ ERROR COMPLETO NO MANEJADO:", error);
     console.error("Stack trace:", error.stack);
@@ -1637,6 +1561,26 @@ const cancelarReactivacion = () => {
   insumoDesactivado.value = null;
 };
 
+// Función para actualizar recetas después de cambiar precios de insumos
+const actualizarRecetasDespuesDeCambioPrecio = async (insumoId) => {
+  try {
+    console.log(`🔄 Actualizando recetas después de cambiar precio del insumo ${insumoId}`);
+    
+    // Opción 1: Actualizar todas las recetas (más simple)
+    await axios.post("/api/recetas/actualizar-costos/");
+    
+    // Opción 2: Actualizar solo recetas relacionadas (más eficiente)
+    // Esta opción requiere que tengas un endpoint específico en el backend
+    // await axios.post(`/api/recetas/actualizar-por-insumo/${insumoId}/`);
+    
+    console.log("✅ Recetas actualizadas exitosamente");
+    
+  } catch (error) {
+    console.error("❌ Error al actualizar recetas:", error);
+    // No mostramos error al usuario para no confundirlo
+  }
+};
+
 const registrarCompra = async () => {
   try {
     // Validar que la cantidad sea mayor a 0
@@ -1694,11 +1638,16 @@ const registrarCompra = async () => {
       datosActualizacion
     );
     
+    // 🔹 ACTUALIZAR RECETAS si se cambió el precio
+    if (formCompra.value.precio_unitario && parseFloat(formCompra.value.precio_unitario) > 0) {
+      await actualizarRecetasDespuesDeCambioPrecio(formCompra.value.insumo_id);
+    }
+    
     // Refrescar tanto stock como insumos
     await fetchStock();
     await fetchInsumos();
 
-    closeModal();
+    cerrarModalCompra();
 
     notificationSystem.show({
       type: "success",

@@ -16,7 +16,22 @@
           @filter-change="handleFilterChange"
           @clear-filters="limpiarFiltros"
         />
-
+<div class="actualizacion-container">
+  <button 
+    class="btn-actualizar-precios" 
+    @click="actualizarPreciosRecetas"
+    :disabled="recalculando || loading"
+    title="Actualizar precios según últimos cambios en stock"
+  >
+    <i v-if="recalculando" class="fas fa-spinner fa-spin"></i>
+    <i v-else class="fas fa-sync-alt"></i>
+    {{ recalculando ? 'Actualizando...' : 'Actualizar precios' }}
+  </button>
+  <span class="ayuda-texto">
+    <i class="fas fa-info-circle"></i>
+    Actualiza los precios de las recetas según los últimos cambios en los insumos
+  </span>
+</div>
         <!-- Card principal de recetas - ESTILO COMO STOCK -->
         <div class="card recetas-card">
           <div v-if="loading" class="loading-state">
@@ -674,6 +689,7 @@ const filtroActivo = ref("");
 const paginaActual = ref(1);
 const itemsPorPagina = ref(10);
 const sidebarRef = ref(null);
+const recalculando = ref(false);
 
 // Stats para el header
 const recetasStats = computed(() => {
@@ -960,19 +976,31 @@ const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => {
 };
 
 const calcularCostoInsumo = (insumoReceta) => {
-  if (
-    !insumoReceta ||
-    !insumoReceta.insumo ||
-    insumoReceta.insumo.precio_unitario === null ||
-    insumoReceta.insumo.precio_unitario === undefined
-  ) {
+  if (!insumoReceta || !insumoReceta.insumo) {
     return 0;
   }
 
   try {
-    const precioUnitario = parseFloat(
-      insumoReceta.insumo.precio_unitario.toString().replace(",", ".")
+    // IMPORTANTE: Buscar el insumo actualizado en la lista de insumosDisponibles
+    const insumoActual = insumosDisponibles.value.find(
+      i => i.id === insumoReceta.insumo.id
     );
+    
+    let precioUnitario = 0;
+    
+    // Usar el precio del insumo actual si existe
+    if (insumoActual && insumoActual.precio_unitario !== null && insumoActual.precio_unitario !== undefined) {
+      precioUnitario = parseFloat(
+        insumoActual.precio_unitario.toString().replace(",", ".")
+      );
+    } 
+    // Si no encontramos el insumo actualizado, usar el almacenado (fallback)
+    else if (insumoReceta.insumo.precio_unitario !== null && insumoReceta.insumo.precio_unitario !== undefined) {
+      precioUnitario = parseFloat(
+        insumoReceta.insumo.precio_unitario.toString().replace(",", ".")
+      );
+    }
+
     const cantidad = parseFloat(
       insumoReceta.cantidad.toString().replace(",", ".")
     );
@@ -981,8 +1009,7 @@ const calcularCostoInsumo = (insumoReceta) => {
       return precioUnitario * cantidad;
     }
 
-    const unidadInsumo =
-      insumoReceta.insumo.unidad_medida.abreviatura.toLowerCase();
+    const unidadInsumo = insumoReceta.insumo.unidad_medida.abreviatura.toLowerCase();
     const unidadReceta = insumoReceta.unidad_medida.abreviatura.toLowerCase();
 
     if (unidadInsumo === unidadReceta) {
@@ -998,8 +1025,44 @@ const calcularCostoInsumo = (insumoReceta) => {
 
     return isNaN(costo) ? 0 : costo;
   } catch (error) {
+    console.error("Error en calcularCostoInsumo:", error);
     return 0;
   }
+};
+
+// Función para actualizar precios de recetas manualmente
+const actualizarPreciosRecetas = () => {
+  recalculando.value = true;
+  
+  // Recalcular costos para cada receta
+  recetas.value.forEach(receta => {
+    if (receta.insumos && receta.insumos.length > 0) {
+      let nuevoCostoTotal = 0;
+      
+      receta.insumos.forEach(insumoReceta => {
+        nuevoCostoTotal += calcularCostoInsumo(insumoReceta);
+      });
+      
+      // Actualizar la receta con el nuevo costo
+      receta.costo_total = nuevoCostoTotal;
+      receta.costo_unitario = receta.rinde > 0 ? nuevoCostoTotal / receta.rinde : 0;
+      
+      // Si esta receta está desplegada/seleccionada, actualizarla también
+      if (recetaSeleccionada.value && recetaSeleccionada.value.id === receta.id) {
+        recetaSeleccionada.value.costo_total = nuevoCostoTotal;
+      }
+    }
+  });
+  
+  // Mostrar notificación
+  notificationSystem.show({
+    type: "success",
+    title: "Precios actualizados",
+    message: "Los precios de todas las recetas han sido actualizados",
+    timeout: 3000,
+  });
+  
+  recalculando.value = false;
 };
 
 const showNuevaRecetaModal = () => {
@@ -1020,9 +1083,13 @@ const editarReceta = (receta) => {
   showModalReceta.value = true;
 };
 
-const agregarInsumosAReceta = (receta) => {
+const agregarInsumosAReceta = async (receta) => {
   recetaSeleccionada.value = receta;
   resetNuevoInsumo();
+  
+  // Actualizar la lista de insumos antes de abrir el modal
+  await fetchInsumosDisponibles();
+  
   showModalInsumos.value = true;
 };
 
@@ -1557,17 +1624,27 @@ const fetchRecetas = async () => {
   try {
     loading.value = true;
     const response = await axios.get("/api/recetas/");
-
+    
+    // 🔹 FORZAR ACTUALIZACIÓN DE COSTOS en cada carga
+    // Puedes hacerlo de dos formas:
+    
+    // Opción 1: Actualizar TODAS las recetas (puede ser pesado si tienes muchas)
+    // await axios.post("/api/recetas/actualizar-costos/");
+    
+    // Opción 2: Actualizar solo cuando se detectan cambios (más eficiente)
+    // Por ahora, confiamos en que el backend ya calcula dinámicamente
+    
     recetas.value = response.data.map((receta) => {
-      if (!receta.insumos) {
-        receta.insumos = [];
-      }
-
+      // El backend ahora calcula los costos dinámicamente
       return {
-        ...receta,
+        id: receta.id,
+        nombre: receta.nombre,
+        rinde: receta.rinde,
+        unidad_rinde: receta.unidad_rinde,
+        precio_venta: parseFloat(receta.precio_venta) || 0,
+        costo_total: parseFloat(receta.costo_total) || 0, // ✅ Ahora viene actualizado
+        costo_unitario: parseFloat(receta.costo_unitario) || 0, // ✅ Ahora viene actualizado
         insumos: receta.insumos || [],
-        costo_total: parseFloat(receta.costo_total) || 0,
-        costo_unitario: parseFloat(receta.costo_unitario) || 0,
       };
     });
 
@@ -1579,12 +1656,18 @@ const fetchRecetas = async () => {
     }
   }
 };
-
 const fetchInsumosDisponibles = async () => {
   try {
     const response = await axios.get("/api/insumos/");
     insumosDisponibles.value = response.data.insumos;
-  } catch (err) {}
+    
+    // Después de cargar insumos, actualizar precios de recetas automáticamente
+    if (!loading.value) {
+      actualizarPreciosRecetas();
+    }
+  } catch (err) {
+    console.error("Error al cargar insumos:", err);
+  }
 };
 
 const fetchUnidadesMedida = async () => {
@@ -2485,6 +2568,57 @@ onMounted(() => {
   padding: 0 8px;
   color: #6c757d;
   font-weight: 500;
+}
+
+.actualizacion-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin: 15px 0;
+  padding: 10px 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.btn-actualizar-precios {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.btn-actualizar-precios:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2980b9, #21618c);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
+}
+
+.btn-actualizar-precios:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ayuda-texto {
+  font-size: 0.85rem;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ayuda-texto i {
+  color: #3498db;
 }
 
 /* ----------------------------- MODALES (mantener los estilos de modales) ----------------------------- */

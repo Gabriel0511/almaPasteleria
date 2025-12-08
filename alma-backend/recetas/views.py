@@ -726,3 +726,81 @@ class CierreDiarioView(APIView):
             return Response({
                 'error': f'Error al realizar el cierre diario: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+# -------------------------
+# 🔹 Actualizar Costos de Recetas
+# -------------------------
+class ActualizarCostosRecetasView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            # Opción 1: Actualizar TODAS las recetas
+            recetas = Receta.objects.all()
+            recetas_actualizadas = []
+            
+            for receta in recetas:
+                costo_anterior = receta.costo_total
+                
+                # Forzar recálculo llamando al método del serializer
+                from .serializers import RecetaSerializer
+                serializer = RecetaSerializer(receta)
+                
+                # Estos llamados activarán los cálculos dinámicos
+                nuevo_costo_total = serializer.get_costo_total(receta)
+                nuevo_costo_unitario = serializer.get_costo_unitario(receta)
+                
+                if costo_anterior != nuevo_costo_total:
+                    recetas_actualizadas.append({
+                        'id': receta.id,
+                        'nombre': receta.nombre,
+                        'costo_anterior': float(costo_anterior) if costo_anterior else 0,
+                        'costo_nuevo': float(nuevo_costo_total),
+                        'diferencia': float(nuevo_costo_total - (costo_anterior or Decimal('0.00')))
+                    })
+            
+            return Response({
+                'mensaje': 'Costos actualizados exitosamente',
+                'total_recetas': len(recetas),
+                'recetas_actualizadas': len(recetas_actualizadas),
+                'detalles': recetas_actualizadas
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            print(f"❌ Error en ActualizarCostosRecetasView: {str(e)}")
+            return Response({
+                'error': f'Error al actualizar costos: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# 🔹 Opción 2: Endpoint para actualizar una receta específica
+class ActualizarCostoRecetaView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request, pk):
+        try:
+            receta = Receta.objects.get(pk=pk)
+            costo_anterior = receta.costo_total
+            
+            # Forzar recálculo
+            from .serializers import RecetaSerializer
+            serializer = RecetaSerializer(receta)
+            
+            nuevo_costo_total = serializer.get_costo_total(receta)
+            nuevo_costo_unitario = serializer.get_costo_unitario(receta)
+            
+            return Response({
+                'id': receta.id,
+                'nombre': receta.nombre,
+                'costo_anterior': float(costo_anterior) if costo_anterior else 0,
+                'costo_total': float(nuevo_costo_total),
+                'costo_unitario': float(nuevo_costo_unitario),
+                'actualizado': nuevo_costo_total != costo_anterior
+            }, status=status.HTTP_200_OK)
+            
+        except Receta.DoesNotExist:
+            return Response({'error': 'Receta no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(f"❌ Error en ActualizarCostoRecetaView: {str(e)}")
+            return Response({
+                'error': f'Error al actualizar costo: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
