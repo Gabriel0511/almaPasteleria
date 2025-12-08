@@ -30,35 +30,50 @@ class RecetaInsumoSerializer(serializers.ModelSerializer):
     costo_insumo = serializers.SerializerMethodField()
     
     def get_costo_insumo(self, obj):
-        """Calcular costo de este insumo en la receta"""
+        """Calcular costo de este insumo en la receta - VERSIÓN ULTRA SEGURA"""
         try:
             if not obj.insumo or not obj.insumo.precio_unitario:
                 return "0.00"
             
-            # Convertir precio a float
-            precio_str = str(obj.insumo.precio_unitario).replace(',', '.')
-            precio = float(precio_str)
+            # 🔹 PASO 1: Convertir precio a FLOAT (GARANTIZADO)
+            precio = self._convertir_a_float(obj.insumo.precio_unitario)
             
-            # Convertir cantidad a float
-            cantidad_str = str(obj.cantidad).replace(',', '.')
-            cantidad = float(cantidad_str)
+            # 🔹 PASO 2: Convertir cantidad a FLOAT (GARANTIZADO)
+            cantidad = self._convertir_a_float(obj.cantidad)
             
-            # Verificar si necesitamos conversión de unidades
+            # 🔹 PASO 3: Verificar conversión de unidades
             if obj.unidad_medida and obj.insumo.unidad_medida:
                 unidad_receta = obj.unidad_medida.abreviatura.lower()
                 unidad_insumo = obj.insumo.unidad_medida.abreviatura.lower()
                 
                 if unidad_receta != unidad_insumo:
-                    # Usar la función convertir_unidad (ahora devuelve float)
+                    # 🔹 Convertir unidades (convertir_unidad ya devuelve float)
                     cantidad = convertir_unidad(cantidad, unidad_receta, unidad_insumo)
             
-            # Calcular costo (float * float)
+            # 🔹 PASO 4: Calcular costo (FLOAT * FLOAT = SEGURO)
             costo = precio * cantidad
             return f"{costo:.2f}"
             
         except Exception as e:
-            print(f"⚠️ Error calculando costo insumo: {e}")
+            print(f"❌ Error calculando costo para {obj.insumo.nombre if obj.insumo else 'insumo desconocido'}: {e}")
             return "0.00"
+    
+    def _convertir_a_float(self, valor):
+        """Convertir cualquier tipo a float de forma segura"""
+        if valor is None:
+            return 0.0
+        
+        try:
+            if isinstance(valor, Decimal):
+                return float(valor)
+            elif isinstance(valor, (int, float)):
+                return float(valor)
+            else:
+                # Si es string, limpiar y convertir
+                valor_str = str(valor).replace(',', '.')
+                return float(valor_str)
+        except:
+            return 0.0
     
     class Meta:
         model = RecetaInsumo
@@ -71,7 +86,7 @@ class RecetaSerializer(serializers.ModelSerializer):
     costo_unitario = serializers.SerializerMethodField()
     
     def get_costo_total(self, obj):
-        """Calcular costo total de la receta dinámicamente"""
+        """Calcular costo total - VERSIÓN ULTRA SEGURA"""
         try:
             costo_total = 0.0
             
@@ -79,15 +94,11 @@ class RecetaSerializer(serializers.ModelSerializer):
                 if not insumo_receta.insumo or not insumo_receta.insumo.precio_unitario:
                     continue
                 
-                # Convertir precio a float
-                precio_str = str(insumo_receta.insumo.precio_unitario).replace(',', '.')
-                precio = float(precio_str)
+                # 🔹 Convertir usando el método seguro
+                precio = self._convertir_a_float(insumo_receta.insumo.precio_unitario)
+                cantidad = self._convertir_a_float(insumo_receta.cantidad)
                 
-                # Convertir cantidad a float
-                cantidad_str = str(insumo_receta.cantidad).replace(',', '.')
-                cantidad = float(cantidad_str)
-                
-                # Verificar conversión de unidades
+                # 🔹 Verificar conversión de unidades
                 if insumo_receta.unidad_medida and insumo_receta.insumo.unidad_medida:
                     unidad_receta = insumo_receta.unidad_medida.abreviatura.lower()
                     unidad_insumo = insumo_receta.insumo.unidad_medida.abreviatura.lower()
@@ -95,13 +106,14 @@ class RecetaSerializer(serializers.ModelSerializer):
                     if unidad_receta != unidad_insumo:
                         cantidad = convertir_unidad(cantidad, unidad_receta, unidad_insumo)
                 
+                # 🔹 Multiplicación segura
                 costo_insumo = precio * cantidad
                 costo_total += costo_insumo
             
             return f"{costo_total:.2f}"
             
         except Exception as e:
-            print(f"⚠️ Error calculando costo total: {e}")
+            print(f"❌ Error calculando costo total: {e}")
             return "0.00"
     
     def get_costo_unitario(self, obj):
@@ -115,8 +127,24 @@ class RecetaSerializer(serializers.ModelSerializer):
                 return f"{costo_unitario:.2f}"
             return "0.00"
         except Exception as e:
-            print(f"⚠️ Error calculando costo unitario: {e}")
+            print(f"❌ Error calculando costo unitario: {e}")
             return "0.00"
+    
+    def _convertir_a_float(self, valor):
+        """Método auxiliar para convertir a float"""
+        if valor is None:
+            return 0.0
+        
+        try:
+            if isinstance(valor, Decimal):
+                return float(valor)
+            elif isinstance(valor, (int, float)):
+                return float(valor)
+            else:
+                valor_str = str(valor).replace(',', '.')
+                return float(valor_str)
+        except:
+            return 0.0
     
     class Meta:
         model = Receta
