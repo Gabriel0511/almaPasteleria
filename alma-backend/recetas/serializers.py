@@ -39,8 +39,8 @@ class RecetaInsumoSerializer(serializers.ModelSerializer):
             # Obtener precio unitario del insumo
             precio_unitario = Decimal(str(obj.insumo.precio_unitario))
             
-            # Si las unidades son diferentes, convertir la cantidad
-            cantidad = Decimal(str(obj.cantidad))
+            # Variable para la cantidad a calcular
+            cantidad_para_calcular = Decimal(str(obj.cantidad))
             
             if obj.unidad_medida and obj.insumo.unidad_medida:
                 unidad_receta = obj.unidad_medida.abreviatura.lower()
@@ -48,15 +48,17 @@ class RecetaInsumoSerializer(serializers.ModelSerializer):
                 
                 if unidad_receta != unidad_insumo:
                     # Convertir cantidad a la unidad del insumo
-                    cantidad = convertir_unidad(
-                        float(cantidad),
+                    cantidad_float = float(obj.cantidad)
+                    cantidad_convertida_float = convertir_unidad(
+                        cantidad_float,
                         unidad_receta,
                         unidad_insumo
                     )
-                    cantidad = Decimal(str(cantidad))
+                    # Convertir el resultado float a Decimal
+                    cantidad_para_calcular = Decimal(str(cantidad_convertida_float))
             
             # Calcular costo
-            costo = precio_unitario * cantidad
+            costo = precio_unitario * cantidad_para_calcular
             return costo.quantize(Decimal('0.01'))
             
         except Exception as e:
@@ -65,7 +67,7 @@ class RecetaInsumoSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = RecetaInsumo
-        fields = ['id', 'insumo', 'cantidad', 'unidad_medida', 'costo_insumo']  # 🔹 Agregar costo_insumo
+        fields = ['id', 'insumo', 'cantidad', 'unidad_medida', 'costo_insumo']
 
 class RecetaSerializer(serializers.ModelSerializer):
     insumos = RecetaInsumoSerializer(many=True, read_only=True)
@@ -75,18 +77,17 @@ class RecetaSerializer(serializers.ModelSerializer):
     costo_unitario = serializers.SerializerMethodField()
     
     def get_costo_total(self, obj):
-        """Calcular costo total de la receta dinámicamente"""
+        """Calcular costo total de la receta dinámicamente (sin guardar automáticamente)"""
         try:
             costo_total = Decimal('0.00')
             
             # Calcular sumando el costo de cada insumo
             for insumo_receta in obj.insumos.all():
-                # Usar la misma lógica que en RecetaInsumoSerializer
                 if not insumo_receta.insumo or not insumo_receta.insumo.precio_unitario:
                     continue
                 
                 precio_unitario = Decimal(str(insumo_receta.insumo.precio_unitario))
-                cantidad = Decimal(str(insumo_receta.cantidad))
+                cantidad_para_calcular = Decimal(str(insumo_receta.cantidad))
                 
                 if insumo_receta.unidad_medida and insumo_receta.insumo.unidad_medida:
                     unidad_receta = insumo_receta.unidad_medida.abreviatura.lower()
@@ -94,22 +95,23 @@ class RecetaSerializer(serializers.ModelSerializer):
                     
                     if unidad_receta != unidad_insumo:
                         # Convertir cantidad
-                        cantidad = convertir_unidad(
-                            float(cantidad),
+                        cantidad_float = float(insumo_receta.cantidad)
+                        cantidad_convertida_float = convertir_unidad(
+                            cantidad_float,
                             unidad_receta,
                             unidad_insumo
                         )
-                        cantidad = Decimal(str(cantidad))
+                        cantidad_para_calcular = Decimal(str(cantidad_convertida_float))
                 
-                costo_insumo = precio_unitario * cantidad
+                costo_insumo = precio_unitario * cantidad_para_calcular
                 costo_total += costo_insumo
             
-            # 🔹 ACTUALIZAR el campo en la base de datos (para mantener consistencia)
-            # Pero esto solo si quieres mantenerlo actualizado
-            if obj.costo_total != costo_total:
-                obj.costo_total = costo_total
-                obj.costo_unitario = costo_total / Decimal(str(obj.rinde)) if obj.rinde > 0 else Decimal('0.00')
-                obj.save(update_fields=['costo_total', 'costo_unitario'])
+            # 🔹 OPCIÓN: Descomenta esto si quieres actualizar la base de datos
+            # Solo comenté esto para mejorar rendimiento
+            # if obj.costo_total != costo_total:
+            #     obj.costo_total = costo_total
+            #     obj.costo_unitario = costo_total / Decimal(str(obj.rinde)) if obj.rinde > 0 else Decimal('0.00')
+            #     obj.save(update_fields=['costo_total', 'costo_unitario'])
             
             return costo_total.quantize(Decimal('0.01'))
             
@@ -133,7 +135,7 @@ class RecetaSerializer(serializers.ModelSerializer):
         model = Receta
         fields = ['id', 'nombre', 'veces_hecha', 'veces_hecha_hoy', 'rinde', 'unidad_rinde', 
                   'costo_unitario', 'costo_total', 'precio_venta', 'creado_en', 'insumos']
-        read_only_fields = ['costo_unitario', 'costo_total']  # 🔹 Hacerlos de solo lectura
+        read_only_fields = ['costo_unitario', 'costo_total']
 
 class RecetaInsumoCreateSerializer(serializers.ModelSerializer):
     insumo = serializers.PrimaryKeyRelatedField(queryset=Insumo.objects.all())
