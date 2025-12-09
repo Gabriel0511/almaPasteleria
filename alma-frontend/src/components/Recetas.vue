@@ -35,6 +35,7 @@
               class="receta-item"
               :class="{
                 'no-rentable': receta.precio_venta <= receta.costo_total,
+                'margen-bajo': esMargenBajo(receta),
                 expanded: recetaDesplegada[receta.id],
               }"
             >
@@ -45,7 +46,8 @@
                   class="estado-indicador"
                   :class="{
                     critico: receta.precio_venta <= receta.costo_total,
-                    normal: receta.precio_venta > receta.costo_total,
+                    'margen-bajo': esMargenBajo(receta),
+                    normal: receta.precio_venta > receta.costo_total && !esMargenBajo(receta),
                   }"
                 ></div>
 
@@ -262,6 +264,15 @@
                     <span>
                       ¡Receta no rentable! El precio de venta no cubre los
                       costos.
+                    </span>
+                  </div>
+                  <div
+                    v-if="esMargenBajo(receta)"
+                    class="receta-alerta alerta-margen-bajo"
+                  >
+                    <i class="fas fa-chart-line"></i>
+                    <span>
+                      ¡Receta con margen bajo! Margen inferior al 10%.
                     </span>
                   </div>
                 </div>
@@ -677,14 +688,25 @@ const sidebarRef = ref(null);
 const recetasStats = computed(() => {
   const stats = [];
 
-  // Estadística de no rentables
+  // Estadística de no rentables (PRIMERO - rojo)
   if (notificacionesRecetasNoRentables.value.length > 0) {
     stats.push({
       type: "bajo",
       icon: "fas fa-exclamation-circle",
-      label: `${notificacionesRecetasNoRentables.value.length} no rentable(s)`,
+      label: `${notificacionesRecetasNoRentables.value.length} No rentable(s)`,
       tooltip: "Filtrar recetas no rentables",
       value: notificacionesRecetasNoRentables.value.length,
+    });
+  }
+
+  // Estadística de margen bajo (SEGUNDO - celeste)
+  if (recetasMargenBajo.value.length > 0) {
+    stats.push({
+      type: "margen-bajo",
+      icon: "fas fa-chart-line",
+      label: `${recetasMargenBajo.value.length} Margen bajo`,
+      tooltip: "Filtrar recetas con margen bajo (< 10%)",
+      value: recetasMargenBajo.value.length,
     });
   }
 
@@ -707,7 +729,9 @@ const recetasFilters = computed(() => [
 
 // Handlers
 const handleStatClick = (stat) => {
-  if (stat.type === "bajo") {
+  if (stat.type === "margen-bajo") {
+    aplicarFiltroMargenBajo();
+  } else if (stat.type === "bajo") {
     aplicarFiltroNoRentables();
   }
 };
@@ -749,12 +773,33 @@ const esEdicion = ref(false);
 const recetaAEliminar = ref(null);
 const recetaSeleccionada = ref(null);
 
+// Filtros
+const aplicarFiltroMargenBajo = () => {
+  filtroActivo.value =
+    filtroActivo.value === "margen-bajo" ? "" : "margen-bajo";
+  cerrarTodasLasRecetas();
+  resetearPaginacion();
+};
+
 const aplicarFiltroNoRentables = () => {
   filtroActivo.value =
     filtroActivo.value === "no-rentable" ? "" : "no-rentable";
   cerrarTodasLasRecetas();
   resetearPaginacion();
 };
+
+// Detectar recetas con margen bajo
+const esMargenBajo = (receta) => {
+  const costoTotal = parseFloat(receta.costo_total) || 0;
+  const precioVenta = parseFloat(receta.precio_venta) || 0;
+  const margen = precioVenta - costoTotal;
+  
+  return margen > 0 && margen < costoTotal * 0.1;
+};
+
+const recetasMargenBajo = computed(() => {
+  return recetas.value.filter(receta => esMargenBajo(receta));
+});
 
 const recetasPaginadas = computed(() => {
   const inicio = (paginaActual.value - 1) * itemsPorPagina.value;
@@ -818,7 +863,9 @@ const mostrarPuntosSuspensivos = computed(() => {
 const recetasFiltradas = computed(() => {
   let filtered = recetas.value;
 
-  if (filtroActivo.value === "no-rentable") {
+  if (filtroActivo.value === "margen-bajo") {
+    filtered = filtered.filter(receta => esMargenBajo(receta));
+  } else if (filtroActivo.value === "no-rentable") {
     filtered = filtered.filter(
       (receta) => receta.precio_venta <= receta.costo_total
     );
@@ -834,9 +881,15 @@ const recetasFiltradas = computed(() => {
   return filtered.sort((a, b) => {
     const aNoRentable = a.precio_venta <= a.costo_total;
     const bNoRentable = b.precio_venta <= b.costo_total;
+    const aMargenBajo = esMargenBajo(a);
+    const bMargenBajo = esMargenBajo(b);
 
+    // Orden: No Rentable -> Margen Bajo -> Resto
     if (aNoRentable && !bNoRentable) return -1;
     if (!aNoRentable && bNoRentable) return 1;
+    
+    if (aMargenBajo && !bMargenBajo && !bNoRentable) return -1;
+    if (!aMargenBajo && bMargenBajo && !aNoRentable) return 1;
 
     return a.nombre.localeCompare(b.nombre);
   });
@@ -1458,7 +1511,7 @@ const guardarEdicionInsumo = async (insumo) => {
     delete insumo.cantidadEdit;
     delete insumo.insumo_id_edit;
     delete insumo.unidad_medida_id_edit;
-    insumoEditando.value = null;
+  insumoEditando.value = null;
 
     await recalcularCostosReceta();
     await onInsumosModificados(recetaSeleccionada.value);
@@ -1613,6 +1666,7 @@ const fetchRecetas = async () => {
     }
   }
 };
+
 const fetchInsumosDisponibles = async () => {
   try {
     const response = await axios.get("/api/insumos/");
@@ -1652,14 +1706,18 @@ const verificarRentabilidadYNotificar = (receta) => {
 
     actualizarNotificacionesRecetas();
   } else if (margen > 0 && margen < costoTotal * 0.1) {
-    notificationSystem.show({
-      type: "info",
-      title: "Margen Bajo",
-      message: `"${receta.nombre}" tiene margen bajo: $${formatDecimal(
-        margen
-      )} (${formatDecimal((margen / costoTotal) * 100)}%)`,
-      timeout: 4000,
-    });
+    const notificacionId = `receta-margen-bajo-${receta.id}`;
+    
+    if (!notificacionesLeidas.value.has(notificacionId)) {
+      notificationSystem.show({
+        type: "info",
+        title: "Margen Bajo",
+        message: `"${receta.nombre}" tiene margen bajo: $${formatDecimal(
+          margen
+        )} (${formatDecimal((margen / costoTotal) * 100)}%)`,
+        timeout: 4000,
+      });
+    }
   }
 };
 
@@ -1763,7 +1821,11 @@ onMounted(() => {
   border-left: 4px solid #dc3545;
 }
 
-.receta-item:not(.no-rentable) {
+.receta-item.margen-bajo {
+  border-left: 4px solid #3498db;
+}
+
+.receta-item:not(.no-rentable):not(.margen-bajo) {
   border-left: 4px solid #28a745;
 }
 
@@ -1784,6 +1846,11 @@ onMounted(() => {
 .estado-indicador.critico {
   background-color: #dc3545;
   box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
+}
+
+.estado-indicador.margen-bajo {
+  background-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
 }
 
 .estado-indicador.normal {
@@ -2322,6 +2389,12 @@ onMounted(() => {
   background: linear-gradient(135deg, #f8d7da, #f5b7b1);
   color: #721c24;
   border: 1px solid #f5c6cb;
+}
+
+.alerta-margen-bajo {
+  background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+  color: #0c5460;
+  border: 1px solid #bee5eb;
 }
 
 .btn-nueva-receta-flotante {
