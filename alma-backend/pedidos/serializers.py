@@ -9,6 +9,10 @@ class ClienteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cliente
         fields = ['id', 'nombre', 'telefono', 'direccion']
+        extra_kwargs = {
+            'telefono': {'required': True},
+            'direccion': {'required': False, 'allow_blank': True}
+        }
 
 class RecetaSerializer(serializers.ModelSerializer):
     class Meta:
