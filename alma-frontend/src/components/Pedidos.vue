@@ -1254,17 +1254,6 @@ const recetaAEliminar = ref(null);
 const detalleActual = ref(null);
 const pedidoActual = ref(null);
 
-import { watch } from 'vue';
-
-// Agrega esto después de tus variables reactivas:
-watch(formPedido, (newVal) => {
-  console.log("formPedido cambió:", newVal);
-}, { deep: true });
-
-watch(clientes, (newVal) => {
-  console.log("Clientes actualizados:", newVal.length);
-}, { deep: true });
-
 // Estados de pedido
 const estadosPedido = ref([
   { value: "pendiente", label: "Pendiente", color: "warning", order: 1 },
@@ -2701,37 +2690,6 @@ const getRecetaModalTitle = () => {
     : `Agregar Receta - Pedido de ${nombreCliente}`;
 };
 
-// Función para obtener el nombre del cliente actual
-const getNombreClienteActual = () => {
-  if (!pedidoActual.value || !pedidoActual.value.cliente) return '';
-  
-  // Buscar cliente en la lista de clientes para asegurar datos actualizados
-  const clienteEncontrado = clientes.value.find(
-    cliente => cliente.id === pedidoActual.value.cliente.id
-  );
-  
-  return clienteEncontrado ? clienteEncontrado.nombre : pedidoActual.value.cliente.nombre;
-};
-
-// Método para calcular margen de ganancia
-const calcularMargen = (receta) => {
-  const precioVenta = parseFloat(receta.precio_venta) || 0;
-  const costoUnitario = parseFloat(receta.costo_unitario) || 0;
-
-  if (costoUnitario === 0) return 0;
-
-  const margen = ((precioVenta - costoUnitario) / costoUnitario) * 100;
-  return margen.toFixed(1);
-};
-
-// Método para obtener clase CSS según el margen
-const getMargenClass = (receta) => {
-  const margen = calcularMargen(receta);
-  if (margen >= 50) return "margen-alto";
-  if (margen >= 30) return "margen-medio";
-  if (margen >= 10) return "margen-bajo";
-  return "margen-critico";
-};
 
 // Método para días restantes
 const getDiasRestantes = (fechaEntrega) => {
