@@ -616,161 +616,161 @@ class ListaComprasAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
-def convertir_cantidad(self, cantidad, unidad_origen, unidad_destino):
-    """
-    Método auxiliar para convertir entre unidades usando tu tabla de conversiones
-    """
-    from decimal import Decimal
-    
-    # Tu tabla de conversiones como diccionario
-    CONVERSIONES = {
-        # --- PESO ---
-        'kg': {'g': 1000, 'cda': Decimal('58.8235'), 'cdta': 200},
-        'g': {'kg': Decimal('0.001'), 'cda': Decimal('0.0588'), 'cdta': Decimal('0.2')},
-
-        # --- VOLUMEN ---
-        'l': {'ml': 1000, 'cda': Decimal('66.6667'), 'cdta': Decimal('200')},
-        'ml': {'l': Decimal('0.001'), 'cda': Decimal('0.0667'), 'cdta': Decimal('0.2')},
-        'cda': {
-            'ml': 15, 
-            'l': Decimal('0.015'), 
-            'cdta': 3,
-            'g': 17,
-            'kg': Decimal('0.017')
-        },
-        'cdta': {
-            'ml': 5, 
-            'l': Decimal('0.005'), 
-            'cda': Decimal('0.333'),
-            'g': 5,
-            'kg': Decimal('0.005')
-        },
-
-        # --- UNIDADES ---
-        'unidad': {'docena': Decimal('0.083333')},
-        'docena': {'unidad': 12}
-    }
-    
-    # Convertir a minúsculas
-    unidad_origen = unidad_origen.lower()
-    unidad_destino = unidad_destino.lower()
-    
-    # Si son la misma unidad, no convertir
-    if unidad_origen == unidad_destino:
-        return float(cantidad)
-    
-    try:
-        # Verificar si existe conversión directa
-        if unidad_origen in CONVERSIONES and unidad_destino in CONVERSIONES[unidad_origen]:
-            factor = CONVERSIONES[unidad_origen][unidad_destino]
-            resultado = float(Decimal(str(cantidad)) * Decimal(str(factor)))
-            return resultado
-        
-        # Si no hay conversión directa, buscar ruta indirecta
-        # Para cucharada/cucharadita entre peso y volumen
-        if unidad_origen in ['kg', 'g'] and unidad_destino in ['cda', 'cdta']:
-            # Convertir primero a gramos si es necesario
-            if unidad_origen == 'kg':
-                cantidad_g = Decimal(str(cantidad)) * 1000
-            else:
-                cantidad_g = Decimal(str(cantidad))
-            
-            # Luego a cucharada/cucharadita
-            if unidad_destino == 'cda':
-                resultado = float(cantidad_g / Decimal('17'))
-            else:  # cdta
-                resultado = float(cantidad_g / Decimal('5'))
-            return resultado
-        
-        elif unidad_origen in ['cda', 'cdta'] and unidad_destino in ['kg', 'g']:
-            # Convertir primero a gramos
-            if unidad_origen == 'cda':
-                cantidad_g = Decimal(str(cantidad)) * Decimal('17')
-            else:  # cdta
-                cantidad_g = Decimal(str(cantidad)) * Decimal('5')
-            
-            # Luego a kg o g
-            if unidad_destino == 'kg':
-                resultado = float(cantidad_g / 1000)
-            else:  # g
-                resultado = float(cantidad_g)
-            return resultado
-        
-        else:
-            # Si no se puede convertir, devolver cantidad original
-            print(f"⚠️ No se pudo convertir de {unidad_origen} a {unidad_destino}")
-            return float(cantidad)
-            
-    except Exception as e:
-        print(f"⚠️ Error en conversión: {e}")
-        return float(cantidad)  # Fallback
-    
-def calcular_pedidos_periodo(self, insumo, fecha_inicio, fecha_fin):
-    """
-    Calcula los pedidos para un período específico
-    """
-    try:
-        from pedidos.models import DetallePedido, IngredientesExtra
-        from recetas.models import RecetaInsumo
+    def convertir_cantidad(self, cantidad, unidad_origen, unidad_destino):
+        """
+        Método auxiliar para convertir entre unidades usando tu tabla de conversiones
+        """
         from decimal import Decimal
         
-        # Calcular pedidos de recetas para el período
-        pedidos_recetas = Decimal('0.0')
+        # Tu tabla de conversiones como diccionario
+        CONVERSIONES = {
+            # --- PESO ---
+            'kg': {'g': 1000, 'cda': Decimal('58.8235'), 'cdta': 200},
+            'g': {'kg': Decimal('0.001'), 'cda': Decimal('0.0588'), 'cdta': Decimal('0.2')},
+
+            # --- VOLUMEN ---
+            'l': {'ml': 1000, 'cda': Decimal('66.6667'), 'cdta': Decimal('200')},
+            'ml': {'l': Decimal('0.001'), 'cda': Decimal('0.0667'), 'cdta': Decimal('0.2')},
+            'cda': {
+                'ml': 15, 
+                'l': Decimal('0.015'), 
+                'cdta': 3,
+                'g': 17,
+                'kg': Decimal('0.017')
+            },
+            'cdta': {
+                'ml': 5, 
+                'l': Decimal('0.005'), 
+                'cda': Decimal('0.333'),
+                'g': 5,
+                'kg': Decimal('0.005')
+            },
+
+            # --- UNIDADES ---
+            'unidad': {'docena': Decimal('0.083333')},
+            'docena': {'unidad': 12}
+        }
         
-        # Obtener todos los detalles de pedido en el período
-        detalles_pedido = DetallePedido.objects.filter(
-            pedido__fecha_entrega__range=[fecha_inicio, fecha_fin],
-            pedido__estado__in=['pendiente', 'listo']  # Solo pedidos activos
-        ).select_related('receta')
+        # Convertir a minúsculas
+        unidad_origen = unidad_origen.lower()
+        unidad_destino = unidad_destino.lower()
         
-        for detalle in detalles_pedido:
-            # Buscar si la receta usa este insumo
-            try:
-                receta_insumo = RecetaInsumo.objects.get(
-                    receta=detalle.receta,
-                    insumo=insumo
-                )
-                # Calcular cantidad usada
-                cantidad_por_receta = receta_insumo.get_cantidad_en_unidad_insumo()
-                cantidad_total = cantidad_por_receta * Decimal(str(detalle.cantidad))
-                pedidos_recetas += cantidad_total
-            except RecetaInsumo.DoesNotExist:
-                # Esta receta no usa este insumo
-                continue
+        # Si son la misma unidad, no convertir
+        if unidad_origen == unidad_destino:
+            return float(cantidad)
         
-        # Calcular ingredientes extra para el período
-        ingredientes_extra = IngredientesExtra.objects.filter(
-            insumo=insumo,
-            detalle__pedido__fecha_entrega__range=[fecha_inicio, fecha_fin],
-            detalle__pedido__estado__in=['pendiente', 'listo']
-        ).select_related('unidad_medida')
-        
-        pedidos_extra = Decimal('0.0')
-        
-        # Convertir cada ingrediente extra a la unidad del insumo
-        for ingrediente in ingredientes_extra:
-            try:
-                # Si las unidades son diferentes, hacer conversión
-                if ingrediente.unidad_medida != insumo.unidad_medida:
-                    cantidad_convertida = self.convertir_cantidad(
-                        cantidad=ingrediente.cantidad,
-                        unidad_origen=ingrediente.unidad_medida.abreviatura,
-                        unidad_destino=insumo.unidad_medida.abreviatura
-                    )
-                    pedidos_extra += Decimal(str(cantidad_convertida))
+        try:
+            # Verificar si existe conversión directa
+            if unidad_origen in CONVERSIONES and unidad_destino in CONVERSIONES[unidad_origen]:
+                factor = CONVERSIONES[unidad_origen][unidad_destino]
+                resultado = float(Decimal(str(cantidad)) * Decimal(str(factor)))
+                return resultado
+            
+            # Si no hay conversión directa, buscar ruta indirecta
+            # Para cucharada/cucharadita entre peso y volumen
+            if unidad_origen in ['kg', 'g'] and unidad_destino in ['cda', 'cdta']:
+                # Convertir primero a gramos si es necesario
+                if unidad_origen == 'kg':
+                    cantidad_g = Decimal(str(cantidad)) * 1000
                 else:
+                    cantidad_g = Decimal(str(cantidad))
+                
+                # Luego a cucharada/cucharadita
+                if unidad_destino == 'cda':
+                    resultado = float(cantidad_g / Decimal('17'))
+                else:  # cdta
+                    resultado = float(cantidad_g / Decimal('5'))
+                return resultado
+            
+            elif unidad_origen in ['cda', 'cdta'] and unidad_destino in ['kg', 'g']:
+                # Convertir primero a gramos
+                if unidad_origen == 'cda':
+                    cantidad_g = Decimal(str(cantidad)) * Decimal('17')
+                else:  # cdta
+                    cantidad_g = Decimal(str(cantidad)) * Decimal('5')
+                
+                # Luego a kg o g
+                if unidad_destino == 'kg':
+                    resultado = float(cantidad_g / 1000)
+                else:  # g
+                    resultado = float(cantidad_g)
+                return resultado
+            
+            else:
+                # Si no se puede convertir, devolver cantidad original
+                print(f"⚠️ No se pudo convertir de {unidad_origen} a {unidad_destino}")
+                return float(cantidad)
+                
+        except Exception as e:
+            print(f"⚠️ Error en conversión: {e}")
+            return float(cantidad)  # Fallback
+        
+    def calcular_pedidos_periodo(self, insumo, fecha_inicio, fecha_fin):
+        """
+        Calcula los pedidos para un período específico
+        """
+        try:
+            from pedidos.models import DetallePedido, IngredientesExtra
+            from recetas.models import RecetaInsumo
+            from decimal import Decimal
+            
+            # Calcular pedidos de recetas para el período
+            pedidos_recetas = Decimal('0.0')
+            
+            # Obtener todos los detalles de pedido en el período
+            detalles_pedido = DetallePedido.objects.filter(
+                pedido__fecha_entrega__range=[fecha_inicio, fecha_fin],
+                pedido__estado__in=['pendiente', 'listo']  # Solo pedidos activos
+            ).select_related('receta')
+            
+            for detalle in detalles_pedido:
+                # Buscar si la receta usa este insumo
+                try:
+                    receta_insumo = RecetaInsumo.objects.get(
+                        receta=detalle.receta,
+                        insumo=insumo
+                    )
+                    # Calcular cantidad usada
+                    cantidad_por_receta = receta_insumo.get_cantidad_en_unidad_insumo()
+                    cantidad_total = cantidad_por_receta * Decimal(str(detalle.cantidad))
+                    pedidos_recetas += cantidad_total
+                except RecetaInsumo.DoesNotExist:
+                    # Esta receta no usa este insumo
+                    continue
+            
+            # Calcular ingredientes extra para el período
+            ingredientes_extra = IngredientesExtra.objects.filter(
+                insumo=insumo,
+                detalle__pedido__fecha_entrega__range=[fecha_inicio, fecha_fin],
+                detalle__pedido__estado__in=['pendiente', 'listo']
+            ).select_related('unidad_medida')
+            
+            pedidos_extra = Decimal('0.0')
+            
+            # Convertir cada ingrediente extra a la unidad del insumo
+            for ingrediente in ingredientes_extra:
+                try:
+                    # Si las unidades son diferentes, hacer conversión
+                    if ingrediente.unidad_medida != insumo.unidad_medida:
+                        cantidad_convertida = self.convertir_cantidad(
+                            cantidad=ingrediente.cantidad,
+                            unidad_origen=ingrediente.unidad_medida.abreviatura,
+                            unidad_destino=insumo.unidad_medida.abreviatura
+                        )
+                        pedidos_extra += Decimal(str(cantidad_convertida))
+                    else:
+                        pedidos_extra += ingrediente.cantidad
+                except Exception as e:
+                    print(f"Error convirtiendo ingrediente extra {ingrediente.id}: {e}")
+                    # Si falla la conversión, usar la cantidad original
                     pedidos_extra += ingrediente.cantidad
-            except Exception as e:
-                print(f"Error convirtiendo ingrediente extra {ingrediente.id}: {e}")
-                # Si falla la conversión, usar la cantidad original
-                pedidos_extra += ingrediente.cantidad
-        
-        return pedidos_recetas + pedidos_extra
-        
-    except Exception as e:
-        print(f"Error calculando pedidos para período: {e}")
-        # En caso de error, usar una estimación conservadora
-        return insumo.stock_minimo * Decimal('0.2')  # 20% del stock mínimo
+            
+            return pedidos_recetas + pedidos_extra
+            
+        except Exception as e:
+            print(f"Error calculando pedidos para período: {e}")
+            # En caso de error, usar una estimación conservadora
+            return insumo.stock_minimo * Decimal('0.2')  # 20% del stock mínimo
 
 class InsumoReactivarAPIView(APIView):
     permission_classes = [IsAuthenticated]
