@@ -556,6 +556,7 @@
                 :value="cliente.id"
               >
                 {{ cliente.nombre }}
+                <span v-if="formPedido.cliente_id === cliente.id"></span>
               </option>
             </select>
             <button
@@ -654,7 +655,7 @@
     <!-- Modal Agregar/Editar Receta al Pedido -->
     <BaseModal
       v-model:show="showModalReceta"
-      :title="esEdicionReceta ? 'Editar Receta' : 'Agregar Receta al Pedido'"
+      :title="getRecetaModalTitle()"
       size="medium"
       @close="closeModal"
     >
@@ -755,32 +756,6 @@
             <option value="porciones">Porciones</option>
             <option value="unidades">Unidades</option>
           </select>
-        </div>
-
-        <div class="form-group">
-          <label>Costo unitario:</label>
-          <input
-            v-model="formReceta.costo_unitario"
-            type="number"
-            step="0.01"
-            min="0.01"
-            required
-            class="form-input"
-            placeholder="Costo unitario (por porción o unidad)"
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Costo total:</label>
-          <input
-            v-model="formReceta.costo_total"
-            type="number"
-            step="0.01"
-            min="0.01"
-            required
-            class="form-input"
-            placeholder="Costo total"
-          />
         </div>
 
         <div class="form-group">
@@ -1153,7 +1128,8 @@
 
 <script setup>
 import { useRouter } from "vue-router";
-import { ref, computed, onMounted, inject } from "vue";
+
+import { ref, computed, onMounted, inject, nextTick } from "vue";
 import Sidebar from "./Sidebar.vue";
 import Header from "./Header.vue";
 import BaseModal from "./Modals/BaseModal.vue";
@@ -1277,6 +1253,17 @@ const ingredienteAEliminar = ref(null);
 const recetaAEliminar = ref(null);
 const detalleActual = ref(null);
 const pedidoActual = ref(null);
+
+import { watch } from 'vue';
+
+// Agrega esto después de tus variables reactivas:
+watch(formPedido, (newVal) => {
+  console.log("formPedido cambió:", newVal);
+}, { deep: true });
+
+watch(clientes, (newVal) => {
+  console.log("Clientes actualizados:", newVal.length);
+}, { deep: true });
 
 // Estados de pedido
 const estadosPedido = ref([
@@ -1811,6 +1798,8 @@ const toggleReceta = (detalleId) => {
 const showNuevoPedidoModal = () => {
   esEdicionPedido.value = false;
   resetFormPedido();
+  // Limpiar pedidoActual cuando se crea un nuevo pedido
+  pedidoActual.value = null;
   showModalPedido.value = true;
 };
 
@@ -1927,9 +1916,7 @@ const guardarPedido = async () => {
       notificationSystem.show({
         type: "success",
         title: "Pedido actualizado",
-        message: `Pedido actualizado correctamente. Fecha de fabricación recalculada: ${formatFecha(
-          fechaFabricacionStr
-        )}`,
+        message: `Pedido actualizado correctamente.`,
         timeout: 5000,
       });
     } else {
@@ -1949,9 +1936,7 @@ const guardarPedido = async () => {
       notificationSystem.show({
         type: "success",
         title: "Pedido creado",
-        message: `Pedido creado correctamente. La fecha de fabricación automática es: ${formatFecha(
-          fechaFabricacionStr
-        )}`,
+        message: `Pedido creado correctamente.`,
         timeout: 5000,
       });
 
@@ -1961,6 +1946,7 @@ const guardarPedido = async () => {
 
       if (nuevoPedidoCompleto) {
         setTimeout(() => {
+          pedidoActual.value = nuevoPedidoCompleto;
           showAgregarRecetaModal(nuevoPedidoCompleto);
         }, 500);
       }
@@ -1995,76 +1981,81 @@ const guardarPedido = async () => {
 
 const guardarCliente = async () => {
   try {
-    await axios.post("/api/clientes/", formCliente.value);
-    await fetchClientes();
+    const response = await axios.post("/api/clientes/", formCliente.value);
+    
+    console.log("📦 RESPUESTA COMPLETA de crear cliente:", response.data);
+    
+    // IMPORTANTE: La API devuelve {message: "...", cliente: {...}}
+    let nuevoCliente;
+    
+    if (response.data && response.data.cliente && response.data.cliente.id) {
+      // Caso correcto: la respuesta está dentro de "cliente"
+      nuevoCliente = response.data.cliente;
+    } else if (response.data && response.data.id) {
+      // Por si acaso, también manejar respuesta directa
+      nuevoCliente = response.data;
+    } else {
+      console.error("❌ Estructura de respuesta inesperada:", response.data);
+      throw new Error("La respuesta de la API no contiene datos válidos del cliente");
+    }
+    
+    console.log("✅ Cliente extraído:", nuevoCliente);
+    console.log("✅ Cliente ID:", nuevoCliente.id);
+    
+    // 1. Agregar el cliente recién creado a la lista LOCALMENTE primero
+    clientes.value.push(nuevoCliente);
+    
+    // 2. Auto-seleccionar el cliente recién creado
+    formPedido.value.cliente_id = nuevoCliente.id;
+    
+    // 3. Cerrar modal y resetear
     showNuevoClienteModal.value = false;
     resetFormCliente();
 
+    // 4. Notificación
     notificationSystem.show({
       type: "success",
       title: "Cliente creado",
-      message: "Cliente creado correctamente",
+      message: response.data.message || `Cliente "${nuevoCliente.nombre}" creado exitosamente`,
       timeout: 4000,
     });
+    
+    // 5. Refrescar clientes en segundo plano para asegurar consistencia
+    fetchClientes().then(() => {
+      console.log("✅ Clientes actualizados desde el servidor");
+    });
+    
+    // 6. Asegurar que el modal de pedido SIGA ABIERTO
+    showModalPedido.value = true;
+    
+    // 7. Forzar re-render del select
+    await nextTick();
+    
+    // 8. Verificación final
+    console.log("✅ Estado final:");
+    console.log("- Cliente ID en formPedido:", formPedido.value.cliente_id);
+    console.log("- Cliente encontrado:", clientes.value.find(c => c.id === formPedido.value.cliente_id)?.nombre);
+    
   } catch (error) {
+    console.error("❌ Error completo al crear cliente:", error);
+    
     let errorMessage = "Error al guardar el cliente";
     let errorTitle = "Error al crear cliente";
 
     if (error.response?.status === 400) {
       errorTitle = "Datos inválidos";
-
       const data = error.response.data;
-
-      if (typeof data === "string") {
-        errorMessage = data;
-      } else if (data?.error) {
-        errorMessage = data.error;
-      } else if (typeof data === "object") {
-        // Formatear errores en un solo string
-        const errors = [];
-        for (const [field, messages] of Object.entries(data)) {
-          if (Array.isArray(messages)) {
-            messages.forEach((msg) => {
-              const fieldName =
-                field === "non_field_errors"
-                  ? "Datos generales"
-                  : field.charAt(0).toUpperCase() +
-                    field.slice(1).replace(/_/g, " ");
-              errors.push(`• ${fieldName}: ${msg}`);
-            });
-          }
-        }
-
-        if (errors.length > 0) {
-          errorMessage = `Se encontraron los siguientes errores:\n${errors.join(
-            "\n"
-          )}`;
-
-          // Agregar sugerencia general
-          if (
-            errors.some(
-              (e) => e.includes("en blanco") || e.includes("required")
-            )
-          ) {
-            errorMessage +=
-              "\n\nSugerencia: Complete todos los campos requeridos";
-          }
-        }
-      }
+      
+      // Manejo de errores de validación...
+      // (mantén tu código actual de manejo de errores aquí)
     }
 
-    // Mostrar notificación (sin HTML)
     notificationSystem.show({
       type: "error",
       title: errorTitle,
       message: errorMessage,
       timeout: 10000,
     });
-
-    console.error(
-      "Error al crear cliente:",
-      error.response?.data || error.message
-    );
   }
 };
 
@@ -2698,6 +2689,30 @@ const calcularTotalIngredientesReceta = (detalle) => {
   return total.toFixed(2);
 };
 
+// Función para obtener el título del modal de recetas
+const getRecetaModalTitle = () => {
+  if (!pedidoActual.value || !pedidoActual.value.cliente) {
+    return esEdicionReceta.value ? 'Editar Receta' : 'Agregar Receta al Pedido';
+  }
+  
+  const nombreCliente = pedidoActual.value.cliente.nombre;
+  return esEdicionReceta.value 
+    ? `Editar Receta - Pedido de ${nombreCliente}`
+    : `Agregar Receta - Pedido de ${nombreCliente}`;
+};
+
+// Función para obtener el nombre del cliente actual
+const getNombreClienteActual = () => {
+  if (!pedidoActual.value || !pedidoActual.value.cliente) return '';
+  
+  // Buscar cliente en la lista de clientes para asegurar datos actualizados
+  const clienteEncontrado = clientes.value.find(
+    cliente => cliente.id === pedidoActual.value.cliente.id
+  );
+  
+  return clienteEncontrado ? clienteEncontrado.nombre : pedidoActual.value.cliente.nombre;
+};
+
 // Método para calcular margen de ganancia
 const calcularMargen = (receta) => {
   const precioVenta = parseFloat(receta.precio_venta) || 0;
@@ -2819,7 +2834,7 @@ const showAgregarRecetaModal = (pedido) => {
     return;
   }
   esEdicionReceta.value = false;
-  pedidoActual.value = pedido;
+  pedidoActual.value = pedido; // Asegúrate de que esto se mantenga
   resetFormDetalle();
   formDetalle.value.pedido_id = pedido.id;
   showModalReceta.value = true;
@@ -3007,8 +3022,15 @@ const fetchClientes = async () => {
   try {
     const response = await axios.get("/api/clientes/");
     clientes.value = response.data;
+    console.log("Clientes cargados:", clientes.value.length, "registros");
   } catch (err) {
-    // Error silencioso
+    console.error("Error al cargar clientes:", err);
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: "No se pudieron cargar los clientes",
+      timeout: 4000,
+    });
   }
 };
 
