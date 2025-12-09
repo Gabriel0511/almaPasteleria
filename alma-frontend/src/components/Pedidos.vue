@@ -49,55 +49,110 @@
             >
               <!-- Contenedor principal compacto -->
               <div class="pedido-item-compact">
-                <!-- Indicador de estado -->
-                <div
-                  class="estado-indicador"
-                  :class="pedido.estado.toLowerCase().replace(' ', '-')"
-                ></div>
+                <!-- Indicador de estado y timeline -->
+                <div class="timeline-indicator">
+                  <div
+                    class="timeline-dot"
+                    :class="getEstadoClass(pedido.estado)"
+                  >
+                    <i :class="getEstadoIcon(pedido.estado)"></i>
+                  </div>
+                  <div class="timeline-line"></div>
+                </div>
 
                 <!-- Información principal -->
                 <div class="info-principal" @click="togglePedido(pedido.id)">
                   <div class="info-header">
-                    <h4 class="cliente-nombre">{{ pedido.cliente.nombre }}</h4>
-                    <div class="badges-container">
-                      <span
-                        class="badge-estado"
-                        :class="pedido.estado.toLowerCase().replace(' ', '-')"
+                    <div class="cliente-info">
+                      <h4 class="cliente-nombre">
+                        {{ pedido.cliente.nombre }}
+                      </h4>
+                      <div
+                        class="cliente-contacto"
+                        v-if="pedido.cliente.telefono"
                       >
-                        {{ getEstadoLabel(pedido.estado) }}
-                      </span>
-                      <span class="badge-total">
-                        ${{ calcularTotalPedido(pedido) }}
-                      </span>
+                        <i class="fas fa-phone-alt"></i>
+                        <span>{{
+                          formatTelefono(pedido.cliente.telefono)
+                        }}</span>
+                      </div>
+                    </div>
+
+                    <div class="pedido-metadata">
+                      <div class="pedido-id">Pedido #{{ pedido.id }}</div>
+                      <div
+                        class="dias-restantes"
+                        :class="getDiasRestantesClass(pedido.fecha_entrega)"
+                      >
+                        <i class="fas fa-clock"></i>
+                        <span>{{
+                          getDiasRestantes(pedido.fecha_entrega)
+                        }}</span>
+                      </div>
                     </div>
                   </div>
 
                   <div class="info-detalles">
                     <div class="detalle-grupo">
-                      <span class="detalle-item">
-                        <i class="fas fa-calendar-alt"></i>Fecha creación de
-                        pedido:
-                        {{ formatFecha(pedido.fecha_pedido) }}
-                      </span>
-                      <span class="detalle-item">
-                        <i class="fas fa-industry"></i>
-                        Fecha de preparación:
-                        {{
-                          pedido.fecha_fabricacion
-                            ? formatFecha(pedido.fecha_fabricacion)
-                            : "Sin definir"
-                        }}
-                      </span>
-                      <span class="detalle-item">
-                        <i class="fas fa-truck"></i> Fecha de entrega:
-                        {{ formatFecha(pedido.fecha_entrega) }}
-                      </span>
+                      <div class="detalle-item">
+                        <i class="fas fa-calendar-plus"></i>
+                        <span class="detalle-label">Pedido:</span>
+                        <span class="detalle-value">{{
+                          formatFecha(pedido.fecha_pedido)
+                        }}</span>
+                      </div>
+                      <div class="detalle-item">
+                        <i class="fas fa-cogs"></i>
+                        <span class="detalle-label">Fabricación:</span>
+                        <span
+                          class="detalle-value fecha-fabricacion"
+                          :class="getFabricacionClass(pedido.fecha_fabricacion)"
+                        >
+                          {{ formatFecha(pedido.fecha_fabricacion) }}
+                        </span>
+                      </div>
+                      <div class="detalle-item">
+                        <i class="fas fa-truck"></i>
+                        <span class="detalle-label">Entrega:</span>
+                        <span
+                          class="detalle-value fecha-entrega"
+                          :class="getEntregaClass(pedido.fecha_entrega)"
+                        >
+                          {{ formatFecha(pedido.fecha_entrega) }}
+                        </span>
+                      </div>
                     </div>
-                    <div class="detalle-grupo">
-                      <span class="detalle-item">
-                        <i class="fas fa-list"></i>
-                        {{ pedido.detalles.length }} recetas
-                      </span>
+
+                    <div class="stats-container">
+                      <div class="stat-item">
+                        <i class="fas fa-list-alt"></i>
+                        <div class="stat-content">
+                          <span class="stat-value">{{
+                            pedido.detalles.length
+                          }}</span>
+                          <span class="stat-label">recetas</span>
+                        </div>
+                      </div>
+
+                      <div class="stat-item">
+                        <i class="fas fa-layer-group"></i>
+                        <div class="stat-content">
+                          <span class="stat-value">{{
+                            contarIngredientesExtras(pedido)
+                          }}</span>
+                          <span class="stat-label">extras</span>
+                        </div>
+                      </div>
+
+                      <div class="stat-item stat-total">
+                        <i class="fas fa-dollar-sign"></i>
+                        <div class="stat-content">
+                          <span class="stat-value"
+                            >${{ calcularTotalPedido(pedido) }}</span
+                          >
+                          <span class="stat-label">total</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -149,6 +204,26 @@
                   >
                     <i class="fas fa-trash"></i>
                   </button>
+
+                  <!-- Botón para desplegar detalles -->
+                  <button
+                    class="btn-accion btn-desplegar"
+                    @click="togglePedido(pedido.id)"
+                    :title="
+                      pedidoDesplegado[pedido.id]
+                        ? 'Ocultar detalles'
+                        : 'Ver detalles'
+                    "
+                  >
+                    <i
+                      class="fas"
+                      :class="
+                        pedidoDesplegado[pedido.id]
+                          ? 'fa-chevron-up'
+                          : 'fa-chevron-down'
+                      "
+                    ></i>
+                  </button>
                 </div>
               </div>
 
@@ -158,6 +233,33 @@
                 class="pedido-detalles-desplegable"
               >
                 <div class="detalles-content">
+                  <!-- Resumen financiero -->
+                  <div class="resumen-financiero">
+                    <h4 class="resumen-titulo">
+                      <i class="fas fa-chart-pie"></i> Resumen Financiero
+                    </h4>
+                    <div class="resumen-grid">
+                      <div class="resumen-item">
+                        <span class="resumen-label">Subtotal recetas:</span>
+                        <span class="resumen-valor"
+                          >${{ calcularSubtotalRecetas(pedido) }}</span
+                        >
+                      </div>
+                      <div class="resumen-item">
+                        <span class="resumen-label">Ingredientes extra:</span>
+                        <span class="resumen-valor"
+                          >${{ calcularTotalIngredientesExtra(pedido) }}</span
+                        >
+                      </div>
+                      <div class="resumen-item resumen-total">
+                        <span class="resumen-label">Total pedido:</span>
+                        <span class="resumen-valor"
+                          >${{ calcularTotalPedido(pedido) }}</span
+                        >
+                      </div>
+                    </div>
+                  </div>
+
                   <!-- Botón para agregar receta -->
                   <div
                     class="agregar-receta-container"
@@ -193,19 +295,43 @@
                       >
                         <div class="receta-info">
                           <div class="receta-titulo">
-                            <span class="receta-nombre">
-                              {{ detalle.receta.nombre }} x{{
-                                detalle.cantidad
-                              }}
-                            </span>
-                            <span class="receta-precio">
-                              ${{ calcularPrecioReceta(detalle) }}
-                            </span>
+                            <div class="receta-nombre-container">
+                              <span class="receta-nombre">
+                                {{ detalle.receta.nombre }} x{{
+                                  detalle.cantidad
+                                }}
+                              </span>
+                              <span class="receta-badges">
+                                <span
+                                  class="badge-rinde"
+                                  v-if="detalle.receta.rinde"
+                                >
+                                  Rinde: {{ detalle.receta.rinde }}
+                                  {{ detalle.receta.unidad_rinde }}
+                                </span>
+                                <span
+                                  class="badge-veces-hecha"
+                                  v-if="detalle.receta.veces_hecha"
+                                >
+                                  <i class="fas fa-fire"></i>
+                                  {{ detalle.receta.veces_hecha }} veces
+                                </span>
+                              </span>
+                            </div>
+                            <div class="receta-financiero">
+                              <span class="receta-precio-unitario">
+                                ${{ detalle.receta.precio_venta || "0.00" }} c/u
+                              </span>
+                              <span class="receta-precio">
+                                ${{ calcularPrecioReceta(detalle) }}
+                              </span>
+                            </div>
                           </div>
                           <div
                             class="receta-observaciones"
                             v-if="detalle.observaciones"
                           >
+                            <i class="fas fa-sticky-note"></i>
                             <small>{{ detalle.observaciones }}</small>
                           </div>
                         </div>
@@ -249,17 +375,49 @@
                             detalle.ingredientes_extra.length > 0
                           "
                         >
-                          <h4>Ingredientes Extra:</h4>
+                          <h4>
+                            <i class="fas fa-plus-circle"></i>
+                            Ingredientes Extra:
+                            <span class="ingredientes-total">
+                              ${{ calcularTotalIngredientesReceta(detalle) }}
+                            </span>
+                          </h4>
                           <div
                             v-for="ingrediente in detalle.ingredientes_extra"
                             :key="ingrediente.id"
                             class="ingrediente-extra"
                           >
-                            <span class="ingrediente-info">
-                              {{ ingrediente.insumo.nombre }}:
-                              {{ ingrediente.cantidad }}
-                              {{ ingrediente.unidad_medida.abreviatura }}
-                            </span>
+                            <div class="ingrediente-info">
+                              <div class="ingrediente-nombre">
+                                <span class="ingrediente-icon">
+                                  <i class="fas fa-carrot"></i>
+                                </span>
+                                <span class="ingrediente-texto">
+                                  {{ ingrediente.insumo.nombre }}
+                                </span>
+                              </div>
+                              <div class="ingrediente-detalles">
+                                <span class="ingrediente-cantidad">
+                                  {{ ingrediente.cantidad }}
+                                  {{ ingrediente.unidad_medida.abreviatura }}
+                                </span>
+                                <span class="ingrediente-precio-unitario">
+                                  @ ${{
+                                    ingrediente.insumo.precio_unitario ||
+                                    "0.00"
+                                  }}/{{
+                                    ingrediente.insumo.unidad_medida.abreviatura
+                                  }}
+                                </span>
+                                <span class="ingrediente-costo">
+                                  <strong
+                                    >${{
+                                      calcularCostoIngredienteExtra(ingrediente)
+                                    }}</strong
+                                  >
+                                </span>
+                              </div>
+                            </div>
 
                             <div
                               class="ingrediente-acciones"
@@ -299,6 +457,28 @@
                             Extra
                           </button>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Información del cliente -->
+                  <div class="cliente-info-detallada" v-if="pedido.cliente">
+                    <h4>
+                      <i class="fas fa-user"></i>
+                      Información del Cliente
+                    </h4>
+                    <div class="cliente-datos">
+                      <div class="cliente-dato">
+                        <i class="fas fa-user-tag"></i>
+                        <span>{{ pedido.cliente.nombre }}</span>
+                      </div>
+                      <div class="cliente-dato" v-if="pedido.cliente.telefono">
+                        <i class="fas fa-phone"></i>
+                        <span>{{ pedido.cliente.telefono }}</span>
+                      </div>
+                      <div class="cliente-dato" v-if="pedido.cliente.direccion">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>{{ pedido.cliente.direccion }}</span>
                       </div>
                     </div>
                   </div>
@@ -2277,18 +2457,6 @@ const pedidosStats = computed(() => {
   });
 });
 
-// Agrega esta función para obtener iconos por estado:
-const getEstadoIcon = (estado) => {
-  const icons = {
-    pendiente: "fas fa-clock",
-    "en preparación": "fas fa-utensils",
-    listo: "fas fa-check-circle",
-    entregado: "fas fa-truck",
-    cancelado: "fas fa-ban",
-  };
-  return icons[estado] || "fas fa-circle";
-};
-
 const pedidosFilters = computed(() => [
   {
     type: "text",
@@ -2428,6 +2596,187 @@ const resetFormInsumo = () => {
     precio_unitario: null,
     proveedor_id: null,
   };
+};
+
+// METODOS PARA EXPERIENCIA VISUAL
+
+// Método para contar ingredientes extras
+const contarIngredientesExtras = (pedido) => {
+  if (!pedido.detalles) return 0;
+  return pedido.detalles.reduce((total, detalle) => {
+    return total + (detalle.ingredientes_extra?.length || 0);
+  }, 0);
+};
+
+// Método para calcular subtotal de recetas
+const calcularSubtotalRecetas = (pedido) => {
+  if (!pedido.detalles) return "0.00";
+  let total = 0;
+  pedido.detalles.forEach((detalle) => {
+    const precioReceta = parseFloat(detalle.receta?.precio_venta) || 0;
+    const cantidad = parseFloat(detalle.cantidad) || 0;
+    total += precioReceta * cantidad;
+  });
+  return total.toFixed(2);
+};
+
+// Método para calcular total de ingredientes extra
+const calcularTotalIngredientesExtra = (pedido) => {
+  if (!pedido.detalles) return "0.00";
+  let total = 0;
+  pedido.detalles.forEach((detalle) => {
+    if (
+      detalle.ingredientes_extra &&
+      Array.isArray(detalle.ingredientes_extra)
+    ) {
+      detalle.ingredientes_extra.forEach((ingrediente) => {
+        total += parseFloat(calcularCostoIngredienteExtra(ingrediente)) || 0;
+      });
+    }
+  });
+  return total.toFixed(2);
+};
+
+// Método para calcular costo de un ingrediente extra
+const calcularCostoIngredienteExtra = (ingrediente) => {
+  const precioUnitario = parseFloat(ingrediente.insumo?.precio_unitario) || 0;
+  const cantidad = parseFloat(ingrediente.cantidad) || 0;
+
+  // Convertir unidades si es necesario
+  const unidadInsumo =
+    ingrediente.insumo?.unidad_medida?.abreviatura || "unidad";
+  const unidadIngrediente = ingrediente.unidad_medida?.abreviatura || "unidad";
+
+  let cantidadConvertida = cantidad;
+  if (unidadInsumo !== unidadIngrediente) {
+    cantidadConvertida = convertirUnidad(
+      cantidad,
+      unidadIngrediente,
+      unidadInsumo
+    );
+  }
+
+  const costo = precioUnitario * cantidadConvertida;
+  return costo.toFixed(2);
+};
+
+// Método para calcular total de ingredientes por receta
+const calcularTotalIngredientesReceta = (detalle) => {
+  if (!detalle.ingredientes_extra) return "0.00";
+  let total = 0;
+  detalle.ingredientes_extra.forEach((ingrediente) => {
+    total += parseFloat(calcularCostoIngredienteExtra(ingrediente)) || 0;
+  });
+  return total.toFixed(2);
+};
+
+// Método para calcular margen de ganancia
+const calcularMargen = (receta) => {
+  const precioVenta = parseFloat(receta.precio_venta) || 0;
+  const costoUnitario = parseFloat(receta.costo_unitario) || 0;
+
+  if (costoUnitario === 0) return 0;
+
+  const margen = ((precioVenta - costoUnitario) / costoUnitario) * 100;
+  return margen.toFixed(1);
+};
+
+// Método para obtener clase CSS según el margen
+const getMargenClass = (receta) => {
+  const margen = calcularMargen(receta);
+  if (margen >= 50) return "margen-alto";
+  if (margen >= 30) return "margen-medio";
+  if (margen >= 10) return "margen-bajo";
+  return "margen-critico";
+};
+
+// Método para días restantes
+const getDiasRestantes = (fechaEntrega) => {
+  if (!fechaEntrega) return "Sin fecha";
+
+  const hoy = new Date();
+  const entrega = new Date(fechaEntrega);
+  const diffTime = entrega.getTime() - hoy.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return "Vencido";
+  if (diffDays === 0) return "Hoy";
+  if (diffDays === 1) return "Mañana";
+  return `${diffDays} días`;
+};
+
+// Método para clase CSS según días restantes
+const getDiasRestantesClass = (fechaEntrega) => {
+  if (!fechaEntrega) return "sin-fecha";
+
+  const hoy = new Date();
+  const entrega = new Date(fechaEntrega);
+  const diffTime = entrega.getTime() - hoy.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return "vencido";
+  if (diffDays === 0) return "hoy";
+  if (diffDays <= 2) return "urgente";
+  if (diffDays <= 7) return "proximo";
+  return "normal";
+};
+
+// Método para formatear teléfono
+const formatTelefono = (telefono) => {
+  if (!telefono) return "";
+  // Simple formateo para números de 10 dígitos
+  const cleaned = telefono.replace(/\D/g, "");
+  if (cleaned.length === 10) {
+    return `(${cleaned.substring(0, 3)}) ${cleaned.substring(
+      3,
+      6
+    )}-${cleaned.substring(6)}`;
+  }
+  return telefono;
+};
+
+// Método para clase CSS según estado
+const getEstadoClass = (estado) => {
+  return estado.toLowerCase().replace(" ", "-");
+};
+
+// Método para ícono según estado
+const getEstadoIcon = (estado) => {
+  const icons = {
+    pendiente: "fas fa-clock",
+    "en preparación": "fas fa-utensils",
+    listo: "fas fa-check-circle",
+    entregado: "fas fa-truck",
+    cancelado: "fas fa-ban",
+  };
+  return icons[estado] || "fas fa-circle";
+};
+
+// Método para clase CSS según fecha de fabricación
+const getFabricacionClass = (fechaFabricacion) => {
+  if (!fechaFabricacion) return "";
+
+  const hoy = new Date();
+  const fabricacion = new Date(fechaFabricacion);
+
+  if (fabricacion < hoy) return "pasada";
+  if (fabricacion.toDateString() === hoy.toDateString()) return "hoy";
+  return "futura";
+};
+
+// Método para clase CSS según fecha de entrega
+const getEntregaClass = (fechaEntrega) => {
+  if (!fechaEntrega) return "";
+
+  const hoy = new Date();
+  const entrega = new Date(fechaEntrega);
+  const diffTime = entrega.getTime() - hoy.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return "vencida";
+  if (diffDays === 0) return "hoy";
+  if (diffDays <= 2) return "proxima";
+  return "";
 };
 
 // Nuevos métodos para gestionar recetas
@@ -2716,25 +3065,25 @@ onMounted(() => {
   border-left: 4px solid #f0f0f0;
 }
 
-/* Estados de los pedidos */
+/* Estados de los pedidos - Mejorado con timeline */
 .pedido-item.pedido-pendiente {
-  border-left: 4px solid #ffc107; /* Amarillo */
+  border-left: 4px solid #ffc107;
 }
 
 .pedido-item.pedido-en-preparación {
-  border-left: 4px solid #17a2b8; /* Azul turquesa */
+  border-left: 4px solid #17a2b8;
 }
 
 .pedido-item.pedido-listo {
-  border-left: 4px solid #28a745; /* Verde */
+  border-left: 4px solid #28a745;
 }
 
 .pedido-item.pedido-entregado {
-  border-left: 4px solid #6c757d; /* Gris */
+  border-left: 4px solid #6c757d;
 }
 
 .pedido-item.pedido-cancelado {
-  border-left: 4px solid #dc3545; /* Rojo */
+  border-left: 4px solid #dc3545;
 }
 
 /* Hover effect para todos los estados */
@@ -2751,37 +3100,53 @@ onMounted(() => {
   gap: 12px;
 }
 
-/* Indicador de estado */
-.estado-indicador {
-  width: 8px;
-  height: 8px;
+/* Timeline indicator - Reemplaza estado-indicador */
+.timeline-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 12px;
+}
+
+.timeline-dot {
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: white;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.estado-indicador.pendiente {
-  background-color: #ffc107; /* Amarillo */
-  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2);
+.timeline-dot.pendiente {
+  background: linear-gradient(135deg, #ffc107, #ff9800);
 }
 
-.estado-indicador.en-preparación {
-  background-color: #17a2b8; /* Azul turquesa */
-  box-shadow: 0 0 0 3px rgba(23, 162, 184, 0.2);
+.timeline-dot.en-preparación {
+  background: linear-gradient(135deg, #17a2b8, #0dcaf0);
 }
 
-.estado-indicador.listo {
-  background-color: #28a745; /* Verde */
-  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+.timeline-dot.listo {
+  background: linear-gradient(135deg, #28a745, #20c997);
 }
 
-.estado-indicador.entregado {
-  background-color: #6c757d; /* Gris */
-  box-shadow: 0 0 0 3px rgba(108, 117, 125, 0.2);
+.timeline-dot.entregado {
+  background: linear-gradient(135deg, #6c757d, #495057);
 }
 
-.estado-indicador.cancelado {
-  background-color: #dc3545; /* Rojo */
-  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
+.timeline-dot.cancelado {
+  background: linear-gradient(135deg, #dc3545, #bb2d3b);
+}
+
+.timeline-line {
+  width: 2px;
+  height: calc(100% - 36px);
+  background: linear-gradient(to bottom, #e9ecef, transparent);
+  margin-top: -1px;
 }
 
 /* Información principal */
@@ -2795,8 +3160,14 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   gap: 8px;
+}
+
+.cliente-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .cliente-nombre {
@@ -2812,86 +3183,191 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.badges-container {
+.cliente-contacto {
   display: flex;
+  align-items: center;
   gap: 6px;
-  flex-shrink: 0;
-}
-
-.badge-estado,
-.badge-total {
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.badge-estado.pendiente {
-  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-  color: #856404;
-}
-
-.badge-estado.en-preparación {
-  background: linear-gradient(135deg, #d1ecf1, #a6e3e9);
-  color: #0c5460;
-}
-
-.badge-estado.listo {
-  background: linear-gradient(135deg, #d4edda, #a8e6a3);
-  color: #155724;
-}
-
-.badge-estado.entregado {
-  background: linear-gradient(135deg, #e2e3e5, #c8c9cb);
-  color: #383d41;
-}
-
-.badge-estado.cancelado {
-  background: linear-gradient(135deg, #f8d7da, #f5b7b1);
-  color: #721c24;
-}
-
-.badge-total {
-  background: #e9ecef;
+  font-size: 0.8rem;
   color: #6c757d;
-  border: 1px solid #dee2e6;
 }
 
+.cliente-contacto i {
+  font-size: 0.7rem;
+  color: var(--color-primary);
+}
+
+.pedido-metadata {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.pedido-id {
+  font-size: 0.75rem;
+  color: #6c757d;
+  font-weight: 500;
+  background: #f8f9fa;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.dias-restantes {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.dias-restantes.hoy {
+  background: linear-gradient(135deg, #ffc107, #ff9800);
+  color: white;
+}
+
+.dias-restantes.urgente {
+  background: linear-gradient(135deg, #dc3545, #bb2d3b);
+  color: white;
+}
+
+.dias-restantes.proximo {
+  background: linear-gradient(135deg, #fd7e14, #e8590c);
+  color: white;
+}
+
+.dias-restantes.normal {
+  background: linear-gradient(135deg, #20c997, #198754);
+  color: white;
+}
+
+.dias-restantes.vencido {
+  background: linear-gradient(135deg, #6c757d, #495057);
+  color: white;
+}
+
+/* Info detalles mejorada */
 .info-detalles {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .detalle-grupo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .detalle-item {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   font-size: 0.8rem;
   color: #6c757d;
 }
 
 .detalle-item i {
-  width: 12px;
+  width: 14px;
   text-align: center;
   color: var(--color-primary);
+  font-size: 0.8rem;
 }
 
-.fecha-atrasada {
+.detalle-label {
+  font-weight: 600;
+  color: #495057;
+  margin-right: 2px;
+}
+
+.detalle-value {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.fecha-fabricacion.pasada {
   color: #dc3545 !important;
   font-weight: 600;
 }
 
-.fecha-hoy {
-  color: #e0a800 !important;
+.fecha-fabricacion.hoy {
+  color: #ffc107 !important;
   font-weight: 600;
+}
+
+.fecha-entrega.vencida {
+  color: #dc3545 !important;
+  font-weight: 700;
+}
+
+.fecha-entrega.hoy {
+  color: #ffc107 !important;
+  font-weight: 700;
+}
+
+.fecha-entrega.proxima {
+  color: #fd7e14 !important;
+  font-weight: 600;
+}
+
+/* Stats container */
+.stats-container {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed #e9ecef;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  min-width: 80px;
+}
+
+.stat-item i {
+  color: var(--color-primary);
+  font-size: 0.9rem;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-value {
+  font-weight: 700;
+  color: #2c3e50;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.7rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-total {
+  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  border-color: #90caf9;
+}
+
+.stat-total i {
+  color: #1565c0;
+}
+
+.stat-total .stat-value {
+  color: #1565c0;
 }
 
 /* Acciones */
@@ -2929,15 +3405,26 @@ onMounted(() => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
 }
 
-.btn-entregado {
+.btn-siguiente-estado {
   background: linear-gradient(135deg, #28a745, #20c997);
   color: white;
 }
 
-.btn-entregado:hover:not(:disabled) {
+.btn-siguiente-estado:hover:not(:disabled) {
   background: linear-gradient(135deg, #218838, #1c7430);
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
+}
+
+.btn-cancelar {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  color: white;
+}
+
+.btn-cancelar:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e0a800, #d39e00);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(255, 193, 7, 0.3);
 }
 
 .btn-editar {
@@ -2960,6 +3447,17 @@ onMounted(() => {
   background: linear-gradient(135deg, #c0392b, #a93226);
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
+}
+
+.btn-desplegar {
+  background: linear-gradient(135deg, #6c757d, #495057);
+  color: white;
+}
+
+.btn-desplegar:hover {
+  background: linear-gradient(135deg, #495057, #343a40);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(108, 117, 125, 0.3);
 }
 
 /* Botones pequeños para acciones internas */
@@ -2989,6 +3487,64 @@ onMounted(() => {
 
 .detalles-content {
   padding: 20px;
+}
+
+/* Resumen financiero */
+.resumen-financiero {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid #dee2e6;
+}
+
+.resumen-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+.resumen-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.resumen-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.resumen-label {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.resumen-valor {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+.resumen-total {
+  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #90caf9;
+}
+
+.resumen-total .resumen-label {
+  color: #1565c0;
+  font-weight: 600;
+}
+
+.resumen-total .resumen-valor {
+  color: #0d47a1;
+  font-size: 1.1rem;
 }
 
 .agregar-receta-container {
@@ -3090,6 +3646,13 @@ onMounted(() => {
   gap: 12px;
 }
 
+.receta-nombre-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
 .receta-nombre {
   font-weight: 700;
   color: #2c3e50;
@@ -3097,29 +3660,72 @@ onMounted(() => {
   flex: 1;
 }
 
+.receta-badges {
+  display: flex;
+  gap: 6px;
+}
+
+.badge-rinde,
+.badge-veces-hecha {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.badge-rinde {
+  background: rgba(23, 162, 184, 0.1);
+  color: #0c5460;
+  border: 1px solid rgba(23, 162, 184, 0.2);
+}
+
+.badge-veces-hecha {
+  background: rgba(220, 53, 69, 0.1);
+  color: #721c24;
+  border: 1px solid rgba(220, 53, 69, 0.2);
+}
+
+.badge-veces-hecha i {
+  font-size: 0.6rem;
+}
+
+.receta-financiero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  text-align: right;
+}
+
+.receta-precio-unitario {
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+
 .receta-precio {
   font-weight: 700;
   color: #28a745;
-  background: rgba(40, 167, 69, 0.1);
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  border: 1px solid rgba(40, 167, 69, 0.2);
-  white-space: nowrap;
+  font-size: 1.1rem;
 }
 
 .receta-observaciones {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
   font-size: 0.8rem;
   color: #6c757d;
-  font-style: italic;
   background: rgba(108, 117, 125, 0.05);
-  padding: 4px 8px;
-  border-radius: 4px;
-  display: inline-block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  padding: 8px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.receta-observaciones i {
+  color: #6c757d;
+  font-size: 0.7rem;
+  margin-top: 2px;
 }
 
 .receta-header-acciones {
@@ -3145,39 +3751,51 @@ onMounted(() => {
   border-top: 1px solid #f1f3f5;
   animation: slideDown 0.2s ease-out;
 }
-
+/* Ingredientes extras */
 .ingredientes-extras {
   margin-bottom: 20px;
 }
 
 .ingredientes-extras h4 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e9ecef;
   color: #495057;
   font-size: 0.95rem;
   font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #e9ecef;
+}
+
+.ingredientes-total {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .ingrediente-extra {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: #f8f9fa;
+  padding: 12px;
+  background: white;
   border-radius: 8px;
   border: 1px solid #e9ecef;
   transition: all 0.2s ease;
   margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .ingrediente-extra:hover {
-  background: #ffffff;
+  background: #f8f9fa;
   border-color: #d1e7ff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
 }
 
 .ingrediente-extra:last-child {
@@ -3186,11 +3804,51 @@ onMounted(() => {
 
 .ingrediente-info {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.85rem;
-  color: #495057;
+  flex-direction: column;
+  gap: 6px;
   flex: 1;
+}
+
+.ingrediente-nombre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ingrediente-icon {
+  color: #28a745;
+  font-size: 0.9rem;
+}
+
+.ingrediente-texto {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 0.9rem;
+}
+
+.ingrediente-detalles {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.ingrediente-cantidad {
+  background: #f8f9fa;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.ingrediente-precio-unitario {
+  font-style: italic;
+}
+
+.ingrediente-costo {
+  color: #28a745;
+  font-weight: 700;
+  font-size: 0.9rem;
 }
 
 .ingrediente-acciones {
@@ -3243,6 +3901,44 @@ onMounted(() => {
 .receta-item.expanded .receta-header .chevron-icon {
   transform: rotate(180deg);
   color: #007bff;
+}
+
+/* Información del cliente */
+.cliente-info-detallada {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border: 1px solid #e9ecef;
+}
+
+.cliente-info-detallada h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+.cliente-datos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cliente-dato {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: #495057;
+}
+
+.cliente-dato i {
+  color: var(--color-primary);
+  width: 16px;
+  text-align: center;
 }
 
 /* ----------------------------- BOTÓN FLOTANTE NUEVO PEDIDO ----------------------------- */
@@ -3405,30 +4101,6 @@ onMounted(() => {
   font-weight: 500;
 }
 
-/* SECCION DE ACCIONES */
-
-.btn-siguiente-estado {
-  background: linear-gradient(135deg, #28a745, #20c997);
-  color: white;
-}
-
-.btn-siguiente-estado:hover:not(:disabled) {
-  background: linear-gradient(135deg, #218838, #1c7430);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
-}
-
-.btn-cancelar {
-  background: linear-gradient(135deg, #ffc107, #e0a800);
-  color: white;
-}
-
-.btn-cancelar:hover:not(:disabled) {
-  background: linear-gradient(135deg, #e0a800, #d39e00);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(255, 193, 7, 0.3);
-}
-
 /* ==============================
    RESPONSIVE DESIGN
    ============================== */
@@ -3469,9 +4141,12 @@ onMounted(() => {
     gap: 6px;
   }
 
-  .badges-container {
+  .pedido-metadata {
+    align-items: flex-start;
+    margin-top: 8px;
+    flex-direction: row;
+    justify-content: space-between;
     width: 100%;
-    justify-content: flex-start;
   }
 
   .info-detalles {
@@ -3489,6 +4164,21 @@ onMounted(() => {
     padding: 16px;
   }
 
+  .stats-container {
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    min-width: auto;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .resumen-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
   .receta-header {
     flex-direction: column;
     align-items: stretch;
@@ -3500,6 +4190,12 @@ onMounted(() => {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
+  }
+
+  .receta-financiero {
+    align-items: flex-start;
+    text-align: left;
+    margin-top: 8px;
   }
 
   .receta-precio {
@@ -3517,6 +4213,11 @@ onMounted(() => {
     align-items: stretch;
     gap: 10px;
     padding: 14px;
+  }
+
+  .ingrediente-detalles {
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
   .ingrediente-info {
@@ -3554,6 +4255,12 @@ onMounted(() => {
     height: 30px;
     font-size: 11px;
   }
+
+  .timeline-dot {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
 }
 
 /* Móviles pequeños */
@@ -3569,12 +4276,6 @@ onMounted(() => {
 
   .cliente-nombre {
     font-size: 0.9rem;
-  }
-
-  .badge-estado,
-  .badge-total {
-    font-size: 0.65rem;
-    padding: 2px 6px;
   }
 
   .detalle-item {
