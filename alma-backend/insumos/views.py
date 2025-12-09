@@ -575,20 +575,24 @@ class ListaComprasAPIView(APIView):
                 stock_minimo = insumo.stock_minimo
                 stock_actual = insumo.stock_actual
                 
-                # Cálculo CORREGIDO: (stock_mínimo - stock_actual) + pedidos del período
-                deficit = stock_minimo - stock_actual
-                if deficit < Decimal('0'):
-                    deficit = Decimal('0')  # Si hay exceso de stock, no considerar negativo
+                # CÁLCULO CORREGIDO - LÓGICA CORRECTA:
+                # 1. Calcular lo que necesitamos para cubrir pedidos y mantener stock mínimo
+                necesidades_totales = pedidos_periodo + stock_minimo
                 
-                total_comprar = deficit + pedidos_periodo
+                # 2. Verificar si el stock actual cubre estas necesidades
+                # Si stock_actual >= necesidades_totales, no necesitamos comprar nada
+                # Si stock_actual < necesidades_totales, necesitamos comprar la diferencia
+                if stock_actual >= necesidades_totales:
+                    total_comprar = Decimal('0.0')
+                else:
+                    total_comprar = necesidades_totales - stock_actual
                 
-                # Asegurar que no sea negativo
+                # Asegurar que no sea negativo (por si acaso)
                 if total_comprar < Decimal('0'):
                     total_comprar = Decimal('0')
                 
-                # Convertir a la unidad del insumo para mostrar (si pedidos_periodo ya está convertido, esto no cambia)
-                pedidos_periodo_mostrar = pedidos_periodo
-                total_comprar_mostrar = total_comprar
+                # Determinar si necesita compra
+                necesita_compra = total_comprar > Decimal('0')
                 
                 lista_compras_data.append({
                     'id': insumo.id,
@@ -596,8 +600,8 @@ class ListaComprasAPIView(APIView):
                     'categoria': insumo.categoria.nombre if insumo.categoria else 'Sin categoría',
                     'stock_actual': float(stock_actual),
                     'stock_minimo': float(stock_minimo),
-                    'pedidos': float(pedidos_periodo_mostrar),  # Ya convertido a la unidad correcta
-                    'total_comprar': float(total_comprar_mostrar),
+                    'pedidos': float(pedidos_periodo),  # Pedidos en el período (ya convertido a unidad correcta)
+                    'total_comprar': float(total_comprar),
                     'unidad_medida': {
                         'abreviatura': insumo.unidad_medida.abreviatura
                     },
@@ -605,7 +609,10 @@ class ListaComprasAPIView(APIView):
                         'id': insumo.proveedor.id if insumo.proveedor else None,
                         'nombre': insumo.proveedor.nombre if insumo.proveedor else 'Sin proveedor'
                     } if insumo.proveedor else None,
-                    'necesita_compra': total_comprar_mostrar > Decimal('0'),
+                    'necesita_compra': necesita_compra,
+                    # Información adicional para debugging
+                    'necesidades_totales': float(necesidades_totales),
+                    'cubre_necesidades': stock_actual >= necesidades_totales
                 })
             
             return Response(lista_compras_data, status=status.HTTP_200_OK)
