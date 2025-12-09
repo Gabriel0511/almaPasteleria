@@ -669,46 +669,26 @@ class CierreDiarioView(APIView):
                         'cierre_realizado': False
                     }, status=status.HTTP_200_OK)
                 
-                # Realizar cierre diario
+                # Realizar cierre diario usando el método del modelo
                 recetas_procesadas = []
                 total_preparaciones = 0
                 
                 for receta in recetas_con_actividad:
                     print(f"🔹 Procesando receta: {receta.nombre} - Preparaciones: {receta.veces_hecha_hoy}")
                     
-                    # Crear registro en historial si se preparó hoy
-                    if receta.veces_hecha_hoy > 0:
-                        # Crear fecha de preparación como el día anterior a medianoche
-                        fecha_preparacion = timezone.datetime.combine(
-                            fecha_cierre, 
-                            timezone.datetime.min.time()
-                        ).replace(hour=23, minute=59, second=59)
-                        
-                        historial = HistorialReceta.objects.create(
-                            receta=receta,
-                            cantidad_preparada=receta.veces_hecha_hoy,
-                            fecha_preparacion=fecha_preparacion  # ✅ Usar fecha correcta
-                        )
-                        print(f"🔹 Historial creado: {historial.id} con fecha {fecha_cierre}")
-                        
+                    # ✅ Usar el método realizar_cierre_diario() que ahora crea el historial
+                    if receta.realizar_cierre_diario():
                         recetas_procesadas.append({
                             'id': receta.id,
                             'nombre': receta.nombre,
-                            'preparaciones': receta.veces_hecha_hoy
+                            'preparaciones': receta.veces_hecha_hoy  # Valor antes de reiniciar
                         })
-                        total_preparaciones += receta.veces_hecha_hoy
-                    
-                    # Guardar el valor antes de reiniciar para logging
-                    valor_anterior = receta.veces_hecha_hoy
-                    
-                    # Reiniciar contador diario
-                    receta.veces_hecha_hoy = 0
-                    receta.ultima_actualizacion_diaria = fecha_cierre
-                    receta.save(update_fields=['veces_hecha_hoy', 'ultima_actualizacion_diaria'])
-                    
-                    print(f"🔹 Receta {receta.nombre} reiniciada: {valor_anterior} → 0")
+                        total_preparaciones += receta.veces_hecha_hoy  # Valor antes de reiniciar
+                        print(f"🔹 Receta {receta.nombre} cerrada: {receta.veces_hecha_hoy} preparaciones registradas en historial")
+                    else:
+                        print(f"🔹 Receta {receta.nombre} ya estaba cerrada")
                 
-                print(f"🔹 Cierre diario completado. Total: {total_preparaciones} preparaciones para {fecha_cierre}")
+                print(f"🔹 Cierre diario completado. Total: {total_preparaciones} preparaciones registradas")
                 
                 return Response({
                     'mensaje': f'Cierre diario realizado exitosamente para {fecha_cierre}',

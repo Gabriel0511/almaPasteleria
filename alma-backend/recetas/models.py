@@ -62,13 +62,15 @@ class Receta(models.Model):
                     # Convertir a UTC
                     fecha_preparacion_utc = fecha_preparacion_arg.astimezone(pytz.UTC)
                     
+                    # ✅ Crear historial con todos los valores históricos
                     HistorialReceta.objects.create(
                         receta=self,
                         cantidad_preparada=self.veces_hecha_hoy,
-                        fecha_preparacion=fecha_preparacion_utc,  # ✅ Guardar en UTC
-                        # Los valores históricos se guardan automáticamente
+                        fecha_preparacion=fecha_preparacion_utc,
+                        costo_total_historico=self.costo_total,
+                        precio_venta_historico=self.precio_venta
                     )
-                    print(f"🔹 Historial creado para {self.nombre}: {self.veces_hecha_hoy} preparaciones para {fecha_anterior} (UTC: {fecha_preparacion_utc})")
+                    print(f"🔹 Historial creado para {self.nombre}: {self.veces_hecha_hoy} preparaciones para {fecha_anterior}")
                 
                 # Reiniciar contador
                 self.veces_hecha_hoy = 0
@@ -77,28 +79,22 @@ class Receta(models.Model):
                 return True
             
             return False
-        
+            
         except Exception as e:
             print(f"❌ Error en verificar_reinicio_diario para {self.nombre}: {e}")
             # Fallback a la versión original en caso de error
             return self.verificar_reinicio_diario_original()
     
     def incrementar_contador_diario(self):
-        """Incrementa tanto el contador diario como el histórico"""
+        """Incrementa el contador diario y total SIN crear historial (solo en cierre)"""
         # Verificar reinicio primero
         self.verificar_reinicio_diario()
         
         self.veces_hecha_hoy += 1
         self.veces_hecha += 1
         
-        # Crear registro en historial con fecha actual Y VALORES HISTÓRICOS
-        HistorialReceta.objects.create(
-            receta=self,
-            cantidad_preparada=1,
-            fecha_preparacion=timezone.now(),
-            # Los valores históricos se guardan automáticamente en el save() del modelo
-        )
         self.save()
+        return True
 
     def get_veces_hecha_hoy_actualizado(self):
         """Obtiene el contador diario actualizado (con reinicio automático)"""
@@ -112,12 +108,8 @@ class Receta(models.Model):
         if self.veces_hecha > 0:
             self.veces_hecha -= 1
         
-        # Eliminar el registro más reciente del historial
-        ultimo_historial = self.historial.order_by('-fecha_preparacion').first()
-        if ultimo_historial:
-            ultimo_historial.delete()
-        
         self.save()
+        return True
     
     def reiniciar_contador_diario(self):
         """Reinicia solo el contador diario (para cierre del día)"""
@@ -131,15 +123,16 @@ class Receta(models.Model):
         # Verificar si ya se hizo el cierre hoy
         if self.ultima_actualizacion_diaria == hoy and self.veces_hecha_hoy == 0:
             return False  # Ya se realizó el cierre hoy
-        
-        # Crear registro en historial si se preparó hoy
+
         if self.veces_hecha_hoy > 0:
             HistorialReceta.objects.create(
                 receta=self,
                 cantidad_preparada=self.veces_hecha_hoy,
                 fecha_preparacion=timezone.now(),
-                # Los valores históricos se guardan automáticamente en el save() del modelo
+                costo_total_historico=self.costo_total,
+                precio_venta_historico=self.precio_venta
             )
+            print(f"📝 Historial creado para {self.nombre}: {self.veces_hecha_hoy} preparaciones")
         
         # Reiniciar contador diario
         self.veces_hecha_hoy = 0
