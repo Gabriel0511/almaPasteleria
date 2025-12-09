@@ -413,6 +413,96 @@ class ReporteInsumosAPIView(APIView):
                 {'error': f'Error al generar reporte: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+    def convertir_cantidad(self, cantidad, unidad_origen, unidad_destino):
+        """
+        Método auxiliar para convertir entre unidades usando tu tabla de conversiones
+        Devuelve Decimal para consistencia con el resto del sistema
+        """
+        from decimal import Decimal
+        
+        # Tu tabla de conversiones como diccionario
+        CONVERSIONES = {
+            # --- PESO ---
+            'kg': {'g': Decimal('1000'), 'cda': Decimal('58.8235'), 'cdta': Decimal('200')},
+            'g': {'kg': Decimal('0.001'), 'cda': Decimal('0.0588'), 'cdta': Decimal('0.2')},
+
+            # --- VOLUMEN ---
+            'l': {'ml': Decimal('1000'), 'cda': Decimal('66.6667'), 'cdta': Decimal('200')},
+            'ml': {'l': Decimal('0.001'), 'cda': Decimal('0.0667'), 'cdta': Decimal('0.2')},
+            'cda': {
+                'ml': Decimal('15'), 
+                'l': Decimal('0.015'), 
+                'cdta': Decimal('3'),
+                'g': Decimal('17'),
+                'kg': Decimal('0.017')
+            },
+            'cdta': {
+                'ml': Decimal('5'), 
+                'l': Decimal('0.005'), 
+                'cda': Decimal('0.333'),
+                'g': Decimal('5'),
+                'kg': Decimal('0.005')
+            },
+
+            # --- UNIDADES ---
+            'unidad': {'docena': Decimal('0.083333')},
+            'docena': {'unidad': Decimal('12')}
+        }
+        
+        # Convertir a minúsculas
+        unidad_origen = unidad_origen.lower()
+        unidad_destino = unidad_destino.lower()
+        
+        # Si son la misma unidad, no convertir
+        if unidad_origen == unidad_destino:
+            return Decimal(str(cantidad))  # 🔹 Devuelve Decimal
+        
+        try:
+            # Verificar si existe conversión directa
+            if unidad_origen in CONVERSIONES and unidad_destino in CONVERSIONES[unidad_origen]:
+                factor = CONVERSIONES[unidad_origen][unidad_destino]
+                resultado = Decimal(str(cantidad)) * factor
+                return resultado
+            
+            # Si no hay conversión directa, buscar ruta indirecta
+            # Para cucharada/cucharadita entre peso y volumen
+            if unidad_origen in ['kg', 'g'] and unidad_destino in ['cda', 'cdta']:
+                # Convertir primero a gramos si es necesario
+                if unidad_origen == 'kg':
+                    cantidad_g = Decimal(str(cantidad)) * Decimal('1000')
+                else:
+                    cantidad_g = Decimal(str(cantidad))
+                
+                # Luego a cucharada/cucharadita
+                if unidad_destino == 'cda':
+                    resultado = cantidad_g / Decimal('17')
+                else:  # cdta
+                    resultado = cantidad_g / Decimal('5')
+                return resultado
+            
+            elif unidad_origen in ['cda', 'cdta'] and unidad_destino in ['kg', 'g']:
+                # Convertir primero a gramos
+                if unidad_origen == 'cda':
+                    cantidad_g = Decimal(str(cantidad)) * Decimal('17')
+                else:  # cdta
+                    cantidad_g = Decimal(str(cantidad)) * Decimal('5')
+                
+                # Luego a kg o g
+                if unidad_destino == 'kg':
+                    resultado = cantidad_g / Decimal('1000')
+                else:  # g
+                    resultado = cantidad_g
+                return resultado
+            
+            else:
+                # Si no se puede convertir, devolver cantidad original
+                print(f"⚠️ No se pudo convertir de {unidad_origen} a {unidad_destino}")
+                return Decimal(str(cantidad))  # 🔹 Devuelve Decimal
+                
+        except Exception as e:
+            print(f"⚠️ Error en conversión: {e}")
+            return Decimal(str(cantidad))  # Fallback: devolver Decimal
     
     def calcular_stock_usado_recetas(self, insumo, fecha_inicio, fecha_fin):
         """
@@ -420,6 +510,7 @@ class ReporteInsumosAPIView(APIView):
         """
         try:
             from recetas.models import RecetaInsumo
+            from decimal import Decimal
             
             # Obtener todas las recetas que usan este insumo
             recetas_insumos = RecetaInsumo.objects.filter(insumo=insumo)
@@ -434,6 +525,11 @@ class ReporteInsumosAPIView(APIView):
                 
                 # Calcular cantidad usada por receta
                 cantidad_por_receta = receta_insumo.get_cantidad_en_unidad_insumo()
+                
+                # Asegurar que son Decimal
+                if not isinstance(cantidad_por_receta, Decimal):
+                    cantidad_por_receta = Decimal(str(cantidad_por_receta))
+                
                 stock_usado = cantidad_por_receta * Decimal(str(veces_en_periodo))
                 stock_usado_total += stock_usado
             
@@ -475,6 +571,7 @@ class ReporteInsumosAPIView(APIView):
         """
         try:
             from pedidos.models import IngredientesExtra
+            from decimal import Decimal
             
             # Filtrar ingredientes extra por insumo
             ingredientes_query = IngredientesExtra.objects.filter(insumo=insumo)
@@ -492,18 +589,20 @@ class ReporteInsumosAPIView(APIView):
                 # Convertir a la unidad del insumo si es necesario
                 if ingrediente.unidad_medida != insumo.unidad_medida:
                     try:
-                        # Usar el método de conversión del modelo UnidadMedida
-                        cantidad_convertida = ingrediente.unidad_medida.convertir_a(
-                            ingrediente.cantidad, 
-                            insumo.unidad_medida
+                        # Usar el método de conversión del modelo UnidadMedida o nuestra función
+                        # Primero intentar con nuestro método
+                        cantidad_convertida = self.convertir_cantidad(
+                            cantidad=ingrediente.cantidad,
+                            unidad_origen=ingrediente.unidad_medida.abreviatura,
+                            unidad_destino=insumo.unidad_medida.abreviatura
                         )
                         stock_usado_total += cantidad_convertida
                     except Exception as conv_error:
                         print(f"Error en conversión: {conv_error}")
-                        # Si falla la conversión, usar la cantidad original
-                        stock_usado_total += ingrediente.cantidad
+                        # Si falla la conversión, usar la cantidad original como Decimal
+                        stock_usado_total += Decimal(str(ingrediente.cantidad))
                 else:
-                    stock_usado_total += ingrediente.cantidad
+                    stock_usado_total += Decimal(str(ingrediente.cantidad))
             
             return stock_usado_total
             
@@ -626,36 +725,37 @@ class ListaComprasAPIView(APIView):
     def convertir_cantidad(self, cantidad, unidad_origen, unidad_destino):
         """
         Método auxiliar para convertir entre unidades usando tu tabla de conversiones
+        Devuelve Decimal para consistencia con el resto del sistema
         """
         from decimal import Decimal
         
         # Tu tabla de conversiones como diccionario
         CONVERSIONES = {
             # --- PESO ---
-            'kg': {'g': 1000, 'cda': Decimal('58.8235'), 'cdta': 200},
+            'kg': {'g': Decimal('1000'), 'cda': Decimal('58.8235'), 'cdta': Decimal('200')},
             'g': {'kg': Decimal('0.001'), 'cda': Decimal('0.0588'), 'cdta': Decimal('0.2')},
 
             # --- VOLUMEN ---
-            'l': {'ml': 1000, 'cda': Decimal('66.6667'), 'cdta': Decimal('200')},
+            'l': {'ml': Decimal('1000'), 'cda': Decimal('66.6667'), 'cdta': Decimal('200')},
             'ml': {'l': Decimal('0.001'), 'cda': Decimal('0.0667'), 'cdta': Decimal('0.2')},
             'cda': {
-                'ml': 15, 
+                'ml': Decimal('15'), 
                 'l': Decimal('0.015'), 
-                'cdta': 3,
-                'g': 17,
+                'cdta': Decimal('3'),
+                'g': Decimal('17'),
                 'kg': Decimal('0.017')
             },
             'cdta': {
-                'ml': 5, 
+                'ml': Decimal('5'), 
                 'l': Decimal('0.005'), 
                 'cda': Decimal('0.333'),
-                'g': 5,
+                'g': Decimal('5'),
                 'kg': Decimal('0.005')
             },
 
             # --- UNIDADES ---
             'unidad': {'docena': Decimal('0.083333')},
-            'docena': {'unidad': 12}
+            'docena': {'unidad': Decimal('12')}
         }
         
         # Convertir a minúsculas
@@ -664,13 +764,13 @@ class ListaComprasAPIView(APIView):
         
         # Si son la misma unidad, no convertir
         if unidad_origen == unidad_destino:
-            return float(cantidad)
+            return Decimal(str(cantidad))  # 🔹 Devuelve Decimal
         
         try:
             # Verificar si existe conversión directa
             if unidad_origen in CONVERSIONES and unidad_destino in CONVERSIONES[unidad_origen]:
                 factor = CONVERSIONES[unidad_origen][unidad_destino]
-                resultado = float(Decimal(str(cantidad)) * Decimal(str(factor)))
+                resultado = Decimal(str(cantidad)) * factor
                 return resultado
             
             # Si no hay conversión directa, buscar ruta indirecta
@@ -678,15 +778,15 @@ class ListaComprasAPIView(APIView):
             if unidad_origen in ['kg', 'g'] and unidad_destino in ['cda', 'cdta']:
                 # Convertir primero a gramos si es necesario
                 if unidad_origen == 'kg':
-                    cantidad_g = Decimal(str(cantidad)) * 1000
+                    cantidad_g = Decimal(str(cantidad)) * Decimal('1000')
                 else:
                     cantidad_g = Decimal(str(cantidad))
                 
                 # Luego a cucharada/cucharadita
                 if unidad_destino == 'cda':
-                    resultado = float(cantidad_g / Decimal('17'))
+                    resultado = cantidad_g / Decimal('17')
                 else:  # cdta
-                    resultado = float(cantidad_g / Decimal('5'))
+                    resultado = cantidad_g / Decimal('5')
                 return resultado
             
             elif unidad_origen in ['cda', 'cdta'] and unidad_destino in ['kg', 'g']:
@@ -698,19 +798,19 @@ class ListaComprasAPIView(APIView):
                 
                 # Luego a kg o g
                 if unidad_destino == 'kg':
-                    resultado = float(cantidad_g / 1000)
+                    resultado = cantidad_g / Decimal('1000')
                 else:  # g
-                    resultado = float(cantidad_g)
+                    resultado = cantidad_g
                 return resultado
             
             else:
                 # Si no se puede convertir, devolver cantidad original
                 print(f"⚠️ No se pudo convertir de {unidad_origen} a {unidad_destino}")
-                return float(cantidad)
+                return Decimal(str(cantidad))  # 🔹 Devuelve Decimal
                 
         except Exception as e:
             print(f"⚠️ Error en conversión: {e}")
-            return float(cantidad)  # Fallback
+            return Decimal(str(cantidad))  # Fallback: devolver Decimal
         
     def calcular_pedidos_periodo(self, insumo, fecha_inicio, fecha_fin):
         """
@@ -737,8 +837,13 @@ class ListaComprasAPIView(APIView):
                         receta=detalle.receta,
                         insumo=insumo
                     )
-                    # Calcular cantidad usada
+                    # Calcular cantidad usada - ASEGURAR que todo sea Decimal
                     cantidad_por_receta = receta_insumo.get_cantidad_en_unidad_insumo()
+                    
+                    # Convertir a Decimal si no lo es
+                    if not isinstance(cantidad_por_receta, Decimal):
+                        cantidad_por_receta = Decimal(str(cantidad_por_receta))
+                    
                     cantidad_total = cantidad_por_receta * Decimal(str(detalle.cantidad))
                     pedidos_recetas += cantidad_total
                 except RecetaInsumo.DoesNotExist:
@@ -764,13 +869,13 @@ class ListaComprasAPIView(APIView):
                             unidad_origen=ingrediente.unidad_medida.abreviatura,
                             unidad_destino=insumo.unidad_medida.abreviatura
                         )
-                        pedidos_extra += Decimal(str(cantidad_convertida))
+                        pedidos_extra += cantidad_convertida
                     else:
                         pedidos_extra += ingrediente.cantidad
                 except Exception as e:
                     print(f"Error convirtiendo ingrediente extra {ingrediente.id}: {e}")
                     # Si falla la conversión, usar la cantidad original
-                    pedidos_extra += ingrediente.cantidad
+                    pedidos_extra += Decimal(str(ingrediente.cantidad))
             
             return pedidos_recetas + pedidos_extra
             
