@@ -2008,35 +2008,63 @@ const guardarCliente = async () => {
     });
   } catch (error) {
     let errorMessage = "Error al guardar el cliente";
+    let errorTitle = "Error al crear cliente";
 
     if (error.response?.status === 400) {
-      if (error.response.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (typeof error.response.data === "object") {
+      errorTitle = "Datos inválidos";
+
+      const data = error.response.data;
+
+      if (typeof data === "string") {
+        errorMessage = data;
+      } else if (data?.error) {
+        errorMessage = data.error;
+      } else if (typeof data === "object") {
+        // Formatear errores en un solo string
         const errors = [];
-        for (const key in error.response.data) {
-          if (Array.isArray(error.response.data[key])) {
-            errors.push(...error.response.data[key]);
-          } else {
-            errors.push(`${key}: ${error.response.data[key]}`);
+        for (const [field, messages] of Object.entries(data)) {
+          if (Array.isArray(messages)) {
+            messages.forEach((msg) => {
+              const fieldName =
+                field === "non_field_errors"
+                  ? "Datos generales"
+                  : field.charAt(0).toUpperCase() +
+                    field.slice(1).replace(/_/g, " ");
+              errors.push(`• ${fieldName}: ${msg}`);
+            });
           }
         }
-        errorMessage = errors.join(", ");
-      } else if (typeof error.response.data === "string") {
-        errorMessage = error.response.data;
+
+        if (errors.length > 0) {
+          errorMessage = `Se encontraron los siguientes errores:\n${errors.join(
+            "\n"
+          )}`;
+
+          // Agregar sugerencia general
+          if (
+            errors.some(
+              (e) => e.includes("en blanco") || e.includes("required")
+            )
+          ) {
+            errorMessage +=
+              "\n\nSugerencia: Complete todos los campos requeridos";
+          }
+        }
       }
-    } else if (error.response?.status === 409) {
-      errorMessage = "Ya existe un cliente con ese nombre o teléfono";
-    } else if (!error.response) {
-      errorMessage = "Error de conexión. Verifique su internet.";
     }
 
+    // Mostrar notificación (sin HTML)
     notificationSystem.show({
       type: "error",
-      title: "Error al crear cliente",
+      title: errorTitle,
       message: errorMessage,
-      timeout: 6000,
+      timeout: 10000,
     });
+
+    console.error(
+      "Error al crear cliente:",
+      error.response?.data || error.message
+    );
   }
 };
 

@@ -12,7 +12,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue"; // ✅ Asegurar que ref esté importado
+import { ref } from "vue";
 
 const props = defineProps({
   userEmail: {
