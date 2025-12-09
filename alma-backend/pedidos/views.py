@@ -51,18 +51,25 @@ class ActualizarEstadoPedidoView(APIView):
         pedido = get_object_or_404(Pedido, pk=pk)
         nuevo_estado = request.data.get('estado')
         
-        # Validar transición de estado
-        if pedido.estado in ['pendiente', 'listo'] and nuevo_estado == 'entregado':
-            pedido.estado = 'entregado'
-            pedido.save()
-        elif pedido.estado == 'pendiente' and nuevo_estado == 'listo':
-            pedido.estado = 'listo'
-            pedido.save()
-        else:
+        # Validar que el estado sea válido
+        estados_validos = [estado[0] for estado in Pedido.ESTADO_PEDIDO]
+        
+        if nuevo_estado not in estados_validos:
             return Response(
-                {'error': 'Transición de estado no válida'},
+                {'error': f'Estado no válido. Estados permitidos: {estados_validos}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+        # Permitir cualquier cambio de estado (excepto de cancelado/entregado a otros estados)
+        if pedido.estado in ['entregado', 'cancelado'] and nuevo_estado not in ['entregado', 'cancelado']:
+            return Response(
+                {'error': f'No se puede cambiar el estado de un pedido {pedido.estado}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Actualizar estado
+        pedido.estado = nuevo_estado
+        pedido.save()
         
         return Response(PedidoReadSerializer(pedido).data, status=status.HTTP_200_OK)
 

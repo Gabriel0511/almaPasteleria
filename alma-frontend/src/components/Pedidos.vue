@@ -34,39 +34,25 @@
               v-for="pedido in pedidosPaginados"
               :key="pedido.id"
               class="pedido-item"
-              :class="{
-                'pedido-entregado': pedido.estado === 'entregado',
-                'pedido-atrasado': notificacionesPedidosAtrasados.some(
-                  (n) => n.pedido.id === pedido.id
-                ),
-                'pedido-hoy': notificacionesPedidosParaHoy.some(
-                  (n) => n.pedido.id === pedido.id
-                ),
-                expanded: pedidoDesplegado[pedido.id],
-              }"
+              :class="[
+                `pedido-${pedido.estado.toLowerCase().replace(' ', '-')}`,
+                {
+                  'pedido-atrasado': notificacionesPedidosAtrasados.some(
+                    (n) => n.pedido.id === pedido.id
+                  ),
+                  'pedido-hoy': notificacionesPedidosParaHoy.some(
+                    (n) => n.pedido.id === pedido.id
+                  ),
+                  expanded: pedidoDesplegado[pedido.id],
+                },
+              ]"
             >
               <!-- Contenedor principal compacto -->
               <div class="pedido-item-compact">
                 <!-- Indicador de estado -->
                 <div
                   class="estado-indicador"
-                  :class="{
-                    critico: notificacionesPedidosAtrasados.some(
-                      (n) => n.pedido.id === pedido.id
-                    ),
-                    bajo: notificacionesPedidosParaHoy.some(
-                      (n) => n.pedido.id === pedido.id
-                    ),
-                    normal:
-                      !notificacionesPedidosAtrasados.some(
-                        (n) => n.pedido.id === pedido.id
-                      ) &&
-                      !notificacionesPedidosParaHoy.some(
-                        (n) => n.pedido.id === pedido.id
-                      ) &&
-                      pedido.estado !== 'entregado',
-                    entregado: pedido.estado === 'entregado',
-                  }"
+                  :class="pedido.estado.toLowerCase().replace(' ', '-')"
                 ></div>
 
                 <!-- Información principal -->
@@ -76,9 +62,9 @@
                     <div class="badges-container">
                       <span
                         class="badge-estado"
-                        :class="pedido.estado.toLowerCase()"
+                        :class="pedido.estado.toLowerCase().replace(' ', '-')"
                       >
-                        {{ pedido.estado }}
+                        {{ getEstadoLabel(pedido.estado) }}
                       </span>
                       <span class="badge-total">
                         ${{ calcularTotalPedido(pedido) }}
@@ -118,23 +104,40 @@
 
                 <!-- Acciones -->
                 <div class="acciones-container">
+                  <!-- Botón para avanzar al siguiente estado -->
                   <button
                     v-if="
                       pedido.estado !== 'entregado' &&
                       pedido.estado !== 'cancelado'
                     "
-                    class="btn-accion btn-entregado"
-                    @click="marcarComoEntregado(pedido)"
-                    title="Marcar como entregado"
+                    class="btn-accion btn-siguiente-estado"
+                    @click="avanzarEstadoPedido(pedido)"
+                    :title="getSiguienteEstadoTitle(pedido.estado)"
                   >
-                    <i class="fas fa-check"></i>
+                    <i :class="getSiguienteEstadoIcon(pedido.estado)"></i>
+                  </button>
+
+                  <!-- Botón para cancelar pedido -->
+                  <button
+                    v-if="
+                      pedido.estado !== 'entregado' &&
+                      pedido.estado !== 'cancelado'
+                    "
+                    class="btn-accion btn-cancelar"
+                    @click="confirmarCancelarPedido(pedido)"
+                    title="Cancelar pedido"
+                  >
+                    <i class="fas fa-ban"></i>
                   </button>
 
                   <button
                     class="btn-accion btn-editar"
                     @click="editarPedido(pedido)"
                     title="Editar pedido"
-                    :disabled="pedido.estado === 'entregado'"
+                    :disabled="
+                      pedido.estado === 'entregado' ||
+                      pedido.estado === 'cancelado'
+                    "
                   >
                     <i class="fas fa-edit"></i>
                   </button>
@@ -401,10 +404,10 @@
           <select v-model="formPedido.estado" required class="form-input">
             <option
               v-for="estado in estadosPedido"
-              :key="estado"
-              :value="estado"
+              :key="estado.value"
+              :value="estado.value"
             >
-              {{ estado }}
+              {{ estado.label }}
             </option>
           </select>
         </div>
@@ -955,6 +958,17 @@
       @confirm="eliminarReceta"
     />
   </div>
+
+  <!-- Modal de confirmación para cancelar pedido -->
+  <ConfirmModal
+    :show="showConfirmModalCancelar"
+    title="Confirmar Cancelación"
+    :message="`¿Está seguro de que desea cancelar el pedido de '${pedidoACancelar?.cliente?.nombre}'? Esta acción no se puede deshacer.`"
+    confirm-text="Cancelar Pedido"
+    @update:show="showConfirmModalCancelar = $event"
+    @cancel="showConfirmModalCancelar = false"
+    @confirm="cancelarPedido"
+  />
 </template>
 
 <script setup>
@@ -981,7 +995,6 @@ const categorias = ref([]);
 const unidadesMedida = ref([]);
 const proveedores = ref([]);
 const estadoSeleccionado = ref("");
-const fechaSeleccionada = ref("");
 const searchTerm = ref("");
 const loading = ref(true);
 const detalleExpandido = ref({});
@@ -1000,6 +1013,8 @@ const showModalIngrediente = ref(false);
 const showConfirmModalPedido = ref(false);
 const showConfirmModalIngrediente = ref(false);
 const showConfirmModalReceta = ref(false);
+const showConfirmModalCancelar = ref(false);
+const pedidoACancelar = ref(null);
 
 // Variables de paginación
 const paginaActual = ref(1);
@@ -1085,13 +1100,22 @@ const pedidoActual = ref(null);
 
 // Estados de pedido
 const estadosPedido = ref([
-  "pendiente",
-  "en preparación",
-  "entregado",
-  "cancelado",
+  { value: "pendiente", label: "Pendiente", color: "warning", order: 1 },
+  { value: "en preparación", label: "En preparación", color: "info", order: 2 }, // ← con acento
+  { value: "listo", label: "Listo para entregar", color: "success", order: 3 },
+  { value: "entregado", label: "Entregado", color: "secondary", order: 4 },
+  { value: "cancelado", label: "Cancelado", color: "danger", order: 5 },
 ]);
 
+const getEstadoValues = computed(() => estadosPedido.value.map((e) => e.value));
+
+const getEstadoLabel = (estadoValue) => {
+  const estado = estadosPedido.value.find((e) => e.value === estadoValue);
+  return estado ? estado.label : estadoValue;
+};
+
 // Computed properties
+// Busca pedidosFiltrados (alrededor de la línea 300-350):
 const pedidosFiltrados = computed(() => {
   let filtered = pedidos.value;
 
@@ -1101,14 +1125,9 @@ const pedidosFiltrados = computed(() => {
       (pedido) => pedido.estado === estadoSeleccionado.value
     );
   } else {
-    // Si no hay estado seleccionado, excluir los entregados
-    filtered = filtered.filter((pedido) => pedido.estado !== "entregado");
-  }
-
-  // Filtrar por fecha
-  if (fechaSeleccionada.value) {
+    // Si no hay estado seleccionado, excluir los entregados y cancelados
     filtered = filtered.filter(
-      (pedido) => pedido.fecha_entrega === fechaSeleccionada.value
+      (pedido) => pedido.estado !== "entregado" && pedido.estado !== "cancelado"
     );
   }
 
@@ -1384,6 +1403,178 @@ const convertirUnidad = (cantidad, unidadOrigen, unidadDestino) => {
   }
 
   return cantidad * conversiones[origenNorm][destinoNorm];
+};
+
+// Función para obtener el siguiente estado
+const getSiguienteEstado = (estadoActual) => {
+  const estadosOrdenados = estadosPedido.value.sort(
+    (a, b) => a.order - b.order
+  );
+  const indexActual = estadosOrdenados.findIndex(
+    (e) => e.value === estadoActual
+  );
+
+  if (indexActual === -1 || indexActual >= estadosOrdenados.length - 2) {
+    return null; // No hay siguiente estado o ya está en entregado/cancelado
+  }
+
+  return estadosOrdenados[indexActual + 1].value;
+};
+
+// Función para obtener el título del botón según el estado actual
+const getSiguienteEstadoTitle = (estadoActual) => {
+  const siguiente = getSiguienteEstado(estadoActual);
+  if (!siguiente) return "";
+
+  const estados = {
+    pendiente: "Marcar como En preparación",
+    "en preparación": "Marcar como Listo para entregar",
+    listo: "Marcar como Entregado",
+  };
+
+  return estados[estadoActual] || `Cambiar a ${siguiente}`;
+};
+
+// Función para obtener el ícono del botón según el estado actual
+const getSiguienteEstadoIcon = (estadoActual) => {
+  const iconos = {
+    pendiente: "fas fa-utensils", // De pendiente a preparación
+    "en preparación": "fas fa-check-circle", // De preparación a listo
+    listo: "fas fa-truck", // De listo a entregado
+  };
+
+  return iconos[estadoActual] || "fas fa-arrow-right";
+};
+
+// Función para avanzar al siguiente estado
+const avanzarEstadoPedido = async (pedido) => {
+  try {
+    const siguienteEstado = getSiguienteEstado(pedido.estado);
+
+    if (!siguienteEstado) {
+      notificationSystem.show({
+        type: "warning",
+        title: "No se puede avanzar",
+        message: "Este pedido ya está en el último estado posible",
+        timeout: 4000,
+      });
+      return;
+    }
+
+    const datosActualizacion = {
+      cliente_id: pedido.cliente.id,
+      fecha_pedido: pedido.fecha_pedido,
+      fecha_entrega: pedido.fecha_entrega,
+      estado: siguienteEstado,
+    };
+
+    const response = await axios.put(
+      `/api/pedidos/${pedido.id}/`,
+      datosActualizacion
+    );
+
+    const pedidoActualizado = response.data;
+    const index = pedidos.value.findIndex((p) => p.id === pedido.id);
+    if (index !== -1) {
+      pedidos.value[index] = { ...pedidos.value[index], ...pedidoActualizado };
+    }
+
+    // Obtener el label del nuevo estado para el mensaje
+    const nuevoEstadoObj = estadosPedido.value.find(
+      (e) => e.value === siguienteEstado
+    );
+    const labelNuevoEstado = nuevoEstadoObj
+      ? nuevoEstadoObj.label
+      : siguienteEstado;
+
+    notificationSystem.show({
+      type: "success",
+      title: "Estado Actualizado",
+      message: `Pedido de ${pedido.cliente.nombre} cambiado a: ${labelNuevoEstado}`,
+      timeout: 4000,
+    });
+  } catch (error) {
+    let mensajeError = "Error al actualizar el estado del pedido";
+    if (error.response?.data) {
+      if (typeof error.response.data === "object") {
+        mensajeError += ": " + JSON.stringify(error.response.data);
+      } else {
+        mensajeError += ": " + error.response.data;
+      }
+    }
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: mensajeError,
+      timeout: 6000,
+    });
+  }
+};
+
+// Función para confirmar cancelación de pedido
+const confirmarCancelarPedido = (pedido) => {
+  if (pedido.estado === "entregado") {
+    notificationSystem.show({
+      type: "warning",
+      title: "No se puede cancelar",
+      message: "No se puede cancelar un pedido ya entregado",
+      timeout: 4000,
+    });
+    return;
+  }
+  pedidoACancelar.value = pedido;
+  showConfirmModalCancelar.value = true;
+};
+
+// Función para cancelar pedido
+const cancelarPedido = async () => {
+  try {
+    const datosActualizacion = {
+      cliente_id: pedidoACancelar.value.cliente.id,
+      fecha_pedido: pedidoACancelar.value.fecha_pedido,
+      fecha_entrega: pedidoACancelar.value.fecha_entrega,
+      estado: "cancelado",
+    };
+
+    const response = await axios.put(
+      `/api/pedidos/${pedidoACancelar.value.id}/`,
+      datosActualizacion
+    );
+
+    const pedidoActualizado = response.data;
+    const index = pedidos.value.findIndex(
+      (p) => p.id === pedidoACancelar.value.id
+    );
+    if (index !== -1) {
+      pedidos.value[index] = { ...pedidos.value[index], ...pedidoActualizado };
+    }
+
+    showConfirmModalCancelar.value = false;
+
+    notificationSystem.show({
+      type: "success",
+      title: "Pedido Cancelado",
+      message: `Pedido de ${pedidoACancelar.value.cliente.nombre} ha sido cancelado`,
+      timeout: 4000,
+    });
+  } catch (error) {
+    let mensajeError = "Error al cancelar el pedido";
+    if (error.response?.data) {
+      if (typeof error.response.data === "object") {
+        mensajeError += ": " + JSON.stringify(error.response.data);
+      } else {
+        mensajeError += ": " + error.response.data;
+      }
+    }
+
+    notificationSystem.show({
+      type: "error",
+      title: "Error",
+      message: mensajeError,
+      timeout: 6000,
+    });
+  }
 };
 
 // Función para calcular total del pedido
@@ -2106,36 +2297,41 @@ const marcarComoEntregado = async (pedido) => {
 
 // Computed properties para el PageHeader
 const pedidosStats = computed(() => {
-  const { atrasados, paraHoy, paraManana, totalActivos } =
-    estadisticasPedidos.value;
+  // Contar pedidos por estado
+  const counts = {};
+  estadosPedido.value.forEach((estado) => {
+    counts[estado.value] = pedidos.value.filter(
+      (p) => p.estado === estado.value
+    ).length;
+  });
 
-  return [
-    {
-      type: "critico",
-      label: `${atrasados} Atrasado(s)`,
-      compactLabel: `${atrasados} Atrasado(s)`,
-      icon: "fas fa-exclamation-triangle",
-      tooltip: "Ver pedidos atrasados",
-      value: atrasados,
-    },
-    {
-      type: "bajo",
-      label: `${paraHoy} Hoy`,
-      compactLabel: `${paraHoy} Hoy`,
-      icon: "fas fa-bolt",
-      tooltip: "Ver pedidos para hoy",
-      value: paraHoy,
-    },
-    {
-      type: "normal",
-      label: `${paraManana} Mañana`,
-      compactLabel: `${paraManana} Mañana`,
-      icon: "fas fa-clock",
-      tooltip: "Ver pedidos para mañana",
-      value: paraManana,
-    },
-  ];
+  // Crear stats para cada estado
+  return estadosPedido.value.map((estado) => {
+    const count = counts[estado.value] || 0;
+
+    return {
+      type: estado.color, // Usar el color definido para cada estado
+      label: `${count} ${estado.label}`,
+      compactLabel: `${count} ${estado.label.split(" ")[0]}`, // Para mobile: solo primera palabra
+      icon: getEstadoIcon(estado.value),
+      tooltip: `Ver pedidos ${estado.label.toLowerCase()}`,
+      value: estado.value,
+      count: count,
+    };
+  });
 });
+
+// Agrega esta función para obtener iconos por estado:
+const getEstadoIcon = (estado) => {
+  const icons = {
+    pendiente: "fas fa-clock",
+    "en preparación": "fas fa-utensils",
+    listo: "fas fa-check-circle",
+    entregado: "fas fa-truck",
+    cancelado: "fas fa-ban",
+  };
+  return icons[estado] || "fas fa-circle";
+};
 
 const pedidosFilters = computed(() => [
   {
@@ -2143,21 +2339,6 @@ const pedidosFilters = computed(() => [
     placeholder: "Buscar cliente...",
     value: searchTerm.value,
     autocomplete: "off",
-  },
-  {
-    type: "select",
-    placeholder: "Estado",
-    value: estadoSeleccionado.value,
-    defaultOption: "Todos los estados",
-    options: estadosPedido.value.map((estado) => ({
-      label: estado.charAt(0).toUpperCase() + estado.slice(1),
-      value: estado,
-    })),
-  },
-  {
-    type: "date",
-    placeholder: "Fecha de entrega",
-    value: fechaSeleccionada.value,
   },
   {
     type: "checkbox",
@@ -2169,33 +2350,18 @@ const pedidosFilters = computed(() => [
 
 // Métodos para manejar eventos del PageHeader
 const handlePedidoStatClick = (stat) => {
-  switch (stat.type) {
-    case "critico":
-      estadoSeleccionado.value = "";
-      fechaSeleccionada.value = "";
-      searchTerm.value = "";
-      filtroAtrasados.value = true;
-      resetearPaginacion();
-      break;
-    case "bajo":
-      const hoy = new Date().toISOString().split("T")[0];
-      estadoSeleccionado.value = "";
-      fechaSeleccionada.value = hoy;
-      searchTerm.value = "";
-      filtroAtrasados.value = false;
-      resetearPaginacion();
-      break;
-    case "normal":
-      const manana = new Date();
-      manana.setDate(manana.getDate() + 1);
-      const mananaStr = manana.toISOString().split("T")[0];
-      estadoSeleccionado.value = "";
-      fechaSeleccionada.value = mananaStr;
-      searchTerm.value = "";
-      filtroAtrasados.value = false;
-      resetearPaginacion();
-      break;
+  // Si ya está seleccionado este estado, limpiar filtro
+  if (estadoSeleccionado.value === stat.value) {
+    estadoSeleccionado.value = "";
+    searchTerm.value = "";
+    filtroAtrasados.value = false;
+  } else {
+    // Seleccionar este estado específico
+    estadoSeleccionado.value = stat.value;
+    searchTerm.value = "";
+    filtroAtrasados.value = false;
   }
+  resetearPaginacion();
 };
 
 const handlePedidoFilterChange = ({ filter, value }) => {
@@ -2205,9 +2371,6 @@ const handlePedidoFilterChange = ({ filter, value }) => {
   } else if (filter.placeholder?.includes("Estado")) {
     estadoSeleccionado.value = value;
     resetearPaginacion();
-  } else if (filter.type === "date") {
-    fechaSeleccionada.value = value;
-    resetearPaginacion();
   } else if (filter.type === "checkbox" && filter.id === "filtro-atrasados") {
     filtroAtrasados.value = value;
     resetearPaginacion();
@@ -2216,7 +2379,6 @@ const handlePedidoFilterChange = ({ filter, value }) => {
 
 const limpiarFiltrosPedidos = () => {
   estadoSeleccionado.value = "";
-  fechaSeleccionada.value = "";
   searchTerm.value = "";
   filtroAtrasados.value = false;
   resetearPaginacion();
@@ -2228,6 +2390,7 @@ const estadisticasPedidos = computed(() => {
   const atrasados = notificacionesPedidosAtrasados.value.length;
   const paraHoy = notificacionesPedidosParaHoy.value.length;
   const paraManana = notificacionesPedidosParaManana.value.length;
+
   const totalActivos = pedidos.value.filter(
     (p) => p.estado !== "entregado" && p.estado !== "cancelado"
   ).length;
@@ -2594,28 +2757,34 @@ onMounted(() => {
   overflow: hidden;
   transition: all 0.3s ease;
   position: relative;
+  border-left: 4px solid #f0f0f0;
 }
 
-.pedido-item.pedido-atrasado {
-  border-left: 4px solid #dc3545;
+/* Estados de los pedidos */
+.pedido-item.pedido-pendiente {
+  border-left: 4px solid #ffc107; /* Amarillo */
 }
 
-.pedido-item.pedido-hoy {
-  border-left: 4px solid #ffc107;
+.pedido-item.pedido-en-preparación {
+  border-left: 4px solid #17a2b8; /* Azul turquesa */
+}
+
+.pedido-item.pedido-listo {
+  border-left: 4px solid #28a745; /* Verde */
 }
 
 .pedido-item.pedido-entregado {
-  border-left: 4px solid #28a745;
+  border-left: 4px solid #6c757d; /* Gris */
 }
 
-.pedido-item:not(.pedido-atrasado):not(.pedido-hoy):not(.pedido-entregado) {
-  border-left: 4px solid #3498db;
+.pedido-item.pedido-cancelado {
+  border-left: 4px solid #dc3545; /* Rojo */
 }
 
+/* Hover effect para todos los estados */
 .pedido-item:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-1px);
-  border-color: var(--color-primary);
 }
 
 /* Contenedor compacto */
@@ -2634,24 +2803,29 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.estado-indicador.critico {
-  background-color: #dc3545;
-  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
-}
-
-.estado-indicador.bajo {
-  background-color: #ffc107;
+.estado-indicador.pendiente {
+  background-color: #ffc107; /* Amarillo */
   box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2);
 }
 
-.estado-indicador.normal {
-  background-color: #3498db;
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+.estado-indicador.en-preparación {
+  background-color: #17a2b8; /* Azul turquesa */
+  box-shadow: 0 0 0 3px rgba(23, 162, 184, 0.2);
+}
+
+.estado-indicador.listo {
+  background-color: #28a745; /* Verde */
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
 }
 
 .estado-indicador.entregado {
-  background-color: #28a745;
-  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+  background-color: #6c757d; /* Gris */
+  box-shadow: 0 0 0 3px rgba(108, 117, 125, 0.2);
+}
+
+.estado-indicador.cancelado {
+  background-color: #dc3545; /* Rojo */
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
 }
 
 /* Información principal */
@@ -2702,14 +2876,19 @@ onMounted(() => {
   color: #856404;
 }
 
-.badge-estado.en-preparacion {
+.badge-estado.en-preparación {
   background: linear-gradient(135deg, #d1ecf1, #a6e3e9);
   color: #0c5460;
 }
 
-.badge-estado.entregado {
+.badge-estado.listo {
   background: linear-gradient(135deg, #d4edda, #a8e6a3);
   color: #155724;
+}
+
+.badge-estado.entregado {
+  background: linear-gradient(135deg, #e2e3e5, #c8c9cb);
+  color: #383d41;
 }
 
 .badge-estado.cancelado {
@@ -2764,6 +2943,7 @@ onMounted(() => {
   display: flex;
   gap: 6px;
   flex-shrink: 0;
+  flex-wrap: nowrap;
 }
 
 .btn-accion {
@@ -3269,6 +3449,30 @@ onMounted(() => {
   font-weight: 500;
 }
 
+/* SECCION DE ACCIONES */
+
+.btn-siguiente-estado {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.btn-siguiente-estado:hover:not(:disabled) {
+  background: linear-gradient(135deg, #218838, #1c7430);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
+}
+
+.btn-cancelar {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  color: white;
+}
+
+.btn-cancelar:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e0a800, #d39e00);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(255, 193, 7, 0.3);
+}
+
 /* ==============================
    RESPONSIVE DESIGN
    ============================== */
@@ -3384,6 +3588,16 @@ onMounted(() => {
     padding: 14px 20px;
     font-size: 0.9rem;
   }
+
+  .acciones-container {
+    gap: 4px;
+  }
+
+  .btn-accion {
+    width: 30px;
+    height: 30px;
+    font-size: 11px;
+  }
 }
 
 /* Móviles pequeños */
@@ -3412,13 +3626,17 @@ onMounted(() => {
   }
 
   .acciones-container {
-    gap: 4px;
+    gap: 2px;
   }
 
   .btn-accion {
     width: 28px;
     height: 28px;
-    padding: 6px;
+    padding: 5px;
+  }
+
+  .btn-accion i {
+    font-size: 0.8rem;
   }
 
   .btn-nuevo-pedido-flotante {
