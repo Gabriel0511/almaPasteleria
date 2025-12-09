@@ -1,5 +1,5 @@
 # serializers.py - Versión corregida
-from datetime import date
+from datetime import date, timedelta
 from rest_framework import serializers
 from pedidos.models import Pedido, DetallePedido, Cliente, IngredientesExtra
 from recetas.models import Receta
@@ -158,6 +158,9 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
         required=True
     )
     detalles = DetallePedidoWriteSerializer(many=True, required=False)
+    
+    # Campo para fecha de entrega
+    fecha_entrega = serializers.DateField(required=True)
 
     class Meta:
         model = Pedido
@@ -167,8 +170,21 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['fecha_fabricacion']
 
+    def validate_fecha_entrega(self, value):
+        # Validar que la fecha de entrega no sea en el pasado (opcional)
+        today = date.today()
+        if value < today:
+            raise serializers.ValidationError("La fecha de entrega no puede ser en el pasado.")
+        return value
+
     def create(self, validated_data):
         detalles_data = validated_data.pop('detalles', [])
+        
+        # Calcular fecha de fabricación automáticamente
+        fecha_entrega = validated_data.get('fecha_entrega')
+        if fecha_entrega:
+            validated_data['fecha_fabricacion'] = fecha_entrega - timedelta(days=3)
+        
         pedido = Pedido.objects.create(**validated_data)
 
         for detalle_data in detalles_data:
@@ -182,6 +198,11 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         detalles_data = validated_data.pop('detalles', None)
+        
+        # Si se actualiza la fecha de entrega, recalcular fecha de fabricación
+        if 'fecha_entrega' in validated_data:
+            nueva_fecha_entrega = validated_data['fecha_entrega']
+            validated_data['fecha_fabricacion'] = nueva_fecha_entrega - timedelta(days=3)
         
         # Actualizar campos del pedido
         for attr, value in validated_data.items():

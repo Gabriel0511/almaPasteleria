@@ -30,6 +30,22 @@ class Pedido(models.Model):
     fecha_fabricacion = models.DateField(blank=True, null=True)
     estado = models.CharField(max_length=20, choices=ESTADO_PEDIDO, default='pendiente')
 
+    def save(self, *args, **kwargs):
+        # Calcular fecha de fabricación automáticamente si no está establecida y hay fecha de entrega
+        if self.fecha_entrega and not self.fecha_fabricacion:
+            # Restar 3 días a la fecha de entrega
+            self.fecha_fabricacion = self.fecha_entrega - timedelta(days=3)
+        
+        # Si se actualiza la fecha de entrega, recalcular la fecha de fabricación
+        elif self.fecha_entrega and self.pk:
+            # Obtener el objeto original de la base de datos
+            original = Pedido.objects.get(pk=self.pk)
+            if original.fecha_entrega != self.fecha_entrega:
+                # Recalcular fecha de fabricación basada en la nueva fecha de entrega
+                self.fecha_fabricacion = self.fecha_entrega - timedelta(days=3)
+        
+        super().save(*args, **kwargs)
+
     @property
     def total(self):
         """Calcular el total del pedido sumando todos los detalles"""

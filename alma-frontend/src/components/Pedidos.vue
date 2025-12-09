@@ -75,21 +75,21 @@
                   <div class="info-detalles">
                     <div class="detalle-grupo">
                       <span class="detalle-item">
-                        <i class="fas fa-calendar-alt"></i>
+                        <i class="fas fa-calendar-alt"></i>Fecha creación de
+                        pedido:
                         {{ formatFecha(pedido.fecha_pedido) }}
                       </span>
-                      <span
-                        class="detalle-item"
-                        :class="{
-                          'fecha-atrasada': notificacionesPedidosAtrasados.some(
-                            (n) => n.pedido.id === pedido.id
-                          ),
-                          'fecha-hoy': notificacionesPedidosParaHoy.some(
-                            (n) => n.pedido.id === pedido.id
-                          ),
-                        }"
-                      >
-                        <i class="fas fa-truck"></i>
+                      <span class="detalle-item">
+                        <i class="fas fa-industry"></i>
+                        Fecha de fabricación:
+                        {{
+                          pedido.fecha_fabricacion
+                            ? formatFecha(pedido.fecha_fabricacion)
+                            : "Sin definir"
+                        }}
+                      </span>
+                      <span class="detalle-item">
+                        <i class="fas fa-truck"></i> Fecha de entrega:
                         {{ formatFecha(pedido.fecha_entrega) }}
                       </span>
                     </div>
@@ -1720,6 +1720,13 @@ const guardarPedido = async () => {
       return;
     }
 
+    // Calcular fecha de fabricación (3 días antes de la entrega)
+    const fechaEntrega = new Date(formPedido.value.fecha_entrega);
+    const fechaFabricacion = new Date(fechaEntrega);
+    fechaFabricacion.setDate(fechaEntrega.getDate() - 3);
+
+    const fechaFabricacionStr = fechaFabricacion.toISOString().split("T")[0];
+
     let response;
     if (esEdicionPedido.value) {
       const datosActualizacion = {
@@ -1740,8 +1747,10 @@ const guardarPedido = async () => {
       notificationSystem.show({
         type: "success",
         title: "Pedido actualizado",
-        message: "Pedido actualizado correctamente",
-        timeout: 4000,
+        message: `Pedido actualizado correctamente. Fecha de fabricación recalculada: ${formatFecha(
+          fechaFabricacionStr
+        )}`,
+        timeout: 5000,
       });
     } else {
       const datosNuevoPedido = {
@@ -1760,8 +1769,10 @@ const guardarPedido = async () => {
       notificationSystem.show({
         type: "success",
         title: "Pedido creado",
-        message: "Pedido creado correctamente",
-        timeout: 4000,
+        message: `Pedido creado correctamente. La fecha de fabricación automática es: ${formatFecha(
+          fechaFabricacionStr
+        )}`,
+        timeout: 5000,
       });
 
       const nuevoPedidoCompleto = pedidos.value.find(
@@ -2234,61 +2245,6 @@ const guardarIngredienteExtra = async () => {
     notificationSystem.show({
       type: "error",
       title: "Error al guardar ingrediente",
-      message: mensajeError,
-      timeout: 6000,
-    });
-  }
-};
-
-const marcarComoEntregado = async (pedido) => {
-  try {
-    if (pedido.estado === "entregado") {
-      notificationSystem.show({
-        type: "warning",
-        title: "Pedido ya entregado",
-        message: "Este pedido ya está marcado como entregado",
-        timeout: 4000,
-      });
-      return;
-    }
-
-    const datosActualizacion = {
-      cliente_id: pedido.cliente.id,
-      fecha_pedido: pedido.fecha_pedido,
-      fecha_entrega: pedido.fecha_entrega,
-      estado: "entregado",
-    };
-
-    const response = await axios.put(
-      `/api/pedidos/${pedido.id}/`,
-      datosActualizacion
-    );
-
-    const pedidoActualizado = response.data;
-    const index = pedidos.value.findIndex((p) => p.id === pedido.id);
-    if (index !== -1) {
-      pedidos.value[index] = { ...pedidos.value[index], ...pedidoActualizado };
-    }
-
-    notificationSystem.show({
-      type: "success",
-      title: "Pedido Entregado",
-      message: `Pedido de ${pedido.cliente.nombre} marcado como entregado`,
-      timeout: 4000,
-    });
-  } catch (error) {
-    let mensajeError = "Error al marcar el pedido como entregado";
-    if (error.response?.data) {
-      if (typeof error.response.data === "object") {
-        mensajeError += ": " + JSON.stringify(error.response.data);
-      } else {
-        mensajeError += ": " + error.response.data;
-      }
-    }
-
-    notificationSystem.show({
-      type: "error",
-      title: "Error",
       message: mensajeError,
       timeout: 6000,
     });
