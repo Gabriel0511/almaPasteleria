@@ -383,9 +383,9 @@ class RecetasPorFechaView(APIView):
                 'receta__nombre',
                 'receta__rinde',
                 'receta__unidad_rinde',
-                'receta__costo_total',
-                'receta__precio_venta',
-                'fecha_preparacion_arg'  # ✅ Fecha agrupada
+                'fecha_preparacion_arg',
+                'costo_total_historico',
+                'precio_venta_historico'
             ).annotate(
                 total_preparaciones=Sum('cantidad_preparada')
             ).order_by('-fecha_preparacion_arg', 'receta__nombre')
@@ -402,8 +402,11 @@ class RecetasPorFechaView(APIView):
                 else:
                     fecha_arg_str = "Sin fecha"
                 
+                # 🔹 USAR VALORES HISTÓRICOS
+                costo_por_preparacion = grupo['costo_total_historico'] or Decimal('0')
+                precio_venta_historico = grupo['precio_venta_historico'] or Decimal('0')
+                
                 # Calcular costo total para esa cantidad de preparaciones
-                costo_por_preparacion = grupo['receta__costo_total'] or Decimal('0')
                 costo_total_dia = costo_por_preparacion * Decimal(str(grupo['total_preparaciones']))
                 
                 recetas_data.append({
@@ -413,16 +416,10 @@ class RecetasPorFechaView(APIView):
                     'rinde': grupo['receta__rinde'],
                     'unidad_rinde': grupo['receta__unidad_rinde'],
                     'costo_total': float(costo_total_dia),
-                    'precio_venta': float(grupo['receta__precio_venta']) if grupo['receta__precio_venta'] else 0,
+                    'precio_venta': float(precio_venta_historico) if precio_venta_historico else 0,
                     'fecha_preparacion': fecha_arg_str,  # ✅ Fecha específica de ese día
                     'fecha_preparacion_original': fecha_prep.isoformat() if fecha_prep else None
                 })
-            
-            # Si no hay datos y no hay filtro, podríamos incluir recetas sin preparaciones
-            if len(recetas_data) == 0 and not tiene_filtro_fecha:
-                print("⚠️ No hay preparaciones en el historial. Mostrando recetas sin preparaciones...")
-                # Opcional: puedes agregar lógica para mostrar recetas aunque no tengan historial
-                pass
             
             return Response({
                 'fecha_inicio': fecha_inicio_str,
@@ -528,9 +525,10 @@ class GenerarPDFRecetasView(APIView):
             ).values(
                 'receta_id',
                 'receta__nombre',
-                'receta__costo_total',
-                'receta__precio_venta',
-                'fecha_preparacion_arg'
+                'fecha_preparacion_arg',
+                # 🔹 USAR VALORES HISTÓRICOS
+                'costo_total_historico',
+                'precio_venta_historico'
             ).annotate(
                 total_preparaciones=Sum('cantidad_preparada')
             ).order_by('-fecha_preparacion_arg', 'receta__nombre')
@@ -546,12 +544,14 @@ class GenerarPDFRecetasView(APIView):
                     nombre = grupo['receta__nombre']
                     preparaciones = str(grupo['total_preparaciones'])
                     
-                    # Calcular costo total para esa cantidad
-                    costo_por_preparacion = grupo['receta__costo_total'] or Decimal('0')
+                    # 🔹 USAR VALORES HISTÓRICOS
+                    costo_por_preparacion = grupo['costo_total_historico'] or Decimal('0')
+                    precio_venta_historico = grupo['precio_venta_historico'] or Decimal('0')
+                    
                     costo_total_dia = costo_por_preparacion * Decimal(str(grupo['total_preparaciones']))
                     
                     costo_total = f"${costo_total_dia:.2f}"
-                    precio_venta = f"${grupo['receta__precio_venta']:.2f}" if grupo['receta__precio_venta'] else "$0.00"
+                    precio_venta = f"${precio_venta_historico:.2f}" if precio_venta_historico else "$0.00"
                     
                     data.append([fecha, nombre, preparaciones, costo_total, precio_venta])
                 

@@ -65,7 +65,8 @@ class Receta(models.Model):
                     HistorialReceta.objects.create(
                         receta=self,
                         cantidad_preparada=self.veces_hecha_hoy,
-                        fecha_preparacion=fecha_preparacion_utc  # ✅ Guardar en UTC
+                        fecha_preparacion=fecha_preparacion_utc,  # ✅ Guardar en UTC
+                        # Los valores históricos se guardan automáticamente
                     )
                     print(f"🔹 Historial creado para {self.nombre}: {self.veces_hecha_hoy} preparaciones para {fecha_anterior} (UTC: {fecha_preparacion_utc})")
                 
@@ -76,7 +77,7 @@ class Receta(models.Model):
                 return True
             
             return False
-            
+        
         except Exception as e:
             print(f"❌ Error en verificar_reinicio_diario para {self.nombre}: {e}")
             # Fallback a la versión original en caso de error
@@ -90,11 +91,12 @@ class Receta(models.Model):
         self.veces_hecha_hoy += 1
         self.veces_hecha += 1
         
-        # Crear registro en historial con fecha actual
+        # Crear registro en historial con fecha actual Y VALORES HISTÓRICOS
         HistorialReceta.objects.create(
             receta=self,
             cantidad_preparada=1,
-            fecha_preparacion=timezone.now()
+            fecha_preparacion=timezone.now(),
+            # Los valores históricos se guardan automáticamente en el save() del modelo
         )
         self.save()
 
@@ -135,7 +137,8 @@ class Receta(models.Model):
             HistorialReceta.objects.create(
                 receta=self,
                 cantidad_preparada=self.veces_hecha_hoy,
-                fecha_preparacion=timezone.now()
+                fecha_preparacion=timezone.now(),
+                # Los valores históricos se guardan automáticamente en el save() del modelo
             )
         
         # Reiniciar contador diario
@@ -172,6 +175,7 @@ class Receta(models.Model):
                             receta=receta,
                             cantidad_preparada=receta.veces_hecha_hoy,
                             fecha_preparacion=fecha_preparacion
+                            # Los valores históricos se guardan automáticamente
                         )
                         
                         # Reiniciar contador
@@ -325,9 +329,17 @@ class HistorialReceta(models.Model):
     receta = models.ForeignKey(Receta, on_delete=models.CASCADE, related_name='historial')
     fecha_preparacion = models.DateTimeField(default=timezone.now)
     cantidad_preparada = models.PositiveIntegerField(default=1)
+    costo_total_historico = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    precio_venta_historico = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     
     def __str__(self):
         return f"{self.receta.nombre} - {self.fecha_preparacion.date()}"
+    
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            self.costo_total_historico = self.receta.costo_total
+            self.precio_venta_historico = self.receta.precio_venta
+        super().save(*args, **kwargs)
     
     class Meta:
         ordering = ['-fecha_preparacion']
