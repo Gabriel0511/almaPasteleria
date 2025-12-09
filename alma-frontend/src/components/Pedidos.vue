@@ -81,7 +81,7 @@
                       </span>
                       <span class="detalle-item">
                         <i class="fas fa-industry"></i>
-                        Fecha de fabricación:
+                        Fecha de preparación:
                         {{
                           pedido.fecha_fabricacion
                             ? formatFecha(pedido.fecha_fabricacion)
