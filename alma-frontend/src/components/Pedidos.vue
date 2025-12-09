@@ -309,13 +309,6 @@
                                   Rinde: {{ detalle.receta.rinde }}
                                   {{ detalle.receta.unidad_rinde }}
                                 </span>
-                                <span
-                                  class="badge-veces-hecha"
-                                  v-if="detalle.receta.veces_hecha"
-                                >
-                                  <i class="fas fa-fire"></i>
-                                  {{ detalle.receta.veces_hecha }} veces
-                                </span>
                               </span>
                             </div>
                             <div class="receta-financiero">
