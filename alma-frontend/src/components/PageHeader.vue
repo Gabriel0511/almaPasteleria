@@ -281,28 +281,23 @@ onUnmounted(() => {
   color: white;
 }
 
-.estadistica-badge.warning {
+.estadistica-badge.bajo {
   background: linear-gradient(135deg, #ffc107, #e0a800);
   color: #212529;
 }
 
-.estadistica-badge.info {
+.estadistica-badge.normal {
   background: linear-gradient(135deg, #28a745, #20c997);
   color: white;
 }
 
-.estadistica-badge.success {
+.estadistica-badge.margen-bajo {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+}
+
+.estadistica-badge.total {
   background: linear-gradient(135deg, var(--color-primary), #9c7a6d);
-  color: white;
-}
-
-.estadistica-badge.secondary {
-  background: linear-gradient(135deg, #6c757d, #545b62);
-  color: white;
-}
-
-.estadistica-badge.danger {
-  background: linear-gradient(135deg, #dc3545, #c82333);
   color: white;
 }
 
