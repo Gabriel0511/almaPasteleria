@@ -1127,7 +1127,7 @@ const logout = async () => {
 };
 
 const formatDecimal = (value, unidad = '') => {
-  console.log('formatDecimal called with:', { value, unidad }); // Debug
+  // console.log('formatDecimal called with:', { value, unidad }); // ❌ QUITAR ESTO
   
   if (value === null || value === undefined) return "0.00";
 
@@ -1138,7 +1138,7 @@ const formatDecimal = (value, unidad = '') => {
   if (isNaN(numericValue)) return "0.00";
 
   const unidadNormalizada = String(unidad).toLowerCase().trim();
-  console.log('Normalized unit:', unidadNormalizada); // Debug
+  // console.log('Normalized unit:', unidadNormalizada); // ❌ QUITAR ESTO
   
   // Lista de unidades que deben mostrarse sin decimales
   const unidadesSinDecimales = [
@@ -1153,14 +1153,14 @@ const formatDecimal = (value, unidad = '') => {
     unidadNormalizada === u
   );
 
-  console.log('Should show without decimals?', esUnidadSinDecimales); // Debug
+  // console.log('Should show without decimals?', esUnidadSinDecimales); // ❌ QUITAR ESTO
 
   if (esUnidadSinDecimales) {
     const result = Math.round(numericValue).toLocaleString("es-ES", {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     });
-    console.log('Result without decimals:', result); // Debug
+    // console.log('Result without decimals:', result); // ❌ QUITAR ESTO
     return result;
   }
 
@@ -1168,10 +1168,9 @@ const formatDecimal = (value, unidad = '') => {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  console.log('Result with decimals:', result); // Debug
+  // console.log('Result with decimals:', result); // ❌ QUITAR ESTO
   return result;
 };
-
 // Función para formatear números para el backend (con coma decimal)
 const formatearNumeroParaBackend = (numero) => {
   if (numero === null || numero === undefined || numero === "") return "0,00";
