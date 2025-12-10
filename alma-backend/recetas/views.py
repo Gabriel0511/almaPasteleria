@@ -37,35 +37,6 @@ class RecetaListCreateAPIView(generics.ListCreateAPIView):
     queryset = Receta.objects.all().order_by('-creado_en')
     serializer_class = RecetaSerializer
 
-    def perform_create(self, serializer):
-        print("Datos recibidos:", self.request.data)
-        
-        # Guardar la instancia con los datos proporcionados
-        instance = serializer.save()
-        
-        # Calcular costos inmediatamente después de crear
-        try:
-            # Actualizar costos usando el método del modelo
-            instance.costo_total = instance.calcular_costo_total()
-            if instance.rinde and instance.rinde > 0:
-                instance.costo_unitario = instance.costo_total / Decimal(str(instance.rinde))
-            else:
-                instance.costo_unitario = Decimal('0.00')
-            
-            # Guardar solo los campos de costo usando update() para evitar recursión
-            Receta.objects.filter(pk=instance.pk).update(
-                costo_total=instance.costo_total,
-                costo_unitario=instance.costo_unitario
-            )
-            
-            # Recargar para obtener datos actualizados
-            instance.refresh_from_db()
-            print(f"✅ Receta {instance.nombre} creada con costo_total: {instance.costo_total}")
-            
-        except Exception as e:
-            print(f"⚠️ Error calculando costos iniciales: {e}")
-            # Continuar aunque haya error en los costos
-
 class RecetaRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Receta.objects.all()
     serializer_class = RecetaSerializer

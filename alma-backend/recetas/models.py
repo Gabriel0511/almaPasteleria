@@ -227,15 +227,20 @@ class Receta(models.Model):
         if not self.pk:
             self.costo_total = Decimal('0.00')
             self.costo_unitario = Decimal('0.00')
-        
-        # Calcular costos ANTES de guardar
-        self.costo_total = self.calcular_costo_total()
-        if self.rinde and self.rinde > 0:
-            self.costo_unitario = self.costo_total / Decimal(str(self.rinde))
         else:
-            self.costo_unitario = Decimal('0.00')
+            # Solo calcular costos si la receta ya existe y tiene insumos
+            try:
+                self.costo_total = self.calcular_costo_total()
+                if self.rinde and self.rinde > 0:
+                    self.costo_unitario = self.costo_total / Decimal(str(self.rinde))
+                else:
+                    self.costo_unitario = Decimal('0.00')
+            except Exception as e:
+                print(f"⚠️ Error calculando costos en save(): {e}")
+                self.costo_total = Decimal('0.00')
+                self.costo_unitario = Decimal('0.00')
         
-        # Llamar al save original con los valores calculados
+        # Llamar al save original
         super().save(*args, **kwargs)
 
 class RecetaInsumo(models.Model):

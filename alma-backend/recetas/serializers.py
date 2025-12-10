@@ -148,14 +148,27 @@ class RecetaSerializer(serializers.ModelSerializer):
             return 0.0
     
     def create(self, validated_data):
-        """Crear receta y calcular costos"""
-        # Crear la receta primero
-        receta = Receta.objects.create(**validated_data)
+        """Crear receta y calcular costos - VERSIÓN SIMPLIFICADA"""
+        try:
+            print(f"🔧 Creando receta con datos validados: {validated_data}")
+            
+            # Establecer valores por defecto
+            validated_data['costo_total'] = Decimal('0.00')
+            validated_data['costo_unitario'] = Decimal('0.00')
+            validated_data['veces_hecha'] = 0
+            validated_data['veces_hecha_hoy'] = 0
+            
+            # Crear la receta
+            receta = Receta.objects.create(**validated_data)
+            print(f"✅ Receta creada exitosamente: {receta.id} - {receta.nombre}")
+            
+            return receta
         
-        # Recalcular costos después de crear
-        self._actualizar_costos_receta(receta)
-        
-        return receta
+    except Exception as e:
+        print(f"❌ Error en create de RecetaSerializer: {e}")
+        import traceback
+        traceback.print_exc()
+        raise serializers.ValidationError(f"Error al crear receta: {str(e)}")
     
     def update(self, instance, validated_data):
         """Actualizar receta y recalcular costos"""

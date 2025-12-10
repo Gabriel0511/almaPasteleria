@@ -1261,8 +1261,6 @@ const guardarRecetaBasica = async () => {
       rinde: formReceta.value.rinde,
       unidad_rinde: formReceta.value.unidad_rinde,
       precio_venta: formReceta.value.precio_venta,
-      costo_unitario: 0,
-      costo_total: 0,
     };
 
     let response;
