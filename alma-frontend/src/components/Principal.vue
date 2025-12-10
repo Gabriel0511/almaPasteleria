@@ -1210,6 +1210,7 @@ onMounted(() => {
   background: white;
   border-left: 4px solid #ddd;
   transition: all 0.3s ease;
+   cursor: pointer;
 }
 
 .task-item:hover {
