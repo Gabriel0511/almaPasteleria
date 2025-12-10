@@ -1522,7 +1522,65 @@ const guardarInsumo = async () => {
       }
     }
     
-    // ... resto del código para creación ...
+    // -----------------------------
+    // ✔ CREACIÓN (FALTA ESTA PARTE)
+    // -----------------------------
+    else {
+      try {
+        console.log("Enviando datos para crear insumo:", datosPreparados);
+        
+        response = await axios.post(
+          `/api/insumos/crear/`,
+          datosPreparados
+        );
+
+        // Verificar si el backend devuelve error de insumo desactivado
+        if (response.status === 400 && response.data.error === 'insumo_desactivado') {
+          // Mostrar modal de reactivación
+          insumoDesactivado.value = {
+            insumo_id: response.data.insumo_id,
+            nombre: response.data.nombre
+          };
+          showReactivarModal.value = true;
+          return;
+        }
+
+        notificationSystem.show({
+          type: "success",
+          title: "Insumo creado",
+          message: "Insumo creado correctamente",
+          timeout: 3000,
+        });
+
+        closeModal();
+        await fetchStock();
+        await fetchInsumos();
+        
+      } catch (error) {
+        console.error("Error detallado al crear insumo:", error);
+        console.error("Datos enviados:", datosPreparados);
+        
+        let mensajeError = "Error al crear el insumo";
+        if (error.response?.data) {
+          // Manejo de errores del backend
+          if (error.response.data.error) {
+            mensajeError = error.response.data.error;
+          } else if (typeof error.response.data === 'object') {
+            mensajeError = Object.values(error.response.data).join(', ');
+          } else {
+            mensajeError = error.response.data;
+          }
+        }
+        
+        notificationSystem.show({
+          type: "error",
+          title: "Error al crear",
+          message: mensajeError,
+          timeout: 6000,
+        });
+      }
+    }
+    
   } catch (error) {
     console.error("❌ ERROR COMPLETO NO MANEJADO:", error);
     console.error("Stack trace:", error.stack);

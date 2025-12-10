@@ -39,41 +39,32 @@ class RecetaListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         print("Datos recibidos:", self.request.data)
+        
+        # Guardar la instancia con los datos proporcionados
         instance = serializer.save()
         
-        # Calcular y guardar costos inmediatamente
-        instance.costo_total = instance.calcular_costo_total()
-        if instance.rinde and instance.rinde > 0:
-            instance.costo_unitario = instance.costo_total / Decimal(str(instance.rinde))
-        else:
-            instance.costo_unitario = Decimal('0.00')
-        
-        instance.save()  # Esto activará el método save() que actualizará los costos
-        
-        # Recargar para obtener datos actualizados
-        instance.refresh_from_db()
-    
-    def get_queryset(self):
+        # Calcular costos inmediatamente después de crear
         try:
-            # ✅ VERIFICAR CIERRE AUTOMÁTICO DE FORMA SEGURA
-            from recetas.models import Receta
-            Receta.verificar_cierre_automatico()
+            # Actualizar costos usando el método del modelo
+            instance.costo_total = instance.calcular_costo_total()
+            if instance.rinde and instance.rinde > 0:
+                instance.costo_unitario = instance.costo_total / Decimal(str(instance.rinde))
+            else:
+                instance.costo_unitario = Decimal('0.00')
+            
+            # Guardar solo los campos de costo usando update() para evitar recursión
+            Receta.objects.filter(pk=instance.pk).update(
+                costo_total=instance.costo_total,
+                costo_unitario=instance.costo_unitario
+            )
+            
+            # Recargar para obtener datos actualizados
+            instance.refresh_from_db()
+            print(f"✅ Receta {instance.nombre} creada con costo_total: {instance.costo_total}")
             
         except Exception as e:
-            print(f"❌ Error en verificación automática: {e}")
-            # Continuar sin bloquear la respuesta
-        
-        queryset = Receta.objects.prefetch_related('insumos__insumo', 'insumos__unidad_medida').order_by('-creado_en')
-        
-        # Verificación individual para cada receta
-        for receta in queryset:
-            try:
-                receta.verificar_reinicio_diario()
-            except Exception as e:
-                print(f"❌ Error en verificar_reinicio_diario para {receta.nombre}: {e}")
-                continue
-            
-        return queryset
+            print(f"⚠️ Error calculando costos iniciales: {e}")
+            # Continuar aunque haya error en los costos
 
 class RecetaRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Receta.objects.all()
