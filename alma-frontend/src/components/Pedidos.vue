@@ -46,6 +46,7 @@
                   expanded: pedidoDesplegado[pedido.id],
                 },
               ]"
+              :data-pedido-id="pedido.id"
             >
               <!-- Contenedor principal compacto -->
               <div class="pedido-item-compact">
@@ -3027,12 +3028,46 @@ onMounted(() => {
     fetchUnidadesMedida(),
     fetchCategorias(),
     fetchProveedores(),
-  ]).catch((error) => {
-    loading.value = false;
-    if (error.response?.status === 401) {
-      logout();
-    }
-  });
+  ])
+    .then(() => {
+      // Después de cargar todos los datos, verificar si hay un pedidoId en la query
+      const pedidoIdFromQuery = route.query.pedidoId;
+      if (pedidoIdFromQuery && pedidos.value.length > 0) {
+        // Dar un pequeño retraso para asegurar que el DOM esté renderizado
+        setTimeout(() => {
+          // Buscar el pedido
+          const pedido = pedidos.value.find(p => p.id == pedidoIdFromQuery);
+          if (pedido) {
+            // Expandir automáticamente este pedido
+            pedidoDesplegado.value[pedido.id] = true;
+            
+            // Hacer scroll al pedido después de un pequeño retraso
+            setTimeout(() => {
+              // Encontrar el elemento del pedido en el DOM
+              const element = document.querySelector(`.pedido-item[data-pedido-id="${pedido.id}"]`);
+              if (element) {
+                element.scrollIntoView({ 
+                  behavior: 'smooth', 
+                  block: 'center' 
+                });
+                
+                // Resaltar temporalmente el pedido
+                element.classList.add('pedido-destacado');
+                setTimeout(() => {
+                  element.classList.remove('pedido-destacado');
+                }, 2000);
+              }
+            }, 100);
+          }
+        }, 300);
+      }
+    })
+    .catch((error) => {
+      loading.value = false;
+      if (error.response?.status === 401) {
+        logout();
+      }
+    });
 });
 </script>
 
@@ -4100,6 +4135,27 @@ onMounted(() => {
   padding: 0 8px;
   color: #6c757d;
   font-weight: 500;
+}
+
+.pedido-destacado {
+  animation: highlight 2s ease;
+  box-shadow: 0 0 0 2px #3498db !important;
+  border-color: #3498db !important;
+}
+
+@keyframes highlight {
+  0% {
+    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.7);
+    border-color: #3498db;
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(52, 152, 219, 0.3);
+    border-color: #2980b9;
+  }
+  100% {
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+    border-color: #3498db;
+  }
 }
 
 /* ==============================
