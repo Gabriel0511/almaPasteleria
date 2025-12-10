@@ -164,11 +164,11 @@ class RecetaSerializer(serializers.ModelSerializer):
             
             return receta
         
-    except Exception as e:
-        print(f"❌ Error en create de RecetaSerializer: {e}")
-        import traceback
-        traceback.print_exc()
-        raise serializers.ValidationError(f"Error al crear receta: {str(e)}")
+        except Exception as e:
+            print(f"❌ Error en create de RecetaSerializer: {e}")
+            import traceback
+            traceback.print_exc()
+            raise serializers.ValidationError(f"Error al crear receta: {str(e)}")
     
     def update(self, instance, validated_data):
         """Actualizar receta y recalcular costos"""
