@@ -1,44 +1,40 @@
-# recetas/management/commands/recalcular_costos_recetas.py
+# En recetas/management/commands/recalcular_costos.py
 from django.core.management.base import BaseCommand
 from recetas.models import Receta
-from django.db import transaction
+from decimal import Decimal
 
 class Command(BaseCommand):
     help = 'Recalcula los costos de todas las recetas'
 
-    def handle(self, *args, **options):
+    def handle(self, *args, **kwargs):
         recetas = Receta.objects.all()
         total_recetas = recetas.count()
-        recetas_actualizadas = 0
+        actualizadas = 0
         
-        self.stdout.write(f'Recalculando costos para {total_recetas} recetas...')
+        self.stdout.write(f"Recalculando costos para {total_recetas} recetas...")
         
         for receta in recetas:
             try:
-                with transaction.atomic():
-                    # Forzar la actualización de costos
-                    costo_anterior = receta.costo_total
-                    receta.actualizar_costos()
-                    receta.refresh_from_db()
-                    
-                    recetas_actualizadas += 1
-                    
+                costo_anterior = receta.costo_total
+                receta.costo_total = receta.calcular_costo_total()
+                
+                if receta.rinde and receta.rinde > 0:
+                    receta.costo_unitario = receta.costo_total / Decimal(str(receta.rinde))
+                else:
+                    receta.costo_unitario = Decimal('0.00')
+                
+                # Guardar si hubo cambios
+                if costo_anterior != receta.costo_total:
+                    receta.save(update_fields=['costo_total', 'costo_unitario'])
+                    actualizadas += 1
                     self.stdout.write(
-                        self.style.SUCCESS(
-                            f'✅ Receta "{receta.nombre}": '
-                            f'${costo_anterior} → ${receta.costo_total}'
-                        )
+                        self.style.SUCCESS(f"✓ {receta.nombre}: ${costo_anterior} → ${receta.costo_total}")
                     )
-                    
             except Exception as e:
                 self.stdout.write(
-                    self.style.ERROR(
-                        f'❌ Error en receta "{receta.nombre}": {e}'
-                    )
+                    self.style.ERROR(f"✗ Error en {receta.nombre}: {e}")
                 )
         
         self.stdout.write(
-            self.style.SUCCESS(
-                f'✅ Proceso completado: {recetas_actualizadas}/{total_recetas} recetas actualizadas'
-            )
+            self.style.SUCCESS(f"\n✅ Proceso completado. {actualizadas}/{total_recetas} recetas actualizadas.")
         )

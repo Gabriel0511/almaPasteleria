@@ -84,3 +84,94 @@ def convertir_unidad(cantidad, unidad_origen, unidad_destino):
         except Exception as e:
             print(f"⚠️ Error en conversión indirecta: {e}")
             return float(cantidad)  # Fallback: devolver cantidad original como float
+        
+def convertir_unidad_decimal(cantidad, unidad_origen, unidad_destino):
+    """
+    Versión que maneja Decimal para cálculos precisos.
+    Devuelve Decimal en lugar de float.
+    """
+    if unidad_origen == unidad_destino:
+        return Decimal(str(cantidad))
+
+    try:
+        unidad_origen = unidad_origen.lower()
+        unidad_destino = unidad_destino.lower()
+
+        factor = CONVERSIONES[unidad_origen][unidad_destino]
+        # Convertir factor a Decimal si no lo es
+        if not isinstance(factor, Decimal):
+            factor = Decimal(str(factor))
+        
+        # Asegurar que cantidad sea Decimal
+        if not isinstance(cantidad, Decimal):
+            cantidad = Decimal(str(cantidad))
+        
+        resultado = cantidad * factor
+        return resultado
+        
+    except KeyError:
+        # Si no hay conversión directa, buscar ruta indirecta
+        try:
+            # Para cucharada/cucharadita entre peso y volumen
+            if unidad_origen in ['kg', 'g'] and unidad_destino in ['cda', 'cdta']:
+                # Convertir primero a gramos si es necesario
+                if not isinstance(cantidad, Decimal):
+                    cantidad = Decimal(str(cantidad))
+                
+                if unidad_origen == 'kg':
+                    cantidad_g = cantidad * Decimal('1000')
+                else:
+                    cantidad_g = cantidad
+                
+                # Luego a cucharada/cucharadita
+                if unidad_destino == 'cda':
+                    resultado = cantidad_g / Decimal('17')
+                else:  # cdta
+                    resultado = cantidad_g / Decimal('5')
+                return resultado
+            
+            elif unidad_origen in ['cda', 'cdta'] and unidad_destino in ['kg', 'g']:
+                # Convertir primero a gramos
+                if not isinstance(cantidad, Decimal):
+                    cantidad = Decimal(str(cantidad))
+                
+                if unidad_origen == 'cda':
+                    cantidad_g = cantidad * Decimal('17')
+                else:  # cdta
+                    cantidad_g = cantidad * Decimal('5')
+                
+                # Luego a kg o g
+                if unidad_destino == 'kg':
+                    resultado = cantidad_g / Decimal('1000')
+                else:  # g
+                    resultado = cantidad_g
+                return resultado
+            
+            # Intentar conversión indirecta a través de unidades comunes
+            elif unidad_origen in ['kg', 'g'] and unidad_destino in ['ml', 'l']:
+                # Asumir densidad aproximada de agua: 1g = 1ml
+                if not isinstance(cantidad, Decimal):
+                    cantidad = Decimal(str(cantidad))
+                
+                if unidad_origen == 'kg':
+                    cantidad_g = cantidad * Decimal('1000')
+                else:
+                    cantidad_g = cantidad
+                
+                if unidad_destino == 'l':
+                    resultado = cantidad_g / Decimal('1000')
+                else:  # ml
+                    resultado = cantidad_g
+                return resultado
+            
+            else:
+                # Si no hay conversión, devolver cantidad original como Decimal
+                if not isinstance(cantidad, Decimal):
+                    return Decimal(str(cantidad))
+                return cantidad
+                
+        except Exception as e:
+            print(f"⚠️ Error en conversión indirecta: {e}")
+            if not isinstance(cantidad, Decimal):
+                return Decimal(str(cantidad))
+            return cantidad

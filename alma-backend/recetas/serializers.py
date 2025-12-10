@@ -88,7 +88,7 @@ class RecetaSerializer(serializers.ModelSerializer):
     def get_costo_total(self, obj):
         """Calcular costo total - VERSIÓN ULTRA SEGURA"""
         try:
-            costo_total = 0.0
+            costo_total = Decimal('0.00')
             
             for insumo_receta in obj.insumos.all():
                 if not insumo_receta.insumo or not insumo_receta.insumo.precio_unitario:
@@ -119,11 +119,12 @@ class RecetaSerializer(serializers.ModelSerializer):
     def get_costo_unitario(self, obj):
         """Calcular costo unitario"""
         try:
+            # Obtener costo total como Decimal
             costo_total_str = self.get_costo_total(obj)
-            costo_total = float(costo_total_str)
+            costo_total = Decimal(costo_total_str.replace(',', '.'))
             
             if obj.rinde > 0:
-                costo_unitario = costo_total / float(obj.rinde)
+                costo_unitario = costo_total / Decimal(str(obj.rinde))
                 return f"{costo_unitario:.2f}"
             return "0.00"
         except Exception as e:
@@ -145,6 +146,56 @@ class RecetaSerializer(serializers.ModelSerializer):
                 return float(valor_str)
         except:
             return 0.0
+    
+    def create(self, validated_data):
+        """Crear receta y calcular costos"""
+        # Crear la receta primero
+        receta = Receta.objects.create(**validated_data)
+        
+        # Recalcular costos después de crear
+        self._actualizar_costos_receta(receta)
+        
+        return receta
+    
+    def update(self, instance, validated_data):
+        """Actualizar receta y recalcular costos"""
+        # Actualizar campos
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        instance.save()
+        
+        # Recalcular costos después de actualizar
+        self._actualizar_costos_receta(instance)
+        
+        return instance
+    
+    def _actualizar_costos_receta(self, receta):
+        """Actualizar costos en la base de datos"""
+        try:
+            # Obtener costo total del serializer
+            costo_total_str = self.get_costo_total(receta)
+            costo_total = Decimal(costo_total_str.replace(',', '.'))
+            
+            # Calcular costo unitario
+            if receta.rinde > 0:
+                costo_unitario = costo_total / Decimal(str(receta.rinde))
+            else:
+                costo_unitario = Decimal('0.00')
+            
+            # Actualizar directamente en la base de datos
+            Receta.objects.filter(pk=receta.pk).update(
+                costo_total=costo_total,
+                costo_unitario=costo_unitario
+            )
+            
+            # Refrescar la instancia
+            receta.refresh_from_db()
+            
+            print(f"✅ Costos actualizados para receta {receta.nombre}: Total=${costo_total}, Unitario=${costo_unitario}")
+            
+        except Exception as e:
+            print(f"❌ Error actualizando costos para receta {receta.nombre}: {e}")
     
     class Meta:
         model = Receta

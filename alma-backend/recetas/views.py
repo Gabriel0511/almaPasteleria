@@ -40,7 +40,17 @@ class RecetaListCreateAPIView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         print("Datos recibidos:", self.request.data)
         instance = serializer.save()
-        instance.actualizar_costos()
+        
+        # Calcular y guardar costos inmediatamente
+        instance.costo_total = instance.calcular_costo_total()
+        if instance.rinde and instance.rinde > 0:
+            instance.costo_unitario = instance.costo_total / Decimal(str(instance.rinde))
+        else:
+            instance.costo_unitario = Decimal('0.00')
+        
+        instance.save()  # Esto activará el método save() que actualizará los costos
+        
+        # Recargar para obtener datos actualizados
         instance.refresh_from_db()
     
     def get_queryset(self):

@@ -4,7 +4,9 @@ from datetime import datetime, timedelta, date
 from insumos.models import Insumo, UnidadMedida
 from insumos.conversiones import convertir_unidad
 from decimal import Decimal
-import pytz  # Asegúrate de tener esto importado
+import pytz 
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 
 class Receta(models.Model):
     UNIDADES_RINDE = [
@@ -226,12 +228,15 @@ class Receta(models.Model):
             self.costo_total = Decimal('0.00')
             self.costo_unitario = Decimal('0.00')
         
-        # Llamar al save original
-        super().save(*args, **kwargs)
+        # Calcular costos ANTES de guardar
+        self.costo_total = self.calcular_costo_total()
+        if self.rinde and self.rinde > 0:
+            self.costo_unitario = self.costo_total / Decimal(str(self.rinde))
+        else:
+            self.costo_unitario = Decimal('0.00')
         
-        # Si ya existe en la BD, actualizar costos después de guardar
-        if self.pk:
-            self.actualizar_costos()
+        # Llamar al save original con los valores calculados
+        super().save(*args, **kwargs)
 
 class RecetaInsumo(models.Model):
     receta = models.ForeignKey(Receta, on_delete=models.CASCADE, related_name='insumos')
@@ -245,18 +250,23 @@ class RecetaInsumo(models.Model):
     def calcular_costo(self):
         """Calcula el costo de este insumo en la receta"""
         try:
-            if not self.insumo.precio_unitario:
+            if not self.insumo or not self.insumo.precio_unitario:
                 return Decimal('0.00')
             
-            # Obtener la cantidad en la unidad del insumo
+            # Obtener la cantidad en la unidad del insumo (ya es Decimal)
             cantidad_en_unidad_insumo = self.get_cantidad_en_unidad_insumo()
             
-            # Calcular costo
-            costo = self.insumo.precio_unitario * cantidad_en_unidad_insumo
+            # Asegurar que precio_unitario sea Decimal
+            precio = self.insumo.precio_unitario
+            if not isinstance(precio, Decimal):
+                precio = Decimal(str(precio))
+            
+            # Calcular costo (ambos son Decimal)
+            costo = precio * cantidad_en_unidad_insumo
             return costo.quantize(Decimal('0.01'))  # Redondear a 2 decimales
             
         except Exception as e:
-            print(f"❌ Error calculando costo para {self.insumo.nombre}: {e}")
+            print(f"❌ Error calculando costo para {self.insumo.nombre if self.insumo else 'insumo desconocido'}: {e}")
             return Decimal('0.00')
     
     def save(self, *args, **kwargs):
@@ -276,14 +286,18 @@ class RecetaInsumo(models.Model):
     def get_cantidad_en_unidad_insumo(self):
         """Convierte la cantidad a la unidad de medida del insumo"""
         try:
-            # Asegurarse de que tenemos los objetos relacionados cargados
-            if not hasattr(self, '_insumo_cache'):
-                self.insumo = Insumo.objects.select_related('unidad_medida').get(pk=self.insumo_id)
+            # Asegurar que cantidad sea Decimal
+            cantidad_decimal = self.cantidad
+            if not isinstance(cantidad_decimal, Decimal):
+                cantidad_decimal = Decimal(str(cantidad_decimal))
             
+            # Obtener unidades
             if not hasattr(self, '_unidad_medida_cache'):
                 self.unidad_medida = UnidadMedida.objects.get(pk=self.unidad_medida_id)
             
-            cantidad_decimal = Decimal(str(self.cantidad))
+            if not hasattr(self, '_insumo_cache'):
+                self.insumo = Insumo.objects.select_related('unidad_medida').get(pk=self.insumo_id)
+            
             unidad_receta = self.unidad_medida.abreviatura.lower()
             unidad_insumo = self.insumo.unidad_medida.abreviatura.lower()
             
@@ -291,32 +305,35 @@ class RecetaInsumo(models.Model):
             if unidad_receta == unidad_insumo:
                 return cantidad_decimal
             
-            # Usar conversiones.py
+            # Usar la nueva función que maneja Decimal
             try:
-                cantidad_convertida = convertir_unidad(
-                    cantidad_decimal, 
+                from insumos.conversiones import convertir_unidad_decimal
+                cantidad_convertida = convertir_unidad_decimal(
+                    cantidad_decimal,
                     unidad_receta, 
                     unidad_insumo
                 )
                 return cantidad_convertida
-            except ValueError as e:
-                print(f"⚠️ No se pudo convertir {unidad_receta} a {unidad_insumo}: {e}")
-                # Intentar con el sistema de factores
+            except ImportError:
+                # Fallback a la función original con manejo de tipos
                 try:
-                    if (hasattr(self.unidad_medida, 'factor_conversion_base') and 
-                        hasattr(self.insumo.unidad_medida, 'factor_conversion_base')):
-                        
-                        cantidad_base = cantidad_decimal * self.unidad_medida.factor_conversion_base
-                        cantidad_convertida = cantidad_base / self.insumo.unidad_medida.factor_conversion_base
-                        return cantidad_convertida
-                except Exception as factor_error:
-                    print(f"⚠️ Error en conversión por factores: {factor_error}")
-                
-                return cantidad_decimal
+                    from insumos.conversiones import convertir_unidad
+                    cantidad_float = convertir_unidad(
+                        float(cantidad_decimal),
+                        unidad_receta, 
+                        unidad_insumo
+                    )
+                    return Decimal(str(cantidad_float))
+                except Exception as e:
+                    print(f"⚠️ Error en conversión fallback: {e}")
+                    return cantidad_decimal
                     
         except Exception as e:
             print(f"❌ Error en get_cantidad_en_unidad_insumo: {e}")
-            return Decimal(str(self.cantidad))  
+            # Devolver como Decimal
+            if isinstance(self.cantidad, Decimal):
+                return self.cantidad
+            return Decimal(str(self.cantidad))
 
 class HistorialReceta(models.Model):
     receta = models.ForeignKey(Receta, on_delete=models.CASCADE, related_name='historial')
@@ -336,3 +353,46 @@ class HistorialReceta(models.Model):
     
     class Meta:
         ordering = ['-fecha_preparacion']
+
+@receiver([post_save, post_delete], sender=RecetaInsumo)
+def actualizar_costo_receta_al_modificar_insumo(sender, instance, **kwargs):
+    """
+    Señal para actualizar el costo de la receta cuando se modifica un insumo
+    """
+    try:
+        if instance.receta:
+            # Forzar recálculo y guardado
+            instance.receta.costo_total = instance.receta.calcular_costo_total()
+            if instance.receta.rinde and instance.receta.rinde > 0:
+                instance.receta.costo_unitario = instance.receta.costo_total / Decimal(str(instance.receta.rinde))
+            else:
+                instance.receta.costo_unitario = Decimal('0.00')
+            
+            # Guardar sin activar señales recursivas
+            Receta.objects.filter(pk=instance.receta.pk).update(
+                costo_total=instance.receta.costo_total,
+                costo_unitario=instance.receta.costo_unitario
+            )
+    except Exception as e:
+        print(f"❌ Error en señal actualizar_costo_receta_al_modificar_insumo: {e}")
+
+# También actualizar cuando cambia el precio de un insumo
+@receiver(post_save, sender=Insumo)
+def actualizar_recetas_al_cambiar_precio_insumo(sender, instance, **kwargs):
+    """
+    Señal para actualizar todas las recetas que usan un insumo cuando cambia su precio
+    """
+    try:
+        recetas_insumos = RecetaInsumo.objects.filter(insumo=instance)
+        recetas_ids = recetas_insumos.values_list('receta_id', flat=True).distinct()
+        
+        for receta_id in recetas_ids:
+            try:
+                receta = Receta.objects.get(pk=receta_id)
+                receta.actualizar_costos()
+            except Receta.DoesNotExist:
+                continue
+                
+        print(f"✅ Recetas actualizadas por cambio en precio de {instance.nombre}: {len(recetas_ids)} recetas")
+    except Exception as e:
+        print(f"❌ Error en señal actualizar_recetas_al_cambiar_precio_insumo: {e}")
