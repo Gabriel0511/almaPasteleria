@@ -153,18 +153,17 @@
                   :key="task.id"
                   class="task-item"
                   :class="task.estado"
-                  @click="irAPedidos(task.id)"
                 >
                   <label class="task-checkbox">
                     <input
                       type="checkbox"
                       :checked="task.estado === 'entregado'"
                       :disabled="task.estado === 'entregado'"
-                      @click.prevent="confirmarEntrega(task)"
+                      @click="confirmarEntrega(task)"
                     />
                     <span class="checkmark"></span>
                   </label>
-                  <div class="task-content">
+                  <div class="task-content" @click="irAPedidos(task.id)">
                     <div class="task-header">
                       <strong class="cliente-nombre">{{ task.nombre }}</strong>
                       <span class="estado-badge" :class="task.estado">
@@ -177,11 +176,10 @@
                         >Entrega: {{ formatFecha(task.fecha_entrega) }}</span
                       >
                       <div>
-                          <span class="recetas">
-                            {{ getRecetasText(task.detalles) }}
-                          </span>
+                        <span class="recetas">
+                          {{ getRecetasText(task.detalles) }}
+                        </span>
                       </div>
-                      
                     </div>
 
                     <div
@@ -225,7 +223,6 @@
                   :key="task.id"
                   class="task-item"
                   :class="task.estado"
-                  @click="irAPedidos(task.id)"
                 >
                   <label class="task-checkbox">
                     <input
@@ -234,12 +231,12 @@
                       :disabled="
                         task.estado === 'listo' || task.estado === 'entregado'
                       "
-                      @click.prevent="confirmarPreparacion(task)"
+                      @click="confirmarPreparacion(task)"
                     />
                     <span class="checkmark"></span>
                   </label>
 
-                  <div class="task-content">
+                  <div class="task-content" @click="irAPedidos(task.id)">
                     <div class="task-header">
                       <strong class="cliente-nombre">{{ task.nombre }}</strong>
                       <span class="estado-badge" :class="task.estado">
@@ -265,10 +262,9 @@
                       </span>
                       <div>
                         <span class="recetas">
-                        {{ getRecetasText(task.detalles) }}
-                      </span>
+                          {{ getRecetasText(task.detalles) }}
+                        </span>
                       </div>
-                      
                     </div>
 
                     <div class="dias-restantes">
@@ -1210,7 +1206,7 @@ onMounted(() => {
   background: white;
   border-left: 4px solid #ddd;
   transition: all 0.3s ease;
-   cursor: pointer;
+  cursor: pointer;
 }
 
 .task-item:hover {
