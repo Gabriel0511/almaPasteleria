@@ -153,6 +153,7 @@
                   :key="task.id"
                   class="task-item"
                   :class="task.estado"
+                  @click="irAPedidos(task.id)"
                 >
                   <label class="task-checkbox">
                     <input
@@ -175,9 +176,12 @@
                       <span class="fecha"
                         >Entrega: {{ formatFecha(task.fecha_entrega) }}</span
                       >
-                      <span class="recetas">
-                        {{ getRecetasText(task.detalles) }}
-                      </span>
+                      <div>
+                          <span class="recetas">
+                            {{ getRecetasText(task.detalles) }}
+                          </span>
+                      </div>
+                      
                     </div>
 
                     <div
@@ -221,6 +225,7 @@
                   :key="task.id"
                   class="task-item"
                   :class="task.estado"
+                  @click="irAPedidos(task.id)"
                 >
                   <label class="task-checkbox">
                     <input
@@ -258,9 +263,12 @@
                           ⚠️ Atrasado
                         </span>
                       </span>
-                      <span class="recetas">
+                      <div>
+                        <span class="recetas">
                         {{ getRecetasText(task.detalles) }}
                       </span>
+                      </div>
+                      
                     </div>
 
                     <div class="dias-restantes">
@@ -543,6 +551,13 @@ const irAStockConBusqueda = (nombreInsumo) => {
   router.push({
     path: "/stock",
     query: { search: nombreInsumo },
+  });
+};
+
+const irAPedidos = (pedidoId) => {
+  router.push({
+    path: "/pedidos",
+    query: { pedidoId: pedidoId },
   });
 };
 
