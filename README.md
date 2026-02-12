@@ -68,7 +68,6 @@ Las restricciones se aplican mediante permisos a nivel de API.
 
 ### Frontend
 - Vue 3 + Vite
-- Tailwind CSS
 - Axios
 - Deploy: Netlify
 
