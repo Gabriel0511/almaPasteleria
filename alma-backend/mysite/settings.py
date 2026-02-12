@@ -108,7 +108,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://sensational-gaufre-639a67.netlify.app",
     "http://localhost:8080",
     "http://127.0.0.1:8080", 
-    "http://localhost:5174",
+    "http://localhost:5173",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
