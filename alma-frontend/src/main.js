@@ -23,7 +23,7 @@ axios.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 axios.interceptors.response.use(
@@ -43,9 +43,8 @@ axios.interceptors.response.use(
         });
 
         localStorage.setItem("access_token", response.data.access);
-        axios.defaults.headers.common[
-          "Authorization"
-        ] = `Bearer ${response.data.access}`;
+        axios.defaults.headers.common["Authorization"] =
+          `Bearer ${response.data.access}`;
         originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
         return axios(originalRequest);
       } catch (refreshError) {
@@ -64,9 +63,9 @@ axios.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
-axios.defaults.baseURL = "https://almapasteleria-production-a6ba.up.railway.app/";
+axios.defaults.baseURL = "http://127.0.0.1:8000/";
 // En main.js, después de configurar axios.defaults.baseURL
 const token = localStorage.getItem("access_token");
 if (token) {
