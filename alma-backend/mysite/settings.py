@@ -13,6 +13,7 @@ from decouple import config, Csv
 import os
 from pathlib import Path
 from datetime import timedelta
+from rest_framework.permissions import AllowAny
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -71,7 +72,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',
     ),
 }
 
@@ -101,12 +102,13 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
+    "https://almapasteleria.onrender.com",
     "https://almapasteleria-production-a6ba.up.railway.app",
     "https://comforting-maamoul-b375a3.netlify.app",
     "https://sensational-gaufre-639a67.netlify.app",
     "http://localhost:8080",
     "http://127.0.0.1:8080", 
-    "http://localhost:5173",
+    "http://localhost:5174",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
