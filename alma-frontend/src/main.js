@@ -65,7 +65,7 @@ axios.interceptors.response.use(
     return Promise.reject(error);
   },
 );
-axios.defaults.baseURL = "http://127.0.0.1:8000/";
+axios.defaults.baseURL = "https://almapasteleria.onrender.com/";
 // En main.js, después de configurar axios.defaults.baseURL
 const token = localStorage.getItem("access_token");
 if (token) {
