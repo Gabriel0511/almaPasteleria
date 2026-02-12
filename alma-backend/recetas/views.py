@@ -15,6 +15,8 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import io
 from datetime import datetime
+from mysite.permissions import DemoUserReadOnly
+from rest_framework.permissions import IsAuthenticated
 import pytz
 
 # Importar los modelos correctamente
@@ -33,18 +35,18 @@ def convertir_a_hora_local(fecha_utc):
     return fecha_utc.astimezone(tz_argentina)
 
 class RecetaListCreateAPIView(generics.ListCreateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, DemoUserReadOnly]
     queryset = Receta.objects.all().order_by('-creado_en')
     serializer_class = RecetaSerializer
 
 class RecetaRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Receta.objects.all()
     serializer_class = RecetaSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, DemoUserReadOnly]
 
 
 class RecetaInsumoListCreateAPIView(generics.ListCreateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, DemoUserReadOnly]
 
     def get_queryset(self):
         receta_id = self.kwargs['receta_id']
@@ -61,7 +63,7 @@ class RecetaInsumoListCreateAPIView(generics.ListCreateAPIView):
 
 class RecetaInsumoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = RecetaInsumoSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, DemoUserReadOnly]
 
     def get_queryset(self):
         receta_id = self.kwargs['receta_id']
@@ -78,7 +80,7 @@ class RecetaInsumoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPI
         return response
     
 class RecetaInsumoPartialUpdateAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, DemoUserReadOnly]
     
     def patch(self, request, receta_id, pk):
         try:
@@ -241,7 +243,7 @@ class DecrementarRecetaView(APIView):
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 class RecetasHechasHoyView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, DemoUserReadOnly]
     
     def get(self, request):
         try:
@@ -283,7 +285,7 @@ class RecetasHechasHoyView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class RecetasPorFechaView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, DemoUserReadOnly]
     
     def get(self, request):
         try:
@@ -410,7 +412,7 @@ class RecetasPorFechaView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 class GenerarPDFRecetasView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, DemoUserReadOnly]
     
     def get(self, request):
         try:
@@ -615,7 +617,7 @@ class GenerarPDFRecetasView(APIView):
 # 🔹 Cierre Diario 
 # -------------------------
 class CierreDiarioView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, DemoUserReadOnly]
     
     def post(self, request):
         try:
@@ -683,7 +685,7 @@ class CierreDiarioView(APIView):
 # 🔹 Actualizar Costos de Recetas
 # -------------------------
 class ActualizarCostosRecetasView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, DemoUserReadOnly]
     
     def post(self, request):
         try:
@@ -726,7 +728,7 @@ class ActualizarCostosRecetasView(APIView):
 
 # 🔹 Opción 2: Endpoint para actualizar una receta específica
 class ActualizarCostoRecetaView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, DemoUserReadOnly]
     
     def post(self, request, pk):
         try:

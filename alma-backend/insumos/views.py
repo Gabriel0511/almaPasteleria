@@ -22,6 +22,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from mysite.permissions import DemoUserReadOnly
 import os
 
 # ==================== VISTAS PARA UNIDADES DE MEDIDA ====================
@@ -34,7 +35,7 @@ class UnidadMedidaDetailAPIView(generics.RetrieveAPIView):
     serializer_class = UnidadMedidaSerializer
 
 class UnidadMedidaCreateAPIView(generics.CreateAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = UnidadMedida.objects.all()
     serializer_class = UnidadMedidaSerializer
 
@@ -60,12 +61,12 @@ class UnidadMedidaCreateAPIView(generics.CreateAPIView):
 
 # ==================== VISTAS PARA CATEGORÍAS ====================
 class CategoriaInsumoListAPIView(generics.ListAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = CategoriaInsumo.objects.all()
     serializer_class = CategoriaInsumoSerializer
 
 class CategoriaInsumoCreateAPIView(generics.CreateAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = CategoriaInsumo.objects.all()
     serializer_class = CategoriaInsumoSerializer
 
@@ -91,12 +92,12 @@ class CategoriaInsumoCreateAPIView(generics.CreateAPIView):
 
 # ==================== VISTAS PARA PROVEEDORES ====================
 class ProveedorListAPIView(generics.ListAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = Proveedor.objects.all()
     serializer_class = ProveedorSerializer
 
 class ProveedorCreateAPIView(generics.CreateAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = Proveedor.objects.all()
     serializer_class = ProveedorSerializer
 
@@ -122,7 +123,7 @@ class ProveedorCreateAPIView(generics.CreateAPIView):
 
 # ==================== VISTAS PARA INSUMOS ====================
 class InsumoListAPIView(generics.ListAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = Insumo.objects.filter(activo=True)
     serializer_class = InsumoSerializer
 
@@ -136,7 +137,7 @@ class InsumoListAPIView(generics.ListAPIView):
         })
 
 class InsumoCreateAPIView(generics.CreateAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = Insumo.objects.all()
     serializer_class = InsumoSerializer
 
@@ -178,13 +179,13 @@ class InsumoCreateAPIView(generics.CreateAPIView):
         )
 
 class InsumoRetrieveAPIView(generics.RetrieveAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = Insumo.objects.all()
     serializer_class = InsumoSerializer
     lookup_field = 'id'
 
 class InsumoUpdateAPIView(generics.UpdateAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = Insumo.objects.all()
     serializer_class = InsumoSerializer
     lookup_field = 'id'
@@ -207,7 +208,7 @@ class InsumoUpdateAPIView(generics.UpdateAPIView):
         )
 
 class InsumoPartialUpdateAPIView(generics.UpdateAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = Insumo.objects.all()
     serializer_class = InsumoSerializer
     lookup_field = 'id'
@@ -216,7 +217,7 @@ class InsumoPartialUpdateAPIView(generics.UpdateAPIView):
         return self.partial_update(request, *args, **kwargs)
 
 class InsumoDestroyAPIView(generics.DestroyAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = Insumo.objects.all()
     serializer_class = InsumoSerializer
     lookup_field = 'id'
@@ -234,7 +235,7 @@ class InsumoDestroyAPIView(generics.DestroyAPIView):
         )
 
 class InsumoHardDeleteAPIView(generics.DestroyAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = Insumo.objects.all()
     serializer_class = InsumoSerializer
     lookup_field = 'id'
@@ -253,7 +254,7 @@ class InsumoHardDeleteAPIView(generics.DestroyAPIView):
 
 # ==================== VISTAS PARA PÉRDIDAS ====================
 class PerdidaListCreateView(generics.ListCreateAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = Perdida.objects.all().order_by('-fecha', '-id')
     
     def get_serializer_class(self):
@@ -320,7 +321,7 @@ class PerdidaListCreateView(generics.ListCreateAPIView):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class PerdidaDetailView(generics.RetrieveAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = Perdida.objects.all()
     serializer_class = PerdidaSerializer
     lookup_field = 'id'
@@ -885,7 +886,7 @@ class ListaComprasAPIView(APIView):
             return insumo.stock_minimo * Decimal('0.2')  # 20% del stock mínimo
 
 class InsumoReactivarAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     
     def post(self, request, id):
         try:
@@ -977,7 +978,7 @@ def lista_compras_simple(request):
         )
     
 class GenerarPDFReporteInsumosAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     
     def get(self, request):
         try:
@@ -1298,7 +1299,7 @@ class GenerarPDFReporteInsumosAPIView(APIView):
         return cantidad_formateada.replace('.', ',')
         
 class GenerarPDFListaComprasAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     
     def get(self, request):
         try:
@@ -1447,7 +1448,7 @@ class GenerarPDFListaComprasAPIView(APIView):
         return cantidad_formateada.replace('.', ',')
         
 class GenerarPDFPerdidasAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     
     def get(self, request):
         try:

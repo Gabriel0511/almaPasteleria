@@ -20,8 +20,11 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import io
 from datetime import datetime
+from mysite.permissions import DemoUserReadOnly
+from rest_framework.permissions import IsAuthenticated
 
 class PedidosHoyView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         hoy = date.today()
         
@@ -47,6 +50,8 @@ class PedidosHoyView(APIView):
         }, status=status.HTTP_200_OK)
 
 class ActualizarEstadoPedidoView(APIView):
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
+
     def patch(self, request, pk):
         pedido = get_object_or_404(Pedido, pk=pk)
         nuevo_estado = request.data.get('estado')
@@ -74,6 +79,7 @@ class ActualizarEstadoPedidoView(APIView):
         return Response(PedidoReadSerializer(pedido).data, status=status.HTTP_200_OK)
 
 class PedidoListCreateAPIView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = Pedido.objects.all().order_by('-fecha_pedido')
     
     def get_serializer_class(self):
@@ -93,6 +99,7 @@ class PedidoListCreateAPIView(generics.ListCreateAPIView):
             serializer.save()
 
 class PedidoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = Pedido.objects.all()
     lookup_field = 'pk'
     
@@ -102,10 +109,12 @@ class PedidoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
         return PedidoWriteSerializer
     
 class DetallePedidoCreateAPIView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = DetallePedido.objects.all()
     serializer_class = DetallePedidoWriteSerializer
 
 class DetallePedidoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = DetallePedido.objects.all()
     lookup_field = 'pk'
     
@@ -115,6 +124,7 @@ class DetallePedidoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAP
         return DetallePedidoWriteSerializer
 
 class ClienteListCreateAPIView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = Cliente.objects.all().order_by('nombre')
     serializer_class = ClienteSerializer
 
@@ -134,6 +144,7 @@ class ClienteListCreateAPIView(generics.ListCreateAPIView):
         )
 
 class PedidosPorFechaView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         fecha_str = request.GET.get('fecha')
         if not fecha_str:
@@ -160,6 +171,7 @@ class PedidosPorFechaView(APIView):
         })
 
 class PedidosPorEstadoView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         estado = request.GET.get('estado')
         if not estado:
@@ -184,6 +196,7 @@ class PedidosPorEstadoView(APIView):
         })
     
 class IngredientesExtraCreateAPIView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = IngredientesExtra.objects.all()
     serializer_class = IngredientesExtraWriteSerializer  # ← Cambiado
 
@@ -203,6 +216,7 @@ class IngredientesExtraCreateAPIView(generics.CreateAPIView):
         )
 
 class IngredientesExtraRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
     queryset = IngredientesExtra.objects.all()
     serializer_class = IngredientesExtraWriteSerializer  # ← Cambiado
     lookup_field = 'pk'
@@ -220,6 +234,8 @@ class IngredientesExtraRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestr
         )
     
 class EliminarDetallesPedidoView(APIView):
+    permission_classes = [IsAuthenticated, DemoUserReadOnly]
+
     def delete(self, request, pk):
         try:
             pedido = Pedido.objects.get(pk=pk)
@@ -235,6 +251,7 @@ class EliminarDetallesPedidoView(APIView):
             )
         
 class PedidosEntregadosView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         # Obtener parámetros de fecha
         fecha_inicio = request.GET.get('fecha_inicio')
@@ -294,7 +311,7 @@ class PedidosEntregadosView(APIView):
         })
 
 class GenerarPDFPedidosView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     
     def get(self, request):
         try:
