@@ -138,22 +138,18 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 # ===========================
 import dj_database_url
 
+# Decouple buscará en .env o en las variables de entorno del sistema
+DATABASE_URL = config('DATABASE_URL')
+
 DATABASES = {
     'default': dj_database_url.config(
-        default=config('DATABASE_URL', default=''),
-        engine='django.db.backends.postgresql',
+        default=DATABASE_URL,
         conn_max_age=600,
-        ssl_require=not DEBUG
+        # Neon requiere SSL. 
+        # Esta lógica asegura que siempre pida SSL a menos que uses SQLite local
+        ssl_require=True if DATABASE_URL.startswith('postgres') else False
     )
 }
-
-# Si hay DATABASE_URL de Railway, sobreescribe la configuración
-if 'DATABASE_URL' in os.environ:
-    DATABASES['default'] = dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True
-    )
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
