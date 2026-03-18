@@ -138,15 +138,12 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 # ===========================
 import dj_database_url
 
-# Decouple buscará en .env o en las variables de entorno del sistema
 DATABASE_URL = config('DATABASE_URL')
 
 DATABASES = {
     'default': dj_database_url.config(
         default=DATABASE_URL,
         conn_max_age=600,
-        # Neon requiere SSL. 
-        # Esta lógica asegura que siempre pida SSL a menos que uses SQLite local
         ssl_require=True if DATABASE_URL.startswith('postgres') else False
     )
 }
